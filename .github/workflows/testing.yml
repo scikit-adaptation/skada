@@ -1,0 +1,41 @@
+name: Testing
+on: [push]
+
+jobs:
+  Install-Test-msda:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+
+    ## Install msda
+    - name: Checking Out Repository
+      uses: actions/checkout@v2
+    # Cache MNE Data
+    # The cache key here is fixed except for os
+    # so if you download a new mne dataset in the code, best to manually increment the key below
+    - name: Create/Restore MNE Data Cache
+      id: cache-mne_data
+      uses: actions/cache@v2
+      with:
+        path: ~/mne_data
+        key: ${{ runner.os }}-v3
+    - name: Setting Up Conda msda Environment
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        environment-file: environment.yml
+        python-version: 3.7
+        activate-environment: msda
+        auto-activate-base: false
+    # Show Conda and Python Versions
+    - run: conda --version
+    - run: conda info --envs
+    - run: which python
+    ## Run Tests
+    - name: Install Codecov etc.
+      run: pip install --upgrade pytest pytest-cov codecov
+    - name: Run Tests # See https://stackoverflow.com/a/59959080/1469195 for the cov-report logic
+      run: pytest --cov=msda test/ --cov-report term --cov-report xml:coverage.xml
