@@ -1,9 +1,14 @@
-from toolbox.utils import cov, norm_coral
+from ..utils import cov, norm_coral
 from . import BaseDANetwork
 
 
 class DeepCORAL(BaseDANetwork):
     """Loss DeepCORAL
+    
+    Parameters
+    ----------
+    XXX
+
     References
     ----------
     .. [2]  Baochen Sun and Kate Saenko. Deep coral:
@@ -21,7 +26,6 @@ class DeepCORAL(BaseDANetwork):
         batch_size=16,
         alpha=0.5
     ):
-
         super().__init__(
             base_model,
             layer_names,

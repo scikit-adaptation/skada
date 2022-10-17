@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='toolbox',
+    name='da_toolbox',
     version='0',
     description='A domain adaptation toolbox to reduce shift between domains.',
 

@@ -2,8 +2,8 @@ import numpy as np
 import torch
 import pytest
 
-from toolbox.deepda import DeepCORAL
-from toolbox.utils import NeuralNetwork, CustomDataset
+from da_toolbox.deepda import DeepCORAL
+from da_toolbox.utils import NeuralNetwork, CustomDataset
 
 
 @pytest.mark.parametrize(

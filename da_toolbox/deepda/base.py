@@ -1,14 +1,16 @@
-import torch
+from abc import ABC, abstractmethod
 import copy
 
 import numpy as np
-
+import torch
 from torch.utils.data import DataLoader, random_split, ConcatDataset
+
 from sklearn.model_selection import train_test_split
-from toolbox.utils import register_forwards_hook
+
+from ..utils import register_forwards_hook
 
 
-class BaseDANetwork():
+class BaseDANetwork(ABC):
 
     def __init__(
         self,
@@ -29,6 +31,10 @@ class BaseDANetwork():
             self.criterion = torch.nn.CrossEntropyLoss()
         else:
             self.criterion = criterion
+
+    @abstractmethod
+    def _loss_da(self):
+        pass
 
     def fit(self, dataset, dataset_target=None, optimizer=None):
         base_model = copy.deepcopy(self.base_model)
