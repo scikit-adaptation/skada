@@ -1,7 +1,9 @@
+from abc import ABC, abstractmethod
+
 from sklearn.base import clone
 
 
-class BaseDAEstimator:
+class BaseDAEstimator(ABC):
     def __init__(
         self,
         base_estimator,
@@ -19,6 +21,7 @@ class BaseDAEstimator:
         if weights_adapt is None:
             base_estimator.fit(X_adapt, y_adapt)
         else:
+            # XXX should check if the estimator has a sample_weight parameter
             base_estimator.fit(X_adapt, y_adapt, sample_weight=weights_adapt)
         self.base_estimator_ = base_estimator
 
@@ -34,3 +37,7 @@ class BaseDAEstimator:
     def predict(self, X):
         base_estimator = self.base_estimator_
         return base_estimator.predict(X)
+
+    def score(self, X, y):
+        base_estimator = self.base_estimator_
+        return base_estimator.score(X, y)
