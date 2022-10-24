@@ -10,7 +10,7 @@ def test_reweight_density():
         [0, 0],
         [1, 1],
     ])
-    n_classes, n_features = centers.shape
+    _, n_features = centers.shape
     rng = np.random.RandomState(42)
     X, y = make_blobs(
         n_samples=500,
