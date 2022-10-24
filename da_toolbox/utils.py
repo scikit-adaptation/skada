@@ -37,28 +37,21 @@ def register_forwards_hook(model, intermediate_layers, layer_names):
 
 
 class NeuralNetwork(nn.Module):
-    def __init__(self, input_size, n_channels, n_classes):
+    def __init__(self, input_size, n_classes):
         super(NeuralNetwork, self).__init__()
+
         self.feature_extractor = nn.Sequential(
-            nn.Conv1d(in_channels=n_channels, out_channels=8, kernel_size=10),
+            nn.Linear(input_size, 10),
             nn.ReLU(),
         )
         self.fc = nn.Linear(
-            self._len_last_layer(n_channels, input_size), n_classes
+            10, n_classes
         )
 
     def forward(self, x):
         x = self.feature_extractor(x)
         x = self.fc(x.flatten(start_dim=1))
         return x
-
-    def _len_last_layer(self, n_channels, input_size):
-        self.feature_extractor.eval()
-        with torch.no_grad():
-            out = self.feature_extractor(
-                torch.Tensor(1, n_channels, input_size))
-        self.feature_extractor.train()
-        return len(out.flatten())
 
 
 class CustomDataset(Dataset):
