@@ -4,6 +4,7 @@ import numpy as np
 
 from sklearn.neighbors import KernelDensity
 
+
 class ReweightDensity(BaseDAEstimator):
     def __init__(
         self,
@@ -25,7 +26,7 @@ class ReweightDensity(BaseDAEstimator):
         ws = self.weight_estimator_source.score_sample(X)
         wt = self.weight_estimator_target.score_sample(X)
         weights = np.exp(wt - ws)
-        weights = weights/weights.sum()
+        weights = weights / weights.sum()
 
         return X, y, weights
 
