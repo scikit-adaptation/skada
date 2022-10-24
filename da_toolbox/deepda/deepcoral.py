@@ -7,7 +7,23 @@ class DeepCORAL(BaseDANetwork):
 
     Parameters
     ----------
-    XXX
+    base_model: torch model
+        model used for training and prediction
+    layer_names: list of tuples
+        list storing the name of the layers
+        from which we want to get the output.
+    optimizer:  torch optimizer or None
+        Optimizer to use for training,
+        if None use Adam optimizer.
+    criterion:  torch criterion or None
+        criterion to use for training,
+        if None use CrossEntropy.
+    n_epochs: int
+        number of the epoch during training.
+    batch_size: int
+        batch size used to create the dataloader.
+    alpha: float
+        parameter for DeepCoral method.
 
     References
     ----------
