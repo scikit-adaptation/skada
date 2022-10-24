@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.datasets import make_blobs
 from sklearn.linear_model import LogisticRegression
 
-from da_toolbox.da.reweight import ReweightDensity
+from skada.da.reweight import ReweightDensity
 
 
 def test_reweight_density():
