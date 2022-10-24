@@ -11,4 +11,5 @@ dependencies:
 - pytest
 - pot
 - pip
+- scikit-learn
   
