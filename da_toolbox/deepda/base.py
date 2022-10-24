@@ -89,9 +89,12 @@ class BaseDANetwork(ABC):
 
         return y_pred
 
+    def best_model(self):
+        return self.base_model_
+
     def _train(self, base_model):
         # training loop
-        self.base_model.train()
+        base_model.train()
         train_loss = []
 
         for batch_x, batch_y in self.loader_train:
@@ -133,18 +136,16 @@ class BaseDANetwork(ABC):
 
         return np.mean(train_loss)
 
-    def _validate(self, model):
+    def _validate(self, base_model):
         # validation loop
-        model.eval()
-        device = next(model.parameters()).device
-
+        base_model.eval()
         val_loss = np.zeros(len(self.loader_val))
         y_pred_all, y_true_all = [], []
         with torch.no_grad():
             for idx_batch, (batch_x, batch_y) in enumerate(self.loader_val):
-                batch_x = batch_x.to(device=device)
-                batch_y = batch_y.to(device=device)
-                output = self.base_model.forward(batch_x)
+                batch_x = batch_x.to(device=self.device)
+                batch_y = batch_y.to(device=self.device)
+                output = base_model.forward(batch_x)
                 loss = self.criterion(output, batch_y)
                 val_loss[idx_batch] = loss.item()
 

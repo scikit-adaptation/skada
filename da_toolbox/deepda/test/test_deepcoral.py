@@ -7,24 +7,24 @@ from da_toolbox.utils import NeuralNetwork, CustomDataset
 
 
 @pytest.mark.parametrize(
-    "input_size,n_channels,n_classes",
-    [(100, 20, 5), (80, 10, 4), (120, 1, 2)],
+    "input_size,n_classes",
+    [(100, 5), (80, 4), (120, 2)],
 )
-def test_deepcoral(input_size, n_channels, n_classes):
+def test_deepcoral(input_size, n_classes):
     rng = np.random.RandomState(42)
     n_examples = 20
 
     model = NeuralNetwork(
-        input_size=input_size, n_channels=n_channels, n_classes=n_classes
+        input_size=input_size, n_classes=n_classes
     )
     model.eval()
 
     rng = np.random.RandomState(42)
-    X = rng.randn(n_examples, n_channels, input_size)
+    X = rng.randn(n_examples, input_size)
     X = torch.from_numpy(X.astype(np.float32))
     y = rng.randint(n_classes, size=n_examples)
     y = torch.from_numpy(y)
-    X_target = rng.randn(n_examples, n_channels, input_size)
+    X_target = rng.randn(n_examples, input_size)
     X_target = torch.from_numpy(X_target.astype(np.float32))
     y_target = rng.randint(n_classes, size=n_examples)
     y_target = torch.from_numpy(y_target)
