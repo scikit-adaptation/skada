@@ -4,7 +4,7 @@ from . import BaseDANetwork
 
 class DeepCORAL(BaseDANetwork):
     """Loss DeepCORAL
-    
+
     Parameters
     ----------
     XXX
