@@ -43,9 +43,7 @@ class NeuralNetwork(nn.Module):
             nn.Conv1d(in_channels=n_channels, out_channels=8, kernel_size=10),
             nn.ReLU(),
         )
-        self.fc = nn.Linear(
-            self._len_last_layer(n_channels, input_size), n_classes
-        )
+        self.fc = nn.Linear(self._len_last_layer(n_channels, input_size), n_classes)
 
     def forward(self, x):
         x = self.feature_extractor(x)
@@ -55,8 +53,7 @@ class NeuralNetwork(nn.Module):
     def _len_last_layer(self, n_channels, input_size):
         self.feature_extractor.eval()
         with torch.no_grad():
-            out = self.feature_extractor(
-                torch.Tensor(1, n_channels, input_size))
+            out = self.feature_extractor(torch.Tensor(1, n_channels, input_size))
         self.feature_extractor.train()
         return len(out.flatten())
 

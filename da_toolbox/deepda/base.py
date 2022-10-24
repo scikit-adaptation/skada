@@ -11,7 +11,6 @@ from ..utils import register_forwards_hook
 
 
 class BaseDANetwork(ABC):
-
     def __init__(
         self,
         base_model,
@@ -40,9 +39,7 @@ class BaseDANetwork(ABC):
         base_model = copy.deepcopy(self.base_model)
         # Create hook on the wanted layers output
         self.intermediate_layers = {}
-        register_forwards_hook(
-            base_model, self.intermediate_layers, self.layer_names
-        )
+        register_forwards_hook(base_model, self.intermediate_layers, self.layer_names)
 
         self._make_loaders(dataset)
         if self.optimizer is None:
@@ -113,8 +110,7 @@ class BaseDANetwork(ABC):
 
             self.output = base_model(self.batch_x)
             self.embedd = [
-                self.intermediate_layers[layer_name]
-                for layer_name in self.layer_names
+                self.intermediate_layers[layer_name] for layer_name in self.layer_names
             ]
 
             if self.da:
@@ -165,40 +161,35 @@ class BaseDANetwork(ABC):
         return self.criterion(self.output, self.batch_y)
 
     def _make_loaders(
-            self,
-            dataset,
-            split_strategy="random",
-            multi_source_strategy="concatenate"
+        self, dataset, split_strategy="random", multi_source_strategy="concatenate"
     ):
         if type(dataset) is list:
             if split_strategy == "random":
-                dataset_train, dataset_val = train_test_split(
-                    dataset, test_size=0.2
-                    )
+                dataset_train, dataset_val = train_test_split(dataset, test_size=0.2)
             if multi_source_strategy == "concatenate":
                 self.loader_train = DataLoader(
                     ConcatDataset(dataset_train),
                     batch_size=self.batch_size,
                     shuffle=True,
-                    )
+                )
                 self.loader_val = DataLoader(
                     ConcatDataset(dataset_val),
                     batch_size=self.batch_size,
                     shuffle=False,
-                    )
+                )
         else:
             n_ds = len(dataset)
-            n_ds_train = int(n_ds*0.8)
+            n_ds_train = int(n_ds * 0.8)
             dataset_train, dataset_val = random_split(
-                dataset, lengths=[n_ds_train, n_ds-n_ds_train]
-                )
+                dataset, lengths=[n_ds_train, n_ds - n_ds_train]
+            )
             self.loader_train = DataLoader(
                 dataset_train,
                 batch_size=self.batch_size,
                 shuffle=True,
-                )
+            )
             self.loader_val = DataLoader(
                 dataset_val,
                 batch_size=self.batch_size,
                 shuffle=False,
-                )
+            )
