@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='da_toolbox',
+    name='skada',
     version='0',
     description='A domain adaptation toolbox to reduce shift between domains.',
 

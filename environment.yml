@@ -1,4 +1,4 @@
-name: datoolbox
+name: skada
 channels:
   - conda-forge
   - defaults
@@ -11,4 +11,5 @@ dependencies:
 - pytest
 - pot
 - pip
+- scikit-learn
   

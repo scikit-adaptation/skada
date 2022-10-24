@@ -40,16 +40,11 @@ class DeepCORAL(BaseDANetwork):
         criterion=None,
         n_epochs=100,
         batch_size=16,
-        alpha=0.5
+        alpha=0.5,
     ):
         super().__init__(
-            base_model,
-            layer_names,
-            optimizer,
-            criterion,
-            n_epochs,
-            batch_size
-            )
+            base_model, layer_names, optimizer, criterion, n_epochs, batch_size
+        )
         self.alpha = alpha
 
     def _loss_da(self):
