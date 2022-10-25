@@ -1,5 +1,5 @@
 """
-Some methods for domain adaptation.
+Some methods for deep domain adaptation.
 """
 from .base import BaseDANetwork
 from .deepcoral import DeepCORAL
