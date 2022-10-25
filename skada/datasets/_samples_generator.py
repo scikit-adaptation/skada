@@ -43,7 +43,7 @@ def _generate_data(n_samples, rng):
 
     x24 = rng.randn(n2, 2).dot(Sigma2) + mu2[None, :]
 
-    # concatenate data and add noise features
+    # concatenate data
     x = np.concatenate((x1, x21, x22, x23, x24), 0)
 
     # make labels
@@ -218,19 +218,19 @@ def make_shifted_datasets(
         if noise is not None:
             X_target += rng.normal(scale=noise, size=X_target.shape)
 
-        iclass1 = rng.choice(
+        isel1 = rng.choice(
             n_samples_target_temp // 2,
             size=(int(n_samples_target * ratio),),
             replace=False
         )
-        iclass2 = (
+        isel2 = (
             rng.choice(
                 n_samples_target_temp // 2,
                 size=(int(n_samples_target * (1 - ratio)),),
                 replace=False
             )
         ) + n_samples_target_temp // 2
-        isel = np.concatenate((iclass1, iclass2))
+        isel = np.concatenate((isel1, isel2))
 
         X_target = X_target[isel]
         y_target = y_target[isel]
@@ -262,5 +262,97 @@ def make_shifted_datasets(
 
     else:
         raise NotImplementedError("unknown shift {}".format(shift))
+
+    return X_source, y_source, X_target, y_target
+
+
+def make_out_of_distribution_dataset(
+    n_samples_source=100,
+    n_samples_target=100,
+    pos_sources=[0.1],
+    pos_targets=[0.2],
+    random_state=None
+):
+    """Make out-of-distribution dataset.
+    A simple toy dataset to create an out-of-distribution dataset
+    for classification.
+    Parameters
+    ----------
+    n_samples_source : int, default=100
+        It is the total number of points equally divided among
+        source clusters.
+    n_samples_target : int, default=100
+        It is the total number of points equally divided among
+        target clusters.
+    pos_sources : array-like of float, default=[0.1]
+        Each element of the sequence indicates the position
+        of the center of each source cluster.
+    pos_sources : array-like of float, default=[0.1]
+        Each element of the sequence indicates the position
+        of the center of each target cluster.
+    random_state : int, RandomState instance or None, default=None
+        Determines random number generation for dataset creation.Pass an int
+        for reproducible output across multiple function calls.
+
+    Returns
+    -------
+    X_source : ndarray of shape (n_samples, n_features)
+        The generated source samples.
+    y_source : ndarray of shape (n_samples,)
+        The integer labels for cluster membership of each source sample.
+    X_target : ndarray of shape (n_samples, n_features)
+        The generated target samples.
+    y_target : ndarray of shape (n_samples,)
+        The integer labels for cluster membership of each target sample.
+    """
+
+    rng = np.random.RandomState(random_state)
+
+    n_sources = len(pos_sources)
+    n_targets = len(pos_targets)
+
+    n_samples_circ = 100
+    outer_distr_circ_x = np.cos(np.linspace(0, np.pi, n_samples_circ))
+    outer_distr_circ_y = np.sin(np.linspace(0, np.pi, n_samples_circ))
+    inner_distr_circ_x = 1 - np.cos(np.linspace(0, np.pi, n_samples_circ))
+    inner_distr_circ_y = 1 - np.sin(np.linspace(0, np.pi, n_samples_circ)) - 0.5
+
+    X_source = np.zeros((n_sources, 2*n_samples_source, 2))
+    y_source = np.zeros((n_sources, 2*n_samples_source))
+    cov = [[0.01, 0], [0, 0.01]]
+    for i, pos_source in enumerate(pos_sources):
+        index = int(pos_source * 100)
+        center1 = np.array([outer_distr_circ_x[index], outer_distr_circ_y[index]])
+        center2 = np.array([inner_distr_circ_x[index], inner_distr_circ_y[index]])
+
+        X_source[i] = np.concatenate(
+            [rng.multivariate_normal(center1, cov, size=n_samples_source),
+             rng.multivariate_normal(center2, cov, size=n_samples_source)]
+        )
+        y_source[i] = np.concatenate(
+            [np.zeros(n_samples_source),
+             np.ones(n_samples_source)]
+        )
+
+    X_target = np.zeros((n_targets, 2*n_samples_target, 2))
+    y_target = np.zeros((n_sources, 2*n_samples_target))
+    for i, pos_target in enumerate(pos_targets):
+        index = int(pos_target * 100)
+        center1 = np.array([outer_distr_circ_x[index], outer_distr_circ_y[index]])
+        center2 = np.array([inner_distr_circ_x[index], inner_distr_circ_y[index]])
+
+        X_target[i] = np.concatenate(
+            [rng.multivariate_normal(center1, cov, size=n_samples_target),
+             rng.multivariate_normal(center2, cov, size=n_samples_target)]
+        )
+        y_target[i] = np.concatenate(
+            [np.zeros(n_samples_target),
+             np.ones(n_samples_target)]
+        )
+
+    X_source = np.concatenate(X_source)
+    y_source = np.concatenate(y_source)
+    X_target = np.concatenate(X_target)
+    y_target = np.concatenate(y_target)
 
     return X_source, y_source, X_target, y_target
