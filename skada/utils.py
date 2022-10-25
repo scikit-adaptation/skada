@@ -76,9 +76,7 @@ class NeuralNetwork(nn.Module):
             nn.Linear(input_size, 10),
             nn.ReLU(),
         )
-        self.fc = nn.Linear(
-            10, n_classes
-        )
+        self.fc = nn.Linear(10, n_classes)
 
     def forward(self, x):
         x = self.feature_extractor(x)
