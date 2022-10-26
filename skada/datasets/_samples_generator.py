@@ -11,7 +11,7 @@ def _generate_unif_circle(n_samples, rng):
     return x
 
 
-def _generate_data_2d_classif(n_samples, rng):
+def _generate_data_2d_classif(n_samples, rng, label='binary'):
     n1 = n_samples // 2
     n2 = n1 // 4
     # make data of class 1
@@ -47,8 +47,12 @@ def _generate_data_2d_classif(n_samples, rng):
     x = np.concatenate((x1, x21, x22, x23, x24), 0)
 
     # make labels
-    y = np.concatenate((np.zeros(n1), np.ones(4*n2)), 0)
-
+    if label == 'binary':
+        y = np.concatenate((np.zeros(n1), np.ones(4*n2)), 0)
+    elif label == 'multiclass':
+        y = np.zeros(n1)
+        for i in range(4):
+            y = np.concatenate((y, (i+1)*np.ones(n2)), 0)
     return x, y.astype(int)
 
 
