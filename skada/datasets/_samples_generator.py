@@ -1,3 +1,4 @@
+import numbers
 import numpy as np
 
 from sklearn.datasets import make_blobs
@@ -136,6 +137,10 @@ def make_shifted_blobs(
         If float, it is the value of the translation for every target feature.
         If array_like, each element of the sequence indicates the value of
         the translation for each target features.
+    noise : float or array_like, default=None
+        If float, standard deviation of Gaussian noise added to the data.
+        If array-like, each element of the sequence indicate standard
+        deviation of Gaussian noise added to the source and target data.
     centers : int or ndarray of shape (n_centers, n_features), default=None
         The number of centers to generate, or the fixed center locations.
         If n_samples is an int and centers is None, 3 centers are generated.
@@ -169,14 +174,15 @@ def make_shifted_blobs(
         cluster_std=cluster_std,
     )
 
-    X_target, y_target = make_blobs(
-        n_samples=n_samples_target,
-        centers=centers,
-        n_features=n_features,
-        random_state=random_state,
-        cluster_std=cluster_std,
-    )
-    X_target += shift
+    X_target = X_source + shift
+    y_target = y_source
+
+    if isinstance(noise, numbers.Real):
+        X_source += rng.normal(scale=noise, size=X_source.shape)
+        X_target += rng.normal(scale=noise, size=X_target.shape)
+    elif noise is not None:
+        X_source += rng.normal(scale=noise[0], size=X_source.shape)
+        X_target += rng.normal(scale=noise[1], size=X_target.shape)
 
     return X_source, y_source, X_target, y_target
 
@@ -210,8 +216,10 @@ def make_shifted_datasets(
         If 'concept_drift', use concept drift.
         If 'sample_bias', use sample-selection bias.
         Detailed descriptionof each shift in [1].
-    noise : float, default=None
-        Standard deviation of Gaussian noise added to the data.
+    noise : float or array_like, default=None
+        If float, standard deviation of Gaussian noise added to the data.
+        If array-like, each element of the sequence indicate standard
+        deviation of Gaussian noise added to the source and target data.
     ratio : float, default=0.9
         Ratio of the number of data in class 1 selected
         in the target shift and the sample_selection bias
@@ -309,6 +317,13 @@ def make_shifted_datasets(
 
     else:
         raise NotImplementedError("unknown shift {}".format(shift))
+
+    if isinstance(noise, numbers.Real):
+        X_source += rng.normal(scale=noise, size=X_source.shape)
+        X_target += rng.normal(scale=noise, size=X_target.shape)
+    elif noise is not None:
+        X_source += rng.normal(scale=noise[0], size=X_source.shape)
+        X_target += rng.normal(scale=noise[1], size=X_target.shape)
 
     return X_source, y_source, X_target, y_target
 
