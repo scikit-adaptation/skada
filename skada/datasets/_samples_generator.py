@@ -210,13 +210,13 @@ def make_shifted_datasets(
     """
 
     rng = np.random.RandomState(random_state)
-    X_source, y_source = _generate_data_2d_classif(n_samples_source, rng)
+    X_source, y_source = _generate_data_2d_classif(n_samples_source, rng, label)
 
     if shift == "covariate_shift":
         n_samples_target_temp = n_samples_target * 100
-        X_target, y_target = _generate_data_2d_classif(n_samples_target_temp, rng)
-        if noise is not None:
-            X_target += rng.normal(scale=noise, size=X_target.shape)
+        X_target, y_target = _generate_data_2d_classif(
+            n_samples_target_temp, rng, label
+        )
 
         w = np.exp(-gamma * np.sum((X_target - np.array(center)) ** 2, 1))
         w /= w.sum()
@@ -228,9 +228,9 @@ def make_shifted_datasets(
 
     elif shift == "target_shift":
         n_samples_target_temp = n_samples_target * 3
-        X_target, y_target = _generate_data_2d_classif(n_samples_target_temp, rng)
-        if noise is not None:
-            X_target += rng.normal(scale=noise, size=X_target.shape)
+        X_target, y_target = _generate_data_2d_classif(
+            n_samples_target_temp, rng, label
+        )
 
         isel1 = rng.choice(
             n_samples_target_temp // 2,
@@ -250,18 +250,14 @@ def make_shifted_datasets(
         y_target = y_target[isel]
 
     elif shift == "concept_drift":
-        X_target, y_target = _generate_data_2d_classif(n_samples_target, rng)
-        if noise is not None:
-            X_target += rng.normal(scale=noise, size=X_target.shape)
-
+        X_target, y_target = _generate_data_2d_classif(n_samples_target, rng, label)
         X_target = X_target * sigma + mean
 
     elif shift == "sample_bias":
         n_samples_target_temp = n_samples_target * 100
-        X_target, y_target = _generate_data_2d_classif(n_samples_target_temp, rng)
-        if noise is not None:
-            X_target += rng.normal(scale=noise, size=X_target.shape)
-
+        X_target, y_target = _generate_data_2d_classif(
+            n_samples_target_temp, rng, label
+        )
         w = np.exp(-gamma * np.sum((X_target - np.array(center)) ** 2, 1))
 
         w[y_target == 1] *= 1 - ratio
