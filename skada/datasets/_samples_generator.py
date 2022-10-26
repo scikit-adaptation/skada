@@ -12,8 +12,21 @@ def _generate_unif_circle(n_samples, rng):
 
 
 def _generate_data_2d_classif(n_samples, rng, label='binary'):
-    n1 = n_samples // 2
-    n2 = n1 // 4
+    """Generate 2d classification data.
+
+    Parameters
+    ----------
+    n_samples : int
+        It is the total number of points among one clusters.
+        At the end the number of point are 8*n_samples
+    rng : random generator
+        Generator for dataset creation
+    label : tuple, default='binary'
+        If 'binary, return binary class
+        If 'multiclass', return multiclass
+    """
+    n2 = n_samples
+    n1 = n2 * 4
     # make data of class 1
     Sigma1 = np.array([[2, -0.5], [-0.5, 2]])
     mu1 = np.array([2, 2])
@@ -147,16 +160,12 @@ def make_shifted_datasets(
 
     Parameters
     ----------
-    n_samples_source : int or array-like, default=100
-        If int, it is the total number of points equally divided among
-        source clusters.
-        If array-like, each element of the sequence indicates
-        the number of samples per source cluster.
-    n_samples_target : int or array-like, default=100
-        If int, it is the total number of points equally divided among
-        target clusters.
-        If array-like, each element of the sequence indicates
-        the number of samples per target cluster.
+    n_samples_source : int, default=100
+        It is the total number of points among one
+        source clusters. At the end 8*n_samples points.
+    n_samples_target : int, default=100
+        It is the total number of points among one
+        target clusters. At the end 8*n_samples points.
     shift : tuple, default='cs'
         Choose the nature of the shift.
         If 'covariate_shift', use covariate shift.
