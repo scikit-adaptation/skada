@@ -134,7 +134,7 @@ def make_shifted_blobs(
 def make_shifted_datasets(
     n_samples_source=100,
     n_samples_target=100,
-    shift="cs",
+    shift="covariate_shift",
     noise=None,
     ratio=0.9,
     mean=1,
@@ -159,10 +159,10 @@ def make_shifted_datasets(
         the number of samples per target cluster.
     shift : tuple, default='cs'
         Choose the nature of the shift.
-        If 'cs', use covariate shift.
-        If 'ts', use target shift.
-        If 'cd', use concept drift.
-        If 'sb', use sample-selection bias.
+        If 'covariate_shift', use covariate shift.
+        If 'target_shift', use target shift.
+        If 'concept_drift', use concept drift.
+        If 'sample_bias', use sample-selection bias.
         Detailed descriptionof each shift in [1].
     noise : float, default=None
         Standard deviation of Gaussian noise added to the data.
@@ -202,7 +202,7 @@ def make_shifted_datasets(
     rng = np.random.RandomState(random_state)
     X_source, y_source = _generate_data_2d_classif(n_samples_source, rng)
 
-    if shift == "cs":  # covariate shift
+    if shift == "covariate_shift":
         n_samples_target_temp = n_samples_target * 100
         X_target, y_target = _generate_data_2d_classif(n_samples_target_temp, rng)
         if noise is not None:
@@ -216,7 +216,7 @@ def make_shifted_datasets(
         X_target = X_target[isel]
         y_target = y_target[isel]
 
-    elif shift == "ts":  # target shift
+    elif shift == "target_shift":
         n_samples_target_temp = n_samples_target * 3
         X_target, y_target = _generate_data_2d_classif(n_samples_target_temp, rng)
         if noise is not None:
@@ -239,14 +239,14 @@ def make_shifted_datasets(
         X_target = X_target[isel]
         y_target = y_target[isel]
 
-    elif shift == "cd":  # concept drift
+    elif shift == "concept_drift":
         X_target, y_target = _generate_data_2d_classif(n_samples_target, rng)
         if noise is not None:
             X_target += rng.normal(scale=noise, size=X_target.shape)
 
         X_target = X_target * sigma + mean
 
-    elif shift == "sb":  # sample bias
+    elif shift == "sample_bias":
         n_samples_target_temp = n_samples_target * 100
         X_target, y_target = _generate_data_2d_classif(n_samples_target_temp, rng)
         if noise is not None:
