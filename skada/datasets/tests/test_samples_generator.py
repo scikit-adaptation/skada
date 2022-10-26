@@ -70,7 +70,7 @@ def test_make_shifted_blobs():
 def test_make_shifted_datasets(shift):
     X_source, y_source, X_target, y_target = make_shifted_datasets(
         n_samples_source=10,
-        n_samples_target=5,
+        n_samples_target=10,
         shift=shift,
         noise=None,
         label='binary'
@@ -79,14 +79,14 @@ def test_make_shifted_datasets(shift):
     assert X_source.shape == (10*8, 2), "X source shape mismatch"
     assert y_source.shape == (10*8,), "y source shape mismatch"
     assert np.unique(y_source).shape == (2,), "Unexpected number of cluster"
-    assert X_target.shape == (5*8, 2), "X target shape mismatch"
-    assert y_target.shape == (5*8,), "y target shape mismatch"
+    assert X_target.shape == (10*8, 2), "X target shape mismatch"
+    assert y_target.shape == (10*8,), "y target shape mismatch"
     assert np.unique(y_target).shape == (2,), "Unexpected number of cluster"
 
     # test for multisource
     X_source, y_source, X_target, y_target = make_shifted_datasets(
         n_samples_source=10,
-        n_samples_target=5,
+        n_samples_target=10,
         shift=shift,
         noise=None,
         label='multiclass'
@@ -95,6 +95,6 @@ def test_make_shifted_datasets(shift):
     assert X_source.shape == (10*8, 2), "X source shape mismatch"
     assert y_source.shape == (10*8,), "y source shape mismatch"
     assert np.unique(y_source).shape == (5,), "Unexpected number of cluster"
-    assert X_target.shape == (5*8, 2), "X target shape mismatch"
-    assert y_target.shape == (5*8,), "y target shape mismatch"
+    assert X_target.shape == (10*8, 2), "X target shape mismatch"
+    assert y_target.shape == (10*8,), "y target shape mismatch"
     assert np.unique(y_target).shape[0] <= 5, "Unexpected number of cluster"
