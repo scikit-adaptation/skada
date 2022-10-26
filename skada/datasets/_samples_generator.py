@@ -69,6 +69,43 @@ def _generate_data_2d_classif(n_samples, rng, label='binary'):
     return x, y.astype(int)
 
 
+def _generate_data_from_moons(n_samples, index, rng):
+    """Generate two gaussian clusters with centers draw from two moons.
+
+    Parameters
+    ----------
+    n_samples : int
+        It is the total number of points among one cluster.
+    index : float,
+        Give the position fo the centers in the moons
+    rng : random generator
+        Generator for dataset creation
+    label : tuple, default='binary'
+        If 'binary, return binary class
+        If 'multiclass', return multiclass
+    """
+    n_samples_circ = 100
+    outer_circ_x = np.cos(np.linspace(0, np.pi, n_samples_circ))
+    outer_circ_y = np.sin(np.linspace(0, np.pi, n_samples_circ))
+    inner_circ_x = 1 - np.cos(np.linspace(0, np.pi, n_samples_circ))
+    inner_circ_y = 1 - np.sin(np.linspace(0, np.pi, n_samples_circ)) - 0.5
+
+    index = int(index * n_samples_circ)
+    cov = [[0.01, 0], [0, 0.01]]
+    center1 = np.array([outer_circ_x[index], outer_circ_y[index]])
+    center2 = np.array([inner_circ_x[index], inner_circ_y[index]])
+
+    X = np.concatenate(
+        [rng.multivariate_normal(center1, cov, size=n_samples),
+         rng.multivariate_normal(center2, cov, size=n_samples)]
+    )
+    y = np.concatenate(
+        [np.zeros(n_samples),
+         np.ones(n_samples)]
+    )
+
+    return X, y
+
 def make_shifted_blobs(
     n_samples_source=100,
     n_samples_target=100,
@@ -276,32 +313,35 @@ def make_shifted_datasets(
     return X_source, y_source, X_target, y_target
 
 
-def make_out_of_distribution_dataset(
-    n_samples_source=100,
-    n_samples_target=100,
+def make_dataset_from_moons_distribution(
+    n_samples_source=10,
+    n_samples_target=10,
     noise=None,
-    pos_sources=[0.1],
-    pos_targets=[0.2],
+    pos_source=0.1,
+    pos_target=0.2,
     random_state=None
 ):
     """Make out-of-distribution dataset.
-    A simple toy dataset to create an out-of-distribution dataset
-    for classification.
+
     Parameters
     ----------
     n_samples_source : int, default=100
-        It is the total number of points equally divided among
-        source clusters.
+        It is the total number of points among one
+        source cluster.
     n_samples_target : int, default=100
-        It is the total number of points equally divided among
-        target clusters.
-    noise : float, default=None
-        Standard deviation of Gaussian noise added to the data.
-    pos_sources : array-like of float, default=[0.1]
-        Each element of the sequence indicates the position
+        It is the total number of points among one
+        target cluster.
+    noise : float or array_like, default=None
+        If float, standard deviation of Gaussian noise added to the data.
+        If array-like, each element of the sequence indicate standard
+        deviation of Gaussian noise added to the source and target data.
+    pos_source : float or array-like, default=0.1
+        If float, indicate the center of the source cluster.
+        If array-like, each element of the sequence indicates the position
         of the center of each source cluster.
-    pos_sources : array-like of float, default=[0.1]
-        Each element of the sequence indicates the position
+    pos_target : float or array-like, default=0.2
+        If float, indicate the center of the source cluster.
+        If array-like, each element of the sequence indicates the position
         of the center of each target cluster.
     random_state : int, RandomState instance or None, default=None
         Determines random number generation for dataset creation. Pass an int
@@ -321,51 +361,39 @@ def make_out_of_distribution_dataset(
 
     rng = np.random.RandomState(random_state)
 
-    n_sources = len(pos_sources)
-    n_targets = len(pos_targets)
-
-    n_samples_circ = 100
-    outer_distr_circ_x = np.cos(np.linspace(0, np.pi, n_samples_circ))
-    outer_distr_circ_y = np.sin(np.linspace(0, np.pi, n_samples_circ))
-    inner_distr_circ_x = 1 - np.cos(np.linspace(0, np.pi, n_samples_circ))
-    inner_distr_circ_y = 1 - np.sin(np.linspace(0, np.pi, n_samples_circ)) - 0.5
-
-    X_source = np.zeros((n_sources, 2*n_samples_source, 2))
-    y_source = np.zeros((n_sources, 2*n_samples_source))
-    cov = [[0.01, 0], [0, 0.01]]
-    for i, pos_source in enumerate(pos_sources):
-        index = int(pos_source * 100)
-        center1 = np.array([outer_distr_circ_x[index], outer_distr_circ_y[index]])
-        center2 = np.array([inner_distr_circ_x[index], inner_distr_circ_y[index]])
-
-        X_source[i] = np.concatenate(
-            [rng.multivariate_normal(center1, cov, size=n_samples_source),
-             rng.multivariate_normal(center2, cov, size=n_samples_source)]
+    if isinstance(pos_source, numbers.Real):
+        X_source, y_source = _generate_data_from_moons(
+            n_samples_source, pos_source, rng
         )
-        y_source[i] = np.concatenate(
-            [np.zeros(n_samples_source),
-             np.ones(n_samples_source)]
-        )
+    else:
+        X_source = []
+        y_source = []
+        for pos in pos_source:
+            X, y = _generate_data_from_moons(n_samples_source, pos, rng)
+            X_source.append(X)
+            y_source.append(y)
+        X_source = np.array(X_source)
+        y_source = np.array(y_source)
 
-    X_target = np.zeros((n_targets, 2*n_samples_target, 2))
-    y_target = np.zeros((n_sources, 2*n_samples_target))
-    for i, pos_target in enumerate(pos_targets):
-        index = int(pos_target * 100)
-        center1 = np.array([outer_distr_circ_x[index], outer_distr_circ_y[index]])
-        center2 = np.array([inner_distr_circ_x[index], inner_distr_circ_y[index]])
-
-        X_target[i] = np.concatenate(
-            [rng.multivariate_normal(center1, cov, size=n_samples_target),
-             rng.multivariate_normal(center2, cov, size=n_samples_target)]
+    if isinstance(pos_target, numbers.Real):
+        X_target, y_target = _generate_data_from_moons(
+            n_samples_target, pos_target, rng
         )
-        y_target[i] = np.concatenate(
-            [np.zeros(n_samples_target),
-             np.ones(n_samples_target)]
-        )
+    else:
+        X_target = []
+        y_target = []
+        for pos in pos_target:
+            X, y = _generate_data_from_moons(n_samples_target, pos, rng)
+            X_target.append(X)
+            y_target.append(y)
+        X_target = np.array(X_target)
+        y_target = np.array(y_target)
 
-    X_source = np.concatenate(X_source)
-    y_source = np.concatenate(y_source)
-    X_target = np.concatenate(X_target)
-    y_target = np.concatenate(y_target)
+    if isinstance(noise, numbers.Real):
+        X_source += rng.normal(scale=noise, size=X_source.shape)
+        X_target += rng.normal(scale=noise, size=X_target.shape)
+    elif noise is not None:
+        X_source += rng.normal(scale=noise[0], size=X_source.shape)
+        X_target += rng.normal(scale=noise[1], size=X_target.shape)
 
     return X_source, y_source, X_target, y_target
