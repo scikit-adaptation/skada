@@ -1,4 +1,5 @@
 import numbers
+
 import numpy as np
 
 from sklearn.datasets import make_blobs
@@ -107,30 +108,22 @@ def _generate_data_from_moons(n_samples, index, rng):
 
     return X, y
 
+
 def make_shifted_blobs(
-    n_samples_source=100,
-    n_samples_target=100,
+    n_samples=100,
     n_features=2,
     shift=0.10,
+    noise=None,
     centers=None,
     cluster_std=1.0,
-    shuffle=True,
     random_state=None,
 ):
     """Generate source and shift target isotropic Gaussian blobs .
 
     Parameters
     ----------
-    n_samples_source : int or array-like, default=100
-        If int, it is the total number of points equally divided among
-        source clusters.
-        If array-like, each element of the sequence indicates
-        the number of samples per source cluster.
-    n_samples_target : int or array-like, default=100
-        If int, it is the total number of points equally divided among
-        target clusters.
-        If array-like, each element of the sequence indicates
-        the number of samples per target cluster.
+    n_samples : int, default=100
+        It is the total number of points equally divided among clusters.
     n_features : int, default=2
         The number of features for each sample.
     shift : float or array like, default=0.10
@@ -165,9 +158,10 @@ def make_shifted_blobs(
     y_target : ndarray of shape (n_samples,)
         The integer labels for cluster membership of each target sample.
     """
+    rng = np.random.RandomState(random_state)
 
     X_source, y_source = make_blobs(
-        n_samples=n_samples_source,
+        n_samples=n_samples,
         centers=centers,
         n_features=n_features,
         random_state=random_state,
@@ -192,6 +186,7 @@ def make_shifted_datasets(
     n_samples_target=100,
     shift="covariate_shift",
     noise=None,
+    label='binary',
     ratio=0.9,
     mean=1,
     sigma=0.7,
@@ -266,7 +261,7 @@ def make_shifted_datasets(
         w = np.exp(-gamma * np.sum((X_target - np.array(center)) ** 2, 1))
         w /= w.sum()
 
-        isel = rng.choice(len(w), size=(n_samples_target,), replace=False, p=w)
+        isel = rng.choice(len(w), size=(8*n_samples_target,), replace=False, p=w)
 
         X_target = X_target[isel]
         y_target = y_target[isel]
@@ -277,18 +272,20 @@ def make_shifted_datasets(
             n_samples_target_temp, rng, label
         )
 
+        n_samples1 = int(8*n_samples_target * ratio)
+        n_samples2 = 8*n_samples_target - n_samples1
         isel1 = rng.choice(
-            n_samples_target_temp // 2,
-            size=(int(n_samples_target * ratio),),
+            8*n_samples_target_temp // 2,
+            size=(n_samples1,),
             replace=False
         )
         isel2 = (
             rng.choice(
-                n_samples_target_temp // 2,
-                size=(int(n_samples_target * (1 - ratio)),),
+                8*n_samples_target_temp // 2,
+                size=(n_samples2,),
                 replace=False
             )
-        ) + n_samples_target_temp // 2
+        ) + 8*n_samples_target_temp // 2
         isel = np.concatenate((isel1, isel2))
 
         X_target = X_target[isel]
@@ -310,7 +307,7 @@ def make_shifted_datasets(
 
         w /= w.sum()
 
-        isel = rng.choice(len(w), size=(n_samples_target,), replace=False, p=w)
+        isel = rng.choice(len(w), size=(8*n_samples_target,), replace=False, p=w)
 
         X_target = X_target[isel]
         y_target = y_target[isel]
