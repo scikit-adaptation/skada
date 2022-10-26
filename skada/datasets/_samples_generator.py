@@ -66,8 +66,8 @@ def make_shifted_blobs(
     shuffle=True,
     random_state=None,
 ):
-    """Generate source and shift target
-       isotropic Gaussian blobs .
+    """Generate source and shift target isotropic Gaussian blobs .
+
     Parameters
     ----------
     n_samples_source : int or array-like, default=100
@@ -98,6 +98,7 @@ def make_shifted_blobs(
     random_state : int, RandomState instance or None, default=None
         Determines random number generation for dataset creation. Pass an int
         for reproducible output across multiple function calls.
+
     Returns
     -------
     X_source : ndarray of shape (n_samples, n_features)
@@ -108,7 +109,6 @@ def make_shifted_blobs(
         The generated target samples.
     y_target : ndarray of shape (n_samples,)
         The integer labels for cluster membership of each target sample.
-
     """
 
     X_source, y_source = make_blobs(
@@ -143,8 +143,8 @@ def make_shifted_datasets(
     center=[[0, 2]],
     random_state=None,
 ):
-    """Generate source and shift target
-       isotropic Gaussian blobs .
+    """Generate source and shift target.
+
     Parameters
     ----------
     n_samples_source : int or array-like, default=100
@@ -180,6 +180,7 @@ def make_shifted_datasets(
     random_state : int, RandomState instance or None, default=None
         Determines random number generation for dataset creation. Pass an int
         for reproducible output across multiple function calls.
+
     Returns
     -------
     X_source : ndarray of shape (n_samples, n_features)
@@ -273,6 +274,7 @@ def make_shifted_datasets(
 def make_out_of_distribution_dataset(
     n_samples_source=100,
     n_samples_target=100,
+    noise=None,
     pos_sources=[0.1],
     pos_targets=[0.2],
     random_state=None
@@ -288,6 +290,8 @@ def make_out_of_distribution_dataset(
     n_samples_target : int, default=100
         It is the total number of points equally divided among
         target clusters.
+    noise : float, default=None
+        Standard deviation of Gaussian noise added to the data.
     pos_sources : array-like of float, default=[0.1]
         Each element of the sequence indicates the position
         of the center of each source cluster.
@@ -295,7 +299,7 @@ def make_out_of_distribution_dataset(
         Each element of the sequence indicates the position
         of the center of each target cluster.
     random_state : int, RandomState instance or None, default=None
-        Determines random number generation for dataset creation.Pass an int
+        Determines random number generation for dataset creation. Pass an int
         for reproducible output across multiple function calls.
 
     Returns
