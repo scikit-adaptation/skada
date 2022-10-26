@@ -11,7 +11,7 @@ def _generate_unif_circle(n_samples, rng):
     return x
 
 
-def _generate_data(n_samples, rng):
+def _generate_data_2d_classif(n_samples, rng):
     n1 = n_samples // 2
     n2 = n1 // 4
     # make data of class 1
@@ -196,11 +196,11 @@ def make_shifted_datasets(
     """
 
     rng = np.random.RandomState(random_state)
-    X_source, y_source = _generate_data(n_samples_source, rng)
+    X_source, y_source = _generate_data_2d_classif(n_samples_source, rng)
 
     if shift == "cs":  # covariate shift
         n_samples_target_temp = n_samples_target * 100
-        X_target, y_target = _generate_data(n_samples_target_temp, rng)
+        X_target, y_target = _generate_data_2d_classif(n_samples_target_temp, rng)
         if noise is not None:
             X_target += rng.normal(scale=noise, size=X_target.shape)
 
@@ -214,7 +214,7 @@ def make_shifted_datasets(
 
     elif shift == "ts":  # target shift
         n_samples_target_temp = n_samples_target * 3
-        X_target, y_target = _generate_data(n_samples_target_temp, rng)
+        X_target, y_target = _generate_data_2d_classif(n_samples_target_temp, rng)
         if noise is not None:
             X_target += rng.normal(scale=noise, size=X_target.shape)
 
@@ -236,7 +236,7 @@ def make_shifted_datasets(
         y_target = y_target[isel]
 
     elif shift == "cd":  # concept drift
-        X_target, y_target = _generate_data(n_samples_target, rng)
+        X_target, y_target = _generate_data_2d_classif(n_samples_target, rng)
         if noise is not None:
             X_target += rng.normal(scale=noise, size=X_target.shape)
 
@@ -244,7 +244,7 @@ def make_shifted_datasets(
 
     elif shift == "sb":  # sample bias
         n_samples_target_temp = n_samples_target * 100
-        X_target, y_target = _generate_data(n_samples_target_temp, rng)
+        X_target, y_target = _generate_data_2d_classif(n_samples_target_temp, rng)
         if noise is not None:
             X_target += rng.normal(scale=noise, size=X_target.shape)
 
