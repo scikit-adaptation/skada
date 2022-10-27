@@ -1,6 +1,16 @@
+# -*- coding: utf-8 -*-
 """
-Some methods for domain adaptation.
+Domain Adaptation estimators
+
 """
+
+# Author: Remi Flamary <remi.flamary@polytechnique.edu>
+#         Alexandre Gramfort <firstname.lastname@inria.fr>
+#
+# License: MIT License
+
 from . import reweight
 
-__all__ = ['reweight']
+from .reweight import ReweightDensity
+
+__all__ = ['reweight', "ReweightDensity"]

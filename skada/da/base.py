@@ -1,3 +1,9 @@
+
+# Author: Remi Flamary <remi.flamary@polytechnique.edu>
+#         Alexandre Gramfort <firstname.lastname@inria.fr>
+#
+# License: MIT License
+
 from abc import ABC, abstractmethod
 
 from sklearn.base import clone
