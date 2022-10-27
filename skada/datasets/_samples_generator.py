@@ -2,6 +2,8 @@ import numbers
 
 import numpy as np
 
+from scipy import signal
+
 from sklearn.datasets import make_blobs
 
 
@@ -105,6 +107,32 @@ def _generate_data_from_moons(n_samples, index, rng):
         [np.zeros(n_samples),
          np.ones(n_samples)]
     )
+
+    return X, y
+
+
+def _generete_signal_with_peak_frequency(
+    n_samples, n_channels, input_size, n_classes, frequencies, band_size, fs, rng
+):
+
+    X = rng.normal(0, 1, size=(n_samples, n_channels, input_size))
+
+    n_samples_per_classes = n_samples // n_classes
+    sos = [
+        signal.butter(10, [freq, freq+band_size], 'bandpass', fs=fs, output='sos')
+        for freq in frequencies
+    ]
+
+    y = np.zeros(n_samples)
+    for i in range(n_classes-1):
+        X_filtered = signal.sosfilt(
+            sos[i], X[i*n_samples_per_classes:(i+1)*n_samples_per_classes]
+        )
+        X[i*n_samples_per_classes:(i+1)*n_samples_per_classes] = X_filtered
+        y[i*n_samples_per_classes:(i+1)*n_samples_per_classes] = i
+    X_filtered = signal.sosfilt(sos[i+1], X[(i+1)*n_samples_per_classes:])
+    X[(i+1)*n_samples_per_classes:] = X_filtered
+    y[(i+1)*n_samples_per_classes:] = i+1
 
     return X, y
 
@@ -333,7 +361,7 @@ def make_dataset_from_moons_distribution(
     pos_target=0.2,
     random_state=None
 ):
-    """Make out-of-distribution dataset.
+    """Make dataset from moons.
 
     Parameters
     ----------
@@ -400,6 +428,92 @@ def make_dataset_from_moons_distribution(
             y_target.append(y)
         X_target = np.array(X_target)
         y_target = np.array(y_target)
+
+    if isinstance(noise, numbers.Real):
+        X_source += rng.normal(scale=noise, size=X_source.shape)
+        X_target += rng.normal(scale=noise, size=X_target.shape)
+    elif noise is not None:
+        X_source += rng.normal(scale=noise[0], size=X_source.shape)
+        X_target += rng.normal(scale=noise[1], size=X_target.shape)
+
+    return X_source, y_source, X_target, y_target
+
+
+def make_variable_frequency_dataset(
+    n_samples_source=10,
+    n_samples_target=10,
+    n_channels=1,
+    n_classes=3,
+    delta_f=1,
+    band_size=1,
+    noise=None,
+    random_state=None
+):
+    """Make datasetwith different peak frequency.
+
+    Parameters
+    ----------
+    n_samples_source : int, default=100
+        It is the total number of points among one
+        source cluster.
+    n_samples_target : int, default=100
+        It is the total number of points among one
+        target cluster.
+    n_channels : int, default=1
+        Number of channels in the signal.
+    n_classes : int, default=3
+        Number of classes in the signals. One classe correspond to a
+        specific frequency band.
+    delta_f : float, default=1
+        Band frequency shift of the target data.
+    band_size :  float, default=1
+        Size of the frequency band.
+    noise : float or array_like, default=None
+        If float, standard deviation of Gaussian noise added to the data.
+        If array-like, each element of the sequence indicate standard
+        deviation of Gaussian noise added to the source and target data.
+    random_state : int, RandomState instance or None, default=None
+        Determines random number generation for dataset creation. Pass an int
+        for reproducible output across multiple function calls.
+
+    Returns
+    -------
+    X_source : ndarray of shape (n_samples, n_features)
+        The generated source samples.
+    y_source : ndarray of shape (n_samples,)
+        The integer labels for cluster membership of each source sample.
+    X_target : ndarray of shape (n_samples, n_features)
+        The generated target samples.
+    y_target : ndarray of shape (n_samples,)
+        The integer labels for cluster membership of each target sample.
+    """
+
+    rng = np.random.RandomState(random_state)
+    input_size = 3000
+    fs = 100
+    highest_frequency = 15
+    frequencies = rng.choice(highest_frequency, size=n_classes, replace=False) + 1e-5
+    X_source, y_source = _generete_signal_with_peak_frequency(
+        n_samples_source,
+        n_channels,
+        input_size,
+        n_classes,
+        frequencies,
+        band_size,
+        fs,
+        rng
+    )
+
+    X_target, y_target = _generete_signal_with_peak_frequency(
+        n_samples_target,
+        n_channels,
+        input_size,
+        n_classes,
+        frequencies+delta_f,
+        band_size,
+        fs,
+        rng
+    )
 
     if isinstance(noise, numbers.Real):
         X_source += rng.normal(scale=noise, size=X_source.shape)

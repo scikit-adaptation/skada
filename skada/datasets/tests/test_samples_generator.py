@@ -6,6 +6,7 @@ from numpy.testing import assert_almost_equal
 from skada.datasets import make_dataset_from_moons_distribution
 from skada.datasets import make_shifted_blobs
 from skada.datasets import make_shifted_datasets
+from skada.datasets import make_variable_frequency_dataset
 
 
 def test_make_dataset_from_moons_distribution():
@@ -98,3 +99,23 @@ def test_make_shifted_datasets(shift):
     assert X_target.shape == (10*8, 2), "X target shape mismatch"
     assert y_target.shape == (10*8,), "y target shape mismatch"
     assert np.unique(y_target).shape[0] <= 5, "Unexpected number of cluster"
+
+
+def test_make_variable_frequency_dataset():
+    X_source, y_source, X_target, y_target = make_variable_frequency_dataset(
+        n_samples_source=10,
+        n_samples_target=5,
+        n_channels=1,
+        n_classes=3,
+        delta_f=1,
+        band_size=1,
+        noise=None,
+        random_state=None
+    )
+
+    assert X_source.shape == (10, 1, 3000), "X source shape mismatch"
+    assert y_source.shape == (10,), "y source shape mismatch"
+    assert np.unique(y_source).shape == (3,), "Unexpected number of cluster"
+    assert X_target.shape == (5, 1, 3000), "X target shape mismatch"
+    assert y_target.shape == (5,), "y target shape mismatch"
+    assert np.unique(y_target).shape == (3,), "Unexpected number of cluster"
