@@ -113,9 +113,9 @@ def test_make_variable_frequency_dataset():
         random_state=None
     )
 
-    assert X_source.shape == (10, 1, 3000), "X source shape mismatch"
-    assert y_source.shape == (10,), "y source shape mismatch"
+    assert X_source.shape == (3*10, 1, 3000), "X source shape mismatch"
+    assert y_source.shape == (3*10,), "y source shape mismatch"
     assert np.unique(y_source).shape == (3,), "Unexpected number of cluster"
-    assert X_target.shape == (5, 1, 3000), "X target shape mismatch"
-    assert y_target.shape == (5,), "y target shape mismatch"
+    assert X_target.shape == (3*5, 1, 3000), "X target shape mismatch"
+    assert y_target.shape == (3*5,), "y target shape mismatch"
     assert np.unique(y_target).shape == (3,), "Unexpected number of cluster"
