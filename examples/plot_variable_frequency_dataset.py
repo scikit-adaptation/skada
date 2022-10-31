@@ -19,6 +19,7 @@ X_source, y_source, X_target, y_target = make_variable_frequency_dataset(
     n_samples_source=1,
     n_samples_target=1,
     n_channels=3,
+    n_frequencies=2,
     n_classes=2,
     delta_f=2,
     band_size=1,

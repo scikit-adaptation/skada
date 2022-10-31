@@ -115,31 +115,43 @@ def _generate_data_from_moons(n_samples, index, rng):
 def _generate_signal_with_peak_frequency(
     n_samples,
     n_channels,
-    center_channel,
     input_size,
-    frequency,
+    frequencies,
     band_size,
-    sigma_ch,
     fs,
     rng
 ):
 
-    X = rng.normal(0, 1, size=(n_samples, n_channels, input_size))
+    X = []
+    y = []
+    n_classes, n_frequencies = frequencies.shape
+    for n_class in range(n_classes):
+        X_new = np.zeros((n_samples, n_channels, input_size))
+        for n_frequency in range(n_frequencies):
+            channel_weights = rng.uniform(0.5, 1, size=(n_channels))
+            X_random = rng.normal(0, 1, size=(n_samples, n_channels, input_size))
 
-    sos = signal.butter(
-        10, [frequency, frequency+band_size], 'bandpass', fs=fs, output='sos'
-    )
+            sos = signal.butter(
+                10,
+                [frequencies[n_class, n_frequency],
+                 frequencies[n_class, n_frequency]+band_size],
+                'bandpass',
+                fs=fs,
+                output='sos'
+            )
 
-    X_filtered = signal.sosfilt(sos, X)
+            X_filtered = signal.sosfilt(sos, X_random)
 
-    gaussian_weights = signal.gaussian(2*n_channels-1, sigma_ch)
-    gaussian_chan_weights = gaussian_weights[
-        n_channels-1-center_channel:-center_channel or None
-    ]
-    for i in range(n_channels):
-        X_fft = rfft(X_filtered[:, i])
-        X_filtered[:, i] = irfft(X_fft*gaussian_chan_weights[i])
-    return X_filtered
+            for i in range(n_channels):
+                X_fft = rfft(X_filtered[:, i])
+                X_filtered[:, i] = irfft(X_fft*channel_weights[i])
+            X_new += X_filtered
+
+        X.append(X_new)
+        y.append([n_class for _ in range(n_samples)])
+    X = np.concatenate(X)
+    y = np.concatenate(y)
+    return X, y
 
 
 def make_shifted_blobs(
@@ -448,7 +460,7 @@ def make_variable_frequency_dataset(
     n_samples_source=10,
     n_samples_target=10,
     n_channels=1,
-    n_frequency_source=1,
+    n_frequencies=1,
     n_classes=3,
     delta_f=1,
     band_size=1,
@@ -505,53 +517,28 @@ def make_variable_frequency_dataset(
     fs = 100
     highest_frequency = 15
     frequencies = rng.choice(
-        highest_frequency, size=(n_frequency_source, n_classes), replace=False) + 1e-5
+        highest_frequency, size=(n_classes, n_frequencies), replace=False
+    ) + 1e-5
 
-    X_source = []
-    y_source = []
-    for n_class in range(n_classes):
-        center_channels = rng.choice(n_channels, size=n_frequency_source, replace=False)
-        X = np.zeros((n_samples_source, n_channels, input_size))
-        for i in range(n_frequency_source):
-            X_new = _generate_signal_with_peak_frequency(
-                n_samples_source,
-                n_channels,
-                center_channels[i],
-                input_size,
-                frequencies[i, n_class],
-                band_size,
-                sigma_ch,
-                fs,
-                rng
-            )
-            X += X_new
-        X_source.append(X)
-        y_source.append([n_class for _ in range(n_samples_source)])
-    X_source = np.concatenate(X_source)
-    y_source = np.concatenate(y_source)
+    X_source, y_source = _generate_signal_with_peak_frequency(
+        n_samples_source,
+        n_channels,
+        input_size,
+        frequencies,
+        band_size,
+        fs,
+        rng
+    )
 
-    X_target = []
-    y_target = []
-    for n_class in range(n_classes):
-        center_channels = rng.choice(n_channels, size=n_frequency_source, replace=False)
-        X = np.zeros((n_samples_target, n_channels, input_size))
-        for i in range(n_frequency_source):
-            X_new = _generate_signal_with_peak_frequency(
-                n_samples_target,
-                n_channels,
-                center_channels[i],
-                input_size,
-                frequencies[i, n_class]+delta_f,
-                band_size,
-                sigma_ch,
-                fs,
-                rng
-            )
-            X += X_new
-        X_target.append(X)
-        y_target.append([n_class for _ in range(n_samples_target)])
-    X_target = np.concatenate(X_target)
-    y_target = np.concatenate(y_target)
+    X_target, y_target = _generate_signal_with_peak_frequency(
+        n_samples_target,
+        n_channels,
+        input_size,
+        frequencies + delta_f,
+        band_size,
+        fs,
+        rng
+    )
 
     if isinstance(noise, numbers.Real):
         X_source += rng.normal(scale=noise, size=X_source.shape)
