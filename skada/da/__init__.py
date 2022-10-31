@@ -11,6 +11,13 @@ Domain Adaptation estimators
 
 from . import reweight
 
-from .reweight import ReweightDensity
+from .reweight import (
+    ReweightDensity, GaussianReweightDensity, ClassifierReweightDensity
+)
 
-__all__ = ['reweight', "ReweightDensity"]
+__all__ = [
+    "reweight",
+    "ReweightDensity",
+    "GaussianReweightDensity",
+    "ClassifierReweightDensity"
+]

@@ -6,6 +6,8 @@
 
 import numpy as np
 from sklearn.neighbors import KernelDensity
+from sklearn.linear_model import LogisticRegression
+from scipy.stats import multivariate_normal
 
 from .base import BaseDAEstimator, clone
 
@@ -38,3 +40,84 @@ class ReweightDensity(BaseDAEstimator):
         self.weight_estimator_target_ = clone(self.weight_estimator)
         self.weight_estimator_source_.fit(X)
         self.weight_estimator_target_.fit(X_target)
+
+
+class GaussianReweightDensity(BaseDAEstimator):
+    """Gaussian approximation reweighting method
+
+    Parameters
+    ----------
+    base_estimator: sklearn estimator
+        estimator used for fitting and prediction
+
+    References
+    ----------
+    .. [1]  Hidetoshi Shimodaira. Improving predictive inference under
+            covariate shift by weighting the log-likelihood function.
+            In Journal of Statistical Planning and Inference, 2000.
+    """
+    def __init__(
+        self,
+        base_estimator,
+    ):
+        super().__init__(base_estimator)
+
+    def predict_adapt(self, X, y, X_target, y_target=None):
+        """Predict adaptation (weights, sample or labels)"""
+
+        gaussian_target = multivariate_normal.pdf(
+            X, self.mean_target_, self.cov_target_
+        )
+        gaussian_source = multivariate_normal.pdf(
+            X, self.mean_source_, self.cov_source_
+        )
+
+        weights = gaussian_target / gaussian_source
+
+        return X, y, weights
+
+    def fit_adapt(self, X, y, X_target, y_target=None):
+        """Fit adaptation parameters"""
+        self.mean_source_ = X.mean(axis=0)
+        self.cov_source_ = np.cov(X.T)
+        self.mean_target_ = X_target.mean(axis=0)
+        self.cov_target_ = np.cov(X_target.T)
+
+
+class ClassifierReweightDensity(BaseDAEstimator):
+    """Gaussian approximation reweighting method
+
+    Parameters
+    ----------
+    base_estimator: sklearn estimator
+        Estimator used for fitting and prediction
+    domain_classifier : sklearn classifier
+        Classifier used to predict the domains
+    References
+    ----------
+    .. [1]  Hidetoshi Shimodaira. Improving predictive inference under
+            covariate shift by weighting the log-likelihood function.
+            In Journal of Statistical Planning and Inference, 2000.
+    """
+    def __init__(
+        self,
+        base_estimator,
+        domain_classifier=None,
+    ):
+        super().__init__(base_estimator)
+
+        if domain_classifier is None:
+            domain_classifier = LogisticRegression()
+
+        self.domain_classifier = domain_classifier
+
+    def predict_adapt(self, X, y, X_target, y_target=None):
+        """Predict adaptation (weights, sample or labels)"""
+        weights = self.domain_classifier_.predict_proba(X)[:, 1]
+        return X, y, weights
+
+    def fit_adapt(self, X, y, X_target, y_target=None):
+        """Fit adaptation parameters"""
+        self.domain_classifier_ = clone(self.domain_classifier)
+        y_domain = np.concatenate((len(X)*[0], len(X_target)*[1]))
+        self.domain_classifier_.fit(np.concatenate((X, X_target)), y_domain)
