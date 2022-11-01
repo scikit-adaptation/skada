@@ -6,8 +6,17 @@ from skada.da.reweight import (
     ReweightDensity, GaussianReweightDensity, ClassifierReweightDensity
 )
 
+import pytest
 
-def test_reweight_density():
+
+@pytest.mark.parametrize(
+    "estimator", [
+        ReweightDensity(base_estimator=LogisticRegression()),
+        GaussianReweightDensity(base_estimator=LogisticRegression()),
+        ClassifierReweightDensity(base_estimator=LogisticRegression())
+    ]
+)
+def test_reweight_estimator(estimator):
     centers = np.array([
         [0, 0],
         [1, 1],
@@ -23,57 +32,9 @@ def test_reweight_density():
         cluster_std=0.05,
     )
 
-    clf = ReweightDensity(base_estimator=LogisticRegression())
-    clf.fit(X, y, X_target)
-    y_pred = clf.predict(X_target)
+    estimator = ReweightDensity(base_estimator=LogisticRegression())
+    estimator.fit(X, y, X_target)
+    y_pred = estimator.predict(X_target)
     assert np.mean(y_pred == y_target) > 0.9
-    score = clf.score(X_target, y_target)
-    assert score > 0.9
-
-
-def test_gaussian_reweight_density():
-    centers = np.array([
-        [0, 0],
-        [1, 1],
-    ])
-    _, n_features = centers.shape
-
-    X, y, X_target, y_target = make_shifted_blobs(
-        n_samples=500,
-        centers=centers,
-        n_features=n_features,
-        shift=0.13,
-        random_state=42,
-        cluster_std=0.05,
-    )
-
-    clf = GaussianReweightDensity(base_estimator=LogisticRegression())
-    clf.fit(X, y, X_target)
-    y_pred = clf.predict(X_target)
-    assert np.mean(y_pred == y_target) > 0.9
-    score = clf.score(X_target, y_target)
-    assert score > 0.9
-
-
-def test_classifier_reweight_density():
-    centers = np.array([
-        [0, 0],
-        [1, 1],
-    ])
-    _, n_features = centers.shape
-
-    X, y, X_target, y_target = make_shifted_blobs(
-        n_samples=500,
-        centers=centers,
-        n_features=n_features,
-        shift=0.13,
-        random_state=42,
-        cluster_std=0.05,
-    )
-
-    clf = ClassifierReweightDensity(base_estimator=LogisticRegression())
-    clf.fit(X, y, X_target)
-    y_pred = clf.predict(X_target)
-    assert np.mean(y_pred == y_target) > 0.9
-    score = clf.score(X_target, y_target)
+    score = estimator.score(X_target, y_target)
     assert score > 0.9

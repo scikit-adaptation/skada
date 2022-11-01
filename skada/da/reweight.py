@@ -13,6 +13,16 @@ from .base import BaseDAEstimator, clone
 
 
 class ReweightDensity(BaseDAEstimator):
+    """Estimator based on reweighting samples using density estimation.
+
+    Parameters
+    ----------
+    base_estimator : estimator object
+        The base estimator to fit on reweighted data.
+    weight_estimator : estimator object, optional
+        The estimator to use to estimate the densities of source and target
+        observations. If None, a KernelDensity estimator is used.
+    """
     def __init__(
         self,
         base_estimator,
@@ -78,6 +88,7 @@ class GaussianReweightDensity(BaseDAEstimator):
 
     def fit_adapt(self, X, y, X_target, y_target=None):
         """Fit adaptation parameters"""
+        # XXX : at some point we should support more than the empirical cov
         self.mean_source_ = X.mean(axis=0)
         self.cov_source_ = np.cov(X.T)
         self.mean_target_ = X_target.mean(axis=0)
@@ -85,19 +96,21 @@ class GaussianReweightDensity(BaseDAEstimator):
 
 
 class ClassifierReweightDensity(BaseDAEstimator):
-    """Gaussian approximation reweighting method
+    """Gaussian approximation reweighting method.
 
     Parameters
     ----------
-    base_estimator: sklearn estimator
-        Estimator used for fitting and prediction
-    domain_classifier : sklearn classifier
-        Classifier used to predict the domains
+    base_estimator : sklearn estimator
+        Estimator used for fitting and prediction.
+    domain_classifier : sklearn classifier, optional
+        Classifier used to predict the domains. If None, a
+        LogisticRegression is used.
+
     References
     ----------
-    .. [1]  Hidetoshi Shimodaira. Improving predictive inference under
-            covariate shift by weighting the log-likelihood function.
-            In Journal of Statistical Planning and Inference, 2000.
+    .. [1] Hidetoshi Shimodaira. Improving predictive inference under
+           covariate shift by weighting the log-likelihood function.
+           In Journal of Statistical Planning and Inference, 2000.
     """
     def __init__(
         self,
