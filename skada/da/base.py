@@ -23,6 +23,7 @@ class BaseDAEstimator(ABC):
         self.fit_adapt(X, y, X_target, y_target)
         # Adapt sample, labels or weights
         X_adapt, y_adapt, weights_adapt = self.predict_adapt(X, y, X_target)
+        self.weights_adapt = weights_adapt
         # fit estimator on adapted data
         if weights_adapt is None:
             base_estimator.fit(X_adapt, y_adapt)
