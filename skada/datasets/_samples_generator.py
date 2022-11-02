@@ -66,11 +66,11 @@ def _generate_data_2d_classif(n_samples, rng, label='binary'):
 
     # make labels
     if label == 'binary':
-        y = np.concatenate((np.zeros(n1), np.ones(4*n2)), 0)
+        y = np.concatenate((np.zeros(n1), np.ones(4 * n2)), 0)
     elif label == 'multiclass':
         y = np.zeros(n1)
         for i in range(4):
-            y = np.concatenate((y, (i+1)*np.ones(n2)), 0)
+            y = np.concatenate((y, (i + 1) * np.ones(n2)), 0)
     return x, y.astype(int)
 
 
@@ -134,7 +134,7 @@ def _generate_signal_with_peak_frequency(
             sos = signal.butter(
                 10,
                 [frequencies[n_class, n_frequency],
-                 frequencies[n_class, n_frequency]+band_size],
+                 frequencies[n_class, n_frequency] + band_size],
                 'bandpass',
                 fs=fs,
                 output='sos'
@@ -144,7 +144,7 @@ def _generate_signal_with_peak_frequency(
 
             for i in range(n_channels):
                 X_fft = rfft(X_filtered[:, i])
-                X_filtered[:, i] = irfft(X_fft*channel_weights[i])
+                X_filtered[:, i] = irfft(X_fft * channel_weights[i])
             X_new += X_filtered
 
         X.append(X_new)
@@ -306,7 +306,7 @@ def make_shifted_datasets(
         w = np.exp(-gamma * np.sum((X_target - np.array(center)) ** 2, 1))
         w /= w.sum()
 
-        isel = rng.choice(len(w), size=(8*n_samples_target,), replace=False, p=w)
+        isel = rng.choice(len(w), size=(8 * n_samples_target,), replace=False, p=w)
 
         X_target = X_target[isel]
         y_target = y_target[isel]
@@ -317,20 +317,20 @@ def make_shifted_datasets(
             n_samples_target_temp, rng, label
         )
 
-        n_samples1 = int(8*n_samples_target * ratio)
-        n_samples2 = 8*n_samples_target - n_samples1
+        n_samples1 = int(8 * n_samples_target * ratio)
+        n_samples2 = 8 * n_samples_target - n_samples1
         isel1 = rng.choice(
-            8*n_samples_target_temp // 2,
+            8 * n_samples_target_temp // 2,
             size=(n_samples1,),
             replace=False
         )
         isel2 = (
             rng.choice(
-                8*n_samples_target_temp // 2,
+                8 * n_samples_target_temp // 2,
                 size=(n_samples2,),
                 replace=False
             )
-        ) + 8*n_samples_target_temp // 2
+        ) + 8 * n_samples_target_temp // 2
         isel = np.concatenate((isel1, isel2))
 
         X_target = X_target[isel]
@@ -352,7 +352,7 @@ def make_shifted_datasets(
 
         w /= w.sum()
 
-        isel = rng.choice(len(w), size=(8*n_samples_target,), replace=False, p=w)
+        isel = rng.choice(len(w), size=(8 * n_samples_target,), replace=False, p=w)
 
         X_target = X_target[isel]
         y_target = y_target[isel]

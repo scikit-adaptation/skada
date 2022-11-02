@@ -26,8 +26,8 @@ def test_deepjdot(input_size, n_classes):
     X = torch.from_numpy(X.astype(np.float32))
     y = rng.randint(n_classes, size=n_examples)
     class_weights = compute_class_weight(
-            None, classes=np.unique(y), y=y
-        )
+        None, classes=np.unique(y), y=y
+    )
     y = torch.from_numpy(y)
     X_target = rng.randn(n_examples, input_size)
     X_target = torch.from_numpy(X_target.astype(np.float32))

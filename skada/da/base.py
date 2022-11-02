@@ -6,13 +6,32 @@
 
 from abc import ABC, abstractmethod
 
+from sklearn.base import BaseEstimator, clone
+from sklearn.utils.metaestimators import available_if
+from sklearn.utils.validation import check_is_fitted
+
 from sklearn.base import clone
 
-class BaseDAEstimator(ABC):
-    """Base class for al DA estimators. 
-    
+
+def _estimator_has(attr):
+    """Check if we can delegate a method to the underlying estimator.
+
+    First, we check the first fitted classifier if available, otherwise we
+    check the unfitted classifier.
+    """
+    return lambda estimator: (
+        hasattr(estimator.base_estimator_, attr)
+        if hasattr(estimator, "base_estimator_")
+        else hasattr(estimator.base_estimator, attr)
+    )
+
+
+class BaseDAEstimator(BaseEstimator):
+    """Base class for al DA estimators.
+
     Similar API than sklearn except that X_target is given during the fit.
     """
+
     def __init__(self):
         pass
 
@@ -36,7 +55,7 @@ class BaseDAEstimator(ABC):
 
 
 class BaseDataAdaptEstimator(BaseDAEstimator):
-    """Base class for Data Adapation DA estimators. 
+    """Base class for Data Adapation DA estimators.
 
     Those estimators  work in two steps:
 
@@ -47,8 +66,9 @@ class BaseDataAdaptEstimator(BaseDAEstimator):
 
     This class is very general wand can be used for reweighting, mapping of the
     source data but also with label propagation strategies on target data.
-    
+
     """
+
     def __init__(
         self,
         base_estimator,
@@ -63,7 +83,7 @@ class BaseDataAdaptEstimator(BaseDAEstimator):
         self.fit_adapt(X, y, X_target, y_target)
         # Adapt sample, labels or weights
         X_adapt, y_adapt, weights_adapt = self.predict_adapt(X, y, X_target, y_target)
-        
+
         # fit estimator on adapted data
         if weights_adapt is None:
             base_estimator.fit(X_adapt, y_adapt)
@@ -83,14 +103,16 @@ class BaseDataAdaptEstimator(BaseDAEstimator):
         pass
 
     def predict(self, X):
+        check_is_fitted(self)
         base_estimator = self.base_estimator_
         return base_estimator.predict(X)
-        
+
+    @available_if(_estimator_has("predict_proba"))
     def predict_proba(self, X):
+        check_is_fitted(self)
         base_estimator = self.base_estimator_
         return base_estimator.predict_proba(X)
 
     def score(self, X, y):
         base_estimator = self.base_estimator_
         return base_estimator.score(X, y)
-

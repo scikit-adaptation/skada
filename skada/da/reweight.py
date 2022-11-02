@@ -23,6 +23,7 @@ class ReweightDensity(BaseDataAdaptEstimator):
         The estimator to use to estimate the densities of source and target
         observations. If None, a KernelDensity estimator is used.
     """
+
     def __init__(
         self,
         base_estimator,
@@ -66,6 +67,7 @@ class GaussianReweightDensity(BaseDataAdaptEstimator):
             covariate shift by weighting the log-likelihood function.
             In Journal of Statistical Planning and Inference, 2000.
     """
+
     def __init__(
         self,
         base_estimator,
@@ -112,6 +114,7 @@ class ClassifierReweightDensity(BaseDataAdaptEstimator):
            covariate shift by weighting the log-likelihood function.
            In Journal of Statistical Planning and Inference, 2000.
     """
+
     def __init__(
         self,
         base_estimator,
@@ -132,5 +135,5 @@ class ClassifierReweightDensity(BaseDataAdaptEstimator):
     def fit_adapt(self, X, y, X_target, y_target=None):
         """Fit adaptation parameters"""
         self.domain_classifier_ = clone(self.domain_classifier)
-        y_domain = np.concatenate((len(X)*[0], len(X_target)*[1]))
+        y_domain = np.concatenate((len(X) * [0], len(X_target) * [1]))
         self.domain_classifier_.fit(np.concatenate((X, X_target)), y_domain)

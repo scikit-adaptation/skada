@@ -41,7 +41,7 @@ class DeepJDOT(BaseDANetwork):
             criterion,
             n_epochs,
             batch_size
-            )
+        )
         self.n_classes = n_classes
         self.alpha = alpha
         self.beta = beta

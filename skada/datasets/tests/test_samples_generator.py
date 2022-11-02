@@ -18,11 +18,11 @@ def test_make_dataset_from_moons_distribution():
         random_state=0
     )
 
-    assert X_source.shape == (2*50, 2), "X source shape mismatch"
-    assert y_source.shape == (2*50,), "y source shape mismatch"
+    assert X_source.shape == (2 * 50, 2), "X source shape mismatch"
+    assert y_source.shape == (2 * 50,), "y source shape mismatch"
     assert np.unique(y_source).shape == (2,), "Unexpected number of cluster"
-    assert X_target.shape == (2*20, 2), "X target shape mismatch"
-    assert y_target.shape == (2*20,), "y target shape mismatch"
+    assert X_target.shape == (2 * 20, 2), "X target shape mismatch"
+    assert y_target.shape == (2 * 20,), "y target shape mismatch"
     assert np.unique(y_target).shape == (2,), "Unexpected number of cluster"
 
     # Test for multisource and multitarget
@@ -34,11 +34,11 @@ def test_make_dataset_from_moons_distribution():
         random_state=0
     )
 
-    assert X_source.shape == (3, 2*50, 2), "X source shape mismatch"
-    assert y_source.shape == (3, 2*50,), "y source shape mismatch"
+    assert X_source.shape == (3, 2 * 50, 2), "X source shape mismatch"
+    assert y_source.shape == (3, 2 * 50,), "y source shape mismatch"
     assert np.unique(y_source).shape == (2,), "Unexpected number of cluster"
-    assert X_target.shape == (2, 2*20, 2), "X target shape mismatch"
-    assert y_target.shape == (2, 2*20,), "y target shape mismatch"
+    assert X_target.shape == (2, 2 * 20, 2), "X target shape mismatch"
+    assert y_target.shape == (2, 2 * 20,), "y target shape mismatch"
     assert np.unique(y_target).shape == (2,), "Unexpected number of cluster"
 
 
@@ -77,11 +77,11 @@ def test_make_shifted_datasets(shift):
         label='binary'
     )
 
-    assert X_source.shape == (10*8, 2), "X source shape mismatch"
-    assert y_source.shape == (10*8,), "y source shape mismatch"
+    assert X_source.shape == (10 * 8, 2), "X source shape mismatch"
+    assert y_source.shape == (10 * 8,), "y source shape mismatch"
     assert np.unique(y_source).shape == (2,), "Unexpected number of cluster"
-    assert X_target.shape == (10*8, 2), "X target shape mismatch"
-    assert y_target.shape == (10*8,), "y target shape mismatch"
+    assert X_target.shape == (10 * 8, 2), "X target shape mismatch"
+    assert y_target.shape == (10 * 8,), "y target shape mismatch"
     assert np.unique(y_target).shape == (2,), "Unexpected number of cluster"
 
     # test for multisource
@@ -93,11 +93,11 @@ def test_make_shifted_datasets(shift):
         label='multiclass'
     )
 
-    assert X_source.shape == (10*8, 2), "X source shape mismatch"
-    assert y_source.shape == (10*8,), "y source shape mismatch"
+    assert X_source.shape == (10 * 8, 2), "X source shape mismatch"
+    assert y_source.shape == (10 * 8,), "y source shape mismatch"
     assert np.unique(y_source).shape == (5,), "Unexpected number of cluster"
-    assert X_target.shape == (10*8, 2), "X target shape mismatch"
-    assert y_target.shape == (10*8,), "y target shape mismatch"
+    assert X_target.shape == (10 * 8, 2), "X target shape mismatch"
+    assert y_target.shape == (10 * 8,), "y target shape mismatch"
     assert np.unique(y_target).shape[0] <= 5, "Unexpected number of cluster"
 
 
@@ -113,9 +113,9 @@ def test_make_variable_frequency_dataset():
         random_state=None
     )
 
-    assert X_source.shape == (3*10, 1, 3000), "X source shape mismatch"
-    assert y_source.shape == (3*10,), "y source shape mismatch"
+    assert X_source.shape == (3 * 10, 1, 3000), "X source shape mismatch"
+    assert y_source.shape == (3 * 10,), "y source shape mismatch"
     assert np.unique(y_source).shape == (3,), "Unexpected number of cluster"
-    assert X_target.shape == (3*5, 1, 3000), "X target shape mismatch"
-    assert y_target.shape == (3*5,), "y target shape mismatch"
+    assert X_target.shape == (3 * 5, 1, 3000), "X target shape mismatch"
+    assert y_target.shape == (3 * 5,), "y target shape mismatch"
     assert np.unique(y_target).shape == (3,), "Unexpected number of cluster"
