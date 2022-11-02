@@ -9,10 +9,10 @@ from sklearn.neighbors import KernelDensity
 from sklearn.linear_model import LogisticRegression
 from scipy.stats import multivariate_normal
 
-from .base import BaseDAEstimator, clone
+from .base import BaseDataAdaptEstimator, clone
 
 
-class ReweightDensity(BaseDAEstimator):
+class ReweightDensity(BaseDataAdaptEstimator):
     """Estimator based on reweighting samples using density estimation.
 
     Parameters
@@ -52,7 +52,7 @@ class ReweightDensity(BaseDAEstimator):
         self.weight_estimator_target_.fit(X_target)
 
 
-class GaussianReweightDensity(BaseDAEstimator):
+class GaussianReweightDensity(BaseDataAdaptEstimator):
     """Gaussian approximation reweighting method
 
     Parameters
@@ -95,7 +95,7 @@ class GaussianReweightDensity(BaseDAEstimator):
         self.cov_target_ = np.cov(X_target.T)
 
 
-class ClassifierReweightDensity(BaseDAEstimator):
+class ClassifierReweightDensity(BaseDataAdaptEstimator):
     """Gaussian approximation reweighting method.
 
     Parameters
