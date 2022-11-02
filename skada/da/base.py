@@ -114,3 +114,40 @@ class BaseDataAdaptEstimator(BaseDAEstimator):
     def score(self, X, y):
         base_estimator = self.base_estimator_
         return base_estimator.score(X, y)
+
+
+class BaseSubspaceEstimator(BaseDataAdaptEstimator):
+    """Base class for Subspace Data Adaptation DA estimators.
+
+    This class is a more specific base of BaseDataAdaptEstimator
+    for subspace problems which ask a function transform for
+    source and target domains.
+    """
+
+    def __init__(
+        self,
+        base_estimator,
+    ):
+        super().__init__(base_estimator)
+
+    def predict(self, X, domain='target'):
+        check_is_fitted(self)
+        base_estimator = self.base_estimator_
+        X_transform = self.transform(X, domain)
+        return base_estimator.predict(X_transform)
+
+    @available_if(_estimator_has("predict_proba"))
+    def predict_proba(self, X, domain='target'):
+        check_is_fitted(self)
+        base_estimator = self.base_estimator_
+        X_transform = self.transform(X, domain)
+        return base_estimator.predict_proba(X_transform)
+
+    def score(self, X, y, domain='target'):
+        base_estimator = self.base_estimator_
+        X_transform = self.transform(X, domain)
+        return base_estimator.score(X_transform, y)
+
+    @abstractmethod
+    def transform(self, X, domain='target'):
+        return X
