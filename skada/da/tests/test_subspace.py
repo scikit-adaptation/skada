@@ -2,10 +2,18 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 
 from skada.datasets import make_shifted_blobs
-from skada.da.subspace import SubspaceAlignment
+from skada.da.subspace import SubspaceAlignment, TCA
+
+import pytest
 
 
-def test_subspace_alignment():
+@pytest.mark.parametrize(
+    "estimator", [
+        SubspaceAlignment(base_estimator=LogisticRegression(), n_components=2),
+        TCA(base_estimator=LogisticRegression(), n_components=2),
+    ]
+)
+def test_subspace_alignment(estimator):
     centers = np.array([
         [0, 0],
         [1, 1],
@@ -21,9 +29,6 @@ def test_subspace_alignment():
         cluster_std=0.05,
     )
 
-    estimator = SubspaceAlignment(
-        base_estimator=LogisticRegression(), n_components=n_features
-    )
     estimator.fit(X, y, X_target)
     y_pred = estimator.predict(X_target)
     assert np.mean(y_pred == y_target) > 0.9

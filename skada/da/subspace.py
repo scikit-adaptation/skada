@@ -52,7 +52,12 @@ class SubspaceAlignment(BaseSubspaceEstimator):
         self.pca_target_ = PCA(self.n_components).fit(X_target)
 
     def transform(self, X, domain='target'):
-        """Transform the data in the new subspace"""
+        """Transform the data in the new subspace
+        Parameters
+        ----------
+        domain : string, default='target
+            The domain from where come the data.
+        """
         assert domain in ['target', 'source']
 
         if domain == 'source':
@@ -69,9 +74,21 @@ class TCA(BaseSubspaceEstimator):
     ----------
     base_estimator : estimator object
         The base estimator to fit on reweighted data.
-    weight_estimator : estimator object, optional
-        The estimator to use to estimate the densities of source and target
-        observations. If None, a KernelDensity estimator is used.
+    kernel : kernel object, default='rbf'
+        The kernel computed between data.
+    n_components : int, default=None
+        The numbers of components to learn with PCA.
+        Should be less or equal to the number of samples
+        of the source and target data.
+    mu : float, default=0.1
+        The parameter of the regularization in
+        the optimization problem.
+
+    References
+    ----------
+    .. [1]  Sinno Jialin Pan et. al. Domain Adaptation via
+            Transfer Component Analysi. In IEEE Transactions
+            on Neural Networks, 2011.
     """
 
     def __init__(
@@ -124,6 +141,12 @@ class TCA(BaseSubspaceEstimator):
         self.eigvects_ = np.real(eigvects[:, selected_components])
 
     def transform(self, X, domain='target'):
+        """Transform the data in the new subspace
+        Parameters
+        ----------
+        domain : string, default='target
+            The domain from where come the data.
+        """
         Ks = pairwise_kernels(X, self.X_source_, metric=self.kernel)
         Kt = pairwise_kernels(X, self.X_target_, metric=self.kernel)
         K = np.concatenate((Ks, Kt), axis=1)
