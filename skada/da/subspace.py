@@ -5,6 +5,7 @@
 import numpy as np
 
 from sklearn.decomposition import PCA
+from sklearn.metrics.pairwise import pairwise_kernels
 
 from .base import BaseSubspaceEstimator
 
@@ -59,3 +60,72 @@ class SubspaceAlignment(BaseSubspaceEstimator):
         else:
             X_transform = self.pca_target_.transform(X)
         return X_transform
+
+
+class TCA(BaseSubspaceEstimator):
+    """Estimator based on reweighting samples using density estimation.
+
+    Parameters
+    ----------
+    base_estimator : estimator object
+        The base estimator to fit on reweighted data.
+    weight_estimator : estimator object, optional
+        The estimator to use to estimate the densities of source and target
+        observations. If None, a KernelDensity estimator is used.
+    """
+
+    def __init__(
+        self,
+        base_estimator,
+        kernel='rbf',
+        n_components=None,
+        mu=0.1
+    ):
+        super().__init__(base_estimator)
+
+        self.kernel = kernel
+        self.n_components = n_components
+        self.mu = mu
+
+    def predict_adapt(self, X, y, X_target, y_target=None):
+        """Predict adaptation (weights, sample or labels)"""
+        X_ = (self.K_ @ self.eigvects_)[:len(X)]
+        weights = None
+
+        return X_, y, weights
+
+    def fit_adapt(self, X, y, X_target, y_target=None):
+        """Fit adaptation parameters"""
+        self.X_source_ = X
+        self.X_target_ = X_target
+
+        Kss = pairwise_kernels(X, metric=self.kernel)
+        Ktt = pairwise_kernels(X_target, metric=self.kernel)
+        Kst = pairwise_kernels(X, X_target, metric=self.kernel)
+        K = np.block([[Kss, Kst], [Kst.T, Ktt]])
+        self.K_ = K
+
+        ns = len(X)
+        nt = len(X_target)
+        Lss = 1/ns**2 * np.ones((ns, ns))
+        Ltt = 1/nt**2 * np.ones((nt, nt))
+        Lst = -1/(ns*nt) * np.ones((ns, nt))
+        L = np.block([[Lss, Lst], [Lst.T, Ltt]])
+
+        H = np.eye(ns+nt) - 1/(ns + nt) * np.ones((ns + nt, ns + nt))
+
+        A = np.eye(ns + nt) + self.mu * K @ L @ K
+        B = K @ H @ K
+        solution = np.linalg.solve(A, B)
+
+        eigvals, eigvects = np.linalg.eigh(solution)
+
+        selected_components = np.argsort(np.abs(eigvals))[::-1][:self.n_components]
+        self.eigvects_ = np.real(eigvects[:, selected_components])
+
+    def transform(self, X, domain='target'):
+        Ks = pairwise_kernels(X, self.X_source_, metric=self.kernel)
+        Kt = pairwise_kernels(X, self.X_target_, metric=self.kernel)
+        K = np.concatenate((Ks, Kt), axis=1)
+
+        return (K @ self.eigvects_)[:len(X)]
