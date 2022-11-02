@@ -164,7 +164,7 @@ class BaseDANetwork(ABC):
     def _make_loaders(
         self, dataset, split_strategy="random", multi_source_strategy="concatenate"
     ):
-        if type(dataset) is list:
+        if isinstance(dataset, list):
             if split_strategy == "random":
                 dataset_train, dataset_val = train_test_split(dataset, test_size=0.2)
             if multi_source_strategy == "concatenate":
