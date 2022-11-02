@@ -5,7 +5,7 @@ from skada.datasets import make_shifted_blobs
 from skada.da.subaspace_alignment import SubspaceAlignment
 
 
-def test_reweight_estimator():
+def test_subspace_alignment():
     centers = np.array([
         [0, 0],
         [1, 1],
