@@ -47,10 +47,8 @@ class SubspaceAlignment(BaseSubspaceEstimator):
         """Fit adaptation parameters"""
         assert self.n_components <= X.shape[1], "n_components higher than n_features"
 
-        self.PCA_source_ = PCA(self.n_components)
-        self.PCA_target_ = PCA(self.n_components)
-        self.PCA_source_.fit(X)
-        self.PCA_target_.fit(X_target)
+        self.pca_source_ = PCA(self.n_components).fit(X)
+        self.pca_target_ = PCA(self.n_components).fit(X_target)
 
     def transform(self, X, domain='target'):
 
