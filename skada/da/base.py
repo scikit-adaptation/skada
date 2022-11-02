@@ -4,13 +4,11 @@
 #
 # License: MIT License
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 
 from sklearn.base import BaseEstimator, clone
 from sklearn.utils.metaestimators import available_if
 from sklearn.utils.validation import check_is_fitted
-
-from sklearn.base import clone
 
 
 def _estimator_has(attr):
