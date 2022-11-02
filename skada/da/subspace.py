@@ -39,8 +39,8 @@ class SubspaceAlignment(BaseSubspaceEstimator):
     def predict_adapt(self, X, y, X_target, y_target=None):
         """Predict adaptation (weights, sample or labels)"""
         weights = None
-        self.M_ = np.dot(self.PCA_source_.components_, self.PCA_target_.components_.T)
-        X_ = np.dot(self.PCA_source_.transform(X), self.M_)
+        self.M_ = np.dot(self.pca_source_.components_, self.pca_target_.components_.T)
+        X_ = np.dot(self.pca_source_.transform(X), self.M_)
         return X_, y, weights
 
     def fit_adapt(self, X, y, X_target, y_target=None):
@@ -55,7 +55,7 @@ class SubspaceAlignment(BaseSubspaceEstimator):
         assert domain in ['target', 'source']
 
         if domain == 'source':
-            X_transform = np.dot(self.PCA_source_.transform(X), self.M_)
+            X_transform = np.dot(self.pca_source_.transform(X), self.M_)
         else:
-            X_transform = self.PCA_target_.transform(X)
+            X_transform = self.pca_target_.transform(X)
         return X_transform
