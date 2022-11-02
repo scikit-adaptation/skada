@@ -14,7 +14,7 @@ from . import reweight
 from .reweight import (
     ReweightDensity, GaussianReweightDensity, ClassifierReweightDensity
 )
-from .subaspace_alignment import SubspaceAlignment
+from .subspace import SubspaceAlignment
 
 __all__ = [
     "reweight",
