@@ -11,7 +11,7 @@ from .base import BaseSubspaceEstimator
 
 
 class SubspaceAlignment(BaseSubspaceEstimator):
-    """Estimator based on reweighting samples using density estimation.
+    """Domain Adaptation Using Subspace Alignment.
 
     Parameters
     ----------
@@ -22,11 +22,18 @@ class SubspaceAlignment(BaseSubspaceEstimator):
         Should be less or equal to the number of features
         of the data.
 
+    Attributes
+    ----------
+    pca_source_ : object
+        The PCA object fitted on the source data.
+    pca_target_ : object
+        The PCA object fitted on the target data.
+
     References
     ----------
-    .. [1]  Basura Fernando et. al. Unsupervised Visual
-            Domain Adaptation Using Subspace Alignment.
-            In IEEE International Conference on Computer Vision, 2013.
+    .. [1] Basura Fernando et. al. Unsupervised Visual
+           Domain Adaptation Using Subspace Alignment.
+           In IEEE International Conference on Computer Vision, 2013.
     """
     def __init__(
         self,
@@ -38,25 +45,72 @@ class SubspaceAlignment(BaseSubspaceEstimator):
         self.n_components = n_components
 
     def predict_adapt(self, X, y, X_target, y_target=None):
-        """Predict adaptation (weights, sample or labels)"""
+        """Predict adaptation (weights, sample or labels).
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        X_target : array-like, shape (n_samples, n_features)
+            The target data.
+        y_target : array-like, shape (n_samples,), optional
+            The target labels.
+
+        Returns
+        -------
+        X_t : array-like, shape (n_samples, n_components)
+            The data transformed to the target subspace.
+        y_t : array-like, shape (n_samples,)
+            The labels (same as y).
+        weights : array-like, shape (n_samples,)
+            The weights of the samples.
+        """
         weights = None
         self.M_ = np.dot(self.pca_source_.components_, self.pca_target_.components_.T)
         X_ = np.dot(self.pca_source_.transform(X), self.M_)
         return X_, y, weights
 
     def fit_adapt(self, X, y, X_target, y_target=None):
-        """Fit adaptation parameters"""
+        """Fit adaptation parameters.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        X_target : array-like, shape (n_samples, n_features)
+            The target data.
+        y_target : array-like, shape (n_samples,), optional
+            The target labels.
+
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
         assert self.n_components <= X.shape[1], "n_components higher than n_features"
 
         self.pca_source_ = PCA(self.n_components).fit(X)
         self.pca_target_ = PCA(self.n_components).fit(X_target)
+        return self
 
     def transform(self, X, domain='target'):
         """Transform the data in the new subspace
+
         Parameters
         ----------
-        domain : string, default='target
-            The domain from where come the data.
+        X : array-like, shape (n_samples, n_features)
+            The data to transform.
+        domain : str, default='target'
+            The domain to transform the data to.
+
+        Returns
+        -------
+        X_t : array-like, shape (n_samples, n_components)
+            The transformed data.
         """
         assert domain in ['target', 'source']
 
@@ -68,7 +122,7 @@ class SubspaceAlignment(BaseSubspaceEstimator):
 
 
 class TCA(BaseSubspaceEstimator):
-    """Estimator based on reweighting samples using density estimation.
+    """Transfer Component Analysis.
 
     Parameters
     ----------
@@ -81,14 +135,18 @@ class TCA(BaseSubspaceEstimator):
         Should be less or equal to the number of samples
         of the source and target data.
     mu : float, default=0.1
-        The parameter of the regularization in
-        the optimization problem.
+        The parameter of the regularization in the optimization
+        problem.
+
+    Attributes
+    ----------
+    XXX
 
     References
     ----------
-    .. [1]  Sinno Jialin Pan et. al. Domain Adaptation via
-            Transfer Component Analysi. In IEEE Transactions
-            on Neural Networks, 2011.
+    .. [1] Sinno Jialin Pan et. al. Domain Adaptation via
+           Transfer Component Analysis. In IEEE Transactions
+           on Neural Networks, 2011.
     """
 
     def __init__(
@@ -105,14 +163,52 @@ class TCA(BaseSubspaceEstimator):
         self.mu = mu
 
     def predict_adapt(self, X, y, X_target, y_target=None):
-        """Predict adaptation (weights, sample or labels)"""
+        """Predict adaptation (weights, sample or labels).
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        X_target : array-like, shape (n_samples, n_features)
+            The target data.
+        y_target : array-like, shape (n_samples,), optional
+            The target labels.
+
+        Returns
+        -------
+        X_t : array-like, shape (n_samples, n_components)
+            The data transformed to the target subspace.
+        y_t : array-like, shape (n_samples,)
+            The labels (same as y).
+        weights : None
+            No weights are returned here.
+        """
         X_ = (self.K_ @ self.eigvects_)[:len(X)]
         weights = None
 
         return X_, y, weights
 
     def fit_adapt(self, X, y, X_target, y_target=None):
-        """Fit adaptation parameters"""
+        """Fit adaptation parameters.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        X_target : array-like, shape (n_samples, n_features)
+            The target data.
+        y_target : array-like, shape (n_samples,), optional
+            The target labels.
+
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
         self.X_source_ = X
         self.X_target_ = X_target
 
@@ -139,13 +235,22 @@ class TCA(BaseSubspaceEstimator):
 
         selected_components = np.argsort(np.abs(eigvals))[::-1][:self.n_components]
         self.eigvects_ = np.real(eigvects[:, selected_components])
+        return self
 
     def transform(self, X, domain='target'):
-        """Transform the data in the new subspace
+        """Transform the data in the new subspace.
+
         Parameters
         ----------
+        X : array-like, shape (n_samples, n_features)
+            The data to transform.
         domain : string, default='target
             The domain from where come the data.
+
+        Returns
+        -------
+        X_t : array-like, shape (n_samples, n_components)
+            The transformed data.
         """
         Ks = pairwise_kernels(X, self.X_source_, metric=self.kernel)
         Kt = pairwise_kernels(X, self.X_target_, metric=self.kernel)
