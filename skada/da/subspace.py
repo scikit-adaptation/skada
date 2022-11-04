@@ -121,7 +121,7 @@ class SubspaceAlignment(BaseSubspaceEstimator):
         return X_transform
 
 
-class TCA(BaseSubspaceEstimator):
+class TransferComponentAnalysis(BaseSubspaceEstimator):
     """Transfer Component Analysis.
 
     Parameters
