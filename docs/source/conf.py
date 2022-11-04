@@ -27,24 +27,9 @@ sys.path.insert(0, os.path.abspath(".."))
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named #'sphinx.ext.*') or your custom
 # ones.
-# extensions = [
-#     "sphinx.ext.autodoc",
-#     "sphinx.ext.autosummary",
-#     "sphinx.ext.doctest",
-#     "sphinx.ext.intersphinx",
-#     # "sphinx.ext.todo",
-#     "sphinx.ext.coverage",
-#     "sphinx.ext.mathjax",
-#     "sphinx.ext.ifconfig",
-#     "sphinx.ext.viewcode",
-#     # "sphinx.ext.napoleon",
-#     "sphinx_gallery.gen_gallery",
-#     'numpydoc',
-# ]
 
 extensions = [
     'sphinx.ext.autodoc',
-    # 'sphinx.ext.napoleon',
     'numpydoc',
     'sphinx.ext.viewcode',
     'sphinx.ext.autosummary',
@@ -329,10 +314,10 @@ texinfo_documents = [
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
-    # "numpy": ("http://docs.scipy.org/doc/numpy/", None),
-    # "scipy": ("http://docs.scipy.org/doc/scipy/reference/", None),
-    # "matplotlib": ("http://matplotlib.org/", None),
-    # "torch": ("https://pytorch.org/docs/stable/", None),
+    "numpy": ("http://docs.scipy.org/doc/numpy/", None),
+    "scipy": ("http://docs.scipy.org/doc/scipy/reference/", None),
+    "matplotlib": ("http://matplotlib.org/", None),
+    "torch": ("https://pytorch.org/docs/stable/", None),
 }
 
 sphinx_gallery_conf = {
