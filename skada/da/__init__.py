@@ -14,10 +14,13 @@ from . import reweight
 from .reweight import (
     ReweightDensity, GaussianReweightDensity, ClassifierReweightDensity
 )
+from .subspace import SubspaceAlignment, TCA
 
 __all__ = [
     "reweight",
     "ReweightDensity",
     "GaussianReweightDensity",
-    "ClassifierReweightDensity"
+    "ClassifierReweightDensity",
+    "SubspaceAlignment",
+    "TCA"
 ]
