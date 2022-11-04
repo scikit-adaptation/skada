@@ -49,7 +49,7 @@ help:
 
 .PHONY: clean
 clean:
-	rm -rf $(BUILDDIR)/*
+	rm -rf $(BUILDDIR)/* source/gen_modules source/auto_examples
 
 .PHONY: html
 html:

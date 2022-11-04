@@ -8,23 +8,15 @@
 import sys
 import os
 import re
+from numpydoc import numpydoc, docscrape  # noqa
 
-try:
-    import sphinx_gallery
-
-    sphinx_gallery.__version__
-
-
-except ImportError:
-    print("warning sphinx-gallery not installed")
-
+import sphinx_gallery  # noqa
+import sphinx_rtd_theme  # noqa
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.insert(0, os.path.abspath("."))
 sys.path.insert(0, os.path.abspath(".."))
-sys.path.insert(0, os.path.abspath("../.."))
 
 
 # -- General configuration ------------------------------------------------
@@ -35,23 +27,27 @@ sys.path.insert(0, os.path.abspath("../.."))
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named #'sphinx.ext.*') or your custom
 # ones.
+
 extensions = [
-    "sphinx.ext.autodoc",
-    "sphinx.ext.autosummary",
-    "sphinx.ext.doctest",
-    "sphinx.ext.intersphinx",
-    "sphinx.ext.todo",
-    "sphinx.ext.coverage",
-    "sphinx.ext.mathjax",
-    "sphinx.ext.ifconfig",
-    "sphinx.ext.viewcode",
-    "sphinx.ext.napoleon",
-    "sphinx_gallery.gen_gallery",
+    'sphinx.ext.autodoc',
+    'numpydoc',
+    'sphinx.ext.viewcode',
+    'sphinx.ext.autosummary',
+    'sphinx.ext.doctest',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.todo',
+    'sphinx.ext.coverage',
+    'sphinx.ext.mathjax',
+    'sphinx_gallery.gen_gallery',
+    'sphinx.ext.graphviz',
 ]
 
+# autodoc / autosummary
 autosummary_generate = True
+# autodoc_default_options = {'inherited-members': None}
+numpydoc_show_class_members = False 
 
-napoleon_numpy_docstring = True
+# napoleon_numpy_docstring = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -68,7 +64,7 @@ source_encoding = "utf-8-sig"
 master_doc = "index"
 
 # General information about the project.
-project = ""
+project = "SKADA"
 copyright = "2022, The SKADA team"
 author = "Théo Gnassounou, Rémi Flamary, Alexandre Gramfort"
 
@@ -101,7 +97,7 @@ language = "English"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = []
+exclude_patterns = ['build']
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
@@ -120,6 +116,7 @@ exclude_patterns = []
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = "default"
+highlight_language = 'python3'
 
 # A list of ignored prefixes for module index sorting.
 # modindex_common_prefix = []
@@ -165,6 +162,7 @@ html_title = "SKADA : Scikit Domain Adapation"
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
+# html_static_path = []
 html_static_path = ["_static"]
 # html_css_files = ["css/custom.css"]
 
@@ -323,12 +321,12 @@ intersphinx_mapping = {
 }
 
 sphinx_gallery_conf = {
-    "examples_dirs": ["../../examples", "../../examples/da"],
+    "examples_dirs": ["../../examples"],
     "gallery_dirs": "auto_examples",
     "nested_sections": False,
     "backreferences_dir": "gen_modules/backreferences",
     "inspect_global_variables": True,
-    "doc_module": ("ot", "numpy", "scipy", "pylab"),
+    "doc_module": ("skada", "ot", "numpy", "scipy", "pylab"),
     "matplotlib_animations": True,
     "reference_url": {"skada": None},
 }

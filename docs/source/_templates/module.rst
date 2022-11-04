@@ -1,3 +1,6 @@
+.. Please when editing this file make sure to keep it matching the
+   docs in ../configuration.rst:reference_to_examples
+
 {{ fullname }}
 {{ underline }}
 
@@ -13,11 +16,10 @@
 
    .. autofunction:: {{ item }}
 
-   .. include:: backreferences/{{fullname}}.{{item}}.examples
+   .. _sphx_glr_backref_{{fullname}}.{{item}}:
 
-   .. raw:: html
-
-	       <div class="sphx-glr-clear"></div>
+   .. minigallery:: {{fullname}}.{{item}}
+       :add-heading:
 
    {%- endfor %}
    {% endif %}
@@ -33,11 +35,10 @@
    .. autoclass:: {{ item }}
       :members:
 
-   .. include:: backreferences/{{fullname}}.{{item}}.examples
+   .. _sphx_glr_backref_{{fullname}}.{{item}}:
 
-   .. raw:: html
-
-	       <div class="sphx-glr-clear"></div>
+   .. minigallery:: {{fullname}}.{{item}}
+       :add-heading:
 
    {%- endfor %}
    {% endif %}

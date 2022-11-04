@@ -1,7 +1,7 @@
 """
-====================================================
 Plot dataset source domain and shifted target domain
 ====================================================
+
 This illustrates the :func:`~skada.datasets.make_dataset_from_moons_distribution`
 dataset generator. Each method consists of generating source data
 and shifted target data.

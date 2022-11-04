@@ -54,7 +54,9 @@ class ReweightDensity(BaseDataAdaptEstimator):
 
 
 class GaussianReweightDensity(BaseDataAdaptEstimator):
-    """Gaussian approximation reweighting method
+    """Gaussian approximation reweighting method.
+
+    See [1]_ for details.
 
     Parameters
     ----------
@@ -99,6 +101,8 @@ class GaussianReweightDensity(BaseDataAdaptEstimator):
 
 class ClassifierReweightDensity(BaseDataAdaptEstimator):
     """Gaussian approximation reweighting method.
+
+    See [1]_ for details.
 
     Parameters
     ----------
