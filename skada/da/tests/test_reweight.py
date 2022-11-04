@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 
 from skada.datasets import make_shifted_blobs
-from skada.da.reweight import (
+from skada.da import (
     ReweightDensity, GaussianReweightDensity, ClassifierReweightDensity
 )
 
