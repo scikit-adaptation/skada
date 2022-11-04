@@ -14,7 +14,7 @@ from ._reweight import (
 )
 from ._subspace import SubspaceAlignment, TransferComponentAnalysis
 
-from .mapping import (
+from ._mapping import (
     EMDTransport, SinkhornTransport, SinkhornLpl1Transport, SinkhornL1l2Transport
 )
 

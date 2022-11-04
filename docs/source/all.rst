@@ -38,6 +38,10 @@ API and modules
    ClassifierReweightDensity
    SubspaceAlignment
    TransferComponentAnalysis
+   EMDTransport
+   SinkhornTransport
+   SinkhornLpl1Transport
+   SinkhornL1l2Transport
 
 .. currentmodule:: skada.deepda
 
