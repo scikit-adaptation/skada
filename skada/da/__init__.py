@@ -20,10 +20,6 @@ from .mapping import (
     EMDTransport, SinkhornTransport, SinkhornLpl1Transport, SinkhornL1l2Transport
 )
 
-from .mapping import (
-    EMDTransport, SinkhornTransport, SinkhornLpl1Transport, SinkhornL1l2Transport
-)
-
 __all__ = [
     "reweight",
     "ReweightDensity",
