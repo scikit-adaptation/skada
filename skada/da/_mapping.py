@@ -1,10 +1,10 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #
-# License: MIT License
-
-from .base import BaseDataAdaptEstimator
+# License: BSD 3-Clause
 
 from ot import da
+
+from .base import BaseDataAdaptEstimator
 
 
 class EMDTransport(BaseDataAdaptEstimator):
@@ -222,8 +222,8 @@ class SinkhornLpl1Transport(BaseDataAdaptEstimator):
             The data transformed to the target subspace.
         y_t : array-like, shape (n_samples,)
             The labels (same as y).
-        weights : array-like, shape (n_samples,)
-            The weights of the samples.
+        weights : None
+            No weights is this case.
         """
         X_ = self.ot_lpl1_.transform(Xs=X)
         weights = None
@@ -248,7 +248,6 @@ class SinkhornLpl1Transport(BaseDataAdaptEstimator):
         self : object
             Returns self.
         """
-
         self.ot_lpl1_ = da.SinkhornLpl1Transport(
             reg_e=self.reg_e, reg_cl=self.reg_cl
         ).fit(Xs=X, ys=y, Xt=X_target)
@@ -336,7 +335,6 @@ class SinkhornL1l2Transport(BaseDataAdaptEstimator):
         self : object
             Returns self.
         """
-
         self.ot_l1l2_ = da.SinkhornL1l2Transport(
             reg_e=self.reg_e, reg_cl=self.reg_cl
         ).fit(Xs=X, ys=y, Xt=X_target)

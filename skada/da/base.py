@@ -2,7 +2,7 @@
 # Author: Remi Flamary <remi.flamary@polytechnique.edu>
 #         Alexandre Gramfort <firstname.lastname@inria.fr>
 #
-# License: MIT License
+# License: BSD 3-Clause
 
 from abc import abstractmethod
 
@@ -98,7 +98,7 @@ class BaseDataAdaptEstimator(BaseDAEstimator):
     @abstractmethod
     def fit_adapt(self, X, y, X_target, y_target=None):
         """Fit adaptation parameters"""
-        pass
+        return self
 
     def predict(self, X):
         check_is_fitted(self)
