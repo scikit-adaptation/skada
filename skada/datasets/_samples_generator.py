@@ -249,13 +249,13 @@ def make_shifted_datasets(
     n_samples_target : int, default=100
         It is the total number of points among one
         target clusters. At the end 8*n_samples points.
-    shift : tuple, default='cs'
+    shift : tuple, default='covariate_shift'
         Choose the nature of the shift.
         If 'covariate_shift', use covariate shift.
         If 'target_shift', use target shift.
         If 'concept_drift', use concept drift.
         If 'sample_bias', use sample-selection bias.
-        Detailed descriptionof each shift in [1].
+        See detailed description of each shift in [1]_.
     noise : float or array_like, default=None
         If float, standard deviation of Gaussian noise added to the data.
         If array-like, each element of the sequence indicate standard
@@ -268,9 +268,9 @@ def make_shifted_datasets(
     sigma : float, default=0.7
         multiplicative value of the concept drift.
     gamma :  float, default=2
-
+        Parameter of the RBF kernel.
     center : ndarray of shape (1, 2), default=[[0, 2]]
-
+        Center of the distribution.
     random_state : int, RandomState instance or None, default=None
         Determines random number generation for dataset creation. Pass an int
         for reproducible output across multiple function calls.

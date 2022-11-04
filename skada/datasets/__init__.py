@@ -1,3 +1,7 @@
+"""
+Utilities to produce datasets for testing and benchmarking.
+"""
+
 from ._samples_generator import (
     make_shifted_blobs,
     make_shifted_datasets,
