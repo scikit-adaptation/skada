@@ -14,7 +14,7 @@ from . import reweight
 from .reweight import (
     ReweightDensity, GaussianReweightDensity, ClassifierReweightDensity
 )
-from .subspace import SubspaceAlignment, TCA
+from .subspace import SubspaceAlignment, TransferComponentAnalysis
 
 __all__ = [
     "reweight",
@@ -22,5 +22,5 @@ __all__ = [
     "GaussianReweightDensity",
     "ClassifierReweightDensity",
     "SubspaceAlignment",
-    "TCA"
+    "TransferComponentAnalysis"
 ]

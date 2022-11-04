@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 
 from skada.datasets import make_shifted_blobs
-from skada.da.subspace import SubspaceAlignment, TCA
+from skada.da.subspace import SubspaceAlignment, TransferComponentAnalysis
 
 import pytest
 
@@ -10,7 +10,7 @@ import pytest
 @pytest.mark.parametrize(
     "estimator", [
         SubspaceAlignment(base_estimator=LogisticRegression(), n_components=2),
-        TCA(base_estimator=LogisticRegression(), n_components=2),
+        TransferComponentAnalysis(base_estimator=LogisticRegression(), n_components=2),
     ]
 )
 def test_subspace_alignment(estimator):
