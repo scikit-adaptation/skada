@@ -148,7 +148,7 @@ class TCA(BaseSubspaceEstimator):
         Kernel distance between the data (source and target).
     eigvects_: array
         Highest n_components eigen vectors of the solution
-        of the optimisation problem used to project 
+        of the optimisation problem used to project
         in the new subspace.
 
     References
