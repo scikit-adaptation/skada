@@ -45,7 +45,7 @@ extensions = [
 # autodoc / autosummary
 autosummary_generate = True
 # autodoc_default_options = {'inherited-members': None}
-numpydoc_show_class_members = False 
+numpydoc_show_class_members = False
 
 # napoleon_numpy_docstring = True
 
