@@ -140,7 +140,15 @@ class TCA(BaseSubspaceEstimator):
 
     Attributes
     ----------
-    XXX
+    X_source_: array
+        Source data used for the optimisation problem.
+    X_target_: array
+        Target data used for the optimasation problem.
+    K_: array
+        Kernel distance between the data (source and target).
+    eigvects_: array
+        n_components higher eigen vectors of the solution
+        of the optimisation problem.
 
     References
     ----------
