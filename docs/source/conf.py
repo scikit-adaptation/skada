@@ -3,7 +3,7 @@
 
 # Author: Remi Flamary <remi.flamary@polytechnique.edu>
 #
-# License: MIT License
+# License: BSD 3-Clause
 
 import sys
 import os

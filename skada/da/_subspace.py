@@ -1,6 +1,6 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #
-# License: MIT License
+# License: BSD 3-Clause
 
 import numpy as np
 
@@ -43,7 +43,6 @@ class SubspaceAlignment(BaseSubspaceEstimator):
         n_components=None,
     ):
         super().__init__(base_estimator)
-
         self.n_components = n_components
 
     def predict_adapt(self, X, y, X_target, y_target=None):

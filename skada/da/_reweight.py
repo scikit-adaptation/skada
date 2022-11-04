@@ -2,7 +2,7 @@
 # Author: Remi Flamary <remi.flamary@polytechnique.edu>
 #         Alexandre Gramfort <firstname.lastname@inria.fr>
 #
-# License: MIT License
+# License: BSD 3-Clause
 
 import numpy as np
 from sklearn.neighbors import KernelDensity
