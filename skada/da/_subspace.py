@@ -66,8 +66,8 @@ class SubspaceAlignment(BaseSubspaceEstimator):
             The data transformed to the target subspace.
         y_t : array-like, shape (n_samples,)
             The labels (same as y).
-        weights : array-like, shape (n_samples,)
-            The weights of the samples.
+        weights : None
+            No weights are returned here.
         """
         weights = None
         self.M_ = np.dot(self.pca_source_.components_, self.pca_target_.components_.T)
