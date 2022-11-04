@@ -110,13 +110,13 @@ class GaussianReweightDensity(BaseDataAdaptEstimator):
 
     Attributes
     ----------
-    mean_source_ : array-like, shape (n_features,)
+    `mean_source_` : array-like, shape (n_features,)
         Mean of the source data.
-    cov_source_ : array-like, shape (n_features, n_features)
+    `cov_source_` : array-like, shape (n_features, n_features)
         Mean of the source data.
-    mean_target_ : array-like, shape (n_features,)
+    `mean_target_` : array-like, shape (n_features,)
         Mean of the target data.
-    cov_target_ : array-like, shape (n_features, n_features)
+    `cov_target_` : array-like, shape (n_features, n_features)
         Covariance of the target data.
 
     References
@@ -208,7 +208,7 @@ class ClassifierReweightDensity(BaseDataAdaptEstimator):
 
     Attributes
     ----------
-    domain_classifier_ : object
+    `domain_classifier_` : object
         The classifier object fitted on the source and target data.
 
     References
