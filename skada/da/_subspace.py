@@ -13,6 +13,8 @@ from .base import BaseSubspaceEstimator
 class SubspaceAlignment(BaseSubspaceEstimator):
     """Domain Adaptation Using Subspace Alignment.
 
+    See [1]_ for details.
+
     Parameters
     ----------
     base_estimator : estimator object
@@ -24,9 +26,9 @@ class SubspaceAlignment(BaseSubspaceEstimator):
 
     Attributes
     ----------
-    pca_source_ : object
+    `pca_source_` : object
         The PCA object fitted on the source data.
-    pca_target_ : object
+    `pca_target_` : object
         The PCA object fitted on the target data.
 
     References
@@ -64,8 +66,8 @@ class SubspaceAlignment(BaseSubspaceEstimator):
             The data transformed to the target subspace.
         y_t : array-like, shape (n_samples,)
             The labels (same as y).
-        weights : array-like, shape (n_samples,)
-            The weights of the samples.
+        weights : None
+            No weights are returned here.
         """
         weights = None
         self.M_ = np.dot(self.pca_source_.components_, self.pca_target_.components_.T)
@@ -124,6 +126,8 @@ class SubspaceAlignment(BaseSubspaceEstimator):
 class TransferComponentAnalysis(BaseSubspaceEstimator):
     """Transfer Component Analysis.
 
+    See [1]_ for details.
+
     Parameters
     ----------
     base_estimator : estimator object
@@ -140,13 +144,13 @@ class TransferComponentAnalysis(BaseSubspaceEstimator):
 
     Attributes
     ----------
-    X_source_: array
+    `X_source_` : array
         Source data used for the optimisation problem.
-    X_target_: array
+    `X_target_` : array
         Target data used for the optimisation problem.
-    K_: array
+    `K_` : array
         Kernel distance between the data (source and target).
-    eigvects_: array
+    `eigvects_` : array
         Highest n_components eigen vectors of the solution
         of the optimisation problem used to project
         in the new subspace.

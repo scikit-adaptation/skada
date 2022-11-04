@@ -1,8 +1,7 @@
 """
 Some methods for deep domain adaptation.
 """
-from .base import BaseDANetwork
-from .deepcoral import DeepCORAL
-from .deepjdot import DeepJDOT
+from ._deepcoral import DeepCORAL
+from ._deepjdot import DeepJDOT
 
-__all__ = ['BaseDANetwork', 'DeepCORAL', 'DeepJDOT']
+__all__ = ['DeepCORAL', 'DeepJDOT']

@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 
 from skada.datasets import make_shifted_blobs
-from skada.da.subspace import SubspaceAlignment, TransferComponentAnalysis
+from skada.da import SubspaceAlignment, TransferComponentAnalysis
 
 import pytest
 

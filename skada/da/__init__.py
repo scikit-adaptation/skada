@@ -9,19 +9,16 @@ Domain Adaptation estimators
 #
 # License: MIT License
 
-from . import reweight
-
-from .reweight import (
+from ._reweight import (
     ReweightDensity, GaussianReweightDensity, ClassifierReweightDensity
 )
-from .subspace import SubspaceAlignment, TransferComponentAnalysis
+from ._subspace import SubspaceAlignment, TransferComponentAnalysis
 
 from .mapping import (
     EMDTransport, SinkhornTransport, SinkhornLpl1Transport, SinkhornL1l2Transport
 )
 
 __all__ = [
-    "reweight",
     "ReweightDensity",
     "GaussianReweightDensity",
     "ClassifierReweightDensity",

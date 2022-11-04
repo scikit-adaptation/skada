@@ -1,9 +1,11 @@
 from ..utils import cov, norm_coral
-from . import BaseDANetwork
+from .base import BaseDANetwork
 
 
 class DeepCORAL(BaseDANetwork):
     """Loss DeepCORAL
+
+    From [2]_.
 
     Parameters
     ----------
