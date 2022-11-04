@@ -143,12 +143,13 @@ class TCA(BaseSubspaceEstimator):
     X_source_: array
         Source data used for the optimisation problem.
     X_target_: array
-        Target data used for the optimasation problem.
+        Target data used for the optimisation problem.
     K_: array
         Kernel distance between the data (source and target).
     eigvects_: array
-        n_components higher eigen vectors of the solution
-        of the optimisation problem.
+        Highest n_components eigen vectors of the solution
+        of the optimisation problem used to project 
+        in the new subspace.
 
     References
     ----------
