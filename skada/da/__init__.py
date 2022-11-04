@@ -16,11 +16,19 @@ from .reweight import (
 )
 from .subspace import SubspaceAlignment, TCA
 
+from .mapping import (
+    EMDTransport, SinkhornTransport, SinkhornLpl1Transport, SinkhornL1l2Transport
+)
+
 __all__ = [
     "reweight",
     "ReweightDensity",
     "GaussianReweightDensity",
     "ClassifierReweightDensity",
     "SubspaceAlignment",
-    "TCA"
+    "TCA",
+    "EMDTransport",
+    "SinkhornTransport",
+    "SinkhornLpl1Transport",
+    "SinkhornL1l2Transport"
 ]
