@@ -1,11 +1,13 @@
 import torch
 
 from ..utils import distance_matrix, ot_solve
-from . import BaseDANetwork
+from .base import BaseDANetwork
 
 
 class DeepJDOT(BaseDANetwork):
-    """Loss DeepJDOT
+    """Loss DeepJDOT.
+
+    See [1]_.
 
     Parameters
     ----------
