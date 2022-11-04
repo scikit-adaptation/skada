@@ -26,7 +26,7 @@ __all__ = [
     "GaussianReweightDensity",
     "ClassifierReweightDensity",
     "SubspaceAlignment",
-    "TransferComponentAnalysis"
+    "TransferComponentAnalysis",
     "EMDTransport",
     "SinkhornTransport",
     "SinkhornLpl1Transport",
