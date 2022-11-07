@@ -17,7 +17,7 @@ shows the classification accuracy on the test set.
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
-from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
 from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.neighbors import KernelDensity
 from skada.da import ReweightDensity, GaussianReweightDensity, ClassifierReweightDensity
@@ -48,19 +48,19 @@ names = [
 ]
 
 classifiers = [
-    LogisticRegression(),
+    SVC(),
     ReweightDensity(
-        base_estimator=LogisticRegression(),
-        weight_estimator=KernelDensity(bandwidth=0.05),
+        base_estimator=SVC(),
+        weight_estimator=KernelDensity(bandwidth=0.005),
     ),
-    GaussianReweightDensity(base_estimator=LogisticRegression()),
-    ClassifierReweightDensity(base_estimator=LogisticRegression()),
-    SubspaceAlignment(base_estimator=LogisticRegression(), n_components=2),
-    TransferComponentAnalysis(base_estimator=LogisticRegression(), n_components=2),
-    EMDTransport(base_estimator=LogisticRegression()),
-    SinkhornTransport(base_estimator=LogisticRegression()),
-    SinkhornLpl1Transport(base_estimator=LogisticRegression()),
-    SinkhornL1l2Transport(base_estimator=LogisticRegression()),
+    GaussianReweightDensity(base_estimator=SVC()),
+    ClassifierReweightDensity(base_estimator=SVC()),
+    SubspaceAlignment(base_estimator=SVC(), n_components=2),
+    TransferComponentAnalysis(base_estimator=SVC(), n_components=2),
+    EMDTransport(base_estimator=SVC()),
+    SinkhornTransport(base_estimator=SVC()),
+    SinkhornLpl1Transport(base_estimator=SVC()),
+    SinkhornL1l2Transport(base_estimator=SVC()),
 ]
 
 datasets = [
@@ -75,7 +75,7 @@ datasets = [
     make_shifted_datasets(
         n_samples_source=20,
         n_samples_target=20,
-        shift="covariate_shift",
+        shift="target_shift",
         label="binary",
         noise=0.4,
         random_state=RANDOM_SEED
