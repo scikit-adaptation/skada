@@ -84,7 +84,7 @@ class OTmapping(BaseDataAdaptEstimator):
         return self
 
 
-class EntropicOTmapping(BaseDataAdaptEstimator):
+class EntropicOTmapping(OTmapping):
     """Domain Adaptation Using Optimal Transport.
 
     Parameters
@@ -114,33 +114,6 @@ class EntropicOTmapping(BaseDataAdaptEstimator):
         super().__init__(base_estimator)
         self.reg_e = reg_e
 
-    def predict_adapt(self, X, y, X_target, y_target=None):
-        """Predict adaptation (weights, sample or labels).
-
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            The source data.
-        y : array-like, shape (n_samples,)
-            The source labels.
-        X_target : array-like, shape (n_samples, n_features)
-            The target data.
-        y_target : array-like, shape (n_samples,), optional
-            The target labels.
-
-        Returns
-        -------
-        X_t : array-like, shape (n_samples, n_components)
-            The data transformed to the target subspace.
-        y_t : array-like, shape (n_samples,)
-            The labels (same as y).
-        weights : array-like, shape (n_samples,)
-            The weights of the samples.
-        """
-        X_ = self.ot_transport_.transform(Xs=X)
-        weights = None
-        return X_, y, weights
-
     def fit_adapt(self, X, y, X_target, y_target=None):
         """Fit adaptation parameters.
 
@@ -166,7 +139,7 @@ class EntropicOTmapping(BaseDataAdaptEstimator):
         return self
 
 
-class ClassRegularizerOTmapping(BaseDataAdaptEstimator):
+class ClassRegularizerOTmapping(OTmapping):
     """Domain Adaptation Using Optimal Transport.
 
     Parameters
@@ -198,39 +171,12 @@ class ClassRegularizerOTmapping(BaseDataAdaptEstimator):
         base_estimator,
         reg_e=1,
         reg_cl=0.1,
-        norm="Lpl1"
+        norm="lpl1"
     ):
         super().__init__(base_estimator)
         self.reg_e = reg_e
         self.reg_cl = reg_cl
         self.norm = norm
-
-    def predict_adapt(self, X, y, X_target, y_target=None):
-        """Predict adaptation (weights, sample or labels).
-
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            The source data.
-        y : array-like, shape (n_samples,)
-            The source labels.
-        X_target : array-like, shape (n_samples, n_features)
-            The target data.
-        y_target : array-like, shape (n_samples,), optional
-            The target labels.
-
-        Returns
-        -------
-        X_t : array-like, shape (n_samples, n_components)
-            The data transformed to the target subspace.
-        y_t : array-like, shape (n_samples,)
-            The labels (same as y).
-        weights : None
-            No weights is this case.
-        """
-        X_ = self.ot_transport_.transform(Xs=X)
-        weights = None
-        return X_, y, weights
 
     def fit_adapt(self, X, y, X_target, y_target=None):
         """Fit adaptation parameters.
@@ -251,16 +197,67 @@ class ClassRegularizerOTmapping(BaseDataAdaptEstimator):
         self : object
             Returns self.
         """
-        assert self.norm in ["Lpl1", "L1l2"], "Unknown norm"
+        assert self.norm in ["lpl1", "l1l2"], "Unknown norm"
 
-        if self.norm == "Lpl1":
+        if self.norm == "lpl1":
             self.ot_transport_ = clone(da.SinkhornLpl1Transport(
                 reg_e=self.reg_e, reg_cl=self.reg_cl
             ))
-        elif self.norm == "L1l2":
+        elif self.norm == "l1l2":
             self.ot_transport_ = clone(da.SinkhornL1l2Transport(
                 reg_e=self.reg_e, reg_cl=self.reg_cl
             ))
+
+        self.ot_transport_.fit(Xs=X, ys=y, Xt=X_target)
+        return self
+
+
+class LinearOTmapping(OTmapping):
+    """Domain Adaptation Using Optimal Transport.
+
+    Parameters
+    ----------
+    base_estimator : estimator object
+        The base estimator to fit on reweighted data.
+    reg : float, default=1e-08
+        regularization added to the diagonals of covariances.
+
+    Attributes
+    ----------
+    ot_transport_ : object
+        The OT object based on linear operator between empirical
+        distributions fitted on the source
+        and target data.
+    """
+    def __init__(
+        self,
+        base_estimator,
+        reg=1e-08,
+    ):
+        super().__init__(base_estimator)
+        self.reg = reg
+
+    def fit_adapt(self, X, y, X_target, y_target=None):
+        """Fit adaptation parameters.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        X_target : array-like, shape (n_samples, n_features)
+            The target data.
+        y_target : array-like, shape (n_samples,), optional
+            The target labels.
+
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
+
+        self.ot_transport_ = clone(da.LinearTransport(reg=self.reg))
 
         self.ot_transport_.fit(Xs=X, ys=y, Xt=X_target)
         return self

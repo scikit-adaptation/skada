@@ -15,7 +15,7 @@ from ._reweight import (
 from ._subspace import SubspaceAlignment, TransferComponentAnalysis
 
 from ._mapping import (
-    OTmapping, EntropicOTmapping, ClassRegularizerOTmapping
+    OTmapping, EntropicOTmapping, ClassRegularizerOTmapping, LinearOTmapping
 )
 
 __all__ = [
@@ -27,4 +27,5 @@ __all__ = [
     "OTmapping",
     "EntropicOTmapping",
     "ClassRegularizerOTmapping",
+    "LinearOTmapping",
 ]
