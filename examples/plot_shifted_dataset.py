@@ -75,5 +75,5 @@ def plot_shifted_dataset(shift, random_state=42):
     plt.show()
 
 
-for shift in ["covariate_shift", "target_shift", "concept_drift", "sample_bias"]:
+for shift in ["covariate_shift", "target_shift", "concept_drift", "sample_bias", "subspace"]:
     plot_shifted_dataset(shift)

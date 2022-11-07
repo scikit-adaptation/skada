@@ -74,6 +74,52 @@ def _generate_data_2d_classif(n_samples, rng, label='binary'):
     return x, y.astype(int)
 
 
+def _generate_data_2d_classif_subspace(n_samples, rng, label='binary'):
+    """Generate 2d classification data.
+
+    Parameters
+    ----------
+    n_samples : int
+        It is the total number of points among one clusters.
+        At the end the number of point are 8*n_samples
+    rng : random generator
+        Generator for dataset creation
+    label : tuple, default='binary'
+        If 'binary, return binary class
+        If 'multiclass', return multiclass
+    """
+    n2 = n_samples
+    n1 = n2 * 2
+    # make data of class 1
+    Sigma1 = np.array([[0.5, 0], [0, 0.5]])
+    mu1 = np.array([-2, 2])
+    x1 = rng.randn(n1, 2).dot(Sigma1) + mu1[None, :]
+
+    # make data of the first cluster of class 2
+    Sigma2 = np.array([[0.1, 0], [0, 0.1]])
+    mu2 = np.array([2.5, 0])
+
+    x21 = rng.randn(n2, 2).dot(Sigma2) + mu2[None, :]
+
+    # make data of the second cluster of class 2
+    Sigma2 = np.array([[0.2, 0], [0, 0.2]])
+    mu2 = np.array([0, -2.5])
+
+    x22 = rng.randn(n2, 2).dot(Sigma2) + mu2[None, :]
+
+    # concatenate data
+    x = np.concatenate((x1, x21, x22), 0)
+
+    # make labels
+    if label == 'binary':
+        y = np.concatenate((np.zeros(n1), np.ones(2 * n2)), 0)
+    elif label == 'multiclass':
+        y = np.zeros(n1)
+        for i in range(4):
+            y = np.concatenate((y, (i + 1) * np.ones(n2)), 0)
+    return x, y.astype(int)
+
+
 def _generate_data_from_moons(n_samples, index, rng):
     """Generate two gaussian clusters with centers draw from two moons.
 
@@ -356,6 +402,15 @@ def make_shifted_datasets(
 
         X_target = X_target[isel]
         y_target = y_target[isel]
+
+    elif shift == "subspace":
+        X_source, y_source = _generate_data_2d_classif_subspace(
+            n_samples_source, rng, "binary"
+        )
+        X_target, y_target = _generate_data_2d_classif_subspace(
+            n_samples_target, rng, "binary"
+        )
+        X_target *= -1
 
     else:
         raise NotImplementedError("unknown shift {}".format(shift))
