@@ -3,7 +3,7 @@ from sklearn.linear_model import LogisticRegression
 
 from skada.datasets import make_shifted_blobs
 from skada.da import (
-    EMDTransport, SinkhornTransport, SinkhornLpl1Transport, SinkhornL1l2Transport
+    OTmapping, EntropicOTmapping, ClassRegularizerOTmapping
 )
 
 import pytest
@@ -11,10 +11,10 @@ import pytest
 
 @pytest.mark.parametrize(
     "estimator", [
-        EMDTransport(base_estimator=LogisticRegression()),
-        SinkhornTransport(base_estimator=LogisticRegression()),
-        SinkhornLpl1Transport(base_estimator=LogisticRegression()),
-        SinkhornL1l2Transport(base_estimator=LogisticRegression())
+        OTmapping(base_estimator=LogisticRegression()),
+        EntropicOTmapping(base_estimator=LogisticRegression()),
+        ClassRegularizerOTmapping(base_estimator=LogisticRegression(), norm="Lpl1"),
+        ClassRegularizerOTmapping(base_estimator=LogisticRegression(), norm="L1l2")
     ]
 )
 def test_mapping_estimator(estimator):
