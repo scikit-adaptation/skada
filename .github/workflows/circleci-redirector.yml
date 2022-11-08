@@ -1,5 +1,5 @@
 name: circleci-redirector
-on: [status]
+on: [push]
 jobs:
   circleci_artifacts_redirector_job:
     runs-on: ubuntu-latest
