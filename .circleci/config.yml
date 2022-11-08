@@ -29,12 +29,12 @@ jobs:
               fi
         # Install skada environment
         - name: Setting Up Conda skada Environment
-            uses: conda-incubator/setup-miniconda@v2
-            with:
-              environment-file: environment.yml
-              python-version: 3.7
-              activate-environment: skada
-              auto-activate-base: false
+          uses: conda-incubator/setup-miniconda@v2
+          with:
+            environment-file: environment.yml
+            python-version: 3.7
+            activate-environment: skada
+            auto-activate-base: false
         - name: Install GPU stuffs for CI
           run: conda install pytorch cpuonly -y -c pytorch
         # Show Conda and Python Versions
