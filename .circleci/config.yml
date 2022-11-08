@@ -36,8 +36,10 @@ jobs:
               python-version: 3.7
               activate-environment: skada
               auto-activate-base: false
-        - name: Install GPU stuffs for CI
-          run: conda install pytorch cpuonly -y -c pytorch
+        - run: 
+            name: Install GPU stuffs for CI
+            command: |
+              conda install pytorch cpuonly -y -c pytorch
         # Show Conda and Python Versions
         - run: conda --version
         - run: conda info --envs
