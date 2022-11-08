@@ -1,4 +1,5 @@
 numpy
 scipy
 matplotlib
-h5py
+scikit-learn
+pot
