@@ -15,7 +15,7 @@ from ._reweight import (
 from ._subspace import SubspaceAlignment, TransferComponentAnalysis
 
 from ._mapping import (
-    EMDTransport, SinkhornTransport, SinkhornLpl1Transport, SinkhornL1l2Transport
+    OTmapping, EntropicOTmapping, ClassRegularizerOTmapping, LinearOTmapping
 )
 
 __all__ = [
@@ -24,8 +24,8 @@ __all__ = [
     "ClassifierReweightDensity",
     "SubspaceAlignment",
     "TransferComponentAnalysis",
-    "EMDTransport",
-    "SinkhornTransport",
-    "SinkhornLpl1Transport",
-    "SinkhornL1l2Transport"
+    "OTmapping",
+    "EntropicOTmapping",
+    "ClassRegularizerOTmapping",
+    "LinearOTmapping",
 ]
