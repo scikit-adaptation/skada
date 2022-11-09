@@ -150,14 +150,16 @@ class ClassRegularizerOTmapping(OTmapping):
         Entropic regularization parameter.
     reg_cl : float, default=0.1
         Class regularization parameter.
-    norm : tuple, default="Lpl1"
+    norm : tuple, default="lpl1"
         Norm use for the regularizer of the class labels.
+        If "lpl1", use the lp l1 norm.
+        If "l1l2", use the l1 l2 norm. 
 
     Attributes
     ----------
     ot_transport_ : object
         The OT object based on Sinkhorn Algorithm
-        + LpL1 class regularization fitted on the source
+        + class regularization fitted on the source
         and target data.
 
     References
