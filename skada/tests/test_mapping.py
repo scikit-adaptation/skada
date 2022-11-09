@@ -2,10 +2,10 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 
 from skada.datasets import make_shifted_blobs
-from skada.da import (
+from skada import (
     OTmapping, EntropicOTmapping, ClassRegularizerOTmapping, LinearOTmapping
 )
-from skada.da import CORAL
+from skada import CORAL
 
 import pytest
 

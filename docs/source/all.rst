@@ -21,13 +21,13 @@ API and modules
    make_dataset_from_moons_distribution
    make_variable_frequency_dataset
 
-.. currentmodule:: skada.da
+.. currentmodule:: skada
 
-.. automodule:: skada.da
+.. automodule:: skada
    :no-members:
    :no-inherited-members:
 
-:py:mod:`skada.da`:
+:py:mod:`skada`:
 
 .. autosummary::
    :toctree: gen_modules/
@@ -44,13 +44,13 @@ API and modules
    LinearOTmapping
    CORAL
 
-.. currentmodule:: skada.deepda
+.. currentmodule:: skada.features
 
-.. automodule:: skada.deepda
+.. automodule:: skada.features
    :no-members:
    :no-inherited-members:
 
-:py:mod:`skada.deepda`:
+:py:mod:`skada.features`:
 
 .. autosummary::
    :toctree: gen_modules/
