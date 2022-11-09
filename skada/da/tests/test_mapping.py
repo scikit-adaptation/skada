@@ -5,6 +5,7 @@ from skada.datasets import make_shifted_blobs
 from skada.da import (
     OTmapping, EntropicOTmapping, ClassRegularizerOTmapping, LinearOTmapping
 )
+from skada.da import CORAL
 
 import pytest
 

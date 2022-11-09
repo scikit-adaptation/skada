@@ -2,6 +2,9 @@
 #
 # License: BSD 3-Clause
 
+import scipy
+import numpy as np
+
 from ot import da
 
 from .base import BaseDataAdaptEstimator, clone
