@@ -153,7 +153,7 @@ class ClassRegularizerOTmapping(OTmapping):
     norm : tuple, default="lpl1"
         Norm use for the regularizer of the class labels.
         If "lpl1", use the lp l1 norm.
-        If "l1l2", use the l1 l2 norm. 
+        If "l1l2", use the l1 l2 norm.
 
     Attributes
     ----------
