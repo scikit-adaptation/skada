@@ -264,3 +264,86 @@ class LinearOTmapping(OTmapping):
 
         self.ot_transport_.fit(Xs=X, ys=y, Xt=X_target)
         return self
+
+
+class CORAL(BaseDataAdaptEstimator):
+    """Estimator based on reweighting samples using density estimation.
+    Parameters
+    ----------
+    base_estimator : estimator object
+        The base estimator to fit on reweighted data.
+    weight_estimator : estimator object, optional
+        The estimator to use to estimate the densities of source and target
+        observations. If None, a KernelDensity estimator is used.
+
+    Attributes
+    ----------
+    cov_source_inv_sqrt_: array
+        Inverse of the square root of covariance of the source data with regularization.
+    cov_target_sqrt_: array
+        Square root of covariance of the target data with regularization.
+
+    References
+    ----------
+    .. [1] Baochen Sun, Jiashi Feng, and Kate Saenko.
+           Correlation Alignment for Unsupervised
+           Domain Adaptation. In dvances in Computer
+           Vision and Pattern Recognition, 2017.
+    """
+
+    def __init__(
+        self,
+        base_estimator,
+        reg=0.1
+    ):
+        super().__init__(base_estimator)
+
+        self.reg = reg
+
+    def predict_adapt(self, X, y, X_target, y_target=None):
+        """Predict adaptation (weights, sample or labels).
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        X_target : array-like, shape (n_samples, n_features)
+            The target data.
+        y_target : array-like, shape (n_samples,), optional
+            The target labels.
+        Returns
+        -------
+        X_t : array-like, shape (n_samples, n_components)
+            The data transformed to the target space.
+        y_t : array-like, shape (n_samples,)
+            The labels (same as y).
+        weights : None
+            No weights are returned here.
+        """
+        X_ = np.dot(X, self.cov_source_inv_sqrt_)
+        X_ = np.dot(X_, self.cov_target_sqrt_)
+        weights = None
+        return X_, y, weights
+
+    def fit_adapt(self, X, y, X_target, y_target=None):
+        """Fit adaptation parameters.
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        X_target : array-like, shape (n_samples, n_features)
+            The target data.
+        y_target : array-like, shape (n_samples,), optional
+            The target labels.
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
+        cov_source_ = np.cov(X.T) + self.reg * np.eye(X.shape[1])
+        cov_target_ = np.cov(X_target.T) + self.reg * np.eye(X_target.shape[1])
+        self.cov_source_inv_sqrt_ = scipy.linalg.inv(scipy.linalg.sqrtm(cov_source_))
+        self.cov_target_sqrt_ = scipy.linalg.sqrtm(cov_target_)
