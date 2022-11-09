@@ -39,9 +39,9 @@ names = [
     "Without da",
     "Reweight Density",
     "Gaussian Reweight Density",
-    "Classifier Reweight Density",
+    "Discr. Reweight Density",
     "Subspace Alignment",
-    "Transfer Component Analysis",
+    "TCA",
     "EMD Transport",
     "Sinkhorn Transport",
     "Sinkhorn Lpl1 Transport",
@@ -53,12 +53,12 @@ classifiers = [
     SVC(),
     ReweightDensity(
         base_estimator=SVC(),
-        weight_estimator=KernelDensity(bandwidth=0.005),
+        weight_estimator=KernelDensity(bandwidth=0.5),
     ),
     GaussianReweightDensity(base_estimator=SVC()),
     ClassifierReweightDensity(base_estimator=SVC()),
-    SubspaceAlignment(base_estimator=SVC(), n_components=2),
-    TransferComponentAnalysis(base_estimator=SVC(), n_components=2),
+    SubspaceAlignment(base_estimator=SVC(), n_components=1),
+    TransferComponentAnalysis(base_estimator=SVC(), n_components=1),
     OTmapping(base_estimator=SVC()),
     EntropicOTmapping(base_estimator=SVC()),
     ClassRegularizerOTmapping(base_estimator=SVC()),
@@ -101,8 +101,7 @@ datasets = [
     ),
 ]
 
-figure = plt.figure(figsize=(27, 9))
-i = 1
+figure, axes = plt.subplots(len(classifiers) + 2, len(datasets), figsize=(9, 27))
 # iterate over datasets
 for ds_cnt, ds in enumerate(datasets):
     # preprocess dataset, split into training and test part
@@ -112,9 +111,9 @@ for ds_cnt, ds in enumerate(datasets):
     # just plot the dataset first
     cm = plt.cm.RdBu
     cm_bright = ListedColormap(["#FF0000", "#0000FF"])
-    ax = plt.subplot(len(datasets), len(classifiers) + 2, i)
-    if ds_cnt == 0:
-        ax.set_title("Source data")
+    ax = axes[0, ds_cnt]
+    # if ds_cnt == 0:
+    ax.set_title("Source data")
     # Plot the source points
     ax.scatter(
         X[:, 0],
@@ -123,10 +122,10 @@ for ds_cnt, ds in enumerate(datasets):
         cmap=cm_bright,
         alpha=0.5,
     )
-    i += 1
-    ax = plt.subplot(len(datasets), len(classifiers) + 2, i)
-    if ds_cnt == 0:
-        ax.set_title("Target data")
+    ax = axes[1, ds_cnt]
+
+    # if ds_cnt == 0:
+    ax.set_title("Target data")
     # Plot the target points
     ax.scatter(
         X[:, 0],
@@ -146,13 +145,11 @@ for ds_cnt, ds in enumerate(datasets):
     ax.set_ylim(y_min, y_max)
     ax.set_xticks(())
     ax.set_yticks(())
-    i += 1
+    i = 2
 
     # iterate over classifiers
     for name, clf in zip(names, classifiers):
-        if ds_cnt == 3 and name == "Reweight Density":
-            continue
-        ax = plt.subplot(len(datasets), len(classifiers) + 2, i)
+        ax = axes[i, ds_cnt]
         if name == "Without da":
             clf.fit(X, y)
         else:
@@ -175,8 +172,8 @@ for ds_cnt, ds in enumerate(datasets):
 
         ax.set_xticks(())
         ax.set_yticks(())
-        if ds_cnt == 0:
-            ax.set_title(name)
+        # if ds_cnt == 0:
+        ax.set_title(name)
         ax.text(
             x_max - 0.3,
             y_min + 0.3,
