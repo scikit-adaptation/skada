@@ -150,6 +150,8 @@ class ClassRegularizerOTmapping(OTmapping):
         Entropic regularization parameter.
     reg_cl : float, default=0.1
         Class regularization parameter.
+    norm : tuple, default="Lpl1"
+        Norm use for the regularizer of the class labels.
 
     Attributes
     ----------
@@ -169,10 +171,12 @@ class ClassRegularizerOTmapping(OTmapping):
         base_estimator,
         reg_e=1,
         reg_cl=0.1,
+        norm="lpl1"
     ):
         super().__init__(base_estimator)
         self.reg_e = reg_e
         self.reg_cl = reg_cl
+        self.norm = norm
 
     def fit_adapt(self, X, y, X_target, y_target=None):
         """Fit adaptation parameters.
@@ -194,9 +198,16 @@ class ClassRegularizerOTmapping(OTmapping):
             Returns self.
         """
 
-        self.ot_transport_ = clone(da.SinkhornLpl1Transport(
-            reg_e=self.reg_e, reg_cl=self.reg_cl
-        ))
+        assert self.norm in ["lpl1", "l1l2"], "Unknown norm"
+
+        if self.norm == "lpl1":
+            self.ot_transport_ = clone(da.SinkhornLpl1Transport(
+                reg_e=self.reg_e, reg_cl=self.reg_cl
+            ))
+        elif self.norm == "l1l2":
+            self.ot_transport_ = clone(da.SinkhornL1l2Transport(
+                reg_e=self.reg_e, reg_cl=self.reg_cl
+            ))
 
         self.ot_transport_.fit(Xs=X, ys=y, Xt=X_target)
         return self

@@ -13,7 +13,8 @@ import pytest
     "estimator", [
         OTmapping(base_estimator=LogisticRegression()),
         EntropicOTmapping(base_estimator=LogisticRegression()),
-        ClassRegularizerOTmapping(base_estimator=LogisticRegression()),
+        ClassRegularizerOTmapping(base_estimator=LogisticRegression(), norm="lpl1"),
+        ClassRegularizerOTmapping(base_estimator=LogisticRegression(), norm="l1l2"),
         LinearOTmapping(base_estimator=LogisticRegression())
     ]
 )
