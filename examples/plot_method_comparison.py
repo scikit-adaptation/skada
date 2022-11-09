@@ -14,7 +14,6 @@ The plots show training points in solid colors and
 testing points semi-transparent. The lower right
 shows the classification accuracy on the test set.
 """
-# %%
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 from sklearn.svm import SVC
@@ -58,7 +57,7 @@ classifiers = [
     GaussianReweightDensity(base_estimator=SVC()),
     ClassifierReweightDensity(base_estimator=SVC()),
     SubspaceAlignment(base_estimator=SVC(), n_components=1),
-    TransferComponentAnalysis(base_estimator=SVC(), n_components=1),
+    TransferComponentAnalysis(base_estimator=SVC(), n_components=1, mu=0.5),
     OTmapping(base_estimator=SVC()),
     EntropicOTmapping(base_estimator=SVC()),
     ClassRegularizerOTmapping(base_estimator=SVC()),
@@ -185,5 +184,3 @@ for ds_cnt, ds in enumerate(datasets):
 
 plt.tight_layout()
 plt.show()
-
-# %%
