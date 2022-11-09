@@ -18,6 +18,8 @@ from ._mapping import (
     OTmapping, EntropicOTmapping, ClassRegularizerOTmapping, LinearOTmapping
 )
 
+from ._mapping import CORAL
+
 __all__ = [
     "ReweightDensity",
     "GaussianReweightDensity",
@@ -28,4 +30,5 @@ __all__ = [
     "EntropicOTmapping",
     "ClassRegularizerOTmapping",
     "LinearOTmapping",
+    "CORAL"
 ]

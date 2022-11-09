@@ -42,6 +42,7 @@ API and modules
    EntropicOTmapping
    ClassRegularizerOTmapping
    LinearOTmapping
+   CORAL
 
 .. currentmodule:: skada.deepda
 
