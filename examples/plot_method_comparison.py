@@ -14,6 +14,7 @@ The plots show training points in solid colors and
 testing points semi-transparent. The lower right
 shows the classification accuracy on the test set.
 """
+# %%
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 from sklearn.svm import SVC
@@ -149,6 +150,8 @@ for ds_cnt, ds in enumerate(datasets):
 
     # iterate over classifiers
     for name, clf in zip(names, classifiers):
+        if ds_cnt == 3 and name == "Reweight Density":
+            continue
         ax = plt.subplot(len(datasets), len(classifiers) + 2, i)
         if name == "Without da":
             clf.fit(X, y)
@@ -169,7 +172,7 @@ for ds_cnt, ds in enumerate(datasets):
         )
 
         ax.set_xlim(x_min, x_max)
-        ax.set_ylim(y_min, y_max)
+
         ax.set_xticks(())
         ax.set_yticks(())
         if ds_cnt == 0:
@@ -185,3 +188,5 @@ for ds_cnt, ds in enumerate(datasets):
 
 plt.tight_layout()
 plt.show()
+
+# %%
