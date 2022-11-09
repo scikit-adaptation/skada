@@ -12,7 +12,7 @@ Domain Adaptation estimators
 from . import features
 
 from ._reweight import (
-    ReweightDensity, GaussianReweightDensity, ClassifierReweightDensity
+    ReweightDensity, GaussianReweightDensity, DiscriminatorReweightDensity
 )
 from ._subspace import SubspaceAlignment, TransferComponentAnalysis
 
@@ -26,7 +26,7 @@ __all__ = [
     "features",
     "ReweightDensity",
     "GaussianReweightDensity",
-    "ClassifierReweightDensity",
+    "DiscriminatorReweightDensity",
     "SubspaceAlignment",
     "TransferComponentAnalysis",
     "OTmapping",

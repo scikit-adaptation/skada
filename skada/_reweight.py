@@ -193,7 +193,7 @@ class GaussianReweightDensity(BaseDataAdaptEstimator):
         self.cov_target_ = np.cov(X_target.T)
 
 
-class ClassifierReweightDensity(BaseDataAdaptEstimator):
+class DiscriminatorReweightDensity(BaseDataAdaptEstimator):
     """Gaussian approximation reweighting method.
 
     See [1]_ for details.

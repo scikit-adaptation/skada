@@ -3,7 +3,7 @@ from sklearn.linear_model import LogisticRegression
 
 from skada.datasets import make_shifted_blobs
 from skada import (
-    ReweightDensity, GaussianReweightDensity, ClassifierReweightDensity
+    ReweightDensity, GaussianReweightDensity, DiscriminatorReweightDensity
 )
 
 import pytest
@@ -13,7 +13,7 @@ import pytest
     "estimator", [
         ReweightDensity(base_estimator=LogisticRegression()),
         GaussianReweightDensity(base_estimator=LogisticRegression()),
-        ClassifierReweightDensity(base_estimator=LogisticRegression())
+        DiscriminatorReweightDensity(base_estimator=LogisticRegression())
     ]
 )
 def test_reweight_estimator(estimator):

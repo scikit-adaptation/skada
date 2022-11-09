@@ -35,7 +35,7 @@ API and modules
 
    ReweightDensity
    GaussianReweightDensity
-   ClassifierReweightDensity
+   DiscriminatorReweightDensity
    SubspaceAlignment
    TransferComponentAnalysis
    OTmapping
