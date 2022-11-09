@@ -41,10 +41,10 @@ names = [
     "Discr. Reweight Density",
     "Subspace Alignment",
     "TCA",
-    "EMD Transport",
-    "Sinkhorn Transport",
-    "Sinkhorn Lpl1 Transport",
-    "Linear Transport",
+    "OT mapping",
+    "Entropic OT mapping",
+    "Class Regularizer OT mapping",
+    "Linear OT mapping",
     "CORAL"
 ]
 
@@ -111,8 +111,8 @@ for ds_cnt, ds in enumerate(datasets):
     cm = plt.cm.RdBu
     cm_bright = ListedColormap(["#FF0000", "#0000FF"])
     ax = axes[0, ds_cnt]
-    # if ds_cnt == 0:
-    ax.set_title("Source data")
+    if ds_cnt == 0:
+        ax.set_ylabel("Source data")
     # Plot the source points
     ax.scatter(
         X[:, 0],
@@ -121,10 +121,11 @@ for ds_cnt, ds in enumerate(datasets):
         cmap=cm_bright,
         alpha=0.5,
     )
+    
     ax = axes[1, ds_cnt]
 
-    # if ds_cnt == 0:
-    ax.set_title("Target data")
+    if ds_cnt == 0:
+        ax.set_ylabel("Target data")
     # Plot the target points
     ax.scatter(
         X[:, 0],
@@ -171,8 +172,8 @@ for ds_cnt, ds in enumerate(datasets):
 
         ax.set_xticks(())
         ax.set_yticks(())
-        # if ds_cnt == 0:
-        ax.set_title(name)
+        if ds_cnt == 0:
+            ax.set_ylabel(name)
         ax.text(
             x_max - 0.3,
             y_min + 0.3,
