@@ -4,7 +4,7 @@ import pytest
 
 from sklearn.utils.class_weight import compute_class_weight
 
-from skada.deepda import DeepJDOT
+from skada.feature import DeepJDOT
 from skada.utils import NeuralNetwork, CustomDataset
 
 

@@ -2,25 +2,21 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 
 from skada.datasets import make_shifted_blobs
-from skada.da import (
-    OTmapping, EntropicOTmapping, ClassRegularizerOTmapping, LinearOTmapping
+from skada import (
+    ReweightDensity, GaussianReweightDensity, DiscriminatorReweightDensity
 )
-from skada.da import CORAL
 
 import pytest
 
 
 @pytest.mark.parametrize(
     "estimator", [
-        OTmapping(base_estimator=LogisticRegression()),
-        EntropicOTmapping(base_estimator=LogisticRegression()),
-        ClassRegularizerOTmapping(base_estimator=LogisticRegression(), norm="lpl1"),
-        ClassRegularizerOTmapping(base_estimator=LogisticRegression(), norm="l1l2"),
-        LinearOTmapping(base_estimator=LogisticRegression()),
-        CORAL(base_estimator=LogisticRegression())
+        ReweightDensity(base_estimator=LogisticRegression()),
+        GaussianReweightDensity(base_estimator=LogisticRegression()),
+        DiscriminatorReweightDensity(base_estimator=LogisticRegression())
     ]
 )
-def test_mapping_estimator(estimator):
+def test_reweight_estimator(estimator):
     centers = np.array([
         [0, 0],
         [1, 1],

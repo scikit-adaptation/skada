@@ -2,18 +2,25 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 
 from skada.datasets import make_shifted_blobs
-from skada.da import SubspaceAlignment, TransferComponentAnalysis
+from skada import (
+    OTmapping, EntropicOTmapping, ClassRegularizerOTmapping, LinearOTmapping
+)
+from skada import CORAL
 
 import pytest
 
 
 @pytest.mark.parametrize(
     "estimator", [
-        SubspaceAlignment(base_estimator=LogisticRegression(), n_components=2),
-        TransferComponentAnalysis(base_estimator=LogisticRegression(), n_components=2),
+        OTmapping(base_estimator=LogisticRegression()),
+        EntropicOTmapping(base_estimator=LogisticRegression()),
+        ClassRegularizerOTmapping(base_estimator=LogisticRegression(), norm="lpl1"),
+        ClassRegularizerOTmapping(base_estimator=LogisticRegression(), norm="l1l2"),
+        LinearOTmapping(base_estimator=LogisticRegression()),
+        CORAL(base_estimator=LogisticRegression())
     ]
 )
-def test_subspace_alignment(estimator):
+def test_mapping_estimator(estimator):
     centers = np.array([
         [0, 0],
         [1, 1],
