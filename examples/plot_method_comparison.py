@@ -2,7 +2,7 @@
 Plot comparison of DA methods
 ====================================================
 
-A comparison of a several methods od DA in skada on
+A comparison of a several methods of DA in skada on
 synthetic datasets. The point of this example is to
 illustrate the nature of decision boundaries of
 different methods. This should be taken with a grain
@@ -23,16 +23,17 @@ from sklearn.neighbors import KernelDensity
 from skada.da import ReweightDensity, GaussianReweightDensity, ClassifierReweightDensity
 from skada.da import SubspaceAlignment, TransferComponentAnalysis
 from skada.da import (
-    EMDTransport,
-    SinkhornTransport,
-    SinkhornLpl1Transport,
-    SinkhornL1l2Transport,
+    OTmapping,
+    EntropicOTmapping,
+    ClassRegularizerOTmapping,
+    LinearOTmapping,
+    CORAL
 )
 from skada.datasets import make_shifted_datasets
 
 # Use same random seed for multiple calls to make_datasets to
 # ensure same distributions
-RANDOM_SEED = np.random.randint(2**10)
+RANDOM_SEED = 42
 
 names = [
     "Without da",
@@ -44,7 +45,8 @@ names = [
     "EMD Transport",
     "Sinkhorn Transport",
     "Sinkhorn Lpl1 Transport",
-    "Sinkhorn L1l2 Transport",
+    "Linear Transport",
+    "CORAL"
 ]
 
 classifiers = [
@@ -57,10 +59,11 @@ classifiers = [
     ClassifierReweightDensity(base_estimator=SVC()),
     SubspaceAlignment(base_estimator=SVC(), n_components=2),
     TransferComponentAnalysis(base_estimator=SVC(), n_components=2),
-    EMDTransport(base_estimator=SVC()),
-    SinkhornTransport(base_estimator=SVC()),
-    SinkhornLpl1Transport(base_estimator=SVC()),
-    SinkhornL1l2Transport(base_estimator=SVC()),
+    OTmapping(base_estimator=SVC()),
+    EntropicOTmapping(base_estimator=SVC()),
+    ClassRegularizerOTmapping(base_estimator=SVC()),
+    LinearOTmapping(base_estimator=SVC()),
+    CORAL(base_estimator=SVC()),
 ]
 
 datasets = [
@@ -84,6 +87,14 @@ datasets = [
         n_samples_source=20,
         n_samples_target=20,
         shift="concept_drift",
+        label="binary",
+        noise=0.4,
+        random_state=RANDOM_SEED
+    ),
+    make_shifted_datasets(
+        n_samples_source=20,
+        n_samples_target=20,
+        shift="subspace",
         label="binary",
         noise=0.4,
         random_state=RANDOM_SEED
