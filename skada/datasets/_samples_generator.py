@@ -300,7 +300,8 @@ def make_shifted_datasets(
         If 'covariate_shift', use covariate shift.
         If 'target_shift', use target shift.
         If 'concept_drift', use concept drift.
-        If 'sample_bias', use sample-selection bias.
+        If 'subspace', a subspace where the class a separable independently 
+        of the domain exists .
         See detailed description of each shift in [1]_.
     noise : float or array_like, default=None
         If float, standard deviation of Gaussian noise added to the data.
@@ -385,23 +386,6 @@ def make_shifted_datasets(
     elif shift == "concept_drift":
         X_target, y_target = _generate_data_2d_classif(n_samples_target, rng, label)
         X_target = X_target * sigma + mean
-
-    elif shift == "sample_bias":
-        n_samples_target_temp = n_samples_target * 100
-        X_target, y_target = _generate_data_2d_classif(
-            n_samples_target_temp, rng, label
-        )
-        w = np.exp(-gamma * np.sum((X_target - np.array(center)) ** 2, 1))
-
-        w[y_target == 1] *= 1 - ratio
-        w[y_target == 0] *= ratio
-
-        w /= w.sum()
-
-        isel = rng.choice(len(w), size=(8 * n_samples_target,), replace=False, p=w)
-
-        X_target = X_target[isel]
-        y_target = y_target[isel]
 
     elif shift == "subspace":
         X_source, y_source = _generate_data_2d_classif_subspace(
