@@ -300,8 +300,8 @@ def make_shifted_datasets(
         If 'covariate_shift', use covariate shift.
         If 'target_shift', use target shift.
         If 'concept_drift', use concept drift.
-        If 'subspace', a subspace where the class a separable independently
-        of the domain exists .
+        If 'subspace', a subspace where the classes are separable 
+        independently of the domains exists.
         See detailed description of each shift in [1]_.
     noise : float or array_like, default=None
         If float, standard deviation of Gaussian noise added to the data.
