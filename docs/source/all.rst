@@ -44,13 +44,13 @@ API and modules
    LinearOTmapping
    CORAL
 
-.. currentmodule:: skada.features
+.. currentmodule:: skada.feature
 
-.. automodule:: skada.features
+.. automodule:: skada.feature
    :no-members:
    :no-inherited-members:
 
-:py:mod:`skada.features`:
+:py:mod:`skada.feature`:
 
 .. autosummary::
    :toctree: gen_modules/

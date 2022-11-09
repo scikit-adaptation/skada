@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import pytest
 
-from skada.features import DeepCORAL
+from skada.feature import DeepCORAL
 from skada.utils import NeuralNetwork, CustomDataset
 
 

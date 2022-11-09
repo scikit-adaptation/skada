@@ -9,7 +9,7 @@ Domain Adaptation estimators
 #
 # License: BSD 3-Clause
 
-from . import features
+from . import feature
 
 from ._reweight import (
     ReweightDensity, GaussianReweightDensity, DiscriminatorReweightDensity
@@ -23,7 +23,7 @@ from ._mapping import (
 from ._mapping import CORAL
 
 __all__ = [
-    "features",
+    "feature",
     "ReweightDensity",
     "GaussianReweightDensity",
     "DiscriminatorReweightDensity",
