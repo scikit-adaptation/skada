@@ -79,7 +79,6 @@ for shift in [
     "covariate_shift",
     "target_shift",
     "concept_drift",
-    "sample_bias",
     "subspace",
 ]:
     plot_shifted_dataset(shift)
