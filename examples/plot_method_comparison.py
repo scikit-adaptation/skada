@@ -14,7 +14,6 @@ The plots show training points in solid colors and
 testing points semi-transparent. The lower right
 shows the classification accuracy on the test set.
 """
-import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 from sklearn.svm import SVC
