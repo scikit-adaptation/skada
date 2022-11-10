@@ -30,8 +30,8 @@ def get_intermediate_layers(intermediate_layers, layer_name):
     return hook
 
 
-def register_forwards_hook(model, intermediate_layers, layer_names):
-    for layer_name, layer_module in model.named_modules():
+def register_forwards_hook(module, intermediate_layers, layer_names):
+    for layer_name, layer_module in module.named_modules():
         if layer_name in layer_names:
             layer_module.register_forward_hook(
                 get_intermediate_layers(intermediate_layers, layer_name)
@@ -51,17 +51,19 @@ def ot_solve(a, b, M, num_iter_max=100000):
     return torch.from_numpy(G).to(a.device)
 
 
-def distance_matrix(gs, gt, ys, ft, alpha, beta, class_weights, n_classes):
+def distance_matrix(embedd_source, embedd_target, y_source, y_target, alpha, beta, class_weights, n_classes=3):
+    if class_weights is None:
+        weights = torch.ones(n_classes)
+    else:
+        weights = torch.Tensor(class_weights).to(embedd_source.device)
 
-    weights = torch.Tensor(class_weights).to(gs.device)
+    dist = torch.cdist(embedd_source, embedd_target, p=2) ** 2
 
-    dist = torch.cdist(gs, gt, p=2) ** 2
-
-    onehot_ys = torch.nn.functional.one_hot(ys, num_classes=n_classes).to(
-        device=ys.device, dtype=gs.dtype
+    onehot_y_source = torch.nn.functional.one_hot(y_source, num_classes=n_classes).to(
+        device=y_source.device, dtype=embedd_source.dtype
     )
-    loss_target = (weights @ onehot_ys.T).reshape(len(ys), 1) * (
-        -(onehot_ys @ ft.T) + torch.logsumexp(ft, dim=1)
+    loss_target = (weights @ onehot_y_source.T).reshape(len(y_source), 1) * (
+        -(onehot_y_source @ y_target.T) + torch.logsumexp(y_target, dim=1)
     )
     M = alpha * dist + beta * loss_target
 

@@ -1,3 +1,5 @@
+from skorch.utils import to_tensor
+
 from ..utils import cov, norm_coral
 from .base import BaseDANetwork
 
@@ -36,25 +38,34 @@ class DeepCORAL(BaseDANetwork):
 
     def __init__(
         self,
-        base_model,
+        module,
+        criterion,
         layer_names,
-        optimizer=None,
-        criterion=None,
-        n_epochs=100,
-        batch_size=16,
-        alpha=0.5,
+        alpha=1,
+        **kwargs
     ):
         super().__init__(
-            base_model, layer_names, optimizer, criterion, n_epochs, batch_size
+            module, criterion, layer_names, **kwargs
         )
         self.alpha = alpha
 
-    def _loss_da(self):
-        loss_coral = 0
-        for i in range(len(self.embedd)):
-            Cs = cov(self.embedd[i])
-            Ct = cov(self.embedd_target[i])
+    def get_loss_da(
+        self,
+        y_pred,
+        y_true,
+        embedd,
+        embedd_target,
+        X=None,
+        y_pred_target=None,
+        training=True
+    ):
+        y_true = to_tensor(y_true, device=self.device)
 
+        loss_coral = 0
+        for i in range(len(embedd)):
+            Cs = cov(embedd[i])
+            Ct = cov(embedd_target[i])
             loss_coral += self.alpha * norm_coral(Cs, Ct)
-        loss_classif = self.criterion(self.output, self.batch_y)
+
+        loss_classif = self.criterion_(y_pred, y_true)
         return loss_classif + loss_coral
