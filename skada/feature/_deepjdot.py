@@ -1,4 +1,5 @@
 import torch
+from skorch.utils import to_tensor
 
 from ..utils import distance_matrix, ot_solve
 from .base import BaseDANetwork
@@ -25,58 +26,58 @@ class DeepJDOT(BaseDANetwork):
 
     def __init__(
         self,
-        base_model,
+        module,
+        criterion,
         layer_names,
-        n_classes,
-        optimizer=None,
-        criterion=None,
-        n_epochs=100,
-        batch_size=16,
         alpha=1,
         beta=1,
-        class_weights=None
+        class_weights=None,
+        **kwargs
     ):
         super().__init__(
-            base_model,
-            layer_names,
-            optimizer,
-            criterion,
-            n_epochs,
-            batch_size
+            module, criterion, layer_names, **kwargs
         )
-        self.n_classes = n_classes
         self.alpha = alpha
         self.beta = beta
         self.class_weights = class_weights
 
-    def _loss_da(self):
-        # Update gamma
-        # Uniform Distributions
+    def get_loss_da(
+        self,
+        y_pred,
+        y_true,
+        embedd,
+        embedd_target,
+        X=None,
+        y_pred_target=None,
+        training=True
+    ):
+        y_true = to_tensor(y_true, device=self.device)
+
         loss_deepjdot = 0
-        for i in range(len(self.embedd)):
+        for i in range(len(embedd)):
 
             a = torch.full(
-                (len(self.embedd[i]),),
-                1.0 / len(self.embedd[i]),
+                (len(embedd[i]),),
+                1.0 / len(embedd[i]),
                 device=self.device
             )
             b = torch.full(
-                (len(self.embedd_target[i]),),
-                1.0 / len(self.embedd_target[i]),
+                (len(embedd_target[i]),),
+                1.0 / len(embedd_target[i]),
                 device=self.device
             )
             M = distance_matrix(
-                self.embedd[i],
-                self.embedd_target[i],
-                self.batch_y,
-                self.output_target,
+                embedd[i],
+                embedd_target[i],
+                y_true,
+                y_pred_target,
                 self.alpha,
                 self.beta,
                 self.class_weights,
-                self.n_classes
             )
             gamma = ot_solve(a, b, M)
 
+            loss_classif = self.criterion(y_pred, y_true)
             loss_deepjdot += torch.sum(gamma * M)
-            loss_classif = self.criterion(self.output, self.batch_y)
+
         return loss_classif + loss_deepjdot
