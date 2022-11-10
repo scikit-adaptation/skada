@@ -51,7 +51,16 @@ def ot_solve(a, b, M, num_iter_max=100000):
     return torch.from_numpy(G).to(a.device)
 
 
-def distance_matrix(embedd_source, embedd_target, y_source, y_target, alpha, beta, class_weights, n_classes=3):
+def distance_matrix(
+    embedd_source,
+    embedd_target,
+    y_source,
+    y_target,
+    alpha,
+    beta,
+    class_weights,
+    n_classes=3
+):
     if class_weights is None:
         weights = torch.ones(n_classes)
     else:

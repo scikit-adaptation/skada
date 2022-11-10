@@ -32,6 +32,7 @@ class DeepJDOT(BaseDANetwork):
         alpha=1,
         beta=1,
         class_weights=None,
+        n_classes=2,
         **kwargs
     ):
         super().__init__(
@@ -40,6 +41,7 @@ class DeepJDOT(BaseDANetwork):
         self.alpha = alpha
         self.beta = beta
         self.class_weights = class_weights
+        self.n_classes = n_classes
 
     def get_loss_da(
         self,
@@ -74,6 +76,7 @@ class DeepJDOT(BaseDANetwork):
                 self.alpha,
                 self.beta,
                 self.class_weights,
+                self.n_classes
             )
             gamma = ot_solve(a, b, M)
 
