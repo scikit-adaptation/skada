@@ -231,7 +231,6 @@ class BaseDANetwork(NeuralNetClassifier):
         self, iterator, training, prefix, step_fn, iterator_target=None, **fit_params
     ):
         """Compute a single epoch of train or validation.
-
         Parameters
         ----------
         iterator : torch DataLoader or None
