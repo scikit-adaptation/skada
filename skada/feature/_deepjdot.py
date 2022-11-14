@@ -12,7 +12,25 @@ class DeepJDOT(BaseDANetwork):
 
     Parameters
     ----------
-    XXX
+    module : torch module (class or instance)
+      A PyTorch :class:`~torch.nn.Module`. In general, the
+      uninstantiated class should be passed, although instantiated
+      modules will also work.
+    criterion : torch criterion (class)
+      The uninitialized criterion (loss) used to optimize the
+      module.
+    layer_names : list of tuples
+        The names of the module's layers whose outputs are
+        collected during the training.
+    reg_d : float, default=1
+        Distance term regularization parameter.
+    reg_cl : float, default=1
+        Class distance term regularization parameter.
+    class_weight : array, shape=(n_classes)
+        Weight of classes to compute target classes loss.
+        If None, don't use weights.
+    n_classes : int, default=2
+        Number of classes in the data.
 
     References
     ----------
@@ -29,8 +47,8 @@ class DeepJDOT(BaseDANetwork):
         module,
         criterion,
         layer_names,
-        alpha=1,
-        beta=1,
+        reg_d=1,
+        reg_cl=1,
         class_weights=None,
         n_classes=2,
         **kwargs
@@ -38,8 +56,8 @@ class DeepJDOT(BaseDANetwork):
         super().__init__(
             module, criterion, layer_names, **kwargs
         )
-        self.alpha = alpha
-        self.beta = beta
+        self.reg_d = reg_d
+        self.reg_cl = reg_cl
         self.class_weights = class_weights
         self.n_classes = n_classes
 
@@ -73,8 +91,8 @@ class DeepJDOT(BaseDANetwork):
                 embedd_target[i],
                 y_true,
                 y_pred_target,
-                self.alpha,
-                self.beta,
+                self.reg_d,
+                self.reg_cl,
                 self.class_weights,
                 self.n_classes
             )

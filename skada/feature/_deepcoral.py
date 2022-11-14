@@ -11,23 +11,18 @@ class DeepCORAL(BaseDANetwork):
 
     Parameters
     ----------
-    base_model: torch model
-        model used for training and prediction
-    layer_names: list of tuples
-        list storing the name of the layers
-        from which we want to get the output.
-    optimizer:  torch optimizer or None
-        Optimizer to use for training,
-        if None use Adam optimizer.
-    criterion:  torch criterion or None
-        criterion to use for training,
-        if None use CrossEntropy.
-    n_epochs: int
-        number of the epoch during training.
-    batch_size: int
-        batch size used to create the dataloader.
-    alpha: float
-        parameter for DeepCoral method.
+    module : torch module (class or instance)
+      A PyTorch :class:`~torch.nn.Module`. In general, the
+      uninstantiated class should be passed, although instantiated
+      modules will also work.
+    criterion : torch criterion (class)
+      The uninitialized criterion (loss) used to optimize the
+      module.
+    layer_names : list of tuples
+        The names of the module's layers whose outputs are
+        collected during the training.
+    reg: float, optional (default=1)
+        The regularization parameter of the covariance estimator.
 
     References
     ----------
@@ -41,13 +36,13 @@ class DeepCORAL(BaseDANetwork):
         module,
         criterion,
         layer_names,
-        alpha=1,
+        reg=1,
         **kwargs
     ):
         super().__init__(
             module, criterion, layer_names, **kwargs
         )
-        self.alpha = alpha
+        self.reg = reg
 
     def get_loss_da(
         self,
@@ -65,7 +60,7 @@ class DeepCORAL(BaseDANetwork):
         for i in range(len(embedd)):
             Cs = cov(embedd[i])
             Ct = cov(embedd_target[i])
-            loss_coral += self.alpha * norm_coral(Cs, Ct)
+            loss_coral += self.reg * norm_coral(Cs, Ct)
 
         loss_classif = self.criterion_(y_pred, y_true)
         return loss_classif + loss_coral
