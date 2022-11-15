@@ -2,7 +2,6 @@ import torch
 
 from skorch.utils import to_tensor
 
-from ..utils import cov, norm_coral
 from .base import BaseDANetwork
 
 
@@ -23,6 +22,13 @@ class DeepCORAL(BaseDANetwork):
     layer_names : list of tuples
         The names of the module's layers whose outputs are
         collected during the training.
+    domain_classifier : torch module (class or instance)
+        A PyTorch :class:`~torch.nn.Module` used for classying domain.
+        In general, the uninstantiated class should be passed, although
+        instantiated modules will also work.
+    domain_criterion : torch criterion (class)
+        The uninitialized criterion (loss) used to optimize the
+        domain classifier.
     reg: float, optional (default=1)
         The regularization parameter of the covariance estimator.
 
@@ -39,6 +45,7 @@ class DeepCORAL(BaseDANetwork):
         criterion,
         layer_names,
         domain_classifier,
+        domain_criterion,
         reg=1,
         **kwargs
     ):
@@ -47,6 +54,7 @@ class DeepCORAL(BaseDANetwork):
         )
         self.reg = reg
         self.domain_classifier = domain_classifier
+        self.domain_criterion = domain_criterion
 
     def _initialize_domain_criterion(self):
         """Initializes the domain criterion.
@@ -103,8 +111,12 @@ class DeepCORAL(BaseDANetwork):
         y_true = to_tensor(y_true, device=self.device)
 
         # create domain label
-        domain_label = torch.zeros((embedd.size()[0]), device=self.device, dtype=torch.int64)
-        domain_label_target = torch.ones((embedd_target.size()[0]), device=self.device, dtype=torch.int64)
+        domain_label = torch.zeros(
+            (embedd.size()[0]), device=self.device, dtype=torch.int64
+        )
+        domain_label_target = torch.ones(
+            (embedd_target.size()[0]), device=self.device, dtype=torch.int64
+        )
 
         # update classification function
         output_domain = self.domain_classifier_.forward(embedd)
