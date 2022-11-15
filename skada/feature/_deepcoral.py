@@ -25,7 +25,6 @@ class DeepCORAL(BaseDANetwork):
         The regularization parameter of the covariance estimator.
     **kwargs : dict
         Keyword arguments passed to the skorch Model class.
-    
 
     References
     ----------

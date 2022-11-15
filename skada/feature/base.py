@@ -26,6 +26,8 @@ class BaseDANetwork(NeuralNetClassifier):
     layer_names : list of tuples
         The names of the module's layers whose outputs are
         collected during the training.
+    **kwargs : dict
+        Keyword arguments passed to the skorch Model class.
 
     Attributes
     ----------

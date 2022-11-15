@@ -31,6 +31,8 @@ class DeepJDOT(BaseDANetwork):
         If None, don't use weights.
     n_classes : int, default=2
         Number of classes in the data.
+    **kwargs : dict
+        Keyword arguments passed to the skorch Model class.
 
     References
     ----------
