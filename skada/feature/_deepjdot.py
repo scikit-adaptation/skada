@@ -13,12 +13,12 @@ class DeepJDOT(BaseDANetwork):
     Parameters
     ----------
     module : torch module (class or instance)
-      A PyTorch :class:`~torch.nn.Module`. In general, the
-      uninstantiated class should be passed, although instantiated
-      modules will also work.
+        A PyTorch :class:`~torch.nn.Module`. In general, the
+        uninstantiated class should be passed, although instantiated
+        modules will also work.
     criterion : torch criterion (class)
-      The uninitialized criterion (loss) used to optimize the
-      module.
+        The uninitialized criterion (loss) used to optimize the
+        module.
     layer_names : list of tuples
         The names of the module's layers whose outputs are
         collected during the training.
@@ -61,7 +61,7 @@ class DeepJDOT(BaseDANetwork):
         self.class_weights = class_weights
         self.n_classes = n_classes
 
-    def get_loss_da(
+    def _get_loss_da(
         self,
         y_pred,
         y_true,
