@@ -71,6 +71,7 @@ class DeepJDOT(BaseDANetwork):
         y_pred_target=None,
         training=True
     ):
+        """Compute the domain adaptation loss"""
         y_true = to_tensor(y_true, device=self.device)
 
         loss_deepjdot = 0
