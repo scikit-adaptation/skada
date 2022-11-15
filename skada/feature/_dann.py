@@ -5,7 +5,7 @@ from skorch.utils import to_tensor
 from .base import BaseDANetwork
 
 
-class DeepCORAL(BaseDANetwork):
+class DANN(BaseDANetwork):
     """Loss DeepCORAL
 
     From [2]_.
@@ -56,45 +56,42 @@ class DeepCORAL(BaseDANetwork):
         self.domain_classifier = domain_classifier
         self.domain_criterion = domain_criterion
 
-    def _initialize_domain_criterion(self):
-        """Initializes the domain criterion.
+    def initialize_criterion(self):
+        """Initializes the criterion.
 
-        If the domain criterion is already initialized and no parameter was changed, it
+        If the criterion is already initialized and no parameter was changed, it
         will be left as is.
 
         """
         kwargs = self.get_params_for('domain_criterion')
         domain_criterion = self.initialized_instance(self.domain_criterion, kwargs)
         self.domain_criterion_ = domain_criterion
-        return self
+        return super().initialize_criterion()
 
-    def _initialize_domain_classifier(self):
-        """Initializes the domain classifier.
-        If the domain classifier is already initialized and no parameter was changed, it
+    # def initialize_optimizer(self, *args, **kwargs):
+    #     # first initialize the normal optimizer
+    #     named_params = (
+    #         self.module_.named_parameters() +
+    #         self.domain_classifier_.named_parameters()
+    #     )
+    #     print(self.module_.named_parameters())
+    #     print(named_params)
+    #     args, kwargs = self.get_params_for_optimizer('optimizer', named_params)
+    #     self.optimizer_ = self.optimizer(*args, **kwargs)
+
+    #     return self
+
+    def initialize_module(self):
+        """Initializes the module and add hooks to return features.
+
+        If the module is already initialized and no parameter was changed, it
         will be left as is.
         """
         kwargs = self.get_params_for('domain_classifier')
         domain_classifier = self.initialized_instance(self.domain_classifier, kwargs)
         self.domain_classifier_ = domain_classifier
-        return
 
-    def initialize(self):
-        """Initializes all of its components and returns self."""
-        self.check_training_readiness()
-
-        self._initialize_virtual_params()
-        self._initialize_callbacks()
-        self._initialize_module()
-        self._initialize_criterion()
-        self._initialize_optimizer()
-        self._initialize_history()
-        self._initialize_domain_classifier()
-        self._initialize_domain_criterion()
-
-        self._validate_params()
-
-        self.initialized_ = True
-        return self
+        return super().initialize_module()
 
     def _get_loss_da(
         self,
@@ -109,23 +106,24 @@ class DeepCORAL(BaseDANetwork):
     ):
         """Compute the domain adaptation loss"""
         y_true = to_tensor(y_true, device=self.device)
+        loss_DANN = 0
+        for i in range(len(embedd)):
+            # create domain label
+            domain_label = torch.zeros(
+                (embedd[i].size()[0]), device=self.device, dtype=torch.int64
+            )
+            domain_label_target = torch.ones(
+                (embedd_target[i].size()[0]), device=self.device, dtype=torch.int64
+            )
 
-        # create domain label
-        domain_label = torch.zeros(
-            (embedd.size()[0]), device=self.device, dtype=torch.int64
-        )
-        domain_label_target = torch.ones(
-            (embedd_target.size()[0]), device=self.device, dtype=torch.int64
-        )
+            # update classification function
+            output_domain = self.domain_classifier_.forward(embedd[i])
+            output_domain_target = self.domain_classifier_.forward(embedd_target[i])
 
-        # update classification function
-        output_domain = self.domain_classifier_.forward(embedd)
-        output_domain_target = self.domain_classifier_.forward(embedd_target)
-
-        loss_DANN = (
-            self.domain_criterion_(output_domain, domain_label) +
-            self.domain_criterion_(output_domain_target, domain_label_target)
-        )
+            loss_DANN += (
+                self.domain_criterion_(output_domain, domain_label) +
+                self.domain_criterion_(output_domain_target, domain_label_target)
+            )
 
         loss_classif = self.criterion_(y_pred, y_true)
         return loss_classif + loss_DANN
