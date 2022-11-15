@@ -23,6 +23,9 @@ class DeepCORAL(BaseDANetwork):
         collected during the training.
     reg: float, optional (default=1)
         The regularization parameter of the covariance estimator.
+    **kwargs : dict
+        Keyword arguments passed to the skorch Model class.
+    
 
     References
     ----------
