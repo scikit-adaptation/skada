@@ -1,7 +1,7 @@
 import torch
 from skorch.utils import to_tensor
 
-from ..utils import distance_matrix, ot_solve
+from ..utils import jdot_distance_matrix, ot_solve
 from .base import BaseDANetwork
 
 
@@ -89,7 +89,7 @@ class DeepJDOT(BaseDANetwork):
                 1.0 / len(embedd_target[i]),
                 device=self.device
             )
-            M = distance_matrix(
+            M = jdot_distance_matrix(
                 embedd[i],
                 embedd_target[i],
                 y_true,
