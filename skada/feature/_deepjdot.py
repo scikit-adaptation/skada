@@ -75,7 +75,6 @@ class DeepJDOT(BaseDANetwork):
     ):
         """Compute the domain adaptation loss"""
         y_true = to_tensor(y_true, device=self.device)
-
         loss_deepjdot = 0
         for i in range(len(embedd)):
 
@@ -101,7 +100,7 @@ class DeepJDOT(BaseDANetwork):
             )
             gamma = ot_solve(a, b, M)
 
-            loss_classif = self.criterion(y_pred, y_true)
             loss_deepjdot += torch.sum(gamma * M)
+        loss_classif = self.criterion(y_pred, y_true)
 
         return loss_classif + loss_deepjdot
