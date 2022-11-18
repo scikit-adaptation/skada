@@ -34,9 +34,9 @@ class DANN(BaseDANetwork):
 
     References
     ----------
-    .. [2]  Baochen Sun and Kate Saenko. Deep coral:
-            Correlation alignment for deep domain
-            adaptation. In ECCV Workshops, 2016.
+    .. [2]  Yaroslav Ganin et. al. Domain-Adversarial Training 
+            of Neural Networks  In Journal of Machine Learning 
+            Research, 2016.
     """
 
     def __init__(
