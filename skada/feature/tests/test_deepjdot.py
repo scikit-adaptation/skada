@@ -1,53 +1,45 @@
-import numpy as np
 import torch
+from torch import nn
+
+import numpy as np
+
 import pytest
 
-from sklearn.utils.class_weight import compute_class_weight
-
 from skada.feature import DeepJDOT
-from skada.utils import NeuralNetwork, CustomDataset
+from skada.utils import NeuralNetwork
 
 
 @pytest.mark.parametrize(
-    "input_size,n_classes",
-    [(100, 5), (120, 3)],
+    "input_size, n_channels, n_classes",
+    [(100, 2, 5), (120, 1, 3)],
 )
-def test_deepjdot(input_size, n_classes):
+def test_deepjdot(input_size, n_channels, n_classes):
     rng = np.random.RandomState(42)
     n_examples = 20
 
-    model = NeuralNetwork(
-        input_size=input_size, n_classes=n_classes
+    module = NeuralNetwork(
+        n_channels=n_channels, input_size=input_size, n_classes=n_classes, kernel_size=8
     )
-    model.eval()
+    module.eval()
 
     rng = np.random.RandomState(42)
-    X = rng.randn(n_examples, input_size)
+    X = rng.randn(n_examples, n_channels, input_size)
     X = torch.from_numpy(X.astype(np.float32))
     y = rng.randint(n_classes, size=n_examples)
-    class_weights = compute_class_weight(
-        None, classes=np.unique(y), y=y
-    )
     y = torch.from_numpy(y)
-    X_target = rng.randn(n_examples, input_size)
+    X_target = rng.randn(n_examples, n_channels, input_size)
     X_target = torch.from_numpy(X_target.astype(np.float32))
     y_target = rng.randint(n_classes, size=n_examples)
     y_target = torch.from_numpy(y_target)
 
-    dataset = CustomDataset(X, y)
-    dataset_target = CustomDataset(X_target, y_target)
-
     method = DeepJDOT(
-        base_model=model,
+        module=module,
+        criterion=nn.CrossEntropyLoss(),
         layer_names=["feature_extractor"],
-        batch_size=8,
-        n_epochs=2,
-        n_classes=n_classes,
-        alpha=1,
-        beta=1,
-        class_weights=class_weights
+        max_epochs=2,
+        n_classes=n_classes
     )
-    method.fit(dataset=dataset, dataset_target=dataset_target)
-    y_pred = method.predict(dataset_target)
+    method.fit(X, y, X_target=X_target)
+    y_pred = method.predict(X_target)
 
     assert y_pred.shape[0] == n_examples

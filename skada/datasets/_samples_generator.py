@@ -164,6 +164,7 @@ def _generate_signal_with_peak_frequency(
     input_size,
     frequencies,
     band_size,
+    sigma_freq,
     fs,
     rng
 ):
@@ -176,22 +177,27 @@ def _generate_signal_with_peak_frequency(
         for n_frequency in range(n_frequencies):
             channel_weights = rng.uniform(0.5, 1, size=(n_channels))
             X_random = rng.normal(0, 1, size=(n_samples, n_channels, input_size))
+            for i in range(n_samples):
+                frequency = rng.normal(
+                    frequencies[n_class, n_frequency], sigma_freq*band_size
+                ) + 1e-5
+                if frequency < 0:
+                    frequency = -frequency
+                sos = signal.butter(
+                    10,
+                    [frequency,
+                     frequency + band_size],
+                    'bandpass',
+                    fs=fs,
+                    output='sos'
+                )
 
-            sos = signal.butter(
-                10,
-                [frequencies[n_class, n_frequency],
-                 frequencies[n_class, n_frequency] + band_size],
-                'bandpass',
-                fs=fs,
-                output='sos'
-            )
+                X_filtered = signal.sosfilt(sos, X_random[i])
 
-            X_filtered = signal.sosfilt(sos, X_random)
-
-            for i in range(n_channels):
-                X_fft = rfft(X_filtered[:, i])
-                X_filtered[:, i] = irfft(X_fft * channel_weights[i])
-            X_new += X_filtered
+                for j in range(n_channels):
+                    X_fft = rfft(X_filtered[:, j])
+                    X_filtered[:, j] = irfft(X_fft * channel_weights[j])
+                X_new[i] += X_filtered
 
         X.append(X_new)
         y.append([n_class for _ in range(n_samples)])
@@ -512,6 +518,7 @@ def make_variable_frequency_dataset(
     n_classes=3,
     delta_f=1,
     band_size=1,
+    sigma_freq=0.25,
     sigma_ch=1,
     noise=None,
     random_state=None
@@ -566,7 +573,7 @@ def make_variable_frequency_dataset(
     highest_frequency = 15
     frequencies = rng.choice(
         highest_frequency, size=(n_classes, n_frequencies), replace=False
-    ) + 1e-5
+    )
 
     X_source, y_source = _generate_signal_with_peak_frequency(
         n_samples_source,
@@ -574,6 +581,7 @@ def make_variable_frequency_dataset(
         input_size,
         frequencies,
         band_size,
+        sigma_freq,
         fs,
         rng
     )
@@ -584,6 +592,7 @@ def make_variable_frequency_dataset(
         input_size,
         frequencies + delta_f,
         band_size,
+        sigma_freq,
         fs,
         rng
     )

@@ -30,8 +30,8 @@ def get_intermediate_layers(intermediate_layers, layer_name):
     return hook
 
 
-def register_forwards_hook(model, intermediate_layers, layer_names):
-    for layer_name, layer_module in model.named_modules():
+def register_forwards_hook(module, intermediate_layers, layer_names):
+    for layer_name, layer_module in module.named_modules():
         if layer_name in layer_names:
             layer_module.register_forward_hook(
                 get_intermediate_layers(intermediate_layers, layer_name)
@@ -39,9 +39,9 @@ def register_forwards_hook(model, intermediate_layers, layer_names):
 
 
 def ot_solve(a, b, M, num_iter_max=100000):
-    a2 = a.detach().cpu().numpy()  # .astype(np.float64)
-    b2 = b.detach().cpu().numpy()  # .astype(np.float64)
-    M2 = M.detach().cpu().numpy()  # .astype(np.float64)
+    a2 = a.detach().cpu().numpy()
+    b2 = b.detach().cpu().numpy()
+    M2 = M.detach().cpu().numpy()
 
     # project on simplex for float64 or else numerical errors
     a2 /= a2.sum()
@@ -51,37 +51,82 @@ def ot_solve(a, b, M, num_iter_max=100000):
     return torch.from_numpy(G).to(a.device)
 
 
-def distance_matrix(gs, gt, ys, ft, alpha, beta, class_weights, n_classes):
+def jdot_distance_matrix(
+    embedd,
+    embedd_target,
+    y,
+    y_target,
+    reg_d,
+    reg_cl,
+    class_weights=None,
+    n_classes=3
+):
+    """Compute the distance matrix for DeepJDOT method
 
-    weights = torch.Tensor(class_weights).to(gs.device)
+    Parameters
+    ----------
+    embedd : tensor
+        embeddings of the source data used to perform the distance matrix.
+    embedd_target : tensor
+        embeddings of the target data used to perform the distance matrix.
+    y : tensor
+        labels of the source data used to perform the distance matrix.
+    y_target : tensor
+        labels of the target data used to perform the distance matrix.
+    reg_d : float, default=1
+        Distance term regularization parameter.
+    reg_cl : float, default=1
+        Class distance term regularization parameter.
+    class_weight : array, shape=(n_classes)
+        Weight of classes to compute target classes loss.
+        If None, don't use weights.
+    n_classes : int, default=2
+        Number of classes in the data.
+    """
+    if class_weights is None:
+        weights = torch.ones(n_classes).to(embedd.device)
+    else:
+        weights = torch.Tensor(class_weights).to(embedd.device)
 
-    dist = torch.cdist(gs, gt, p=2) ** 2
+    dist = torch.cdist(embedd, embedd_target, p=2) ** 2
 
-    onehot_ys = torch.nn.functional.one_hot(ys, num_classes=n_classes).to(
-        device=ys.device, dtype=gs.dtype
+    onehot_y_source = torch.nn.functional.one_hot(y, num_classes=n_classes).to(
+        device=y.device, dtype=embedd.dtype
     )
-    loss_target = (weights @ onehot_ys.T).reshape(len(ys), 1) * (
-        -(onehot_ys @ ft.T) + torch.logsumexp(ft, dim=1)
+    loss_target = (weights @ onehot_y_source.T).reshape(len(y), 1) * (
+        -(onehot_y_source @ y_target.T) + torch.logsumexp(y_target, dim=1)
     )
-    M = alpha * dist + beta * loss_target
+    M = reg_d * dist + reg_cl * loss_target
 
     return M
 
 
 class NeuralNetwork(nn.Module):
-    def __init__(self, input_size, n_classes):
+    def __init__(
+        self, n_channels, input_size, n_classes, kernel_size=64, out_channels=10
+    ):
         super(NeuralNetwork, self).__init__()
 
         self.feature_extractor = nn.Sequential(
-            nn.Linear(input_size, 10),
+            nn.Conv1d(n_channels, out_channels, kernel_size),
             nn.ReLU(),
+            nn.AvgPool1d(kernel_size)
         )
-        self.fc = nn.Linear(10, n_classes)
+        self.len_last_layer = self._len_last_layer(n_channels, input_size)
+        self.fc = nn.Linear(self.len_last_layer, n_classes)
 
     def forward(self, x):
         x = self.feature_extractor(x)
         x = self.fc(x.flatten(start_dim=1))
         return x
+
+    def _len_last_layer(self, n_channels, input_size):
+        self.feature_extractor.eval()
+        with torch.no_grad():
+            out = self.feature_extractor(
+                torch.Tensor(1, n_channels, input_size))
+        self.feature_extractor.train()
+        return len(out.flatten())
 
 
 class CustomDataset(Dataset):
