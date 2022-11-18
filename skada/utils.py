@@ -84,7 +84,7 @@ def jdot_distance_matrix(
         Number of classes in the data.
     """
     if class_weights is None:
-        weights = torch.ones(n_classes)
+        weights = torch.ones(n_classes).to(embedd.device)
     else:
         weights = torch.Tensor(class_weights).to(embedd.device)
 
@@ -102,14 +102,15 @@ def jdot_distance_matrix(
 
 
 class NeuralNetwork(nn.Module):
-    def __init__(self, input_size, n_classes):
+    def __init__(self, n_channels, n_classes):
         super(NeuralNetwork, self).__init__()
 
         self.feature_extractor = nn.Sequential(
-            nn.Linear(input_size, 10),
+            nn.Conv1d(n_channels, 10, 64),
             nn.ReLU(),
+            nn.AvgPool1d(64)
         )
-        self.fc = nn.Linear(10, n_classes)
+        self.fc = nn.Linear(450, n_classes)
 
     def forward(self, x):
         x = self.feature_extractor(x)

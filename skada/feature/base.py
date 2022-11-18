@@ -99,6 +99,7 @@ class BaseDANetwork(NeuralNetClassifier):
             y_pred_target=y_pred_target,
             training=True
         )
+
         loss.backward()
         return {
             'loss': loss,
