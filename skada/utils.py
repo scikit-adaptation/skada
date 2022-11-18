@@ -102,20 +102,29 @@ def jdot_distance_matrix(
 
 
 class NeuralNetwork(nn.Module):
-    def __init__(self, n_channels, n_classes):
+    def __init__(self, n_channels, input_size, n_classes, kernel_size=64, out_channels=10):
         super(NeuralNetwork, self).__init__()
 
         self.feature_extractor = nn.Sequential(
-            nn.Conv1d(n_channels, 10, 64),
+            nn.Conv1d(n_channels, out_channels, kernel_size),
             nn.ReLU(),
-            nn.AvgPool1d(64)
+            nn.AvgPool1d(kernel_size)
         )
-        self.fc = nn.Linear(450, n_classes)
+        self.len_last_layer = self._len_last_layer(n_channels, input_size)
+        self.fc = nn.Linear(self.len_last_layer, n_classes)
 
     def forward(self, x):
         x = self.feature_extractor(x)
         x = self.fc(x.flatten(start_dim=1))
         return x
+
+    def _len_last_layer(self, n_channels, input_size):
+        self.feature_extractor.eval()
+        with torch.no_grad():
+            out = self.feature_extractor(
+                torch.Tensor(1, n_channels, input_size))
+        self.feature_extractor.train()
+        return len(out.flatten())
 
 
 class CustomDataset(Dataset):
