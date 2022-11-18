@@ -102,7 +102,9 @@ def jdot_distance_matrix(
 
 
 class NeuralNetwork(nn.Module):
-    def __init__(self, n_channels, input_size, n_classes, kernel_size=64, out_channels=10):
+    def __init__(
+        self, n_channels, input_size, n_classes, kernel_size=64, out_channels=10
+    ):
         super(NeuralNetwork, self).__init__()
 
         self.feature_extractor = nn.Sequential(
