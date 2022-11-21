@@ -34,8 +34,8 @@ class DANN(BaseDANetwork):
 
     References
     ----------
-    .. [2]  Yaroslav Ganin et. al. Domain-Adversarial Training 
-            of Neural Networks  In Journal of Machine Learning 
+    .. [2]  Yaroslav Ganin et. al. Domain-Adversarial Training
+            of Neural Networks  In Journal of Machine Learning
             Research, 2016.
     """
 
