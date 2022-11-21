@@ -2,9 +2,14 @@
 #
 # License: BSD 3-Clause
 
-import numpy as np
-from scipy import linalg
+from numbers import Real
 
+import numpy as np
+
+from sklearn.preprocessing import StandardScaler
+from sklearn.covariance import (
+    ledoit_wolf, empirical_covariance, shrunk_covariance
+)
 from ot import da
 
 from .base import BaseDataAdaptEstimator, clone
@@ -269,6 +274,72 @@ class LinearOTmapping(OTmapping):
         return self
 
 
+def _estimate_covariance(X, shrinkage):
+    if shrinkage is None:
+        s = empirical_covariance(X)
+    elif shrinkage == "auto":
+        sc = StandardScaler()  # standardize features
+        X = sc.fit_transform(X)
+        s = ledoit_wolf(X)[0]
+        # rescale
+        s = sc.scale_[:, np.newaxis] * s * sc.scale_[np.newaxis, :]
+    elif isinstance(shrinkage, Real):
+        s = shrunk_covariance(empirical_covariance(X), shrinkage)
+    return s
+
+
+def _sqrtm(C):
+    r"""Square root of SPD matrices.
+
+    The matrix square root of a SPD matrix C is defined by:
+
+    .. math::
+        \mathbf{D} =
+        \mathbf{V} \left( \mathbf{\Lambda} \right)^{1/2} \mathbf{V}^\top
+
+    where :math:`\mathbf{\Lambda}` is the diagonal matrix of eigenvalues
+    and :math:`\mathbf{V}` the eigenvectors of :math:`\mathbf{C}`.
+
+    Parameters
+    ----------
+    C : ndarray, shape (n, n)
+        SPD matrix.
+
+    Returns
+    -------
+    D : ndarray, shape (n, n)
+        Matrix inverse square root of C.
+    """
+    eigvals, eigvecs = np.linalg.eigh(C)
+    return (eigvecs * np.sqrt(eigvals)) @ eigvecs.T
+
+
+def _invsqrtm(C):
+    r"""Inverse square root of SPD matrices.
+
+    The matrix inverse square root of a SPD matrix C is defined by:
+
+    .. math::
+        \mathbf{D} =
+        \mathbf{V} \left( \mathbf{\Lambda} \right)^{-1/2} \mathbf{V}^\top
+
+    where :math:`\mathbf{\Lambda}` is the diagonal matrix of eigenvalues
+    and :math:`\mathbf{V}` the eigenvectors of :math:`\mathbf{C}`.
+
+    Parameters
+    ----------
+    C : ndarray, shape (n, n)
+        SPD matrix.
+
+    Returns
+    -------
+    D : ndarray, shape (n, n)
+        Matrix inverse square root of C.
+    """
+    eigvals, eigvecs = np.linalg.eigh(C)
+    return (eigvecs * 1. / np.sqrt(eigvals)) @ eigvecs.T
+
+
 class CORAL(BaseDataAdaptEstimator):
     """Estimator based on reweighting samples using density estimation.
 
@@ -276,8 +347,12 @@ class CORAL(BaseDataAdaptEstimator):
     ----------
     base_estimator : estimator object
         The base estimator to fit on reweighted data.
-    reg : float, optional (default=0.1)
+    reg : 'auto' or float, default="auto"
         The regularization parameter of the covariance estimator.
+        Possible values:
+          - None: no shrinkage).
+          - 'auto': automatic shrinkage using the Ledoit-Wolf lemma.
+          - float between 0 and 1: fixed shrinkage parameter.
 
     Attributes
     ----------
@@ -296,7 +371,7 @@ class CORAL(BaseDataAdaptEstimator):
     def __init__(
         self,
         base_estimator,
-        reg=0.1
+        reg='auto'
     ):
         super().__init__(base_estimator)
         self.reg = reg
@@ -348,8 +423,8 @@ class CORAL(BaseDataAdaptEstimator):
         self : object
             Returns self.
         """
-        cov_source_ = np.cov(X.T) + self.reg * np.eye(X.shape[1])
-        cov_target_ = np.cov(X_target.T) + self.reg * np.eye(X_target.shape[1])
-        self.cov_source_inv_sqrt_ = linalg.inv(linalg.sqrtm(cov_source_))
-        self.cov_target_sqrt_ = linalg.sqrtm(cov_target_)
+        cov_source_ = _estimate_covariance(X, shrinkage=self.reg)
+        cov_target_ = _estimate_covariance(X_target, shrinkage=self.reg)
+        self.cov_source_inv_sqrt_ = _invsqrtm(cov_source_)
+        self.cov_target_sqrt_ = _sqrtm(cov_target_)
         return self

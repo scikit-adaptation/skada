@@ -17,7 +17,10 @@ import pytest
         ClassRegularizerOTmapping(base_estimator=LogisticRegression(), norm="lpl1"),
         ClassRegularizerOTmapping(base_estimator=LogisticRegression(), norm="l1l2"),
         LinearOTmapping(base_estimator=LogisticRegression()),
-        CORAL(base_estimator=LogisticRegression())
+        CORAL(base_estimator=LogisticRegression()),
+        pytest.param(CORAL(base_estimator=LogisticRegression(), reg=None),
+                     marks=pytest.mark.xfail(reason='Fails without regularization')),
+        CORAL(base_estimator=LogisticRegression(), reg=0.1),
     ]
 )
 def test_mapping_estimator(estimator):
@@ -33,8 +36,12 @@ def test_mapping_estimator(estimator):
         n_features=n_features,
         shift=0.13,
         random_state=42,
-        cluster_std=0.05,
+        cluster_std=0.5,
     )
+
+    # Just scale some feature to avoid having an identity cov matrix
+    X[:, 0] *= 2
+    X_target[:, 1] *= 3
 
     estimator.fit(X, y, X_target)
     y_pred = estimator.predict(X_target)

@@ -1,5 +1,17 @@
 name: Testing
-on: [push]
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - 'main'
+  push:
+    branches:
+      - 'main'
+  create:
+    branches:
+      - 'main'
+    tags:
+      - '**'
 
 jobs:
   Install-Test-skada:
