@@ -200,7 +200,7 @@ class BaseDANetwork(NeuralNetClassifier):
 
         dataset_train, dataset_valid = self.get_split_datasets(
             X, y, **fit_params)
-        dataset_target = self.get_dataset(X, np.zeros(len(X)))
+        dataset_target = self.get_dataset(X_target, np.zeros(len(X_target)))
         on_epoch_kwargs = {
             'dataset_train': dataset_train,
             'dataset_target': dataset_target,
@@ -255,12 +255,14 @@ class BaseDANetwork(NeuralNetClassifier):
         if training:
             batch_count = 0
             iterator_target_ = iter(iterator_target)
+
             for batch in iterator:
                 try:
                     batch_target = next(iterator_target_)
                 except StopIteration:
                     iterator_target_ = iter(iterator_target)
                     batch_target = next(iterator_target_)
+
                 self.notify("on_batch_begin", batch=batch, training=training)
                 step = step_fn(batch, batch_target, **fit_params)
                 self.history.record_batch(prefix + "_loss", step["loss"].item())
@@ -269,7 +271,6 @@ class BaseDANetwork(NeuralNetClassifier):
                 self.history.record_batch(prefix + "_batch_size", batch_size)
                 self.notify("on_batch_end", batch=batch, training=training, **step)
                 batch_count += 1
-
         else:
             batch_count = 0
             for batch in iterator:

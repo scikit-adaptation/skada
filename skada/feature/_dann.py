@@ -30,7 +30,7 @@ class DANN(BaseDANetwork):
         The uninitialized criterion (loss) used to optimize the
         domain classifier.
     reg: float, optional (default=1)
-        The regularization parameter of the covariance estimator.
+        The regularization parameter of the domain classifier.
 
     References
     ----------
@@ -45,7 +45,7 @@ class DANN(BaseDANetwork):
         criterion,
         layer_names,
         domain_classifier,
-        domain_criterion,
+        domain_criterion=torch.nn.BCELoss,
         reg=1,
         **kwargs
     ):
@@ -67,19 +67,6 @@ class DANN(BaseDANetwork):
         domain_criterion = self.initialized_instance(self.domain_criterion, kwargs)
         self.domain_criterion_ = domain_criterion
         return super().initialize_criterion()
-
-    # def initialize_optimizer(self, *args, **kwargs):
-    #     # first initialize the normal optimizer
-    #     named_params = (
-    #         self.module_.named_parameters() +
-    #         self.domain_classifier_.named_parameters()
-    #     )
-    #     print(self.module_.named_parameters())
-    #     print(named_params)
-    #     args, kwargs = self.get_params_for_optimizer('optimizer', named_params)
-    #     self.optimizer_ = self.optimizer(*args, **kwargs)
-
-    #     return self
 
     def initialize_module(self):
         """Initializes the module and add hooks to return features.
@@ -110,20 +97,19 @@ class DANN(BaseDANetwork):
         for i in range(len(embedd)):
             # create domain label
             domain_label = torch.zeros(
-                (embedd[i].size()[0]), device=self.device, dtype=torch.int64
+                (embedd[i].size()[0]), device=self.device, dtype=torch.float32
             )
             domain_label_target = torch.ones(
-                (embedd_target[i].size()[0]), device=self.device, dtype=torch.int64
+                (embedd_target[i].size()[0]), device=self.device, dtype=torch.float32
             )
 
             # update classification function
-            output_domain = self.domain_classifier_.forward(embedd[i])
-            output_domain_target = self.domain_classifier_.forward(embedd_target[i])
-
+            output_domain = self.domain_classifier_.forward(embedd[i]).flatten()
+            output_domain_target = self.domain_classifier_.forward(embedd_target[i]).flatten()
             loss_DANN += (
                 self.domain_criterion_(output_domain, domain_label) +
                 self.domain_criterion_(output_domain_target, domain_label_target)
             )
 
         loss_classif = self.criterion_(y_pred, y_true)
-        return loss_classif + loss_DANN
+        return loss_classif + self.reg*loss_DANN
