@@ -14,14 +14,12 @@ class ReverseLayerF(Function):
     """XXX add docstring"""
 
     @staticmethod
-    def forward(ctx, x, alpha):
-        ctx.alpha = alpha
-
+    def forward(ctx, x):
         return x.view_as(x)
 
     @staticmethod
     def backward(ctx, grad_output):
-        output = grad_output.neg() * ctx.alpha
+        output = grad_output.neg()
 
         return output, None
 
@@ -53,14 +51,14 @@ class DomainClassifier(nn.Module):
     def __init__(
         self,
         len_last_layer,
-        lamb=0.1,
-        dropout=0.25,
-        n_classes=2
+        n_classes=1
     ):
         super().__init__()
-        self.lamb = lamb
         self.classifier = nn.Sequential(
-            nn.Dropout(dropout), nn.Linear(len_last_layer, n_classes)
+            nn.Linear(len_last_layer, 100),
+            nn.ReLU(),
+            nn.Linear(100, n_classes),
+            nn.Sigmoid()
         )
 
     def forward(self, x):
@@ -72,7 +70,7 @@ class DomainClassifier(nn.Module):
         lamb: float
             Parameter for the reverse layer
         """
-        reverse_x = ReverseLayerF.apply(x, self.lamb)
+        reverse_x = ReverseLayerF.apply(x)
 
         return self.classifier(reverse_x)
 
