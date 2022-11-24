@@ -103,4 +103,4 @@ class DeepJDOT(BaseDANetwork):
             loss_deepjdot += torch.sum(gamma * M)
         loss_classif = self.criterion_(y_pred, y_true)
 
-        return loss_classif + loss_deepjdot
+        return loss_classif + loss_deepjdot, loss_classif, loss_deepjdot

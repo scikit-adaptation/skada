@@ -90,7 +90,7 @@ class BaseDANetwork(NeuralNetClassifier):
         embedd_target = [
             self.intermediate_layers[layer_name] for layer_name in self.layer_names
         ]
-        loss = self._get_loss_da(
+        loss, loss_classif, loss_da = self._get_loss_da(
             y_pred,
             yi,
             embedd,
@@ -103,6 +103,8 @@ class BaseDANetwork(NeuralNetClassifier):
         loss.backward()
         return {
             'loss': loss,
+            'loss_classif': loss_classif,
+            'loss_da': loss_da,
             'y_pred': y_pred,
             'y_pred_target': y_pred_target
         }
@@ -266,6 +268,10 @@ class BaseDANetwork(NeuralNetClassifier):
                 self.notify("on_batch_begin", batch=batch, training=training)
                 step = step_fn(batch, batch_target, **fit_params)
                 self.history.record_batch(prefix + "_loss", step["loss"].item())
+                self.history.record_batch(
+                    prefix + "_loss_classif", step["loss_classif"].item()
+                )
+                self.history.record_batch(prefix + "_loss_da", step["loss_da"].item())
                 batch_size = (get_len(batch[0]) if isinstance(batch, (tuple, list))
                               else get_len(batch))
                 self.history.record_batch(prefix + "_batch_size", batch_size)
