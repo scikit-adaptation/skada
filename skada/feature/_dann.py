@@ -105,11 +105,12 @@ class DANN(BaseDANetwork):
 
             # update classification function
             output_domain = self.domain_classifier_.forward(embedd[i]).flatten()
-            output_domain_target = self.domain_classifier_.forward(embedd_target[i]).flatten()
-            loss_DANN += (
+            output_domain_target = self.domain_classifier_.forward(
+                embedd_target[i]).flatten()
+            loss_DANN += self.reg * (
                 self.domain_criterion_(output_domain, domain_label) +
                 self.domain_criterion_(output_domain_target, domain_label_target)
             )
 
         loss_classif = self.criterion_(y_pred, y_true)
-        return loss_classif + self.reg*loss_DANN
+        return loss_classif + loss_DANN, loss_classif, loss_DANN

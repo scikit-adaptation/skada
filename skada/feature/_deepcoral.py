@@ -66,4 +66,4 @@ class DeepCORAL(BaseDANetwork):
             loss_coral += self.reg * norm_coral(Cs, Ct)
 
         loss_classif = self.criterion_(y_pred, y_true)
-        return loss_classif + loss_coral
+        return loss_classif + loss_coral, loss_classif, loss_coral
