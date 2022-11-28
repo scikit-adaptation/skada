@@ -30,7 +30,7 @@ class DomainClassifier(nn.Module):
     Parameters
     ----------
     len_last_layer : int
-        Size of the input, e.g size of the last layer of 
+        Size of the input, e.g size of the last layer of
         the feature extractor
     n_classes : int, default=1
         Number of classes
