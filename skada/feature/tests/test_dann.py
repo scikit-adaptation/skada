@@ -11,15 +11,16 @@ from skada.utils import NeuralNetwork
 
 
 class ReverseLayerF(Function):
-    """XXX add docstring"""
 
     @staticmethod
-    def forward(ctx, x):
+    def forward(ctx, x, alpha):
+        ctx.alpha = alpha
+
         return x.view_as(x)
 
     @staticmethod
     def backward(ctx, grad_output):
-        output = grad_output.neg()
+        output = grad_output.neg() * ctx.alpha
 
         return output, None
 
@@ -28,24 +29,11 @@ class DomainClassifier(nn.Module):
     """Classifier Architecture for DANN method.
     Parameters
     ----------
-    n_channels : int
-        Number of EEG channels.
-    sfreq : float
-        EEG sampling frequency.
-    n_conv_chs : int
-        Number of convolutional channels. Set to 8 in [1]_.
-    time_conv_size_s : float
-        Size of filters in temporal convolution layers, in seconds. Set to 0.5
-        in [1]_ (64 samples at sfreq=128).
-    max_pool_size_s : float
-        Max pooling size, in seconds. Set to 0.125 in [1]_ (16 samples at
-        sfreq=128).
-    n_classes : int
-        Number of classes.
-    input_size_s : float
-        Size of the input, in seconds.
-    dropout : float
-        Dropout rate before the output dense layer.
+    len_last_layer : int
+        Size of the input, e.g size of the last layer of 
+        the feature extractor
+    n_classes : int, default=1
+        Number of classes
     """
 
     def __init__(
@@ -56,22 +44,22 @@ class DomainClassifier(nn.Module):
         super().__init__()
         self.classifier = nn.Sequential(
             nn.Linear(len_last_layer, 100),
+            nn.BatchNorm1d(100),
             nn.ReLU(),
             nn.Linear(100, n_classes),
             nn.Sigmoid()
         )
 
-    def forward(self, x):
+    def forward(self, x, alpha=None):
         """Forward pass.
         Parameters
         ---------
         x: torch.Tensor
             Batch of EEG windows of shape (batch_size, n_channels, n_times).
-        lamb: float
+        alpha: float
             Parameter for the reverse layer
         """
-        reverse_x = ReverseLayerF.apply(x)
-
+        reverse_x = ReverseLayerF.apply(x, alpha)
         return self.classifier(reverse_x)
 
 
@@ -105,7 +93,7 @@ def test_dann(input_size, n_channels, n_classes):
         max_epochs=2,
         domain_classifier=DomainClassifier,
         domain_classifier__len_last_layer=module.len_last_layer,
-        domain_criterion=nn.CrossEntropyLoss,
+        domain_criterion=nn.BCELoss,
     )
     method.fit(X, y, X_target=X_target)
     y_pred = method.predict(X_target)
