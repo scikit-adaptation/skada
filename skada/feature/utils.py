@@ -1,12 +1,12 @@
-import sys
 try:
     import torch
     from torch import nn
     from torch.utils.data import Dataset
 except ImportError:
     print("torch and skorch are required to use feature's method.")
-    sys.exit(1)
-
+    torch = False
+    nn = False
+    Dataset = False
 import ot
 
 
