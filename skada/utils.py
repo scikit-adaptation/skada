@@ -1,9 +1,10 @@
 import torch
+from torch import nn
+from torch.utils.data import Dataset
 
 import ot
 
-from torch import nn
-from torch.utils.data import Dataset
+from functools import partial
 
 
 def cov(x, eps=1e-5):
@@ -99,6 +100,47 @@ def jdot_distance_matrix(
     M = reg_d * dist + reg_cl * loss_target
 
     return M
+
+
+def gaussian_kernel_single(x, y, sigmas):
+
+    sigmas = sigmas.view(sigmas.shape[0], 1)
+    beta = 1. / sigmas
+    dist = torch.cdist(x, y)
+    dist_ = dist.view(1, -1)
+    s = torch.matmul(beta, dist_)
+
+    return torch.sum(torch.exp(-s), 0).view_as(dist)
+
+
+def maximum_mean_discrepancy(x, y, kernel):
+
+    cost = torch.mean(kernel(x, x))
+    cost += torch.mean(kernel(y, y))
+    cost -= 2 * torch.mean(kernel(x, y))
+
+    return cost
+
+
+def mmd_loss(source_features, target_features, device):
+    """Define the mmd loss based on multi-kernel"""
+    sigmas = torch.tensor(
+        [2**(-8) * 2**(i*1/2) for i in range(33)]
+    ).to(device)
+
+    median_pairwise_distance = torch.median(
+        torch.cdist(source_features, source_features)
+    )
+
+    gaussian_kernel = partial(
+        gaussian_kernel_single, sigmas=median_pairwise_distance * sigmas
+    )
+
+    loss = maximum_mean_discrepancy(
+        source_features, target_features, kernel=gaussian_kernel
+    )
+
+    return loss
 
 
 class NeuralNetwork(nn.Module):
