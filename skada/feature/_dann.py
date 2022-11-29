@@ -6,7 +6,7 @@ from .base import BaseDANetwork
 
 
 class DANN(BaseDANetwork):
-    """Loss DeepCORAL
+    """Domain-Adversarial Training of Neural Networks (DANN).
 
     From [2]_.
 
@@ -94,13 +94,14 @@ class DANN(BaseDANetwork):
         """Compute the domain adaptation loss"""
         y_true = to_tensor(y_true, device=self.device)
         loss_DANN = 0
+        dtype = torch.float32
         for i in range(len(embedd)):
             # create domain label
             domain_label = torch.zeros(
-                (embedd[i].size()[0]), device=self.device, dtype=torch.float32
+                (embedd[i].size()[0]), device=self.device, dtype=dtype
             )
             domain_label_target = torch.ones(
-                (embedd_target[i].size()[0]), device=self.device, dtype=torch.float32
+                (embedd_target[i].size()[0]), device=self.device, dtype=dtype
             )
 
             # update classification function

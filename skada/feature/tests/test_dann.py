@@ -27,6 +27,7 @@ class ReverseLayerF(Function):
 
 class DomainClassifier(nn.Module):
     """Classifier Architecture for DANN method.
+
     Parameters
     ----------
     len_last_layer : int
@@ -35,7 +36,6 @@ class DomainClassifier(nn.Module):
     n_classes : int, default=1
         Number of classes
     """
-
     def __init__(
         self,
         len_last_layer,
@@ -52,12 +52,13 @@ class DomainClassifier(nn.Module):
 
     def forward(self, x, alpha=None):
         """Forward pass.
+
         Parameters
         ---------
         x: torch.Tensor
             Batch of EEG windows of shape (batch_size, n_channels, n_times).
         alpha: float
-            Parameter for the reverse layer
+            Parameter for the reverse layer.
         """
         reverse_x = ReverseLayerF.apply(x, alpha)
         return self.classifier(reverse_x)
@@ -68,23 +69,16 @@ class DomainClassifier(nn.Module):
     [(100, 2, 5), (120, 1, 3)],
 )
 def test_dann(input_size, n_channels, n_classes):
-    rng = np.random.RandomState(42)
-    n_examples = 20
-
     module = NeuralNetwork(
         n_channels=n_channels, input_size=input_size, n_classes=n_classes, kernel_size=8
     )
     module.eval()
 
-    rng = np.random.RandomState(42)
-    X = rng.randn(n_examples, n_channels, input_size)
-    X = torch.from_numpy(X.astype(np.float32))
-    y = rng.randint(n_classes, size=n_examples)
-    y = torch.from_numpy(y)
-    X_target = rng.randn(n_examples, n_channels, input_size)
-    X_target = torch.from_numpy(X_target.astype(np.float32))
-    y_target = rng.randint(n_classes, size=n_examples)
-    y_target = torch.from_numpy(y_target)
+    rng = torch.random.manual_seed(42)
+    n_samples = 20
+    X = torch.randn(size=(n_samples, n_channels, input_size), generator=rng)
+    y = torch.randint(high=n_classes, size=(n_samples,), generator=rng)
+    X_target = torch.randn(size=(n_samples, n_channels, input_size), generator=rng)
 
     method = DANN(
         module=module,
@@ -98,4 +92,4 @@ def test_dann(input_size, n_channels, n_classes):
     method.fit(X, y, X_target=X_target)
     y_pred = method.predict(X_target)
 
-    assert y_pred.shape[0] == n_examples
+    assert y_pred.shape[0] == n_samples
