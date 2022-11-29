@@ -1,6 +1,11 @@
-from skorch.utils import to_tensor
+import sys
+try:
+    from skorch.utils import to_tensor
+except ImportError:
+    print("skorch and torch are required to use feature's method.")
+    sys.exit(1)
 
-from ..utils import cov, norm_coral
+from .utils import cov, norm_coral
 from .base import BaseDANetwork
 
 

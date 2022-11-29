@@ -1,7 +1,10 @@
-import torch
-
-from skorch.utils import to_tensor
-
+import sys
+try:
+    import torch
+    from skorch.utils import to_tensor
+except ImportError:
+    print("skorch and torch are required to use feature's method.")
+    sys.exit(1)
 from .base import BaseDANetwork
 
 

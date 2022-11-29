@@ -1,12 +1,17 @@
 from abc import abstractmethod
-from skorch import NeuralNetClassifier
-from skorch.dataset import unpack_data
-from skorch.dataset import get_len
-from skorch.utils import TeeGenerator
+import sys
+try:
+    from skorch import NeuralNetClassifier
+    from skorch.dataset import unpack_data
+    from skorch.dataset import get_len
+    from skorch.utils import TeeGenerator
+except ImportError:
+    print("skorch and torch are required to use feature's method.")
+    sys.exit(1)
 
 import numpy as np
 
-from ..utils import register_forwards_hook
+from .utils import register_forwards_hook
 
 
 class BaseDANetwork(NeuralNetClassifier):

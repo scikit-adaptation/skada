@@ -3,14 +3,10 @@
 Domain Adaptation estimators
 
 """
-
 # Author: Remi Flamary <remi.flamary@polytechnique.edu>
 #         Alexandre Gramfort <firstname.lastname@inria.fr>
 #
 # License: BSD 3-Clause
-
-from . import feature
-
 from ._reweight import (
     ReweightDensity, GaussianReweightDensity, DiscriminatorReweightDensity
 )
