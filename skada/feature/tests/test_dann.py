@@ -2,8 +2,6 @@ import torch
 from torch import nn
 from torch.autograd import Function
 
-import numpy as np
-
 import pytest
 
 from skada.feature import DANN
