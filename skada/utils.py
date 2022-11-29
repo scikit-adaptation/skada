@@ -25,7 +25,7 @@ def norm_coral(A, B):
 
 def get_intermediate_layers(intermediate_layers, layer_name):
     def hook(model, input, output):
-        intermediate_layers[layer_name] = output.flatten(start_dim=1).detach()
+        intermediate_layers[layer_name] = output.flatten(start_dim=1)
 
     return hook
 
