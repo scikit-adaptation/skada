@@ -103,7 +103,7 @@ def jdot_distance_matrix(
 
 
 def gaussian_kernel_single(x, y, sigmas):
-
+    """Computes gaussian kernel between each pair of the two vectors."""
     sigmas = sigmas.view(sigmas.shape[0], 1)
     beta = 1. / sigmas
     dist = torch.cdist(x, y)
@@ -114,7 +114,8 @@ def gaussian_kernel_single(x, y, sigmas):
 
 
 def maximum_mean_discrepancy(x, y, kernel):
-
+    """Computes the maximum mean discrepency between the vectors
+       using the given kernel."""
     cost = torch.mean(kernel(x, x))
     cost += torch.mean(kernel(y, y))
     cost -= 2 * torch.mean(kernel(x, y))
@@ -122,11 +123,11 @@ def maximum_mean_discrepancy(x, y, kernel):
     return cost
 
 
-def mmd_loss(source_features, target_features, device):
-    """Define the mmd loss based on multi-kernel"""
+def mmd_loss(source_features, target_features):
+    """Define the mmd loss based on multi-kernel."""
     sigmas = torch.tensor(
         [2**(-8) * 2**(i*1/2) for i in range(33)]
-    ).to(device)
+    ).to(source_features.device)
 
     median_pairwise_distance = torch.median(
         torch.cdist(source_features, source_features)

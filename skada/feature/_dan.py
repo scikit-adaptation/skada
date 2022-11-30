@@ -62,7 +62,7 @@ class DAN(BaseDANetwork):
         loss_dan = 0
         for i in range(len(embedd)):
             loss_dan += (
-                self.reg * mmd_loss(embedd[i], embedd_target[i], device=self.device)
+                self.reg * mmd_loss(embedd[i], embedd_target[i])
             )
 
         loss_classif = self.criterion_(y_pred, y_true)
