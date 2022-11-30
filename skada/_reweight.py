@@ -5,11 +5,15 @@
 # License: BSD 3-Clause
 
 import numpy as np
-from sklearn.neighbors import KernelDensity
-from sklearn.linear_model import LogisticRegression
 from scipy.stats import multivariate_normal
 
+from sklearn.neighbors import KernelDensity
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics.pairwise import pairwise_kernels
+
 from .base import BaseDataAdaptEstimator, clone
+
+EPS = np.finfo(float).eps
 
 
 class ReweightDensity(BaseDataAdaptEstimator):
@@ -278,3 +282,162 @@ class DiscriminatorReweightDensity(BaseDataAdaptEstimator):
         self.domain_classifier_ = clone(self.domain_classifier)
         y_domain = np.concatenate((len(X) * [0], len(X_target) * [1]))
         self.domain_classifier_.fit(np.concatenate((X, X_target)), y_domain)
+
+
+class KLIEP(BaseDataAdaptEstimator):
+    """Kullback-Leibler Importance Estimation Procedure (KLIEP).
+
+    See [3]_ for details.
+
+    Parameters
+    ----------
+    base_estimator : sklearn estimator
+        Estimator used for fitting and prediction.
+    kparam : float or array like
+        Parameters for the kernels.
+        If array like, compute the LCV to choose the best parameters for the kernels.
+        If float, solve the optimisation for th given kernels' parameters.
+    n_subsets : int, default=5
+        Number of subsets of target data used for the LCV.
+    n_centers : int, default=100
+        Number of centers of the kernel, e.g. choose the number of kernels.
+    tol : float, default=1e-6
+        Tolerance for the stopping criterion in the optimization.
+    max_iter : int, default=1000
+        Number of maximum iteration before stopping the optimization.
+
+    Attributes
+    ----------
+    `best_kparam` : float
+        The best parameters for the kernel chosen with the LCV if
+        several parameters are given as input.
+    `alpha_` : float
+        Solution of the optimisation problem.
+    `centers_` : list
+        List of the target data taken as centers for the kernels.
+
+    References
+    ----------
+    .. [3] Masashi Sugiyama et. al. Direct Importance Estimation with Model Selection
+           and Its Application to Covariate Shift Adaptation.
+           In NeurIPS, 2007.
+    """
+
+    def __init__(
+        self,
+        base_estimator,
+        kparam,
+        n_subsets=5,
+        n_centers=100,
+        tol=1e-6,
+        max_iter=1000,
+
+    ):
+        super().__init__(base_estimator)
+
+        self.kparam = kparam
+        self.n_subsets = n_subsets
+        self.n_centers = n_centers
+        self.tol = tol
+        self.max_iter = max_iter
+
+    def predict_adapt(self, X, y, X_target, y_target=None):
+        """Predict adaptation (weights, sample or labels).
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        X_target : array-like, shape (n_samples, n_features)
+            The target data.
+        y_target : array-like, shape (n_samples,), optional
+            The target labels.
+
+        Returns
+        -------
+        X_t : array-like, shape (n_samples, n_components)
+            The data (same as X).
+        y_t : array-like, shape (n_samples,)
+            The labels (same as y).
+        weights : array-like, shape (n_samples,)
+            The weights of the samples.
+        """
+        A = pairwise_kernels(X, self.centers_, metric="rbf", gamma=self.best_kparam)
+        weights = A @ self.alpha_
+        return X, y, weights
+
+    def fit_adapt(self, X, y, X_target, y_target=None):
+        """Fit adaptation parameters.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        X_target : array-like, shape (n_samples, n_features)
+            The target data.
+        y_target : array-like, shape (n_samples,), optional
+            The target labels.
+
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
+        if isinstance(self.kparam, list):
+            self.best_kparam = self._likelihood_cross_validation(
+                self.kparam, X, X_target
+            )
+        else:
+            self.best_kparam = self.kparam
+        self.alpha_, self.centers_ = self._weights_optimisation(
+            self.best_kparam, X, X_target
+        )
+
+    def _weights_optimisation(self, kparam, X, X_target):
+        n_targets = len(X_target)
+        n_centers = np.min((n_targets, self.n_centers))
+        centers = X_target[np.random.choice(np.arange(n_targets), n_centers)]
+        A = pairwise_kernels(X_target, centers, metric="rbf", gamma=kparam)
+        b = pairwise_kernels(X, centers, metric="rbf", gamma=kparam)
+        b = np.mean(b, axis=0)
+        alpha = np.ones(n_centers)
+        obj = np.sum(np.log(A @ alpha))
+        old_obj = - np.inf
+        it = 0
+        while np.abs(obj - old_obj) > self.tol and it < self.max_iter:
+            old_obj = obj
+            it += 1
+            alpha += EPS * A.T @ (1 / (A @ alpha))
+            alpha += (1 - b @ alpha) * b / (b @ b)
+            alpha = (alpha > 0) * alpha
+            alpha = alpha / (b @ alpha)
+            obj = np.sum(np.log(A @ alpha + EPS))
+        return alpha, centers
+
+    def _likelihood_cross_validation(self, kparams, X, X_target):
+        """Compute the likelihood cross validation to choose the
+           best parameter for the kernel
+        """
+        J = []
+        index = np.arange(len(X_target))
+        np.random.shuffle(index)
+        index_subsets = np.array_split(index, self.n_subsets)
+        for kparam in kparams:
+            Jr = []
+            for s, index_subset in enumerate(index_subsets):
+                alpha, centers = self._weights_optimisation(kparam, X, X_target[
+                    np.concatenate(index_subsets[:s] + index_subsets[s:])
+                ])
+                A = pairwise_kernels(
+                    X_target[index_subset], centers, metric="rbf", gamma=kparam
+                )
+                weights = A @ alpha
+                Jr.append(np.mean(np.log(weights + EPS)))
+            J.append(np.mean(Jr))
+        best_kparam = kparams[np.argmax(J)]
+
+        return best_kparam
