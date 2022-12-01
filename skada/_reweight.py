@@ -3,6 +3,7 @@
 #         Alexandre Gramfort <firstname.lastname@inria.fr>
 #
 # License: BSD 3-Clause
+import warnings
 
 import numpy as np
 from scipy.stats import multivariate_normal
@@ -295,22 +296,26 @@ class KLIEP(BaseDataAdaptEstimator):
         Estimator used for fitting and prediction.
     kparam : float or array like
         Parameters for the kernels.
-        If array like, compute the LCV to choose the best parameters for the kernels.
-        If float, solve the optimisation for th given kernels' parameters.
+        If array like, compute the likelihood cross validation to choose
+        the best parameters for the kernels.
+        If float, solve the optimisation for the given kernels' parameters.
     n_subsets : int, default=5
-        Number of subsets of target data used for the LCV.
+        Number of subsets of target data used for the likelihood cross validation.
     n_centers : int, default=100
-        Number of centers of the kernel, e.g. choose the number of kernels.
+        Number of kernel centers defining their number.
     tol : float, default=1e-6
         Tolerance for the stopping criterion in the optimization.
     max_iter : int, default=1000
         Number of maximum iteration before stopping the optimization.
+    random_state : int, RandomState instance or None, default=None
+        Determines random number generation for dataset creation. Pass an int
+        for reproducible output across multiple function calls.
 
     Attributes
     ----------
-    `best_kparam` : float
-        The best parameters for the kernel chosen with the LCV if
-        several parameters are given as input.
+    `best_kparam_` : float
+        The best parameters for the kernel chosen with the likelihood
+        cross validation if several parameters are given as input.
     `alpha_` : float
         Solution of the optimisation problem.
     `centers_` : list
@@ -331,7 +336,7 @@ class KLIEP(BaseDataAdaptEstimator):
         n_centers=100,
         tol=1e-6,
         max_iter=1000,
-
+        random_state=42,
     ):
         super().__init__(base_estimator)
 
@@ -340,6 +345,7 @@ class KLIEP(BaseDataAdaptEstimator):
         self.n_centers = n_centers
         self.tol = tol
         self.max_iter = max_iter
+        self.rng = np.random.RandomState(random_state)
 
     def predict_adapt(self, X, y, X_target, y_target=None):
         """Predict adaptation (weights, sample or labels).
@@ -364,7 +370,7 @@ class KLIEP(BaseDataAdaptEstimator):
         weights : array-like, shape (n_samples,)
             The weights of the samples.
         """
-        A = pairwise_kernels(X, self.centers_, metric="rbf", gamma=self.best_kparam)
+        A = pairwise_kernels(X, self.centers_, metric="rbf", gamma=self.best_kparam_)
         weights = A @ self.alpha_
         return X, y, weights
 
@@ -388,34 +394,36 @@ class KLIEP(BaseDataAdaptEstimator):
             Returns self.
         """
         if isinstance(self.kparam, list):
-            self.best_kparam = self._likelihood_cross_validation(
+            self.best_kparam_ = self._likelihood_cross_validation(
                 self.kparam, X, X_target
             )
         else:
-            self.best_kparam = self.kparam
+            self.best_kparam_ = self.kparam
         self.alpha_, self.centers_ = self._weights_optimisation(
-            self.best_kparam, X, X_target
+            self.best_kparam_, X, X_target
         )
 
     def _weights_optimisation(self, kparam, X, X_target):
         n_targets = len(X_target)
         n_centers = np.min((n_targets, self.n_centers))
-        centers = X_target[np.random.choice(np.arange(n_targets), n_centers)]
+        centers = X_target[self.rng.choice(np.arange(n_targets), n_centers)]
         A = pairwise_kernels(X_target, centers, metric="rbf", gamma=kparam)
         b = pairwise_kernels(X, centers, metric="rbf", gamma=kparam)
         b = np.mean(b, axis=0)
         alpha = np.ones(n_centers)
         obj = np.sum(np.log(A @ alpha))
-        old_obj = - np.inf
-        it = 0
-        while np.abs(obj - old_obj) > self.tol and it < self.max_iter:
+        for it in range(self.max_iter):
             old_obj = obj
-            it += 1
             alpha += EPS * A.T @ (1 / (A @ alpha))
             alpha += (1 - b @ alpha) * b / (b @ b)
             alpha = (alpha > 0) * alpha
             alpha = alpha / (b @ alpha)
             obj = np.sum(np.log(A @ alpha + EPS))
+            print(np.abs(obj - old_obj))
+            if np.abs(obj - old_obj) < self.tol:
+                break
+        if it+1 == self.max_iter:
+            warnings.warn("Maximum iteration reached before convergence.")
         return alpha, centers
 
     def _likelihood_cross_validation(self, kparams, X, X_target):
@@ -424,7 +432,7 @@ class KLIEP(BaseDataAdaptEstimator):
         """
         J = []
         index = np.arange(len(X_target))
-        np.random.shuffle(index)
+        self.rng.shuffle(index)
         index_subsets = np.array_split(index, self.n_subsets)
         for kparam in kparams:
             Jr = []
@@ -438,6 +446,6 @@ class KLIEP(BaseDataAdaptEstimator):
                 weights = A @ alpha
                 Jr.append(np.mean(np.log(weights + EPS)))
             J.append(np.mean(Jr))
-        best_kparam = kparams[np.argmax(J)]
+        best_kparam_ = kparams[np.argmax(J)]
 
-        return best_kparam
+        return best_kparam_
