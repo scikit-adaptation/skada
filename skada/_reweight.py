@@ -419,7 +419,6 @@ class KLIEP(BaseDataAdaptEstimator):
             alpha = (alpha > 0) * alpha
             alpha = alpha / (b @ alpha)
             obj = np.sum(np.log(A @ alpha + EPS))
-            print(np.abs(obj - old_obj))
             if np.abs(obj - old_obj) < self.tol:
                 break
         if it+1 == self.max_iter:
