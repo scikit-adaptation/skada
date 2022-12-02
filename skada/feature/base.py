@@ -1,15 +1,8 @@
 from abc import abstractmethod
-try:
-    from skorch import NeuralNetClassifier
-    from skorch.dataset import unpack_data
-    from skorch.dataset import get_len
-    from skorch.utils import TeeGenerator
-except ImportError:
-    print("skorch and torch are required to use feature's method.")
-    NeuralNetClassifier = False
-    unpack_data = False
-    get_len = False
-    TeeGenerator = False
+from skorch import NeuralNetClassifier
+from skorch.dataset import unpack_data
+from skorch.dataset import get_len
+from skorch.utils import TeeGenerator
 
 import numpy as np
 

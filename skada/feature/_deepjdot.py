@@ -1,10 +1,5 @@
-try:
-    import torch
-    from skorch.utils import to_tensor
-except ImportError:
-    print("skorch and torch are required to use feature's method.")
-    torch = False
-    to_tensor = False
+import torch
+from skorch.utils import to_tensor
 
 from .utils import jdot_distance_matrix, ot_solve
 from .base import BaseDANetwork

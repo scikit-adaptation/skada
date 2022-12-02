@@ -1,12 +1,8 @@
-try:
-    import torch
-    from torch import nn
-    from torch.utils.data import Dataset
-except ImportError:
-    print("torch and skorch are required to use feature's method.")
-    torch = False
-    nn = False
-    Dataset = False
+
+import torch
+from torch import nn
+from torch.utils.data import Dataset
+
 import ot
 
 
