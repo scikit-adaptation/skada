@@ -1,9 +1,10 @@
 import torch
+from torch import nn
+from torch.utils.data import Dataset
 
 import ot
 
-from torch import nn
-from torch.utils.data import Dataset
+from functools import partial
 
 
 def cov(x, eps=1e-5):
@@ -99,6 +100,67 @@ def jdot_distance_matrix(
     M = reg_d * dist + reg_cl * loss_target
 
     return M
+
+
+def _gaussian_kernel(x, y, sigmas):
+    """Computes multi gaussian kernel between each pair of the two vectors."""
+    sigmas = sigmas.view(sigmas.shape[0], 1)
+    beta = 1. / sigmas
+    dist = torch.cdist(x, y)
+    dist_ = dist.view(1, -1)
+    s = torch.matmul(beta, dist_)
+
+    return torch.sum(torch.exp(-s), 0).view_as(dist)
+
+
+def _maximum_mean_discrepancy(x, y, kernel):
+    """Computes the maximum mean discrepency between the vectors
+       using the given kernel."""
+    cost = torch.mean(kernel(x, x))
+    cost += torch.mean(kernel(y, y))
+    cost -= 2 * torch.mean(kernel(x, y))
+
+    return cost
+
+
+def dan_loss(source_features, target_features, sigmas=None):
+    """Define the mmd loss based on multi-kernel defined in [1]_.
+
+    Parameters
+    ----------
+    source_features : tensor
+        Source features used to compute the mmd loss.
+    target_features : tensor
+        Target features used to compute the mmd loss.
+    sigmas : array like, default=None,
+        If array, sigmas used for the multi gaussian kernel.
+        If None, uses sigmas proposed  in [1]_.
+
+    References
+    ----------
+    .. [1]  Mingsheng Long et. al. Learning Transferable
+            Features with Deep Adaptation Networks.
+            In ICML, 2015.
+    """
+    if sigmas is None:
+        median_pairwise_distance = torch.median(
+            torch.cdist(source_features, source_features)
+        )
+        sigmas = torch.tensor(
+            [2**(-8) * 2**(i*1/2) for i in range(33)]
+        ).to(source_features.device) * median_pairwise_distance
+    else:
+        sigmas = torch.tensor(sigmas).to(source_features.device)
+
+    gaussian_kernel = partial(
+        _gaussian_kernel, sigmas=sigmas
+    )
+
+    loss = _maximum_mean_discrepancy(
+        source_features, target_features, kernel=gaussian_kernel
+    )
+
+    return loss
 
 
 class NeuralNetwork(nn.Module):

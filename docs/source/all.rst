@@ -59,3 +59,4 @@ API and modules
    DeepCORAL
    DeepJDOT
    DANN
+   DAN
