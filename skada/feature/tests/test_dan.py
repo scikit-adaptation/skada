@@ -3,7 +3,7 @@ from torch import nn
 
 import pytest
 
-from skada.feature import DeepCORAL
+from skada.feature import DAN
 from skada.utils import NeuralNetwork
 
 
@@ -11,7 +11,7 @@ from skada.utils import NeuralNetwork
     "input_size, n_channels, n_classes",
     [(100, 2, 5), (120, 1, 3)],
 )
-def test_deepcoral(input_size, n_channels, n_classes):
+def test_dan(input_size, n_channels, n_classes):
     module = NeuralNetwork(
         n_channels=n_channels, input_size=input_size, n_classes=n_classes, kernel_size=8
     )
@@ -23,7 +23,7 @@ def test_deepcoral(input_size, n_channels, n_classes):
     y = torch.randint(high=n_classes, size=(n_samples,), generator=rng)
     X_target = torch.randn(size=(n_samples, n_channels, input_size), generator=rng)
 
-    method = DeepCORAL(
+    method = DAN(
         module=module,
         criterion=nn.CrossEntropyLoss(),
         layer_names=["feature_extractor"],
