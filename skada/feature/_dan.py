@@ -22,7 +22,7 @@ class DAN(BaseDANetwork):
         The names of the module's layers whose outputs are
         collected during the training.
     reg: float, optional (default=1)
-        The regularization parameter of the covariance estimator.
+        The regularization parameter of the MMD estimator.
     **kwargs : dict
         Keyword arguments passed to the skorch Model class.
 
