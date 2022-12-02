@@ -1,6 +1,6 @@
 from skorch.utils import to_tensor
 
-from ..utils import mmd_loss
+from ..utils import dan_loss
 from .base import BaseDANetwork
 
 
@@ -39,12 +39,14 @@ class DAN(BaseDANetwork):
         criterion,
         layer_names,
         reg=1,
+        sigmas=None,
         **kwargs
     ):
         super().__init__(
             module, criterion, layer_names, **kwargs
         )
         self.reg = reg
+        self.sigmas = sigmas
 
     def _get_loss_da(
         self,
@@ -62,7 +64,7 @@ class DAN(BaseDANetwork):
         loss_dan = 0
         for i in range(len(embedd)):
             loss_dan += (
-                self.reg * mmd_loss(embedd[i], embedd_target[i])
+                self.reg * dan_loss(embedd[i], embedd_target[i], self.sigmas)
             )
 
         loss_classif = self.criterion_(y_pred, y_true)

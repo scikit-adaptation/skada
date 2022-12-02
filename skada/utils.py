@@ -102,8 +102,8 @@ def jdot_distance_matrix(
     return M
 
 
-def gaussian_kernel_single(x, y, sigmas):
-    """Computes gaussian kernel between each pair of the two vectors."""
+def _gaussian_kernel(x, y, sigmas):
+    """Computes multi gaussian kernel between each pair of the two vectors."""
     sigmas = sigmas.view(sigmas.shape[0], 1)
     beta = 1. / sigmas
     dist = torch.cdist(x, y)
@@ -113,7 +113,7 @@ def gaussian_kernel_single(x, y, sigmas):
     return torch.sum(torch.exp(-s), 0).view_as(dist)
 
 
-def maximum_mean_discrepancy(x, y, kernel):
+def _maximum_mean_discrepancy(x, y, kernel):
     """Computes the maximum mean discrepency between the vectors
        using the given kernel."""
     cost = torch.mean(kernel(x, x))
@@ -123,21 +123,40 @@ def maximum_mean_discrepancy(x, y, kernel):
     return cost
 
 
-def mmd_loss(source_features, target_features):
-    """Define the mmd loss based on multi-kernel."""
-    sigmas = torch.tensor(
-        [2**(-8) * 2**(i*1/2) for i in range(33)]
-    ).to(source_features.device)
+def dan_loss(source_features, target_features, sigmas=None):
+    """Define the mmd loss based on multi-kernel defined in [1]_.
 
-    median_pairwise_distance = torch.median(
-        torch.cdist(source_features, source_features)
-    )
+    Parameters
+    ----------
+    source_features : tensor
+        Source features used to compute the mmd loss.
+    target_features : tensor
+        Target features used to compute the mmd loss.
+    sigmas : array like, default=None,
+        If array, sigmas used for the multi gaussian kernel.
+        If None, uses sigmas proposed  in [1]_.
+
+    References
+    ----------
+    .. [1]  Mingsheng Long et. al. Learning Transferable
+            Features with Deep Adaptation Networks.
+            In ICML, 2015.
+    """
+    if sigmas is None:
+        median_pairwise_distance = torch.median(
+            torch.cdist(source_features, source_features)
+        )
+        sigmas = torch.tensor(
+            [2**(-8) * 2**(i*1/2) for i in range(33)]
+        ).to(source_features.device) * median_pairwise_distance
+    else:
+        sigmas = torch.tensor(sigmas).to(source_features.device)
 
     gaussian_kernel = partial(
-        gaussian_kernel_single, sigmas=median_pairwise_distance * sigmas
+        _gaussian_kernel, sigmas=sigmas
     )
 
-    loss = maximum_mean_discrepancy(
+    loss = _maximum_mean_discrepancy(
         source_features, target_features, kernel=gaussian_kernel
     )
 
