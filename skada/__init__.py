@@ -7,7 +7,10 @@ Domain Adaptation estimators
 #         Alexandre Gramfort <firstname.lastname@inria.fr>
 #
 # License: BSD 3-Clause
-from . import feature
+# try:
+#     from . import feature
+# except ImportError:
+#     print("Torch and skorch are required to use feature's based methods.")
 
 from ._reweight import (
     ReweightDensity, GaussianReweightDensity, DiscriminatorReweightDensity
@@ -21,7 +24,7 @@ from ._mapping import (
 from ._mapping import CORAL
 
 __all__ = [
-    "feature",
+    # "feature",
     "ReweightDensity",
     "GaussianReweightDensity",
     "DiscriminatorReweightDensity",
