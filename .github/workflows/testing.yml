@@ -49,8 +49,8 @@ jobs:
     ## Run Tests
     - name: Install Codecov etc.
       run: pip install --upgrade pytest pytest-cov codecov
-    - name: Run Tests withtout torch # See https://stackoverflow.com/a/59959080/1469195 for the cov-report logic
-      run: pytest --cov=skada skada/ --ignore=skada/feature --cov-report term --cov-report xml:coverage.xml
+    - name: Run Tests without torch
+      run: pytest skada/ --ignore=skada/feature
     - name: Install GPU stuffs for CI
       run: conda install pytorch cpuonly -y -c pytorch
     - name: Install Skorch for CI
