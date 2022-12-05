@@ -13,4 +13,4 @@ from ._deepjdot import DeepJDOT
 from ._dann import DANN
 from ._dan import DAN
 
-__all__ = ['DeepCORAL', 'DeepJDOT', 'DANN', "DAN"]
+__all__ = ['DeepCORAL', 'DeepJDOT', 'DANN', 'DAN']
