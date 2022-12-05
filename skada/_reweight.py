@@ -10,6 +10,7 @@ from scipy.stats import multivariate_normal
 from sklearn.neighbors import KernelDensity
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics.pairwise import pairwise_kernels
+from sklearn.model_selection import check_cv
 from sklearn.utils import check_random_state
 
 from .base import BaseDataAdaptEstimator, clone
@@ -289,6 +290,10 @@ class DiscriminatorReweightDensity(BaseDataAdaptEstimator):
 class KLIEP(BaseDataAdaptEstimator):
     """Kullback-Leibler Importance Estimation Procedure (KLIEP).
 
+    The idea of KLIEP is to find an importance estimate w(x) such that
+    the Kullback-Leibler (KL) divergence between the source input density
+    p_source(x) to its estimate p_target(x) = w(x)p_source(x) is minimized.
+
     See [3]_ for details.
 
     Parameters
@@ -300,8 +305,9 @@ class KLIEP(BaseDataAdaptEstimator):
         If array like, compute the likelihood cross validation to choose
         the best parameters for the RBF kernel.
         If float, solve the optimisation for the given kernel parameter.
-    n_subsets : int, default=5
-        Number of subsets of target data used for the likelihood cross validation.
+    cv : int, cross-validation generator or an iterable, default=5
+        Determines the cross-validation splitting strategy.
+        If it is an int it is the number of folds for the cross validation.
     n_centers : int, default=100
         Number of kernel centers defining their number.
     tol : float, default=1e-6
@@ -332,8 +338,8 @@ class KLIEP(BaseDataAdaptEstimator):
     def __init__(
         self,
         base_estimator,
-        gamma,  # XXX use the auto mode from sklearn SVC
-        n_subsets=5,
+        gamma,  # XXX use the auto/scale mode as done with sklearn SVC
+        cv=5,
         n_centers=100,
         tol=1e-6,
         max_iter=1000,
@@ -341,7 +347,7 @@ class KLIEP(BaseDataAdaptEstimator):
     ):
         super().__init__(base_estimator)
         self.gamma = gamma
-        self.n_subsets = n_subsets
+        self.cv = cv
         self.n_centers = n_centers
         self.tol = tol
         self.max_iter = max_iter
@@ -439,17 +445,17 @@ class KLIEP(BaseDataAdaptEstimator):
 
         index = np.arange(len(X_target))
         rng.shuffle(index)
-        index_subsets = np.array_split(index, self.n_subsets)
+        cv = check_cv(self.cv)
         for this_gamma in gammas:
             this_log_lik = []
-            for s, index_subset in enumerate(index_subsets):
+            for train, test in cv.split(X_target):
                 alpha, centers = self._weights_optimisation(
                     this_gamma,
                     X,
-                    X_target[np.concatenate(index_subsets[:s] + index_subsets[s:])],
+                    X_target[train],
                 )
                 A = pairwise_kernels(
-                    X_target[index_subset], centers, metric="rbf", gamma=this_gamma
+                    X_target[test], centers, metric="rbf", gamma=this_gamma
                 )
                 weights = A @ alpha
                 this_log_lik.append(np.mean(np.log(weights + EPS)))
