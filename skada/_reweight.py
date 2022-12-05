@@ -343,7 +343,7 @@ class KLIEP(BaseDataAdaptEstimator):
         n_centers=100,
         tol=1e-6,
         max_iter=1000,
-        random_state=42,
+        random_state=None,
     ):
         super().__init__(base_estimator)
         self.gamma = gamma
