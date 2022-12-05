@@ -2,8 +2,8 @@
 Some methods for deep domain adaptation.
 """
 try:
-    import torch
-    import skorch
+    import torch  # noqa: F401
+    import skorch  # noqa: F401
 except ImportError as e:
     print("ERROR: torch and skorch are required for importing feature's method.")
     raise(e)
