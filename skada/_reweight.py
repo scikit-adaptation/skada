@@ -11,6 +11,7 @@ from scipy.stats import multivariate_normal
 from sklearn.neighbors import KernelDensity
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics.pairwise import pairwise_kernels
+from sklearn.utils import check_random_state
 
 from .base import BaseDataAdaptEstimator, clone
 
@@ -345,7 +346,7 @@ class KLIEP(BaseDataAdaptEstimator):
         self.n_centers = n_centers
         self.tol = tol
         self.max_iter = max_iter
-        self.rng = np.random.RandomState(random_state)
+        self.random_state = random_state
 
     def predict_adapt(self, X, y, X_target, y_target=None):
         """Predict adaptation (weights, sample or labels).
@@ -404,12 +405,16 @@ class KLIEP(BaseDataAdaptEstimator):
         )
 
     def _weights_optimisation(self, kparam, X, X_target):
+        """Optimisation loop."""
+        random_state = check_random_state(self.random_state)
         n_targets = len(X_target)
         n_centers = np.min((n_targets, self.n_centers))
-        centers = X_target[self.rng.choice(np.arange(n_targets), n_centers)]
+
+        centers = X_target[random_state.choice(np.arange(n_targets), n_centers)]
         A = pairwise_kernels(X_target, centers, metric="rbf", gamma=kparam)
         b = pairwise_kernels(X, centers, metric="rbf", gamma=kparam)
         b = np.mean(b, axis=0)
+
         alpha = np.ones(n_centers)
         obj = np.sum(np.log(A @ alpha))
         for it in range(self.max_iter):
@@ -421,17 +426,21 @@ class KLIEP(BaseDataAdaptEstimator):
             obj = np.sum(np.log(A @ alpha + EPS))
             if np.abs(obj - old_obj) < self.tol:
                 break
+
         if it+1 == self.max_iter:
             warnings.warn("Maximum iteration reached before convergence.")
+
         return alpha, centers
 
     def _likelihood_cross_validation(self, kparams, X, X_target):
         """Compute the likelihood cross validation to choose the
-           best parameter for the kernel
+           best parameter for the kernel.
         """
         J = []
+        random_state = check_random_state(self.random_state)
+
         index = np.arange(len(X_target))
-        self.rng.shuffle(index)
+        random_state.shuffle(index)
         index_subsets = np.array_split(index, self.n_subsets)
         for kparam in kparams:
             Jr = []
