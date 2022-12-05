@@ -21,13 +21,13 @@ API and modules
    make_dataset_from_moons_distribution
    make_variable_frequency_dataset
 
-.. currentmodule:: skada.da
+.. currentmodule:: skada
 
-.. automodule:: skada.da
+.. automodule:: skada
    :no-members:
    :no-inherited-members:
 
-:py:mod:`skada.da`:
+:py:mod:`skada`:
 
 .. autosummary::
    :toctree: gen_modules/
@@ -35,7 +35,8 @@ API and modules
 
    ReweightDensity
    GaussianReweightDensity
-   ClassifierReweightDensity
+   DiscriminatorReweightDensity
+   KLIEP
    SubspaceAlignment
    TransferComponentAnalysis
    OTmapping
@@ -44,13 +45,13 @@ API and modules
    LinearOTmapping
    CORAL
 
-.. currentmodule:: skada.deepda
+.. currentmodule:: skada.feature
 
-.. automodule:: skada.deepda
+.. automodule:: skada.feature
    :no-members:
    :no-inherited-members:
 
-:py:mod:`skada.deepda`:
+:py:mod:`skada.feature`:
 
 .. autosummary::
    :toctree: gen_modules/
@@ -58,3 +59,5 @@ API and modules
 
    DeepCORAL
    DeepJDOT
+   DANN
+   DAN

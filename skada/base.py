@@ -25,7 +25,7 @@ def _estimator_has(attr):
 
 
 class BaseDAEstimator(BaseEstimator):
-    """Base class for al DA estimators.
+    """Base class for all DA estimators.
 
     Similar API than sklearn except that X_target is given during the fit.
     """

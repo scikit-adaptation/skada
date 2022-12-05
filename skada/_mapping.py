@@ -2,9 +2,14 @@
 #
 # License: BSD 3-Clause
 
-import scipy
+from numbers import Real
+
 import numpy as np
 
+from sklearn.preprocessing import StandardScaler
+from sklearn.covariance import (
+    ledoit_wolf, empirical_covariance, shrunk_covariance
+)
 from ot import da
 
 from .base import BaseDataAdaptEstimator, clone
@@ -269,42 +274,111 @@ class LinearOTmapping(OTmapping):
         return self
 
 
+def _estimate_covariance(X, shrinkage):
+    if shrinkage is None:
+        s = empirical_covariance(X)
+    elif shrinkage == "auto":
+        sc = StandardScaler()  # standardize features
+        X = sc.fit_transform(X)
+        s = ledoit_wolf(X)[0]
+        # rescale
+        s = sc.scale_[:, np.newaxis] * s * sc.scale_[np.newaxis, :]
+    elif isinstance(shrinkage, Real):
+        s = shrunk_covariance(empirical_covariance(X), shrinkage)
+    return s
+
+
+def _sqrtm(C):
+    r"""Square root of SPD matrices.
+
+    The matrix square root of a SPD matrix C is defined by:
+
+    .. math::
+        \mathbf{D} =
+        \mathbf{V} \left( \mathbf{\Lambda} \right)^{1/2} \mathbf{V}^\top
+
+    where :math:`\mathbf{\Lambda}` is the diagonal matrix of eigenvalues
+    and :math:`\mathbf{V}` the eigenvectors of :math:`\mathbf{C}`.
+
+    Parameters
+    ----------
+    C : ndarray, shape (n, n)
+        SPD matrix.
+
+    Returns
+    -------
+    D : ndarray, shape (n, n)
+        Matrix inverse square root of C.
+    """
+    eigvals, eigvecs = np.linalg.eigh(C)
+    return (eigvecs * np.sqrt(eigvals)) @ eigvecs.T
+
+
+def _invsqrtm(C):
+    r"""Inverse square root of SPD matrices.
+
+    The matrix inverse square root of a SPD matrix C is defined by:
+
+    .. math::
+        \mathbf{D} =
+        \mathbf{V} \left( \mathbf{\Lambda} \right)^{-1/2} \mathbf{V}^\top
+
+    where :math:`\mathbf{\Lambda}` is the diagonal matrix of eigenvalues
+    and :math:`\mathbf{V}` the eigenvectors of :math:`\mathbf{C}`.
+
+    Parameters
+    ----------
+    C : ndarray, shape (n, n)
+        SPD matrix.
+
+    Returns
+    -------
+    D : ndarray, shape (n, n)
+        Matrix inverse square root of C.
+    """
+    eigvals, eigvecs = np.linalg.eigh(C)
+    return (eigvecs * 1. / np.sqrt(eigvals)) @ eigvecs.T
+
+
 class CORAL(BaseDataAdaptEstimator):
     """Estimator based on reweighting samples using density estimation.
+
     Parameters
     ----------
     base_estimator : estimator object
         The base estimator to fit on reweighted data.
-    weight_estimator : estimator object, optional
-        The estimator to use to estimate the densities of source and target
-        observations. If None, a KernelDensity estimator is used.
+    reg : 'auto' or float, default="auto"
+        The regularization parameter of the covariance estimator.
+        Possible values:
+          - None: no shrinkage).
+          - 'auto': automatic shrinkage using the Ledoit-Wolf lemma.
+          - float between 0 and 1: fixed shrinkage parameter.
 
     Attributes
     ----------
-    cov_source_inv_sqrt_: array
+    cov_source_inv_sqrt_: array, shape (n_features, n_features)
         Inverse of the square root of covariance of the source data with regularization.
-    cov_target_sqrt_: array
+    cov_target_sqrt_: array, shape (n_features, n_features)
         Square root of covariance of the target data with regularization.
 
     References
     ----------
     .. [1] Baochen Sun, Jiashi Feng, and Kate Saenko.
-           Correlation Alignment for Unsupervised
-           Domain Adaptation. In dvances in Computer
-           Vision and Pattern Recognition, 2017.
+           Correlation Alignment for Unsupervised Domain Adaptation.
+           In Advances in Computer Vision and Pattern Recognition, 2017.
     """
 
     def __init__(
         self,
         base_estimator,
-        reg=0.1
+        reg='auto'
     ):
         super().__init__(base_estimator)
-
         self.reg = reg
 
     def predict_adapt(self, X, y, X_target, y_target=None):
         """Predict adaptation (weights, sample or labels).
+
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
@@ -315,9 +389,10 @@ class CORAL(BaseDataAdaptEstimator):
             The target data.
         y_target : array-like, shape (n_samples,), optional
             The target labels.
+
         Returns
         -------
-        X_t : array-like, shape (n_samples, n_components)
+        X_t : array-like, shape (n_samples, n_features)
             The data transformed to the target space.
         y_t : array-like, shape (n_samples,)
             The labels (same as y).
@@ -331,6 +406,7 @@ class CORAL(BaseDataAdaptEstimator):
 
     def fit_adapt(self, X, y, X_target, y_target=None):
         """Fit adaptation parameters.
+
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
@@ -341,12 +417,14 @@ class CORAL(BaseDataAdaptEstimator):
             The target data.
         y_target : array-like, shape (n_samples,), optional
             The target labels.
+
         Returns
         -------
         self : object
             Returns self.
         """
-        cov_source_ = np.cov(X.T) + self.reg * np.eye(X.shape[1])
-        cov_target_ = np.cov(X_target.T) + self.reg * np.eye(X_target.shape[1])
-        self.cov_source_inv_sqrt_ = scipy.linalg.inv(scipy.linalg.sqrtm(cov_source_))
-        self.cov_target_sqrt_ = scipy.linalg.sqrtm(cov_target_)
+        cov_source_ = _estimate_covariance(X, shrinkage=self.reg)
+        cov_target_ = _estimate_covariance(X_target, shrinkage=self.reg)
+        self.cov_source_inv_sqrt_ = _invsqrtm(cov_source_)
+        self.cov_target_sqrt_ = _sqrtm(cov_target_)
+        return self

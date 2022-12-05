@@ -2,18 +2,22 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 
 from skada.datasets import make_shifted_blobs
-from skada.da import SubspaceAlignment, TransferComponentAnalysis
+from skada import (
+    ReweightDensity, GaussianReweightDensity, DiscriminatorReweightDensity, KLIEP
+)
 
 import pytest
 
 
 @pytest.mark.parametrize(
     "estimator", [
-        SubspaceAlignment(base_estimator=LogisticRegression(), n_components=2),
-        TransferComponentAnalysis(base_estimator=LogisticRegression(), n_components=2),
+        ReweightDensity(base_estimator=LogisticRegression()),
+        GaussianReweightDensity(base_estimator=LogisticRegression()),
+        DiscriminatorReweightDensity(base_estimator=LogisticRegression()),
+        KLIEP(base_estimator=LogisticRegression(), kparam=[0.1, 1])
     ]
 )
-def test_subspace_alignment(estimator):
+def test_reweight_estimator(estimator):
     centers = np.array([
         [0, 0],
         [1, 1],

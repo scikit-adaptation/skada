@@ -1,5 +1,17 @@
 name: Testing
-on: [push]
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - 'main'
+  push:
+    branches:
+      - 'main'
+  create:
+    branches:
+      - 'main'
+    tags:
+      - '**'
 
 jobs:
   Install-Test-skada:
@@ -39,5 +51,7 @@ jobs:
       run: pip install --upgrade pytest pytest-cov codecov
     - name: Install GPU stuffs for CI
       run: conda install pytorch cpuonly -y -c pytorch
+    - name: Install Skorch for CI
+      run: conda install -c conda-forge skorch
     - name: Run Tests # See https://stackoverflow.com/a/59959080/1469195 for the cov-report logic
       run: pytest --cov=skada skada/ --cov-report term --cov-report xml:coverage.xml
