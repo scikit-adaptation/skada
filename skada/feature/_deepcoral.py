@@ -3,6 +3,7 @@ from skorch.utils import to_tensor
 from .utils import cov, norm_coral
 from .base import BaseDANetwork
 
+
 class DeepCORAL(BaseDANetwork):
     """Loss DeepCORAL
 
