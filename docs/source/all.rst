@@ -36,6 +36,7 @@ API and modules
    ReweightDensity
    GaussianReweightDensity
    DiscriminatorReweightDensity
+   KLIEP
    SubspaceAlignment
    TransferComponentAnalysis
    OTmapping
