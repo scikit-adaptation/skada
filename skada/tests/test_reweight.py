@@ -14,7 +14,7 @@ import pytest
         ReweightDensity(base_estimator=LogisticRegression()),
         GaussianReweightDensity(base_estimator=LogisticRegression()),
         DiscriminatorReweightDensity(base_estimator=LogisticRegression()),
-        KLIEP(base_estimator=LogisticRegression(), kparam=[0.1, 1])
+        KLIEP(base_estimator=LogisticRegression(), gamma=[0.1, 1])
     ]
 )
 def test_reweight_estimator(estimator):

@@ -1,4 +1,3 @@
-
 # Author: Remi Flamary <remi.flamary@polytechnique.edu>
 #         Alexandre Gramfort <firstname.lastname@inria.fr>
 #
@@ -284,6 +283,7 @@ class DiscriminatorReweightDensity(BaseDataAdaptEstimator):
         self.domain_classifier_ = clone(self.domain_classifier)
         y_domain = np.concatenate((len(X) * [0], len(X_target) * [1]))
         self.domain_classifier_.fit(np.concatenate((X, X_target)), y_domain)
+        return self
 
 
 class KLIEP(BaseDataAdaptEstimator):
@@ -295,11 +295,11 @@ class KLIEP(BaseDataAdaptEstimator):
     ----------
     base_estimator : sklearn estimator
         Estimator used for fitting and prediction.
-    kparam : float or array like
+    gamma : float or array like
         Parameters for the kernels.
         If array like, compute the likelihood cross validation to choose
-        the best parameters for the kernels.
-        If float, solve the optimisation for the given kernels' parameters.
+        the best parameters for the RBF kernel.
+        If float, solve the optimisation for the given kernel parameter.
     n_subsets : int, default=5
         Number of subsets of target data used for the likelihood cross validation.
     n_centers : int, default=100
@@ -314,8 +314,8 @@ class KLIEP(BaseDataAdaptEstimator):
 
     Attributes
     ----------
-    `best_kparam_` : float
-        The best parameters for the kernel chosen with the likelihood
+    `best_gamma_` : float
+        The best gamma parameter for the RBF kernel chosen with the likelihood
         cross validation if several parameters are given as input.
     `alpha_` : float
         Solution of the optimisation problem.
@@ -332,7 +332,7 @@ class KLIEP(BaseDataAdaptEstimator):
     def __init__(
         self,
         base_estimator,
-        kparam,
+        gamma,  # XXX use the auto mode from sklearn SVC
         n_subsets=5,
         n_centers=100,
         tol=1e-6,
@@ -340,8 +340,7 @@ class KLIEP(BaseDataAdaptEstimator):
         random_state=42,
     ):
         super().__init__(base_estimator)
-
-        self.kparam = kparam
+        self.gamma = gamma
         self.n_subsets = n_subsets
         self.n_centers = n_centers
         self.tol = tol
@@ -371,7 +370,7 @@ class KLIEP(BaseDataAdaptEstimator):
         weights : array-like, shape (n_samples,)
             The weights of the samples.
         """
-        A = pairwise_kernels(X, self.centers_, metric="rbf", gamma=self.best_kparam_)
+        A = pairwise_kernels(X, self.centers_, metric="rbf", gamma=self.best_gamma_)
         weights = A @ self.alpha_
         return X, y, weights
 
@@ -394,66 +393,67 @@ class KLIEP(BaseDataAdaptEstimator):
         self : object
             Returns self.
         """
-        if isinstance(self.kparam, list):
-            self.best_kparam_ = self._likelihood_cross_validation(
-                self.kparam, X, X_target
+        if isinstance(self.gamma, list):
+            self.best_gamma_ = self._likelihood_cross_validation(
+                self.gamma, X, X_target
             )
         else:
-            self.best_kparam_ = self.kparam
+            self.best_gamma_ = self.gamma
         self.alpha_, self.centers_ = self._weights_optimisation(
-            self.best_kparam_, X, X_target
+            self.best_gamma_, X, X_target
         )
 
-    def _weights_optimisation(self, kparam, X, X_target):
+    def _weights_optimisation(self, gamma, X, X_target):
         """Optimisation loop."""
         random_state = check_random_state(self.random_state)
         n_targets = len(X_target)
         n_centers = np.min((n_targets, self.n_centers))
 
         centers = X_target[random_state.choice(np.arange(n_targets), n_centers)]
-        A = pairwise_kernels(X_target, centers, metric="rbf", gamma=kparam)
-        b = pairwise_kernels(X, centers, metric="rbf", gamma=kparam)
+        A = pairwise_kernels(X_target, centers, metric="rbf", gamma=gamma)
+        b = pairwise_kernels(X, centers, metric="rbf", gamma=gamma)
         b = np.mean(b, axis=0)
 
         alpha = np.ones(n_centers)
         obj = np.sum(np.log(A @ alpha))
-        for it in range(self.max_iter):
+        for _ in range(self.max_iter):
             old_obj = obj
             alpha += EPS * A.T @ (1 / (A @ alpha))
             alpha += (1 - b @ alpha) * b / (b @ b)
             alpha = (alpha > 0) * alpha
-            alpha = alpha / (b @ alpha)
+            alpha /= b @ alpha
             obj = np.sum(np.log(A @ alpha + EPS))
             if np.abs(obj - old_obj) < self.tol:
                 break
-
-        if it+1 == self.max_iter:
+        else:
             warnings.warn("Maximum iteration reached before convergence.")
 
         return alpha, centers
 
-    def _likelihood_cross_validation(self, kparams, X, X_target):
+    def _likelihood_cross_validation(self, gammas, X, X_target):
         """Compute the likelihood cross validation to choose the
-           best parameter for the kernel.
+        best parameter for the kernel.
         """
-        J = []
-        random_state = check_random_state(self.random_state)
+        log_liks = []
+        rng = check_random_state(self.random_state)
 
         index = np.arange(len(X_target))
-        random_state.shuffle(index)
+        rng.shuffle(index)
         index_subsets = np.array_split(index, self.n_subsets)
-        for kparam in kparams:
-            Jr = []
+        for this_gamma in gammas:
+            this_log_lik = []
             for s, index_subset in enumerate(index_subsets):
-                alpha, centers = self._weights_optimisation(kparam, X, X_target[
-                    np.concatenate(index_subsets[:s] + index_subsets[s:])
-                ])
+                alpha, centers = self._weights_optimisation(
+                    this_gamma,
+                    X,
+                    X_target[np.concatenate(index_subsets[:s] + index_subsets[s:])],
+                )
                 A = pairwise_kernels(
-                    X_target[index_subset], centers, metric="rbf", gamma=kparam
+                    X_target[index_subset], centers, metric="rbf", gamma=this_gamma
                 )
                 weights = A @ alpha
-                Jr.append(np.mean(np.log(weights + EPS)))
-            J.append(np.mean(Jr))
-        best_kparam_ = kparams[np.argmax(J)]
+                this_log_lik.append(np.mean(np.log(weights + EPS)))
+            log_liks.append(np.mean(this_log_lik))
+        best_gamma_ = gammas[np.argmax(J)]
 
-        return best_kparam_
+        return best_gamma_
