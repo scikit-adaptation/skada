@@ -405,11 +405,11 @@ class KLIEP(BaseDataAdaptEstimator):
 
     def _weights_optimisation(self, gamma, X, X_target):
         """Optimisation loop."""
-        random_state = check_random_state(self.random_state)
+        rng = check_random_state(self.random_state)
         n_targets = len(X_target)
         n_centers = np.min((n_targets, self.n_centers))
 
-        centers = X_target[random_state.choice(np.arange(n_targets), n_centers)]
+        centers = X_target[rng.choice(np.arange(n_targets), n_centers)]
         A = pairwise_kernels(X_target, centers, metric="rbf", gamma=gamma)
         b = pairwise_kernels(X, centers, metric="rbf", gamma=gamma)
         b = np.mean(b, axis=0)
@@ -454,6 +454,6 @@ class KLIEP(BaseDataAdaptEstimator):
                 weights = A @ alpha
                 this_log_lik.append(np.mean(np.log(weights + EPS)))
             log_liks.append(np.mean(this_log_lik))
-        best_gamma_ = gammas[np.argmax(J)]
+        best_gamma_ = gammas[np.argmax(log_liks)]
 
         return best_gamma_
