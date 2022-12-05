@@ -16,12 +16,19 @@ shows the classification accuracy on the test set.
 """
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
+
 from sklearn.svm import SVC
 from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.neighbors import KernelDensity
-from skada.da import ReweightDensity, GaussianReweightDensity, ClassifierReweightDensity
-from skada.da import SubspaceAlignment, TransferComponentAnalysis
-from skada.da import (
+
+from skada import (
+    ReweightDensity,
+    GaussianReweightDensity,
+    DiscriminatorReweightDensity,
+    KLIEP
+)
+from skada import SubspaceAlignment, TransferComponentAnalysis
+from skada import (
     OTmapping,
     EntropicOTmapping,
     ClassRegularizerOTmapping,
@@ -39,6 +46,7 @@ names = [
     "Reweight Density",
     "Gaussian Reweight Density",
     "Discr. Reweight Density",
+    "KLIEP"
     "Subspace Alignment",
     "TCA",
     "OT mapping",
@@ -55,7 +63,8 @@ classifiers = [
         weight_estimator=KernelDensity(bandwidth=0.5),
     ),
     GaussianReweightDensity(base_estimator=SVC()),
-    ClassifierReweightDensity(base_estimator=SVC()),
+    DiscriminatorReweightDensity(base_estimator=SVC()),
+    KLIEP(base_estimator=SVC(), kparam=[1, 0.1, 0.001]),
     SubspaceAlignment(base_estimator=SVC(), n_components=1),
     TransferComponentAnalysis(base_estimator=SVC(), n_components=1, mu=0.5),
     OTmapping(base_estimator=SVC()),
@@ -121,7 +130,7 @@ for ds_cnt, ds in enumerate(datasets):
         cmap=cm_bright,
         alpha=0.5,
     )
-    
+
     ax = axes[1, ds_cnt]
 
     if ds_cnt == 0:
