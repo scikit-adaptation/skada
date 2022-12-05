@@ -10,9 +10,10 @@ of salt, as the intuition conveyed by these examples
 does not necessarily carry over to real datasets.
 
 
-The plots show training points in solid colors and
-testing points semi-transparent. The lower right
-shows the classification accuracy on the test set.
+The plots show training points in solid colors then 
+training points in semi-transparent and testing points 
+in solid colors. The lower right shows the classification 
+accuracy on the test set.
 """
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
@@ -46,7 +47,7 @@ names = [
     "Reweight Density",
     "Gaussian Reweight Density",
     "Discr. Reweight Density",
-    "KLIEP"
+    "KLIEP",
     "Subspace Alignment",
     "TCA",
     "OT mapping",
