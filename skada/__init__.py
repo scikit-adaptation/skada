@@ -24,7 +24,7 @@ from ._mapping import (
 from ._mapping import CORAL
 
 __all__ = [
-    # "feature",
+    "feature",
     "ReweightDensity",
     "GaussianReweightDensity",
     "DiscriminatorReweightDensity",
