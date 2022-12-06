@@ -7,7 +7,7 @@ try:
 
 except ImportError as e:
     print("ERROR : torch and skorch are required for importing feature's method.")
-    raise(e)
+    raise e
 
 from ._deepcoral import DeepCORAL
 from ._deepjdot import DeepJDOT
