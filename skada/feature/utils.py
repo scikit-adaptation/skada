@@ -205,5 +205,3 @@ def dan_loss(source_features, target_features, sigmas=None):
     )
 
     return loss
-
-
