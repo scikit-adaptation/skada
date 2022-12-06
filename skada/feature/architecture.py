@@ -13,9 +13,9 @@ class toyCNN(nn.Module):
     input_size : int
         Size of the input.
     kernel_size : int, default=64
-        Kernel size of the convolution.
+        Kernel size of the convolutional layer.
     out_channels : int, default=10
-        Number of output channels in convolution.   
+        Number of output channels in convolutional layer.
     """
     def __init__(
         self, n_channels, input_size, n_classes, kernel_size=64, out_channels=10
