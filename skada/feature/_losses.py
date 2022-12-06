@@ -11,17 +11,6 @@ import ot
 from functools import partial
 
 
-def _reg_cov(x, eps=1e-5):
-    """Estimate the covariance matrix"""
-    assert len(x.size()) == 2, x.size()
-
-    N, d = x.size()
-    reg = torch.diag(torch.full((d,), eps)).to(x.device)
-    x_ = x - x.mean(dim=0, keepdim=True)
-
-    return torch.einsum("ni,nj->ij", (x_, x_)) / (N - 1) + reg
-
-
 def deepcoral_loss(cov, cov_target):
     """Estimate the Frobenius norm divide by 4*n**2
        for DeepCORAL method [1]_.

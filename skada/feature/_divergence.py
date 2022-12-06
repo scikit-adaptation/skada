@@ -3,10 +3,11 @@
 #         Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD 3-Clause
+import torch
 
 from skorch.utils import to_tensor
 
-from .utils import dan_loss, _reg_cov, deepcoral_loss
+from . import dan_loss, deepcoral_loss
 from .base import BaseDANetwork
 
 
@@ -134,8 +135,8 @@ class DeepCORAL(BaseDANetwork):
 
         loss_coral = 0
         for i in range(len(embedd)):
-            cov = _reg_cov(embedd[i])
-            cov_target = _reg_cov(embedd_target[i])
+            cov = torch.cov(embedd[i])
+            cov_target = torch.cov(embedd_target[i])
             loss_coral += self.reg * deepcoral_loss(cov, cov_target)
 
         loss_classif = self.criterion_(y_pred, y_true)

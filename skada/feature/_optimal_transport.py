@@ -6,7 +6,7 @@
 
 from skorch.utils import to_tensor
 
-from .utils import deepjdot_loss
+from . import deepjdot_loss
 from .base import BaseDANetwork
 
 
