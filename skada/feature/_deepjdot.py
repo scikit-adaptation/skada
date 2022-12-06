@@ -1,7 +1,7 @@
 import torch
 from skorch.utils import to_tensor
 
-from ..utils import jdot_distance_matrix, ot_solve
+from .utils import jdot_distance_matrix, ot_solve
 from .base import BaseDANetwork
 
 

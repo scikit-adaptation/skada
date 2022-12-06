@@ -5,7 +5,7 @@ from torch.autograd import Function
 import pytest
 
 from skada.feature import DANN
-from skada.utils import NeuralNetwork
+from skada.feature.utils import NeuralNetwork
 
 
 class ReverseLayerF(Function):

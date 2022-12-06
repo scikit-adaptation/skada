@@ -1,6 +1,6 @@
 from skorch.utils import to_tensor
 
-from ..utils import dan_loss
+from .utils import dan_loss
 from .base import BaseDANetwork
 
 

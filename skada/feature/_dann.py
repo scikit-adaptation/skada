@@ -1,5 +1,4 @@
 import torch
-
 from skorch.utils import to_tensor
 
 from .base import BaseDANetwork

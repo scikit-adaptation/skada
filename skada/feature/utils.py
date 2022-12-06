@@ -125,7 +125,6 @@ def _maximum_mean_discrepancy(x, y, kernel):
 
 def dan_loss(source_features, target_features, sigmas=None):
     """Define the mmd loss based on multi-kernel defined in [1]_.
-
     Parameters
     ----------
     source_features : tensor
@@ -135,7 +134,6 @@ def dan_loss(source_features, target_features, sigmas=None):
     sigmas : array like, default=None,
         If array, sigmas used for the multi gaussian kernel.
         If None, uses sigmas proposed  in [1]_.
-
     References
     ----------
     .. [1]  Mingsheng Long et. al. Learning Transferable

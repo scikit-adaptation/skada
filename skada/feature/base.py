@@ -6,7 +6,7 @@ from skorch.utils import TeeGenerator
 
 import numpy as np
 
-from ..utils import register_forwards_hook
+from .utils import register_forwards_hook
 
 
 class BaseDANetwork(NeuralNetClassifier):

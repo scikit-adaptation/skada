@@ -4,7 +4,7 @@ from torch import nn
 import pytest
 
 from skada.feature import DeepJDOT
-from skada.utils import NeuralNetwork
+from skada.feature.utils import NeuralNetwork
 
 
 @pytest.mark.parametrize(
