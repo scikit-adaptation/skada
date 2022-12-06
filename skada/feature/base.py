@@ -1,3 +1,9 @@
+# Author: Theo Gnassounou <theo.gnassounou@inria.fr>
+#         Remi Flamary <remi.flamary@polytechnique.edu>
+#         Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#
+# License: BSD 3-Clause
+
 from abc import abstractmethod
 from skorch import NeuralNetClassifier
 from skorch.dataset import unpack_data

@@ -1,3 +1,9 @@
+# Author: Theo Gnassounou <theo.gnassounou@inria.fr>
+#         Remi Flamary <remi.flamary@polytechnique.edu>
+#         Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#
+# License: BSD 3-Clause
+
 from skorch.utils import to_tensor
 
 from .utils import dan_loss, _reg_cov, deepcoral_loss

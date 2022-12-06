@@ -1,10 +1,16 @@
+# Author: Theo Gnassounou <theo.gnassounou@inria.fr>
+#         Remi Flamary <remi.flamary@polytechnique.edu>
+#         Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#
+# License: BSD 3-Clause
+
 import torch
 from torch import nn
 
 import pytest
 
 from skada.feature import DeepCORAL, DAN
-from skada.feature.architecture import toyCNN
+from skada.feature import ToyCNN
 
 
 @pytest.mark.parametrize(
@@ -12,7 +18,7 @@ from skada.feature.architecture import toyCNN
     [(100, 2, 5), (120, 1, 3)],
 )
 def test_deepcoral(input_size, n_channels, n_classes):
-    module = toyCNN(
+    module = ToyCNN(
         n_channels=n_channels, input_size=input_size, n_classes=n_classes, kernel_size=8
     )
     module.eval()
@@ -40,7 +46,7 @@ def test_deepcoral(input_size, n_channels, n_classes):
     [(100, 2, 5), (120, 1, 3)],
 )
 def test_dan(input_size, n_channels, n_classes):
-    module = toyCNN(
+    module = ToyCNN(
         n_channels=n_channels, input_size=input_size, n_classes=n_classes, kernel_size=8
     )
     module.eval()

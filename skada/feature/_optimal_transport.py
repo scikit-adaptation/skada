@@ -1,3 +1,9 @@
+# Author: Theo Gnassounou <theo.gnassounou@inria.fr>
+#         Remi Flamary <remi.flamary@polytechnique.edu>
+#         Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#
+# License: BSD 3-Clause
+
 from skorch.utils import to_tensor
 
 from .utils import deepjdot_loss
@@ -50,8 +56,6 @@ class DeepJDOT(BaseDANetwork):
         layer_names,
         reg_d=1,
         reg_cl=1,
-        sample_weights=None,
-        target_sample_weights=None,
         class_weights=None,
         n_classes=2,
         **kwargs
@@ -61,8 +65,6 @@ class DeepJDOT(BaseDANetwork):
         )
         self.reg_d = reg_d
         self.reg_cl = reg_cl
-        self.sample_weights = sample_weights
-        self.target_sample_weights = target_sample_weights
         self.class_weights = class_weights
         self.n_classes = n_classes
 
@@ -87,8 +89,6 @@ class DeepJDOT(BaseDANetwork):
                 y_pred_target,
                 self.reg_d,
                 self.reg_cl,
-                self.sample_weights,
-                self.target_sample_weights,
                 self.class_weights,
                 self.n_classes
             )

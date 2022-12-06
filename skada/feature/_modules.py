@@ -1,9 +1,15 @@
+# Author: Theo Gnassounou <theo.gnassounou@inria.fr>
+#         Remi Flamary <remi.flamary@polytechnique.edu>
+#         Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#
+# License: BSD 3-Clause
+
 import torch
 from torch import nn
 from torch.autograd import Function
 
 
-class toyCNN(nn.Module):
+class ToyCNN(nn.Module):
     """Toy CNN for examples and tests.
 
     Parameters
@@ -20,7 +26,7 @@ class toyCNN(nn.Module):
     def __init__(
         self, n_channels, input_size, n_classes, kernel_size=64, out_channels=10
     ):
-        super(toyCNN, self).__init__()
+        super(ToyCNN, self).__init__()
 
         self.feature_extractor = nn.Sequential(
             nn.Conv1d(n_channels, out_channels, kernel_size),

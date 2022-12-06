@@ -3,8 +3,9 @@
 Domain Adaptation estimators
 
 """
-# Author: Remi Flamary <remi.flamary@polytechnique.edu>
-#         Alexandre Gramfort <firstname.lastname@inria.fr>
+# Author: Theo Gnassounou <theo.gnassounou@inria.fr>
+#         Remi Flamary <remi.flamary@polytechnique.edu>
+#         Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD 3-Clause
 from ._reweight import (

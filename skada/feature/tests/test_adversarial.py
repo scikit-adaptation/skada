@@ -1,10 +1,16 @@
+# Author: Theo Gnassounou <theo.gnassounou@inria.fr>
+#         Remi Flamary <remi.flamary@polytechnique.edu>
+#         Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#
+# License: BSD 3-Clause
+
 import torch
 from torch import nn
 
 import pytest
 
 from skada.feature import DANN
-from skada.feature.architecture import toyCNN, DomainClassifier
+from skada.feature import ToyCNN, DomainClassifier
 
 
 @pytest.mark.parametrize(
@@ -12,7 +18,7 @@ from skada.feature.architecture import toyCNN, DomainClassifier
     [(100, 2, 5), (120, 1, 3)],
 )
 def test_dann(input_size, n_channels, n_classes):
-    module = toyCNN(
+    module = ToyCNN(
         n_channels=n_channels, input_size=input_size, n_classes=n_classes, kernel_size=8
     )
     module.eval()
