@@ -7,7 +7,7 @@ import ot
 from functools import partial
 
 
-def cov(x, eps=1e-5):
+def _reg_cov(x, eps=1e-5):
     """Estimate the covariance matrix"""
     assert len(x.size()) == 2, x.size()
 
@@ -18,41 +18,54 @@ def cov(x, eps=1e-5):
     return torch.einsum("ni,nj->ij", (x_, x_)) / (N - 1) + reg
 
 
-def norm_coral(A, B):
-    """Estimate the Frobenius norm divide by 4*n**2"""
-    diff = A - B
-    return (diff * diff).sum() / (4 * len(A) ** 2)
+def _deepcoral_loss(cov, cov_target):
+    """Estimate the Frobenius norm divide by 4*n**2
+       for DeepCORAL method [1]_.
+
+    Parameters
+    ----------
+    cov : tensor
+        Covariance of the embeddings of the source data.
+    cov_target : tensor
+        Covariance of the embeddings of the target data.
+
+    Returns
+    -------
+    loss : ndarray
+        The loss of the method.
+
+    References
+    ----------
+    .. [1]  Baochen Sun and Kate Saenko. Deep coral:
+            Correlation alignment for deep domain
+            adaptation. In ECCV Workshops, 2016.
+    """
+    diff = cov - cov_target
+    loss = (diff * diff).sum() / (4 * len(cov) ** 2)
+    return loss
 
 
-def get_intermediate_layers(intermediate_layers, layer_name):
+def _get_intermediate_layers(intermediate_layers, layer_name):
     def hook(model, input, output):
         intermediate_layers[layer_name] = output.flatten(start_dim=1)
 
     return hook
 
 
-def register_forwards_hook(module, intermediate_layers, layer_names):
+def _register_forwards_hook(module, intermediate_layers, layer_names):
+    """Add hook to chosen layers.
+
+       The hook returns the output of intermediate layers
+       in order to compute the domain adaptation loss.
+    """
     for layer_name, layer_module in module.named_modules():
         if layer_name in layer_names:
             layer_module.register_forward_hook(
-                get_intermediate_layers(intermediate_layers, layer_name)
+                _get_intermediate_layers(intermediate_layers, layer_name)
             )
 
 
-def ot_solve(a, b, M, num_iter_max=100000):
-    a2 = a.detach().cpu().numpy()
-    b2 = b.detach().cpu().numpy()
-    M2 = M.detach().cpu().numpy()
-
-    # project on simplex for float64 or else numerical errors
-    a2 /= a2.sum()
-    b2 /= b2.sum()
-
-    G = ot.emd(a2, b2, M2, log=False, numItermax=num_iter_max)
-    return torch.from_numpy(G).to(a.device)
-
-
-def jdot_distance_matrix(
+def _deepjdot_loss(
     embedd,
     embedd_target,
     y,
@@ -62,7 +75,7 @@ def jdot_distance_matrix(
     class_weights=None,
     n_classes=3
 ):
-    """Compute the distance matrix for DeepJDOT method
+    """Compute the OT loss for DeepJDOT method [1]_.
 
     Parameters
     ----------
@@ -83,11 +96,26 @@ def jdot_distance_matrix(
         If None, don't use weights.
     n_classes : int, default=2
         Number of classes in the data.
+
+    Returns
+    -------
+    loss : ndarray
+        The loss of the method.
+
+    References
+    ----------
+    .. [1]  Bharath Bhushan Damodaran, Benjamin Kellenberger,
+            Remi Flamary, Devis Tuia, and Nicolas Courty.
+            DeepJDOT: Deep Joint Distribution Optimal Transport
+            for Unsupervised Domain Adaptation. In ECCV 2018
+            15th European Conference on Computer Vision,
+            September 2018. Springer.
     """
+    # Compute the distance matrix
     if class_weights is None:
-        weights = torch.ones(n_classes).to(embedd.device)
+        weights = torch.ones(n_classes, device=embedd.device)
     else:
-        weights = torch.Tensor(class_weights).to(embedd.device)
+        weights = torch.Tensor(class_weights, device=embedd.device)
 
     dist = torch.cdist(embedd, embedd_target, p=2) ** 2
 
@@ -99,7 +127,20 @@ def jdot_distance_matrix(
     )
     M = reg_d * dist + reg_cl * loss_target
 
-    return M
+    # Compute the loss
+    a = torch.full(
+        (len(embedd),),
+        1.0 / len(embedd),
+        device=embedd.device
+    )
+    b = torch.full(
+        (len(embedd_target),),
+        1.0 / len(embedd_target),
+        device=embedd_target.device
+    )
+    loss = ot.emd2(a, b, M)
+
+    return loss
 
 
 def _gaussian_kernel(x, y, sigmas):
@@ -123,8 +164,9 @@ def _maximum_mean_discrepancy(x, y, kernel):
     return cost
 
 
-def dan_loss(source_features, target_features, sigmas=None):
+def _dan_loss(source_features, target_features, sigmas=None):
     """Define the mmd loss based on multi-kernel defined in [1]_.
+
     Parameters
     ----------
     source_features : tensor
@@ -134,6 +176,12 @@ def dan_loss(source_features, target_features, sigmas=None):
     sigmas : array like, default=None,
         If array, sigmas used for the multi gaussian kernel.
         If None, uses sigmas proposed  in [1]_.
+
+    Returns
+    -------
+    loss : float
+        The loss of the method.
+
     References
     ----------
     .. [1]  Mingsheng Long et. al. Learning Transferable

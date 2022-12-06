@@ -3,16 +3,16 @@ from torch import nn
 
 import pytest
 
-from skada.feature import DAN
-from skada.feature.utils import NeuralNetwork
+from skada.feature import DeepJDOT
+from skada.feature.architecture import toyCNN
 
 
 @pytest.mark.parametrize(
     "input_size, n_channels, n_classes",
     [(100, 2, 5), (120, 1, 3)],
 )
-def test_dan(input_size, n_channels, n_classes):
-    module = NeuralNetwork(
+def test_deepjdot(input_size, n_channels, n_classes):
+    module = toyCNN(
         n_channels=n_channels, input_size=input_size, n_classes=n_classes, kernel_size=8
     )
     module.eval()
@@ -23,11 +23,12 @@ def test_dan(input_size, n_channels, n_classes):
     y = torch.randint(high=n_classes, size=(n_samples,), generator=rng)
     X_target = torch.randn(size=(n_samples, n_channels, input_size), generator=rng)
 
-    method = DAN(
+    method = DeepJDOT(
         module=module,
         criterion=nn.CrossEntropyLoss(),
         layer_names=["feature_extractor"],
         max_epochs=2,
+        n_classes=n_classes
     )
     method.fit(X, y, X_target=X_target)
     y_pred = method.predict(X_target)

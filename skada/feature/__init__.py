@@ -9,9 +9,8 @@ except ImportError as e:
     print("ERROR : torch and skorch are required for importing feature's method.")
     raise e
 
-from ._deepcoral import DeepCORAL
-from ._deepjdot import DeepJDOT
-from ._dann import DANN
-from ._dan import DAN
+from ._divergence import DeepCORAL, DAN
+from ._optimal_transport import DeepJDOT
+from ._adversarial import DANN
 
 __all__ = ['DeepCORAL', 'DeepJDOT', 'DANN', 'DAN']

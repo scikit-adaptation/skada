@@ -1,7 +1,6 @@
-import torch
 from skorch.utils import to_tensor
 
-from .utils import jdot_distance_matrix, ot_solve
+from .utils import _deepjdot_loss
 from .base import BaseDANetwork
 
 
@@ -77,18 +76,7 @@ class DeepJDOT(BaseDANetwork):
         y_true = to_tensor(y_true, device=self.device)
         loss_deepjdot = 0
         for i in range(len(embedd)):
-
-            a = torch.full(
-                (len(embedd[i]),),
-                1.0 / len(embedd[i]),
-                device=self.device
-            )
-            b = torch.full(
-                (len(embedd_target[i]),),
-                1.0 / len(embedd_target[i]),
-                device=self.device
-            )
-            M = jdot_distance_matrix(
+            loss_deepjdot += _deepjdot_loss(
                 embedd[i],
                 embedd_target[i],
                 y_true,
@@ -98,9 +86,7 @@ class DeepJDOT(BaseDANetwork):
                 self.class_weights,
                 self.n_classes
             )
-            gamma = ot_solve(a, b, M)
 
-            loss_deepjdot += torch.sum(gamma * M)
         loss_classif = self.criterion_(y_pred, y_true)
 
         return loss_classif + loss_deepjdot, loss_classif, loss_deepjdot

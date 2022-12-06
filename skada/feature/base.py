@@ -6,7 +6,7 @@ from skorch.utils import TeeGenerator
 
 import numpy as np
 
-from .utils import register_forwards_hook
+from .utils import _register_forwards_hook
 
 
 class BaseDANetwork(NeuralNetClassifier):
@@ -398,5 +398,7 @@ class BaseDANetwork(NeuralNetClassifier):
         module = self.initialized_instance(self.module, kwargs)
         # pylint: disable=attribute-defined-outside-init
         self.module_ = module
-        register_forwards_hook(self.module_, self.intermediate_layers, self.layer_names)
+        _register_forwards_hook(
+            self.module_, self.intermediate_layers, self.layer_names
+        )
         return self
