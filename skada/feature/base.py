@@ -256,15 +256,10 @@ class BaseDANetwork(NeuralNetClassifier):
 
         if training:
             batch_count = 0
-            iterator_target_ = iter(iterator_target)
-
             for batch in iterator:
-                try:
-                    batch_target = next(iterator_target_)
-                except StopIteration:
-                    iterator_target_ = iter(iterator_target)
-                    batch_target = next(iterator_target_)
-
+                batch_target = next(iter(iterator_target))
+                if len(batch[0]) != len(batch_target[0]):
+                    break
                 self.notify("on_batch_begin", batch=batch, training=training)
                 step = step_fn(batch, batch_target, **fit_params)
                 self.history.record_batch(prefix + "_loss", step["loss"].item())

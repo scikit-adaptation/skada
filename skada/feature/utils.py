@@ -70,6 +70,8 @@ def deepjdot_loss(
     y_target,
     reg_d,
     reg_cl,
+    sample_weights,
+    target_sample_weights,
     class_weights=None,
     n_classes=3
 ):
@@ -89,7 +91,13 @@ def deepjdot_loss(
         Distance term regularization parameter.
     reg_cl : float, default=1
         Class distance term regularization parameter.
-    class_weight : array, shape=(n_classes)
+    sample_weights : tensor
+        Weights of the source samples.
+        If None, create uniform weights.
+    target_sample_weights : tensor
+        Weights of the source samples.
+        If None, create uniform weights.
+    class_weight : tensor, shape=(n_classes)
         Weight of classes to compute target classes loss.
         If None, don't use weights.
     n_classes : int, default=2
@@ -112,8 +120,6 @@ def deepjdot_loss(
     # Compute the distance matrix
     if class_weights is None:
         weights = torch.ones(n_classes, device=embedd.device)
-    else:
-        weights = torch.Tensor(class_weights, device=embedd.device)
 
     dist = torch.cdist(embedd, embedd_target, p=2) ** 2
 
@@ -126,17 +132,19 @@ def deepjdot_loss(
     M = reg_d * dist + reg_cl * loss_target
 
     # Compute the loss
-    a = torch.full(
-        (len(embedd),),
-        1.0 / len(embedd),
-        device=embedd.device
-    )
-    b = torch.full(
-        (len(embedd_target),),
-        1.0 / len(embedd_target),
-        device=embedd_target.device
-    )
-    loss = ot.emd2(a, b, M)
+    if sample_weights is None:
+        sample_weights = torch.full(
+            (len(embedd),),
+            1.0 / len(embedd),
+            device=embedd.device
+        )
+    if target_sample_weights is None:
+        target_sample_weights = torch.full(
+            (len(embedd_target),),
+            1.0 / len(embedd_target),
+            device=embedd_target.device
+        )
+    loss = ot.emd2(sample_weights, target_sample_weights, M)
 
     return loss
 
