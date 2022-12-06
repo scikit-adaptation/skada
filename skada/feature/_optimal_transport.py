@@ -1,6 +1,6 @@
 from skorch.utils import to_tensor
 
-from .utils import _deepjdot_loss
+from .utils import deepjdot_loss
 from .base import BaseDANetwork
 
 
@@ -76,7 +76,7 @@ class DeepJDOT(BaseDANetwork):
         y_true = to_tensor(y_true, device=self.device)
         loss_deepjdot = 0
         for i in range(len(embedd)):
-            loss_deepjdot += _deepjdot_loss(
+            loss_deepjdot += deepjdot_loss(
                 embedd[i],
                 embedd_target[i],
                 y_true,

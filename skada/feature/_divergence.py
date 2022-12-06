@@ -1,6 +1,6 @@
 from skorch.utils import to_tensor
 
-from .utils import _dan_loss, _reg_cov, _deepcoral_loss
+from .utils import dan_loss, _reg_cov, deepcoral_loss
 from .base import BaseDANetwork
 
 
@@ -64,7 +64,7 @@ class DAN(BaseDANetwork):
         loss_dan = 0
         for i in range(len(embedd)):
             loss_dan += (
-                self.reg * _dan_loss(embedd[i], embedd_target[i], self.sigmas)
+                self.reg * dan_loss(embedd[i], embedd_target[i], self.sigmas)
             )
 
         loss_classif = self.criterion_(y_pred, y_true)
@@ -130,7 +130,7 @@ class DeepCORAL(BaseDANetwork):
         for i in range(len(embedd)):
             cov = _reg_cov(embedd[i])
             cov_target = _reg_cov(embedd_target[i])
-            loss_coral += self.reg * _deepcoral_loss(cov, cov_target)
+            loss_coral += self.reg * deepcoral_loss(cov, cov_target)
 
         loss_classif = self.criterion_(y_pred, y_true)
         return loss_classif + loss_coral, loss_classif, loss_coral

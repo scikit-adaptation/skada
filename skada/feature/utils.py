@@ -1,6 +1,4 @@
 import torch
-from torch import nn
-from torch.utils.data import Dataset
 
 import ot
 
@@ -18,7 +16,7 @@ def _reg_cov(x, eps=1e-5):
     return torch.einsum("ni,nj->ij", (x_, x_)) / (N - 1) + reg
 
 
-def _deepcoral_loss(cov, cov_target):
+def deepcoral_loss(cov, cov_target):
     """Estimate the Frobenius norm divide by 4*n**2
        for DeepCORAL method [1]_.
 
@@ -65,7 +63,7 @@ def _register_forwards_hook(module, intermediate_layers, layer_names):
             )
 
 
-def _deepjdot_loss(
+def deepjdot_loss(
     embedd,
     embedd_target,
     y,
@@ -164,7 +162,7 @@ def _maximum_mean_discrepancy(x, y, kernel):
     return cost
 
 
-def _dan_loss(source_features, target_features, sigmas=None):
+def dan_loss(source_features, target_features, sigmas=None):
     """Define the mmd loss based on multi-kernel defined in [1]_.
 
     Parameters
@@ -209,50 +207,3 @@ def _dan_loss(source_features, target_features, sigmas=None):
     return loss
 
 
-class NeuralNetwork(nn.Module):
-    def __init__(
-        self, n_channels, input_size, n_classes, kernel_size=64, out_channels=10
-    ):
-        super(NeuralNetwork, self).__init__()
-
-        self.feature_extractor = nn.Sequential(
-            nn.Conv1d(n_channels, out_channels, kernel_size),
-            nn.ReLU(),
-            nn.AvgPool1d(kernel_size)
-        )
-        self.len_last_layer = self._len_last_layer(n_channels, input_size)
-        self.fc = nn.Linear(self.len_last_layer, n_classes)
-
-    def forward(self, x):
-        x = self.feature_extractor(x)
-        x = self.fc(x.flatten(start_dim=1))
-        return x
-
-    def _len_last_layer(self, n_channels, input_size):
-        self.feature_extractor.eval()
-        with torch.no_grad():
-            out = self.feature_extractor(
-                torch.Tensor(1, n_channels, input_size))
-        self.feature_extractor.train()
-        return len(out.flatten())
-
-
-class CustomDataset(Dataset):
-    def __init__(
-        self,
-        data,
-        label=None,
-    ):
-        self.data = data
-        self.label = label
-
-    def __len__(self):
-        return len(self.data)
-
-    def __getitem__(self, idx):
-        X = self.data[idx]
-        if self.label is None:
-            return X
-        else:
-            y = self.label[idx]
-            return X, y
