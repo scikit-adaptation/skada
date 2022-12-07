@@ -10,7 +10,7 @@ from torch import nn
 import pytest
 
 from skada.feature import DANN
-from skada.feature import ToyCNN, DomainClassifier
+from skada.feature._modules import ToyCNN, DomainClassifier
 
 
 @pytest.mark.parametrize(

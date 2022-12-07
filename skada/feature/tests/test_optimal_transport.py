@@ -10,7 +10,7 @@ from torch import nn
 import pytest
 
 from skada.feature import DeepJDOT
-from skada.feature import ToyCNN
+from skada.feature._modules import ToyCNN
 
 
 @pytest.mark.parametrize(
