@@ -61,3 +61,11 @@ API and modules
    DeepJDOT
    DANN
    DAN
+
+.. autosummary::
+   :toctree: gen_modules/
+   :template: function.rst
+
+   dan_loss
+   deepcoral_loss
+   deepjdot_loss

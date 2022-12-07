@@ -1,3 +1,9 @@
+# Author: Theo Gnassounou <theo.gnassounou@inria.fr>
+#         Remi Flamary <remi.flamary@polytechnique.edu>
+#         Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#
+# License: BSD 3-Clause
+
 from abc import abstractmethod
 from skorch import NeuralNetClassifier
 from skorch.dataset import unpack_data
@@ -6,7 +12,7 @@ from skorch.utils import TeeGenerator
 
 import numpy as np
 
-from .utils import register_forwards_hook
+from .utils import _register_forwards_hook
 
 
 class BaseDANetwork(NeuralNetClassifier):
@@ -256,15 +262,10 @@ class BaseDANetwork(NeuralNetClassifier):
 
         if training:
             batch_count = 0
-            iterator_target_ = iter(iterator_target)
-
             for batch in iterator:
-                try:
-                    batch_target = next(iterator_target_)
-                except StopIteration:
-                    iterator_target_ = iter(iterator_target)
-                    batch_target = next(iterator_target_)
-
+                batch_target = next(iter(iterator_target))
+                if len(batch[0]) != len(batch_target[0]):
+                    break
                 self.notify("on_batch_begin", batch=batch, training=training)
                 step = step_fn(batch, batch_target, **fit_params)
                 self.history.record_batch(prefix + "_loss", step["loss"].item())
@@ -398,5 +399,7 @@ class BaseDANetwork(NeuralNetClassifier):
         module = self.initialized_instance(self.module, kwargs)
         # pylint: disable=attribute-defined-outside-init
         self.module_ = module
-        register_forwards_hook(self.module_, self.intermediate_layers, self.layer_names)
+        _register_forwards_hook(
+            self.module_, self.intermediate_layers, self.layer_names
+        )
         return self
