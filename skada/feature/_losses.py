@@ -94,14 +94,14 @@ def deepjdot_loss(
     """
     # Compute the distance matrix
     if class_weights is None:
-        weights = torch.ones(n_classes, device=embedd.device)
+        class_weights = torch.ones(n_classes, device=embedd.device)
 
     dist = torch.cdist(embedd, embedd_target, p=2) ** 2
 
     onehot_y_source = torch.nn.functional.one_hot(y, num_classes=n_classes).to(
         device=y.device, dtype=embedd.dtype
     )
-    loss_target = (weights @ onehot_y_source.T).reshape(len(y), 1) * (
+    loss_target = (class_weights @ onehot_y_source.T).reshape(len(y), 1) * (
         -(onehot_y_source @ y_target.T) + torch.logsumexp(y_target, dim=1)
     )
     M = reg_d * dist + reg_cl * loss_target

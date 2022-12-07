@@ -89,8 +89,8 @@ class DeepJDOT(BaseDANetwork):
                 y_pred_target,
                 self.reg_d,
                 self.reg_cl,
-                self.class_weights,
-                self.n_classes
+                class_weights=self.class_weights,
+                n_classes=self.n_classes
             )
 
         loss_classif = self.criterion_(y_pred, y_true)
