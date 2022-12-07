@@ -47,8 +47,7 @@ def deepjdot_loss(
     reg_cl,
     sample_weights=None,
     target_sample_weights=None,
-    class_weights=None,
-    n_classes=3
+    criterion=torch.nn.CrossEntropyLoss(),
 ):
     """Compute the OT loss for DeepJDOT method [1]_.
 
@@ -72,11 +71,9 @@ def deepjdot_loss(
     target_sample_weights : tensor
         Weights of the source samples.
         If None, create uniform weights.
-    class_weight : tensor, shape=(n_classes)
-        Weight of classes to compute target classes loss.
-        If None, don't use weights.
-    n_classes : int, default=2
-        Number of classes in the data.
+    criterion : torch criterion (class)
+        The criterion (loss) used to compute the
+        DeepJDOT loss.
 
     Returns
     -------
@@ -92,18 +89,14 @@ def deepjdot_loss(
             15th European Conference on Computer Vision,
             September 2018. Springer.
     """
-    # Compute the distance matrix
-    if class_weights is None:
-        class_weights = torch.ones(n_classes, device=embedd.device)
-
     dist = torch.cdist(embedd, embedd_target, p=2) ** 2
 
-    onehot_y_source = torch.nn.functional.one_hot(y, num_classes=n_classes).to(
-        device=y.device, dtype=embedd.dtype
-    )
-    loss_target = (class_weights @ onehot_y_source.T).reshape(len(y), 1) * (
-        -(onehot_y_source @ y_target.T) + torch.logsumexp(y_target, dim=1)
-    )
+    y_matrix = torch.cat([y.unsqueeze(dim=0) for _ in range(len(y))], axis=0)
+    y_target_matrix = torch.cat([y_target.unsqueeze(dim=2)
+                                for _ in range(len(y_target))], axis=2)
+
+    loss_target = criterion(y_target_matrix, y_matrix).T
+
     M = reg_d * dist + reg_cl * loss_target
 
     # Compute the loss

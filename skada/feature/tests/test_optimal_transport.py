@@ -34,7 +34,6 @@ def test_deepjdot(input_size, n_channels, n_classes):
         criterion=nn.CrossEntropyLoss(),
         layer_names=["feature_extractor"],
         max_epochs=2,
-        n_classes=n_classes,
     )
     method.fit(X, y, X_target=X_target)
     y_pred = method.predict(X_target)

@@ -3,6 +3,7 @@
 #         Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD 3-Clause
+from torch import nn
 
 from skorch.utils import to_tensor
 
@@ -31,11 +32,9 @@ class DeepJDOT(BaseDANetwork):
         Distance term regularization parameter.
     reg_cl : float, default=1
         Class distance term regularization parameter.
-    class_weight : array, shape=(n_classes)
-        Weight of classes to compute target classes loss.
-        If None, don't use weights.
-    n_classes : int, default=2
-        Number of classes in the data.
+    pairwise_criterion : torch criterion (class)
+        The uninitialized criterion (loss) used to compute the
+        DeepJDOT loss.
     **kwargs : dict
         Keyword arguments passed to the skorch Model class.
 
@@ -56,8 +55,7 @@ class DeepJDOT(BaseDANetwork):
         layer_names,
         reg_d=1,
         reg_cl=1,
-        class_weights=None,
-        n_classes=2,
+        pairwise_criterion=nn.CrossEntropyLoss,
         **kwargs
     ):
         super().__init__(
@@ -65,8 +63,20 @@ class DeepJDOT(BaseDANetwork):
         )
         self.reg_d = reg_d
         self.reg_cl = reg_cl
-        self.class_weights = class_weights
-        self.n_classes = n_classes
+        self.pairwise_criterion = pairwise_criterion
+
+    def initialize_criterion(self):
+        """Initializes the criterion.
+
+        If the criterion is already initialized and no parameter was changed, it
+        will be left as is.
+
+        """
+        kwargs = self.get_params_for('pairwise_criterion')
+        kwargs['reduction'] = 'none'
+        pairwise_criterion = self.initialized_instance(self.pairwise_criterion,  kwargs)
+        self.pairwise_criterion_ = pairwise_criterion
+        return super().initialize_criterion()
 
     def _get_loss_da(
         self,
@@ -89,8 +99,7 @@ class DeepJDOT(BaseDANetwork):
                 y_pred_target,
                 self.reg_d,
                 self.reg_cl,
-                class_weights=self.class_weights,
-                n_classes=self.n_classes
+                criterion=self.pairwise_criterion_,
             )
 
         loss_classif = self.criterion_(y_pred, y_true)
