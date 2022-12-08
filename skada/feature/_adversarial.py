@@ -120,6 +120,6 @@ class DANN(BaseDANetwork):
                 self.domain_criterion_(output_domain, domain_label) +
                 self.domain_criterion_(output_domain_target, domain_label_target)
             )
-
         loss_classif = self.criterion_(y_pred, y_true)
+
         return loss_classif + loss_DANN, loss_classif, loss_DANN

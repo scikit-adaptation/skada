@@ -91,11 +91,12 @@ def deepjdot_loss(
     """
     dist = torch.cdist(embedd, embedd_target, p=2) ** 2
 
-    y_matrix = torch.cat([y.unsqueeze(dim=0) for _ in range(len(y))], axis=0)
-    y_target_matrix = torch.cat([y_target.unsqueeze(dim=2)
-                                for _ in range(len(y_target))], axis=2)
+    # y_matrix = torch.cat([y.unsqueeze(dim=0) for _ in range(len(y))], axis=0)
+    # y_target_matrix = torch.cat([y_target.unsqueeze(dim=2)
+    #                             for _ in range(len(y_target))], axis=2)
+    y_target_matrix = y_target.repeat(len(y_target), 1, 1).permute(1, 2, 0)
 
-    loss_target = criterion(y_target_matrix, y_matrix).T
+    loss_target = criterion(y_target_matrix, y.repeat(len(y), 1)).T
 
     M = reg_d * dist + reg_cl * loss_target
 

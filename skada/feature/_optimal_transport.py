@@ -101,7 +101,6 @@ class DeepJDOT(BaseDANetwork):
                 self.reg_cl,
                 criterion=self.pairwise_criterion_,
             )
-
         loss_classif = self.criterion_(y_pred, y_true)
 
         return loss_classif + loss_deepjdot, loss_classif, loss_deepjdot
