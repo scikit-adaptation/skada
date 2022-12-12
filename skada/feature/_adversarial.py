@@ -1,5 +1,10 @@
-import torch
+# Author: Theo Gnassounou <theo.gnassounou@inria.fr>
+#         Remi Flamary <remi.flamary@polytechnique.edu>
+#         Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#
+# License: BSD 3-Clause
 
+import torch
 from skorch.utils import to_tensor
 
 from .base import BaseDANetwork
@@ -8,7 +13,7 @@ from .base import BaseDANetwork
 class DANN(BaseDANetwork):
     """Domain-Adversarial Training of Neural Networks (DANN).
 
-    From [2]_.
+    From [1]_.
 
     Parameters
     ----------
@@ -34,7 +39,7 @@ class DANN(BaseDANetwork):
 
     References
     ----------
-    .. [2]  Yaroslav Ganin et. al. Domain-Adversarial Training
+    .. [1]  Yaroslav Ganin et. al. Domain-Adversarial Training
             of Neural Networks  In Journal of Machine Learning
             Research, 2016.
     """

@@ -3,25 +3,31 @@ from sklearn.linear_model import LogisticRegression
 
 from skada.datasets import make_shifted_blobs
 from skada import (
-    ReweightDensity, GaussianReweightDensity, DiscriminatorReweightDensity, KLIEP
+    ReweightDensity,
+    GaussianReweightDensity,
+    DiscriminatorReweightDensity,
+    KLIEP,
 )
 
 import pytest
 
 
 @pytest.mark.parametrize(
-    "estimator", [
+    "estimator",
+    [
         ReweightDensity(base_estimator=LogisticRegression()),
         GaussianReweightDensity(base_estimator=LogisticRegression()),
         DiscriminatorReweightDensity(base_estimator=LogisticRegression()),
-        KLIEP(base_estimator=LogisticRegression(), kparam=[0.1, 1])
-    ]
+        KLIEP(base_estimator=LogisticRegression(), gamma=[0.1, 1], random_state=42),
+    ],
 )
 def test_reweight_estimator(estimator):
-    centers = np.array([
-        [0, 0],
-        [1, 1],
-    ])
+    centers = np.array(
+        [
+            [0, 0],
+            [1, 1],
+        ]
+    )
     _, n_features = centers.shape
 
     X, y, X_target, y_target = make_shifted_blobs(
