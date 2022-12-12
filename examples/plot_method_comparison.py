@@ -10,9 +10,9 @@ of salt, as the intuition conveyed by these examples
 does not necessarily carry over to real datasets.
 
 
-The plots show training points in solid colors then 
-training points in semi-transparent and testing points 
-in solid colors. The lower right shows the classification 
+The plots show training points in solid colors then
+training points in semi-transparent and testing points
+in solid colors. The lower right shows the classification
 accuracy on the test set.
 """
 import matplotlib.pyplot as plt
@@ -65,7 +65,7 @@ classifiers = [
     ),
     GaussianReweightDensity(base_estimator=SVC()),
     DiscriminatorReweightDensity(base_estimator=SVC()),
-    KLIEP(base_estimator=SVC(), kparam=[1, 0.1, 0.001]),
+    KLIEP(base_estimator=SVC(), gamma=[1, 0.1, 0.001]),
     SubspaceAlignment(base_estimator=SVC(), n_components=1),
     TransferComponentAnalysis(base_estimator=SVC(), n_components=1, mu=0.5),
     OTmapping(base_estimator=SVC()),
