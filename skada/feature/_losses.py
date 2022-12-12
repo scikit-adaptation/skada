@@ -93,7 +93,7 @@ def deepjdot_loss(
 
     y_target_matrix = y_target.repeat(len(y_target), 1, 1).permute(1, 2, 0)
 
-    loss_target = criterion(y_target_matrix, y.repeat(len(y), 1)).T 
+    loss_target = criterion(y_target_matrix, y.repeat(len(y), 1)).T
     M = reg_d * dist + reg_cl * loss_target
 
     # Compute the loss
