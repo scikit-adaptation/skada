@@ -32,9 +32,9 @@ class DeepJDOT(BaseDANetwork):
         Distance term regularization parameter.
     reg_cl : float, default=1
         Class distance term regularization parameter.
-    pairwise_criterion : torch criterion (class)
+    target_criterion : torch criterion (class)
         The uninitialized criterion (loss) used to compute the
-        DeepJDOT loss.
+        DeepJDOT loss. The criterion should support reduction='none'.
     **kwargs : dict
         Keyword arguments passed to the skorch Model class.
 
@@ -55,7 +55,7 @@ class DeepJDOT(BaseDANetwork):
         layer_names,
         reg_d=1,
         reg_cl=1,
-        pairwise_criterion=nn.CrossEntropyLoss,
+        target_criterion=nn.CrossEntropyLoss,
         **kwargs
     ):
         super().__init__(
@@ -63,7 +63,7 @@ class DeepJDOT(BaseDANetwork):
         )
         self.reg_d = reg_d
         self.reg_cl = reg_cl
-        self.pairwise_criterion = pairwise_criterion
+        self.target_criterion = target_criterion
 
     def initialize_criterion(self):
         """Initializes the criterion.
@@ -72,10 +72,10 @@ class DeepJDOT(BaseDANetwork):
         will be left as is.
 
         """
-        kwargs = self.get_params_for('pairwise_criterion')
+        kwargs = self.get_params_for('target_criterion')
         kwargs['reduction'] = 'none'
-        pairwise_criterion = self.initialized_instance(self.pairwise_criterion,  kwargs)
-        self.pairwise_criterion_ = pairwise_criterion
+        target_criterion = self.initialized_instance(self.target_criterion,  kwargs)
+        self.target_criterion_ = target_criterion
         return super().initialize_criterion()
 
     def _get_loss_da(
@@ -99,7 +99,7 @@ class DeepJDOT(BaseDANetwork):
                 y_pred_target,
                 self.reg_d,
                 self.reg_cl,
-                criterion=self.pairwise_criterion_,
+                criterion=self.target_criterion_,
             )
         loss_classif = self.criterion_(y_pred, y_true)
 
