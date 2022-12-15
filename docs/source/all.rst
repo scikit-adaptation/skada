@@ -60,6 +60,7 @@ API and modules
    DeepCORAL
    DeepJDOT
    DANN
+   CDAN
    DAN
 
 .. autosummary::
