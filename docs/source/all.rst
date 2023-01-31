@@ -44,6 +44,7 @@ API and modules
    ClassRegularizerOTmapping
    LinearOTmapping
    CORAL
+   DAPipeline
 
 .. currentmodule:: skada.feature
 

@@ -19,6 +19,8 @@ from ._mapping import (
 
 from ._mapping import CORAL
 
+from ._pipeline import DAPipeline
+
 __all__ = [
     "ReweightDensity",
     "GaussianReweightDensity",
@@ -30,5 +32,6 @@ __all__ = [
     "EntropicOTmapping",
     "ClassRegularizerOTmapping",
     "LinearOTmapping",
-    "CORAL"
+    "CORAL",
+    "DAPipeline",
 ]
