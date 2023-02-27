@@ -71,3 +71,21 @@ API and modules
    dan_loss
    deepcoral_loss
    deepjdot_loss
+
+.. currentmodule:: skada.metrics
+
+.. automodule:: skada.metrics
+   :no-members:
+   :no-inherited-members:
+
+:py:mod:`skada.metrics`:
+
+.. autosummary::
+   :toctree: gen_modules/
+   :template: class.rst
+
+   SupervisedScorer
+   ImportanceWeightedScorer
+   PredictionPredictionEntropyScorer
+   DeepEmbeddedValidation
+   SoftNeighborhoodDensity

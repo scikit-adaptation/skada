@@ -195,7 +195,7 @@ class _RandomLayer(nn.Module):
         Output dimension wanted.
     """
 
-    def __init__(self, random_state, input_dims=[], output_dim=4096):
+    def __init__(self, random_state, input_dims, output_dim=4096):
         super(_RandomLayer, self).__init__()
         gen = check_generator(random_state)
         self.output_dim = output_dim

@@ -52,6 +52,9 @@ class BaseDAEstimator(BaseEstimator):
     def score(self, X, y):
         """Score te performance of the estimator"""
 
+    def get_features(self, X):
+        return X.reshape(X.shape[0], -1)
+
 
 class BaseDataAdaptEstimator(BaseDAEstimator):
     """Base class for Data Adapation DA estimators.
@@ -112,9 +115,21 @@ class BaseDataAdaptEstimator(BaseDAEstimator):
         base_estimator = self.base_estimator_
         return base_estimator.predict_proba(X)
 
-    def score(self, X, y):
+    @available_if(_estimator_has("decision_function"))
+    def decision_function(self, X):
+        check_is_fitted(self)
         base_estimator = self.base_estimator_
-        return base_estimator.score(X, y)
+        return base_estimator.decision_function(X)
+
+    @available_if(_estimator_has("predict_log_proba"))
+    def predict_log_proba(self, X):
+        check_is_fitted(self)
+        base_estimator = self.base_estimator_
+        return base_estimator.predict_log_proba(X)
+
+    def score(self, X, y, sample_weight=None):
+        base_estimator = self.base_estimator_
+        return base_estimator.score(X, y, sample_weight=sample_weight)
 
 
 class BaseSubspaceEstimator(BaseDataAdaptEstimator):
@@ -144,10 +159,10 @@ class BaseSubspaceEstimator(BaseDataAdaptEstimator):
         X_transform = self.transform(X, domain)
         return base_estimator.predict_proba(X_transform)
 
-    def score(self, X, y, domain='target'):
+    def score(self, X, y, domain='target', sample_weight=None):
         base_estimator = self.base_estimator_
         X_transform = self.transform(X, domain)
-        return base_estimator.score(X_transform, y)
+        return base_estimator.score(X_transform, y, sample_weight=sample_weight)
 
     @abstractmethod
     def transform(self, X, domain='target'):

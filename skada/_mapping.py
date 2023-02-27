@@ -103,6 +103,12 @@ class EntropicOTmapping(OTmapping):
         The base estimator to fit on reweighted data.
     reg_e : float, default=1
         Entropic regularization parameter.
+    max_iter : int, float, optional (default=1000)
+        The minimum number of iteration before stopping the optimization
+        of the Sinkhorn algorithm if it has not converged
+    tol : float, optional (default=10e-9)
+        The precision required to stop the optimization of the Sinkhorn
+        algorithm.
 
     Attributes
     ----------
@@ -119,10 +125,14 @@ class EntropicOTmapping(OTmapping):
     def __init__(
         self,
         base_estimator,
-        reg_e=1
+        reg_e=1,
+        max_iter=1000,
+        tol=10e-9
     ):
         super().__init__(base_estimator)
         self.reg_e = reg_e
+        self.max_iter = max_iter
+        self.tol = tol
 
     def fit_adapt(self, X, y, X_target, y_target=None):
         """Fit adaptation parameters.
@@ -144,7 +154,11 @@ class EntropicOTmapping(OTmapping):
             Returns self.
         """
 
-        self.ot_transport_ = clone(da.SinkhornTransport(reg_e=self.reg_e))
+        self.ot_transport_ = clone(
+            da.SinkhornTransport(
+                reg_e=self.reg_e, max_iter=self.max_iter, tol=self.tol
+            )
+        )
         self.ot_transport_.fit(Xs=X, Xt=X_target)
         return self
 
@@ -343,7 +357,7 @@ def _invsqrtm(C):
 
 
 class CORAL(BaseDataAdaptEstimator):
-    """Estimator based on reweighting samples using density estimation.
+    """Estimator based on Correlation Alignment [1]_.
 
     Parameters
     ----------
@@ -352,6 +366,7 @@ class CORAL(BaseDataAdaptEstimator):
     reg : 'auto' or float, default="auto"
         The regularization parameter of the covariance estimator.
         Possible values:
+
           - None: no shrinkage).
           - 'auto': automatic shrinkage using the Ledoit-Wolf lemma.
           - float between 0 and 1: fixed shrinkage parameter.

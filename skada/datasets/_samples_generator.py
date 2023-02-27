@@ -288,7 +288,7 @@ def make_shifted_datasets(
     mean=1,
     sigma=0.7,
     gamma=2,
-    center=[[0, 2]],
+    center=((0, 2)),
     random_state=None,
 ):
     """Generate source and shift target.
@@ -322,7 +322,7 @@ def make_shifted_datasets(
         multiplicative value of the concept drift.
     gamma :  float, default=2
         Parameter of the RBF kernel.
-    center : ndarray of shape (1, 2), default=[[0, 2]]
+    center : array-like of shape (1, 2), default=((0, 2))
         Center of the distribution.
     random_state : int, RandomState instance or None, default=None
         Determines random number generation for dataset creation. Pass an int

@@ -15,6 +15,7 @@ Contents
    self
    all
    auto_examples/index
+   scorer
 
 .. include:: ../../README.rst
 

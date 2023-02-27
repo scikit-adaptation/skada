@@ -10,6 +10,8 @@ from skorch.dataset import unpack_data
 from skorch.dataset import get_len
 from skorch.utils import TeeGenerator
 
+import torch
+
 import numpy as np
 
 from .utils import _register_forwards_hook
@@ -40,18 +42,9 @@ class BaseDANetwork(NeuralNetClassifier):
     intermediate_layers : dict
         The dict where the outputs of layers are stored during the training.
     """
-    def __init__(
-        self,
-        module,
-        criterion,
-        layer_names,
-        **kwargs
-    ):
-        super().__init__(
-            module,
-            criterion=criterion,
-            **kwargs
-        )
+
+    def __init__(self, module, criterion, layer_names, **kwargs):
+        super().__init__(module, criterion=criterion, **kwargs)
         self.layer_names = layer_names
         self.intermediate_layers = {}
 
@@ -103,16 +96,16 @@ class BaseDANetwork(NeuralNetClassifier):
             embedd_target,
             X=Xi,
             y_pred_target=y_pred_target,
-            training=True
+            training=True,
         )
 
         loss.backward()
         return {
-            'loss': loss,
-            'loss_classif': loss_classif,
-            'loss_da': loss_da,
-            'y_pred': y_pred,
-            'y_pred_target': y_pred_target
+            "loss": loss,
+            "loss_classif": loss_classif,
+            "loss_da": loss_da,
+            "y_pred": y_pred,
+            "y_pred_target": y_pred_target,
         }
 
     def train_step(self, batch, batch_target, **fit_params):
@@ -153,11 +146,11 @@ class BaseDANetwork(NeuralNetClassifier):
             step_accumulator.store_step(step)
 
             self.notify(
-                'on_grad_computed',
+                "on_grad_computed",
                 named_parameters=TeeGenerator(self.get_all_learnable_params()),
                 batch=batch,
             )
-            return step['loss']
+            return step["loss"]
 
         self._step_optimizer(step_fn)
         return step_accumulator.get_step()
@@ -206,13 +199,12 @@ class BaseDANetwork(NeuralNetClassifier):
         self.check_data(X, y)
         epochs = epochs if epochs is not None else self.max_epochs
 
-        dataset_train, dataset_valid = self.get_split_datasets(
-            X, y, **fit_params)
+        dataset_train, dataset_valid = self.get_split_datasets(X, y, **fit_params)
         dataset_target = self.get_dataset(X_target, np.zeros(len(X_target)))
         on_epoch_kwargs = {
-            'dataset_train': dataset_train,
-            'dataset_target': dataset_target,
-            'dataset_valid': dataset_valid,
+            "dataset_train": dataset_train,
+            "dataset_target": dataset_target,
+            "dataset_valid": dataset_valid,
         }
         iterator_train = self.get_iterator(dataset_train, training=True)
         iterator_valid = None
@@ -221,19 +213,24 @@ class BaseDANetwork(NeuralNetClassifier):
         iterator_target = self.get_iterator(dataset_target, training=True)
 
         for _ in range(epochs):
-            self.notify('on_epoch_begin', **on_epoch_kwargs)
+            self.notify("on_epoch_begin", **on_epoch_kwargs)
 
             self.run_single_epoch(
-                            iterator_train,
-                            iterator_target=iterator_target,
-                            training=True,
-                            prefix="train",
-                            step_fn=self.train_step,
-                            **fit_params
-                        )
+                iterator_train,
+                iterator_target=iterator_target,
+                training=True,
+                prefix="train",
+                step_fn=self.train_step,
+                **fit_params
+            )
 
-            self.run_single_epoch(iterator_valid, training=False, prefix="valid",
-                                  step_fn=self.validation_step, **fit_params)
+            self.run_single_epoch(
+                iterator_valid,
+                training=False,
+                prefix="valid",
+                step_fn=self.validation_step,
+                **fit_params
+            )
 
             self.notify("on_epoch_end", **on_epoch_kwargs)
         return self
@@ -273,8 +270,11 @@ class BaseDANetwork(NeuralNetClassifier):
                     prefix + "_loss_classif", step["loss_classif"].item()
                 )
                 self.history.record_batch(prefix + "_loss_da", step["loss_da"].item())
-                batch_size = (get_len(batch[0]) if isinstance(batch, (tuple, list))
-                              else get_len(batch))
+                batch_size = (
+                    get_len(batch[0])
+                    if isinstance(batch, (tuple, list))
+                    else get_len(batch)
+                )
                 self.history.record_batch(prefix + "_batch_size", batch_size)
                 self.notify("on_batch_end", batch=batch, training=training, **step)
                 batch_count += 1
@@ -284,8 +284,11 @@ class BaseDANetwork(NeuralNetClassifier):
                 self.notify("on_batch_begin", batch=batch, training=training)
                 step = step_fn(batch, **fit_params)
                 self.history.record_batch(prefix + "_loss", step["loss"].item())
-                batch_size = (get_len(batch[0]) if isinstance(batch, (tuple, list))
-                              else get_len(batch))
+                batch_size = (
+                    get_len(batch[0])
+                    if isinstance(batch, (tuple, list))
+                    else get_len(batch)
+                )
                 self.history.record_batch(prefix + "_batch_size", batch_size)
                 self.notify("on_batch_end", batch=batch, training=training, **step)
                 batch_count += 1
@@ -337,12 +340,12 @@ class BaseDANetwork(NeuralNetClassifier):
         if not self.initialized_:
             self.initialize()
 
-        self.notify('on_train_begin', X=X, y=y)
+        self.notify("on_train_begin", X=X, y=y)
         try:
             self.fit_loop(X, y, X_target, **fit_params)
         except KeyboardInterrupt:
             pass
-        self.notify('on_train_end', X=X, y=y)
+        self.notify("on_train_end", X=X, y=y)
         return self
 
     def fit(self, X, y=None, X_target=None, **fit_params):
@@ -395,7 +398,7 @@ class BaseDANetwork(NeuralNetClassifier):
         If the module is already initialized and no parameter was changed, it
         will be left as is.
         """
-        kwargs = self.get_params_for('module')
+        kwargs = self.get_params_for("module")
         module = self.initialized_instance(self.module, kwargs)
         # pylint: disable=attribute-defined-outside-init
         self.module_ = module
@@ -403,3 +406,13 @@ class BaseDANetwork(NeuralNetClassifier):
             self.module_, self.intermediate_layers, self.layer_names
         )
         return self
+
+    def get_features(self, X):
+        with torch.no_grad():
+            _ = self.module(X)
+        if len(self.layer_names) == 1:
+            return self.intermediate_layers[self.layer_names[0]]
+        else:
+            return [
+                self.intermediate_layers[layer_name] for layer_name in self.layer_names
+            ]

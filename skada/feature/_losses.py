@@ -47,7 +47,7 @@ def deepjdot_loss(
     reg_cl,
     sample_weights=None,
     target_sample_weights=None,
-    criterion=torch.nn.CrossEntropyLoss(),
+    criterion=None,
 ):
     """Compute the OT loss for DeepJDOT method [1]_.
 
@@ -73,7 +73,7 @@ def deepjdot_loss(
         If None, create uniform weights.
     criterion : torch criterion (class)
         The criterion (loss) used to compute the
-        DeepJDOT loss.
+        DeepJDOT loss. If None, use the CrossEntropyLoss.
 
     Returns
     -------
@@ -92,6 +92,9 @@ def deepjdot_loss(
     dist = torch.cdist(embedd, embedd_target, p=2) ** 2
 
     y_target_matrix = y_target.repeat(len(y_target), 1, 1).permute(1, 2, 0)
+
+    if criterion is None:
+        criterion = torch.nn.CrossEntropyLoss()
 
     loss_target = criterion(y_target_matrix, y.repeat(len(y), 1)).T
     M = reg_d * dist + reg_cl * loss_target
