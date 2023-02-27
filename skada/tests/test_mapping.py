@@ -1,7 +1,6 @@
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 
-from skada.datasets import make_shifted_blobs
 from skada import (
     OTmapping, EntropicOTmapping, ClassRegularizerOTmapping, LinearOTmapping
 )
@@ -23,25 +22,14 @@ import pytest
         CORAL(base_estimator=LogisticRegression(), reg=0.1),
     ]
 )
-def test_mapping_estimator(estimator):
-    centers = np.array([
-        [0, 0],
-        [1, 1],
-    ])
-    _, n_features = centers.shape
-
-    X, y, X_target, y_target = make_shifted_blobs(
-        n_samples=500,
-        centers=centers,
-        n_features=n_features,
-        shift=0.13,
-        random_state=42,
-        cluster_std=0.5,
-    )
+def test_mapping_estimator(estimator, tmp_da_dataset):
+    X, y, X_target, y_target = tmp_da_dataset
 
     # Just scale some feature to avoid having an identity cov matrix
-    X[:, 0] *= 2
-    X_target[:, 1] *= 3
+    X_scaled = np.copy(X)
+    X_target_scaled = np.copy(X_target)
+    X_scaled[:, 0] *= 2
+    X_target_scaled[:, 1] *= 3
 
     estimator.fit(X, y, X_target)
     y_pred = estimator.predict(X_target)
