@@ -1,7 +1,6 @@
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 
-from skada.datasets import make_shifted_blobs
 from skada import SubspaceAlignment, TransferComponentAnalysis
 
 import pytest
@@ -13,21 +12,8 @@ import pytest
         TransferComponentAnalysis(base_estimator=LogisticRegression(), n_components=2),
     ]
 )
-def test_subspace_alignment(estimator):
-    centers = np.array([
-        [0, 0],
-        [1, 1],
-    ])
-    _, n_features = centers.shape
-
-    X, y, X_target, y_target = make_shifted_blobs(
-        n_samples=500,
-        centers=centers,
-        n_features=n_features,
-        shift=0.13,
-        random_state=42,
-        cluster_std=0.05,
-    )
+def test_subspace_alignment(estimator, tmp_da_dataset):
+    X, y, X_target, y_target = tmp_da_dataset
 
     estimator.fit(X, y, X_target)
     y_pred = estimator.predict(X_target)
