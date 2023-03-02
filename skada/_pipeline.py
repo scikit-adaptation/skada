@@ -71,6 +71,7 @@ class DAPipeline(Pipeline):
         Names of features seen during :term:`fit`. Only defined if the
         underlying estimator exposes such an attribute when fit.
     """
+
     def fit(self, X, y, X_target, **fit_params):
         """Fit the model.
 

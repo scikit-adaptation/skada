@@ -37,6 +37,7 @@ class OTmapping(BaseDataAdaptEstimator):
            Optimal Transport for Domain Adaptation, in IEEE
            Transactions on Pattern Analysis and Machine Intelligence
     """
+
     def __init__(
         self,
         base_estimator,
@@ -122,6 +123,7 @@ class EntropicOTmapping(OTmapping):
            Optimal Transport for Domain Adaptation, in IEEE
            Transactions on Pattern Analysis and Machine Intelligence
     """
+
     def __init__(
         self,
         base_estimator,
@@ -192,6 +194,7 @@ class ClassRegularizerOTmapping(OTmapping):
            Optimal Transport for Domain Adaptation, in IEEE
            Transactions on Pattern Analysis and Machine Intelligence
     """
+
     def __init__(
         self,
         base_estimator,
@@ -256,6 +259,7 @@ class LinearOTmapping(OTmapping):
         distributions fitted on the source
         and target data.
     """
+
     def __init__(
         self,
         base_estimator,

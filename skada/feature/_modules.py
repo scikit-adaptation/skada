@@ -23,6 +23,7 @@ class ToyCNN(nn.Module):
     out_channels : int, default=10
         Number of output channels in convolutional layer.
     """
+
     def __init__(
         self, n_channels, input_size, n_classes, kernel_size=64, out_channels=10
     ):
@@ -85,6 +86,7 @@ class DomainClassifier(nn.Module):
             of Neural Networks  In Journal of Machine Learning
             Research, 2016.
     """
+
     def __init__(
         self,
         len_last_layer,

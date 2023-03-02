@@ -39,6 +39,7 @@ class SubspaceAlignment(BaseSubspaceEstimator):
            Domain Adaptation Using Subspace Alignment.
            In IEEE International Conference on Computer Vision, 2013.
     """
+
     def __init__(
         self,
         base_estimator,
