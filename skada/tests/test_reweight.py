@@ -6,7 +6,6 @@ from skada import (
     GaussianReweightDensity,
     DiscriminatorReweightDensity,
     KLIEP,
-    KMM,
 )
 
 import pytest
@@ -19,7 +18,6 @@ import pytest
         GaussianReweightDensity(base_estimator=LogisticRegression()),
         DiscriminatorReweightDensity(base_estimator=LogisticRegression()),
         KLIEP(base_estimator=LogisticRegression(), gamma=[0.1, 1], random_state=42),
-        KMM(base_estimator=LogisticRegression())
     ],
 )
 def test_reweight_estimator(estimator, tmp_da_dataset):

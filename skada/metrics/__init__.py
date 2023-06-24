@@ -5,14 +5,6 @@ from ._scorer import (
     DeepEmbeddedValidation,
     SoftNeighborhoodDensity,
 )
-from ._da_metrics import (
-    MaximumMeanDiscrepancy,
-    LinearDiscrepancy,
-    KernelDiscrepancy,
-    CorrelationDifference,
-    HDivergence,
-    RelativePearsonDivergence,
-)
 
 __all__ = [
     "SupervisedScorer",
@@ -20,10 +12,4 @@ __all__ = [
     "PredictionEntropyScorer",
     "DeepEmbeddedValidation",
     "SoftNeighborhoodDensity",
-    "MaximumMeanDiscrepancy",
-    "LinearDiscrepancy",
-    "KernelDiscrepancy",
-    "CorrelationDifference",
-    "HDivergence",
-    "RelativePearsonDivergence",
 ]

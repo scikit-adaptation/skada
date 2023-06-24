@@ -9,7 +9,7 @@ Domain Adaptation estimators
 #
 # License: BSD 3-Clause
 from ._reweight import (
-    ReweightDensity, GaussianReweightDensity, DiscriminatorReweightDensity, KLIEP, KMM
+    ReweightDensity, GaussianReweightDensity, DiscriminatorReweightDensity, KLIEP
 )
 from ._subspace import SubspaceAlignment, TransferComponentAnalysis
 
@@ -26,7 +26,6 @@ __all__ = [
     "GaussianReweightDensity",
     "DiscriminatorReweightDensity",
     "KLIEP",
-    "KMM",
     "SubspaceAlignment",
     "TransferComponentAnalysis",
     "OTmapping",
