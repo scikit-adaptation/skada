@@ -54,6 +54,6 @@ jobs:
     - name: Install GPU stuffs for CI
       run: conda install pytorch cpuonly -y -c pytorch
     - name: Install Skorch for CI
-      run: conda install -c conda-forge skorch
+      run: conda install -c conda-forge skorch<=0.13.0
     - name: Run Tests with torch # See https://stackoverflow.com/a/59959080/1469195 for the cov-report logic
       run: pytest --cov=skada skada/ --cov-report term --cov-report xml:coverage.xml
