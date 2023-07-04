@@ -51,8 +51,9 @@ jobs:
       run: pip install --upgrade pytest pytest-cov codecov
     - name: Run Tests without torch
       run: pytest skada/ --ignore=skada/feature
-    - name: Install GPU stuffs for CI
+    - name: Install imporlib-metadata
       run: pip install importlib-metadata
+    - name: Install GPU stuffs for CI
       run: conda install pytorch cpuonly -y -c pytorch
     - name: Install Skorch for CI
       run: conda install -c conda-forge skorch
