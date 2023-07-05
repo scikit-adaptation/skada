@@ -15,6 +15,7 @@ from sklearn.model_selection import check_cv
 from sklearn.utils import check_random_state
 
 from .base import BaseDataAdaptEstimator, clone
+from ._utils import _estimate_covariance
 
 EPS = np.finfo(float).eps
 
@@ -114,6 +115,13 @@ class GaussianReweightDensity(BaseDataAdaptEstimator):
     ----------
     base_estimator: sklearn estimator
         estimator used for fitting and prediction
+    reg : 'auto' or float, default="auto"
+        The regularization parameter of the covariance estimator.
+        Possible values:
+
+          - None: no shrinkage.
+          - 'auto': automatic shrinkage using the Ledoit-Wolf lemma.
+          - float between 0 and 1: fixed shrinkage parameter.
 
     Attributes
     ----------
@@ -136,8 +144,10 @@ class GaussianReweightDensity(BaseDataAdaptEstimator):
     def __init__(
         self,
         base_estimator,
+        reg='auto'
     ):
         super().__init__(base_estimator)
+        self.reg = reg
 
     def predict_adapt(self, X, y, X_target, y_target=None):
         """Predict adaptation (weights, sample or labels).
@@ -193,11 +203,10 @@ class GaussianReweightDensity(BaseDataAdaptEstimator):
         self : object
             Returns self.
         """
-        # XXX : at some point we should support more than the empirical cov
         self.mean_source_ = X.mean(axis=0)
-        self.cov_source_ = np.cov(X.T)
+        self.cov_source_ = _estimate_covariance(X, shrinkage=self.reg)
         self.mean_target_ = X_target.mean(axis=0)
-        self.cov_target_ = np.cov(X_target.T)
+        self.cov_target_ = _estimate_covariance(X_target, shrinkage=self.reg)
 
 
 class DiscriminatorReweightDensity(BaseDataAdaptEstimator):
