@@ -119,7 +119,7 @@ class GaussianReweightDensity(BaseDataAdaptEstimator):
         The regularization parameter of the covariance estimator.
         Possible values:
 
-          - None: no shrinkage).
+          - None: no shrinkage.
           - 'auto': automatic shrinkage using the Ledoit-Wolf lemma.
           - float between 0 and 1: fixed shrinkage parameter.
 
