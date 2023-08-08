@@ -99,7 +99,7 @@ class SubspaceAlignment(BaseSubspaceEstimator):
         if self.n_components is None:
             n_components = min(X.shape)
         else:
-            n_components =  self.n_components
+            n_components = self.n_components
         self.pca_source_ = PCA(n_components).fit(X)
         self.pca_target_ = PCA(n_components).fit(X_target)
         return self
