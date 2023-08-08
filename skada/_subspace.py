@@ -21,11 +21,11 @@ class SubspaceAlignment(BaseSubspaceEstimator):
     ----------
     base_estimator : estimator object
         The base estimator to fit on reweighted data.
-    n_components : int, float or 'mle', default=None
+    n_components : int, default=None
         The numbers of components to learn with PCA.
-        Should be less or equal to the number of features
-        of the data. See :py:class:`sklearn.decomposition.PCA`
-        for more details.
+        If n_components is not set all components are kept::
+
+            n_components == min(n_samples, n_features)
 
     Attributes
     ----------
@@ -96,8 +96,12 @@ class SubspaceAlignment(BaseSubspaceEstimator):
         self : object
             Returns self.
         """
-        self.pca_source_ = PCA(self.n_components).fit(X)
-        self.pca_target_ = PCA(self.n_components).fit(X_target)
+        if self.n_components is None:
+            n_components = min(X.shape)
+        else:
+            n_components =  self.n_components
+        self.pca_source_ = PCA(n_components).fit(X)
+        self.pca_target_ = PCA(n_components).fit(X_target)
         return self
 
     def transform(self, X, domain='target'):
