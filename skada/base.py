@@ -159,6 +159,20 @@ class BaseSubspaceEstimator(BaseDataAdaptEstimator):
         X_transform = self.transform(X, domain)
         return base_estimator.predict_proba(X_transform)
 
+    @available_if(_estimator_has("decision_function"))
+    def decision_function(self, X, domain='target'):
+        check_is_fitted(self)
+        base_estimator = self.base_estimator_
+        X_transform = self.transform(X, domain)
+        return base_estimator.decision_function(X_transform)
+
+    @available_if(_estimator_has("predict_log_proba"))
+    def predict_log_proba(self, X, domain='target'):
+        check_is_fitted(self)
+        base_estimator = self.base_estimator_
+        X_transform = self.transform(X, domain)
+        return base_estimator.predict_log_proba(X_transform)
+
     def score(self, X, y, domain='target', sample_weight=None):
         base_estimator = self.base_estimator_
         X_transform = self.transform(X, domain)

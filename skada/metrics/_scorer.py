@@ -163,8 +163,8 @@ class PredictionEntropyScorer:
     def __call__(self, estimator, X, y):
         if not hasattr(estimator, "predict_proba"):
             raise AttributeError(
-                "The estimator passed should"
-                "have a 'predict_proba' method."
+                "The estimator passed should "
+                "have a 'predict_proba' method. "
                 "The estimator %r does not." % estimator
             )
         proba = estimator.predict_proba(self.X_test)
