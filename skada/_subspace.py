@@ -251,7 +251,11 @@ class TransferComponentAnalysis(BaseSubspaceEstimator):
 
         eigvals, eigvects = np.linalg.eigh(solution)
 
-        selected_components = np.argsort(np.abs(eigvals))[::-1][:self.n_components]
+        if self.n_components is None:
+            n_components = min(X.shape[0]+X_target.shape[0], X.shape[1])
+        else:
+            n_components = self.n_components
+        selected_components = np.argsort(np.abs(eigvals))[::-1][:n_components]
         self.eigvects_ = np.real(eigvects[:, selected_components])
         return self
 
