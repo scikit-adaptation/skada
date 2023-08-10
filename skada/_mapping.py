@@ -17,8 +17,8 @@ from ._utils import _estimate_covariance
 class BaseOTMapping(BaseDataAdaptEstimator):
     """Base class for all DA estimators implemented using OT mapping.
 
-    Each subclass has to implement `_create_transport_estimator` callback
-    using parameters saved in the constructor.
+    Each implementation has to provide `_create_transport_estimator` callback
+    to create OT object using parameters saved in the constructor.
     """
 
     def __init__(self, base_estimator):
