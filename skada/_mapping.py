@@ -19,6 +19,14 @@ class OTMapping(BaseDataAdaptEstimator):
     ----------
     base_estimator : estimator object
         The base estimator to fit on reweighted data.
+    metric : string, optional (default="sqeuclidean")
+        The ground metric for the Wasserstein problem
+    norm : string, optional (default=None)
+        If given, normalize the ground metric to avoid numerical errors that
+        can occur with large metric values.
+    max_iter : int, optional (default=100_000)
+        The maximum number of iterations before stopping OT algorithm if it
+        has not converged.
 
     Attributes
     ----------
@@ -36,8 +44,14 @@ class OTMapping(BaseDataAdaptEstimator):
     def __init__(
         self,
         base_estimator,
+        metric="sqeuclidean",
+        norm=None,
+        max_iter=100_000,
     ):
         super().__init__(base_estimator)
+        self.metric = metric
+        self.norm = norm
+        self.max_iter = max_iter
 
     def predict_adapt(self, X, y, X_target, y_target=None):
         """Predict adaptation (weights, sample or labels).
@@ -85,7 +99,12 @@ class OTMapping(BaseDataAdaptEstimator):
         self : object
             Returns self.
         """
-        self.ot_transport_ = clone(da.EMDTransport())
+        transport = da.EMDTransport(
+            metric = self.metric,
+            norm = self.norm,
+            max_iter = self.max_iter,
+        )
+        self.ot_transport_ = clone(transport)
         self.ot_transport_.fit(Xs=X, Xt=X_target)
         return self
 
@@ -99,6 +118,11 @@ class EntropicOTMapping(OTMapping):
         The base estimator to fit on reweighted data.
     reg_e : float, default=1
         Entropic regularization parameter.
+    metric : string, optional (default="sqeuclidean")
+        The ground metric for the Wasserstein problem.
+    norm : string, optional (default=None)
+        If given, normalize the ground metric to avoid numerical errors that
+        can occur with large metric values.
     max_iter : int, float, optional (default=1000)
         The minimum number of iteration before stopping the optimization
         of the Sinkhorn algorithm if it has not converged
@@ -123,11 +147,15 @@ class EntropicOTMapping(OTMapping):
         self,
         base_estimator,
         reg_e=1,
+        metric="sqeuclidean",
+        norm=None,
         max_iter=1000,
-        tol=10e-9
+        tol=10e-9,
     ):
         super().__init__(base_estimator)
         self.reg_e = reg_e
+        self.metric = metric
+        self.norm = norm
         self.max_iter = max_iter
         self.tol = tol
 
@@ -150,12 +178,14 @@ class EntropicOTMapping(OTMapping):
         self : object
             Returns self.
         """
-
-        self.ot_transport_ = clone(
-            da.SinkhornTransport(
-                reg_e=self.reg_e, max_iter=self.max_iter, tol=self.tol
-            )
+        transport = da.SinkhornTransport(
+            reg_e=self.reg_e,
+            metric=self.metric,
+            norm=self.norm,
+            max_iter=self.max_iter,
+            tol=self.tol,
         )
+        self.ot_transport_ = clone(transport)
         self.ot_transport_.fit(Xs=X, Xt=X_target)
         return self
 
@@ -171,10 +201,19 @@ class ClassRegularizerOTMapping(OTMapping):
         Entropic regularization parameter.
     reg_cl : float, default=0.1
         Class regularization parameter.
-    norm : tuple, default="lpl1"
+    norm : string, default="lpl1"
         Norm use for the regularizer of the class labels.
         If "lpl1", use the lp l1 norm.
         If "l1l2", use the l1 l2 norm.
+    metric : string, optional (default="sqeuclidean")
+        The ground metric for the Wasserstein problem
+    max_iter : int, float, optional (default=10)
+        The minimum number of iteration before stopping the optimization
+        algorithm if it has not converged
+    max_inner_iter : int, float, optional (default=200)
+        The number of iteration in the inner loop
+    tol : float, optional (default=10e-9)
+        Stop threshold on error (inner sinkhorn solver) (>0)
 
     Attributes
     ----------
@@ -195,12 +234,20 @@ class ClassRegularizerOTMapping(OTMapping):
         base_estimator,
         reg_e=1,
         reg_cl=0.1,
-        norm="lpl1"
+        norm="lpl1",
+        metric="sqeuclidean",
+        max_iter=10,
+        max_inner_iter=200,
+        tol=10e-9,
     ):
         super().__init__(base_estimator)
         self.reg_e = reg_e
         self.reg_cl = reg_cl
         self.norm = norm
+        self.metric = metric
+        self.max_iter = max_iter
+        self.max_inner_iter = max_inner_iter
+        self.tol = tol
 
     def fit_adapt(self, X, y, X_target, y_target=None):
         """Fit adaptation parameters.
@@ -221,18 +268,21 @@ class ClassRegularizerOTMapping(OTMapping):
         self : object
             Returns self.
         """
-
         assert self.norm in ["lpl1", "l1l2"], "Unknown norm"
 
         if self.norm == "lpl1":
-            self.ot_transport_ = clone(da.SinkhornLpl1Transport(
-                reg_e=self.reg_e, reg_cl=self.reg_cl
-            ))
+            transport_cls = da.SinkhornLpl1Transport
         elif self.norm == "l1l2":
-            self.ot_transport_ = clone(da.SinkhornL1l2Transport(
-                reg_e=self.reg_e, reg_cl=self.reg_cl
-            ))
-
+            transport_cls = da.SinkhornL1l2Transport
+        transport = transport_cls(
+            reg_e=self.reg_e,
+            reg_cl=self.reg_cl,
+            metric=self.metric,
+            max_iter=self.max_iter,
+            max_inner_iter=self.max_inner_iter,
+            tol=self.tol,
+        )
+        self.ot_transport_ = clone(transport)
         self.ot_transport_.fit(Xs=X, ys=y, Xt=X_target)
         return self
 
@@ -246,6 +296,8 @@ class LinearOTMapping(OTMapping):
         The base estimator to fit on reweighted data.
     reg : float, default=1e-08
         regularization added to the diagonals of covariances.
+    bias: boolean, optional (default=True)
+        estimate bias :math:`\mathbf{b}` else :math:`\mathbf{b} = 0`
 
     Attributes
     ----------
@@ -259,9 +311,11 @@ class LinearOTMapping(OTMapping):
         self,
         base_estimator,
         reg=1e-08,
+        bias=True,
     ):
         super().__init__(base_estimator)
         self.reg = reg
+        self.bias = bias
 
     def fit_adapt(self, X, y, X_target, y_target=None):
         """Fit adaptation parameters.
@@ -283,8 +337,8 @@ class LinearOTMapping(OTMapping):
             Returns self.
         """
 
-        self.ot_transport_ = clone(da.LinearTransport(reg=self.reg))
-
+        transport = da.LinearTransport(reg=self.reg, bias=self.bias)
+        self.ot_transport_ = clone(transport)
         self.ot_transport_.fit(Xs=X, ys=y, Xt=X_target)
         return self
 
