@@ -12,7 +12,7 @@ from .base import BaseDataAdaptEstimator, clone
 from ._utils import _estimate_covariance
 
 
-class OTmapping(BaseDataAdaptEstimator):
+class OTMapping(BaseDataAdaptEstimator):
     """Domain Adaptation Using Optimal Transport.
 
     Parameters
@@ -90,7 +90,7 @@ class OTmapping(BaseDataAdaptEstimator):
         return self
 
 
-class EntropicOTmapping(OTmapping):
+class EntropicOTMapping(OTMapping):
     """Domain Adaptation Using Optimal Transport.
 
     Parameters
@@ -160,7 +160,7 @@ class EntropicOTmapping(OTmapping):
         return self
 
 
-class ClassRegularizerOTmapping(OTmapping):
+class ClassRegularizerOTMapping(OTMapping):
     """Domain Adaptation Using Optimal Transport.
 
     Parameters
@@ -237,7 +237,7 @@ class ClassRegularizerOTmapping(OTmapping):
         return self
 
 
-class LinearOTmapping(OTmapping):
+class LinearOTMapping(OTMapping):
     """Domain Adaptation Using Optimal Transport.
 
     Parameters

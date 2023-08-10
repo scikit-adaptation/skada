@@ -13,8 +13,8 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import ShuffleSplit
 from sklearn.inspection import DecisionBoundaryDisplay
 
+from skada import EntropicOTMapping
 from skada.datasets import make_shifted_datasets
-from skada import EntropicOTmapping
 from skada.metrics import ImportanceWeightedScorer
 
 import warnings
@@ -29,7 +29,7 @@ X, y, X_target, y_target = make_shifted_datasets(
     noise=0.4,
     random_state=RANDOM_SEED,
 )
-estimator = EntropicOTmapping(base_estimator=SVC())
+estimator = EntropicOTMapping(base_estimator=SVC())
 
 reg_e_list = [0.01, 0.05, 0.1]
 cv = ShuffleSplit(n_splits=5, test_size=0.3, random_state=0)
