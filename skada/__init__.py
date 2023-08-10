@@ -16,7 +16,7 @@ from ._mapping import (
     OTMapping,
 )
 from ._reweight import (
-    DiscriminatorReweightDensity, 
+    DiscriminatorReweightDensity,
     GaussianReweightDensity,
     KLIEP,
     ReweightDensity,
