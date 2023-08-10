@@ -73,7 +73,6 @@ class SubspaceAlignment(BaseSubspaceEstimator):
             No weights are returned here.
         """
         weights = None
-        self.M_ = np.dot(self.pca_source_.components_, self.pca_target_.components_.T)
         X_ = np.dot(self.pca_source_.transform(X), self.M_)
         return X_, y, weights
 
@@ -102,6 +101,7 @@ class SubspaceAlignment(BaseSubspaceEstimator):
             n_components = self.n_components
         self.pca_source_ = PCA(n_components).fit(X)
         self.pca_target_ = PCA(n_components).fit(X_target)
+        self.M_ = np.dot(self.pca_source_.components_, self.pca_target_.components_.T)
         return self
 
     def transform(self, X, domain='target'):
