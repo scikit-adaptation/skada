@@ -4,6 +4,8 @@
 #
 # License: BSD 3-Clause
 
+from abc import abstractmethod
+
 import numpy as np
 
 from ot import da
@@ -12,31 +14,14 @@ from .base import BaseDataAdaptEstimator, clone
 from ._utils import _estimate_covariance
 
 
-class OTmapping(BaseDataAdaptEstimator):
-    """Domain Adaptation Using Optimal Transport.
+class BaseOTMapping(BaseDataAdaptEstimator):
+    """Base class for all DA estimators implemented using OT mapping.
 
-    Parameters
-    ----------
-    base_estimator : estimator object
-        The base estimator to fit on reweighted data.
-
-    Attributes
-    ----------
-    ot_transport_ : object
-        The OT object based on Earth Mover's distance
-        fitted on the source and target data.
-
-    References
-    ----------
-    .. [1] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
-           Optimal Transport for Domain Adaptation, in IEEE
-           Transactions on Pattern Analysis and Machine Intelligence
+    Each implementation has to provide `_create_transport_estimator` callback
+    to create OT object using parameters saved in the constructor.
     """
 
-    def __init__(
-        self,
-        base_estimator,
-    ):
+    def __init__(self, base_estimator):
         super().__init__(base_estimator)
 
     def predict_adapt(self, X, y, X_target, y_target=None):
@@ -85,12 +70,66 @@ class OTmapping(BaseDataAdaptEstimator):
         self : object
             Returns self.
         """
-        self.ot_transport_ = clone(da.EMDTransport())
-        self.ot_transport_.fit(Xs=X, Xt=X_target)
+        transport = self._create_transport_estimator()
+        self.ot_transport_ = clone(transport)
+        self.ot_transport_.fit(Xs=X, ys=y, Xt=X_target, yt=y_target)
         return self
 
+    @abstractmethod
+    def _create_transport_estimator(self):
+        pass
 
-class EntropicOTmapping(OTmapping):
+
+class OTMapping(BaseOTMapping):
+    """Domain Adaptation Using Optimal Transport.
+
+    Parameters
+    ----------
+    base_estimator : estimator object
+        The base estimator to fit on reweighted data.
+    metric : string, optional (default="sqeuclidean")
+        The ground metric for the Wasserstein problem
+    norm : string, optional (default=None)
+        If given, normalize the ground metric to avoid numerical errors that
+        can occur with large metric values.
+    max_iter : int, optional (default=100_000)
+        The maximum number of iterations before stopping OT algorithm if it
+        has not converged.
+
+    Attributes
+    ----------
+    ot_transport_ : object
+        The OT object based on Earth Mover's distance
+        fitted on the source and target data.
+
+    References
+    ----------
+    .. [1] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
+           Optimal Transport for Domain Adaptation, in IEEE
+           Transactions on Pattern Analysis and Machine Intelligence
+    """
+
+    def __init__(
+        self,
+        base_estimator,
+        metric="sqeuclidean",
+        norm=None,
+        max_iter=100_000,
+    ):
+        super().__init__(base_estimator)
+        self.metric = metric
+        self.norm = norm
+        self.max_iter = max_iter
+
+    def _create_transport_estimator(self):
+        return da.EMDTransport(
+            metric=self.metric,
+            norm=self.norm,
+            max_iter=self.max_iter,
+        )
+
+
+class EntropicOTMapping(BaseOTMapping):
     """Domain Adaptation Using Optimal Transport.
 
     Parameters
@@ -99,6 +138,11 @@ class EntropicOTmapping(OTmapping):
         The base estimator to fit on reweighted data.
     reg_e : float, default=1
         Entropic regularization parameter.
+    metric : string, optional (default="sqeuclidean")
+        The ground metric for the Wasserstein problem.
+    norm : string, optional (default=None)
+        If given, normalize the ground metric to avoid numerical errors that
+        can occur with large metric values.
     max_iter : int, float, optional (default=1000)
         The minimum number of iteration before stopping the optimization
         of the Sinkhorn algorithm if it has not converged
@@ -123,44 +167,29 @@ class EntropicOTmapping(OTmapping):
         self,
         base_estimator,
         reg_e=1,
+        metric="sqeuclidean",
+        norm=None,
         max_iter=1000,
-        tol=10e-9
+        tol=10e-9,
     ):
         super().__init__(base_estimator)
         self.reg_e = reg_e
+        self.metric = metric
+        self.norm = norm
         self.max_iter = max_iter
         self.tol = tol
 
-    def fit_adapt(self, X, y, X_target, y_target=None):
-        """Fit adaptation parameters.
-
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            The source data.
-        y : array-like, shape (n_samples,)
-            The source labels.
-        X_target : array-like, shape (n_samples, n_features)
-            The target data.
-        y_target : array-like, shape (n_samples,), optional
-            The target labels.
-
-        Returns
-        -------
-        self : object
-            Returns self.
-        """
-
-        self.ot_transport_ = clone(
-            da.SinkhornTransport(
-                reg_e=self.reg_e, max_iter=self.max_iter, tol=self.tol
-            )
+    def _create_transport_estimator(self):
+        return da.SinkhornTransport(
+            reg_e=self.reg_e,
+            metric=self.metric,
+            norm=self.norm,
+            max_iter=self.max_iter,
+            tol=self.tol,
         )
-        self.ot_transport_.fit(Xs=X, Xt=X_target)
-        return self
 
 
-class ClassRegularizerOTmapping(OTmapping):
+class ClassRegularizerOTMapping(BaseOTMapping):
     """Domain Adaptation Using Optimal Transport.
 
     Parameters
@@ -171,10 +200,19 @@ class ClassRegularizerOTmapping(OTmapping):
         Entropic regularization parameter.
     reg_cl : float, default=0.1
         Class regularization parameter.
-    norm : tuple, default="lpl1"
+    norm : string, default="lpl1"
         Norm use for the regularizer of the class labels.
         If "lpl1", use the lp l1 norm.
         If "l1l2", use the l1 l2 norm.
+    metric : string, optional (default="sqeuclidean")
+        The ground metric for the Wasserstein problem
+    max_iter : int, float, optional (default=10)
+        The minimum number of iteration before stopping the optimization
+        algorithm if it has not converged
+    max_inner_iter : int, float, optional (default=200)
+        The number of iteration in the inner loop
+    tol : float, optional (default=10e-9)
+        Stop threshold on error (inner sinkhorn solver) (>0)
 
     Attributes
     ----------
@@ -195,57 +233,49 @@ class ClassRegularizerOTmapping(OTmapping):
         base_estimator,
         reg_e=1,
         reg_cl=0.1,
-        norm="lpl1"
+        norm="lpl1",
+        metric="sqeuclidean",
+        max_iter=10,
+        max_inner_iter=200,
+        tol=10e-9,
     ):
         super().__init__(base_estimator)
         self.reg_e = reg_e
         self.reg_cl = reg_cl
         self.norm = norm
+        self.metric = metric
+        self.max_iter = max_iter
+        self.max_inner_iter = max_inner_iter
+        self.tol = tol
 
-    def fit_adapt(self, X, y, X_target, y_target=None):
-        """Fit adaptation parameters.
-
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            The source data.
-        y : array-like, shape (n_samples,)
-            The source labels.
-        X_target : array-like, shape (n_samples, n_features)
-            The target data.
-        y_target : array-like, shape (n_samples,), optional
-            The target labels.
-
-        Returns
-        -------
-        self : object
-            Returns self.
-        """
-
+    def _create_transport_estimator(self):
         assert self.norm in ["lpl1", "l1l2"], "Unknown norm"
 
         if self.norm == "lpl1":
-            self.ot_transport_ = clone(da.SinkhornLpl1Transport(
-                reg_e=self.reg_e, reg_cl=self.reg_cl
-            ))
+            transport_cls = da.SinkhornLpl1Transport
         elif self.norm == "l1l2":
-            self.ot_transport_ = clone(da.SinkhornL1l2Transport(
-                reg_e=self.reg_e, reg_cl=self.reg_cl
-            ))
+            transport_cls = da.SinkhornL1l2Transport
+        return transport_cls(
+            reg_e=self.reg_e,
+            reg_cl=self.reg_cl,
+            metric=self.metric,
+            max_iter=self.max_iter,
+            max_inner_iter=self.max_inner_iter,
+            tol=self.tol,
+        )
 
-        self.ot_transport_.fit(Xs=X, ys=y, Xt=X_target)
-        return self
 
-
-class LinearOTmapping(OTmapping):
+class LinearOTMapping(BaseOTMapping):
     """Domain Adaptation Using Optimal Transport.
 
     Parameters
     ----------
     base_estimator : estimator object
         The base estimator to fit on reweighted data.
-    reg : float, default=1e-08
+    reg : float, (default=1e-08)
         regularization added to the diagonals of covariances.
+    bias: boolean, optional (default=True)
+        estimate bias.
 
     Attributes
     ----------
@@ -259,34 +289,14 @@ class LinearOTmapping(OTmapping):
         self,
         base_estimator,
         reg=1e-08,
+        bias=True,
     ):
         super().__init__(base_estimator)
         self.reg = reg
+        self.bias = bias
 
-    def fit_adapt(self, X, y, X_target, y_target=None):
-        """Fit adaptation parameters.
-
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            The source data.
-        y : array-like, shape (n_samples,)
-            The source labels.
-        X_target : array-like, shape (n_samples, n_features)
-            The target data.
-        y_target : array-like, shape (n_samples,), optional
-            The target labels.
-
-        Returns
-        -------
-        self : object
-            Returns self.
-        """
-
-        self.ot_transport_ = clone(da.LinearTransport(reg=self.reg))
-
-        self.ot_transport_.fit(Xs=X, ys=y, Xt=X_target)
-        return self
+    def _create_transport_estimator(self):
+        return da.LinearTransport(reg=self.reg, bias=self.bias)
 
 
 def _sqrtm(C):

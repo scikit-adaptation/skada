@@ -22,8 +22,12 @@ from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.svm import SVC
 
 from skada.datasets import make_shifted_datasets
-from skada import (OTmapping, EntropicOTmapping, ClassRegularizerOTmapping,
-                   LinearOTmapping)
+from skada import (
+    OTMapping,
+    EntropicOTMapping,
+    ClassRegularizerOTMapping,
+    LinearOTMapping,
+)
 
 
 # %%
@@ -86,7 +90,7 @@ lims = plt.axis()
 # Optimal Transport Domain Adaptation
 # -----------------------------------
 
-clf_otda = OTmapping(base_estimator=SVC(kernel='rbf', C=1))
+clf_otda = OTMapping(base_estimator=SVC(kernel='rbf', C=1))
 clf_otda.fit(X_source, y_source, X_target=X_target)
 
 # Compute acuracy on source and target
@@ -166,14 +170,14 @@ plt.title(label="Step 3: train on adapted source")
 # illustrate the different methods available in SKADA.
 
 # Sinkhorn OT solver
-clf_otda_sinkhorn = EntropicOTmapping(base_estimator=SVC(kernel='rbf', C=1), reg_e=1)
+clf_otda_sinkhorn = EntropicOTMapping(base_estimator=SVC(kernel='rbf', C=1), reg_e=1)
 clf_otda_sinkhorn.fit(X_source, y_source, X_target=X_target)
 ACC_sinkhorn = clf_otda_sinkhorn.score(X_target, y_target)
 X_source_adapted_sinkhorn = clf_otda_sinkhorn.predict_adapt(
     X_source, y_source, X_target)[0]
 
 # Sinkhorn OT solver with class regularization
-clf_otds_classreg = ClassRegularizerOTmapping(
+clf_otds_classreg = ClassRegularizerOTMapping(
     base_estimator=SVC(kernel='rbf', C=1), reg_e=0.2, reg_cl=1)
 clf_otds_classreg.fit(X_source, y_source, X_target=X_target)
 ACC_classreg = clf_otds_classreg.score(X_target, y_target)
@@ -181,7 +185,7 @@ X_source_adapted_classreg = clf_otds_classreg.predict_adapt(
     X_source, y_source, X_target)[0]
 
 # Linear OT solver
-clf_otda_linear = LinearOTmapping(base_estimator=SVC(kernel='rbf', C=1))
+clf_otda_linear = LinearOTMapping(base_estimator=SVC(kernel='rbf', C=1))
 clf_otda_linear.fit(X_source, y_source, X_target=X_target)
 ACC_linear = clf_otda_linear.score(X_target, y_target)
 X_source_adapted_linear = clf_otda_linear.predict_adapt(X_source, y_source, X_target)[0]

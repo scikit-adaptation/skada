@@ -2,7 +2,10 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 
 from skada import (
-    OTmapping, EntropicOTmapping, ClassRegularizerOTmapping, LinearOTmapping
+    ClassRegularizerOTMapping,
+    EntropicOTMapping,
+    LinearOTMapping,
+    OTMapping,
 )
 from skada import CORAL
 
@@ -11,11 +14,11 @@ import pytest
 
 @pytest.mark.parametrize(
     "estimator", [
-        OTmapping(base_estimator=LogisticRegression()),
-        EntropicOTmapping(base_estimator=LogisticRegression()),
-        ClassRegularizerOTmapping(base_estimator=LogisticRegression(), norm="lpl1"),
-        ClassRegularizerOTmapping(base_estimator=LogisticRegression(), norm="l1l2"),
-        LinearOTmapping(base_estimator=LogisticRegression()),
+        OTMapping(base_estimator=LogisticRegression()),
+        EntropicOTMapping(base_estimator=LogisticRegression()),
+        ClassRegularizerOTMapping(base_estimator=LogisticRegression(), norm="lpl1"),
+        ClassRegularizerOTMapping(base_estimator=LogisticRegression(), norm="l1l2"),
+        LinearOTMapping(base_estimator=LogisticRegression()),
         CORAL(base_estimator=LogisticRegression()),
         pytest.param(CORAL(base_estimator=LogisticRegression(), reg=None),
                      marks=pytest.mark.xfail(reason='Fails without regularization')),
