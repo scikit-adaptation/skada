@@ -8,6 +8,7 @@ import numpy as np
 
 from sklearn.decomposition import PCA
 from sklearn.metrics.pairwise import pairwise_kernels
+from sklearn.utils import check_random_state
 
 from .base import BaseSubspaceEstimator
 
@@ -26,6 +27,9 @@ class SubspaceAlignment(BaseSubspaceEstimator):
         If n_components is not set all components are kept::
 
             n_components == min(n_samples, n_features)
+    random_state : int, RandomState instance or None, default=None
+        Determines random number generation for dataset creation. Pass an int
+        for reproducible output across multiple function calls.
 
     Attributes
     ----------
@@ -45,9 +49,11 @@ class SubspaceAlignment(BaseSubspaceEstimator):
         self,
         base_estimator,
         n_components=None,
+        random_state=None,
     ):
         super().__init__(base_estimator)
         self.n_components = n_components
+        self.random_state = random_state
 
     def predict_adapt(self, X, y, X_target, y_target=None):
         """Predict adaptation (weights, sample or labels).
@@ -99,8 +105,12 @@ class SubspaceAlignment(BaseSubspaceEstimator):
             n_components = min(X.shape)
         else:
             n_components = self.n_components
-        self.pca_source_ = PCA(n_components).fit(X)
-        self.pca_target_ = PCA(n_components).fit(X_target)
+        self.random_state_ = check_random_state(self.random_state)
+        self.pca_source_ = PCA(n_components, random_state=self.random_state_).fit(X)
+        self.pca_target_ = PCA(
+            n_components,
+            random_state=self.random_state_
+        ).fit(X_target)
         self.M_ = np.dot(self.pca_source_.components_, self.pca_target_.components_.T)
         return self
 
