@@ -9,6 +9,9 @@ from sklearn.utils import Bunch
 _DEFAULT_HOME_FOLDER_KEY = "SKADA_DATA_FOLDER"
 _DEFAULT_HOME_FOLDER = "~/skada_datasets"
 
+# xxx(okachaiev): if we use -1 as a detector for targets,
+# we should not allow non-labeled dataset or... we need
+# to come up with a way to pack them properly
 DomainDataType = Union[
     # (name, X, y)
     Tuple[str, np.ndarray, np.ndarray],
@@ -19,7 +22,7 @@ DomainDataType = Union[
 ]
 
 
-def get_data_home(data_home: Optional[Union[str, os.PathLike]] = None) -> str:
+def get_data_home(data_home: Union[str, os.PathLike, None]) -> str:
     """Return the path of the `skada` data folder.
 
     This folder is used by some large dataset loaders to avoid downloading the
@@ -52,121 +55,6 @@ def get_data_home(data_home: Optional[Union[str, os.PathLike]] = None) -> str:
     return data_home
 
 
-def _make_da_dataset(
-    sources: List[DomainDataType],
-    targets: List[DomainDataType],
-    return_X_y: bool = True,
-    train: bool = False,
-) -> Union[Bunch, Tuple[np.ndarray, np.ndarray, np.ndarray]]:
-    """Takes all domain datasets and packs them into a single
-    domain-aware representation compatible with DA estimators.
-
-    Parameters
-    ----------
-    sources : list
-        Data samples and labels associated with the source domain.
-        Each item of the list should be tuple of (X, y). Optionally,
-        the name for the source could be provided (source_name, X, y).
-        Otherwise it will be generated automatically.
-    targets : list
-        Data samples and labels (optional) associated with the
-        target domain. Each item of the list should be tuple of (X, y).
-        Optionally, the name for the target could be provided:
-        (target_name, X, y). Otherwise it will be generated automatically.
-    return_X_y : bool, default=True
-        When set to True, returns a tuple (X, y, sample_domain). Otherwise
-        returns :class:`~sklearn.utils.Bunch` object with the structure
-        described below.
-    train: bool, default=False
-        When set to True, masks labels for target domains with -1, so
-        they are not available at train time.
-
-    Returns
-    -------
-    data : :class:`~sklearn.utils.Bunch`
-        Dictionary-like object, with the following attributes.
-
-        data: ndarray
-            Samples from all sources and all targets given.
-        target : ndarray
-            Target labels from all sources and all targets.
-        sample_domain : ndarray)
-            The integer label for domain the sample was taken from.
-            By convention, source domains have non-negative labels,
-            and target domain label is always < 0.
-        domain_names : dict
-            The names of domains and associated domain labels.
-
-    (X, y, sample_domain) : tuple if `return_X_y=True`
-        Tuple of (data, target, sample_domain), see the description above.
-    """
-    source_names, target_names = [], []
-    Xs, ys, sample_domains = [], [], []
-    for source in sources:
-        if len(source) == 1:
-            X, = source
-            y = -np.ones_like(X)
-            source_name = None
-        elif len(source) == 2:
-            X, y = source
-            source_name = None
-        elif len(source) == 3:
-            source_name, X, y = source
-        else:
-            raise ValueError("Invalid definition for domain data")
-        if source_name is None:
-            source_name = f"source_{len(source_names)+1}"
-        assert X.shape[0] == y.shape[0]
-        assert source_name not in source_names
-        source_names.append(source_name)
-        # xxx(okachaiev): this is horribly inefficient, re-write when API is fixed
-        Xs.append(X)
-        ys.append(y)
-        sample_domains.append(np.ones_like(y)*(len(source_names)-1))
-    # xxx(okachaiev): code duplication, re-write when API is fixed
-    for target in targets:
-        if len(target) == 1:
-            X, = target
-            y = -np.ones_like(X)
-            target_name = None
-        elif len(target) == 2:
-            X, y = target
-            target_name = None
-        elif len(target) == 3:
-            target_name, X, y = target
-        else:
-            raise ValueError("Invalid definition for domain data")
-        if train:
-            # always mask target labels for training dataset
-            y = -np.ones_like(X)
-        if target_name is None:
-            target_name = f"target_{len(target_names)+1}"
-        assert X.shape[0] == y.shape[0]
-        assert target_name not in target_names
-        target_names.append(target_name)
-        # xxx(okachaiev): this is horribly inefficient, rewrite when API is fixed
-        Xs.append(X)
-        ys.append(y)
-        sample_domains.append(-len(target_names) * np.ones_like(y))
-
-    domain_labels = {}
-    for idx, source in enumerate(source_names):
-        domain_labels[source] = 1+idx
-    for idx, target in enumerate(target_names):
-        domain_labels[target] = -1-idx
-
-    # xxx(okachaiev): so far this only works if source and target has the same size
-    data = np.concatenate(Xs)
-    target = np.concatenate(ys)
-    sample_domain = np.concatenate(sample_domains)
-    return (data, target, sample_domain) if return_X_y else Bunch(
-        data=data,
-        target=target,
-        sample_domain=sample_domain,
-        domain_names=domain_labels,
-    )
-
-
 class DomainAwareDataset:
 
     def __init__(
@@ -192,7 +80,7 @@ class DomainAwareDataset:
 
     def get_domain(self, domain_name: str) -> Tuple[np.ndarray, Optional[np.ndarray]]:
         domain_id = self.domain_names_[domain_name]
-        return self.domains_[domain_id]
+        return self.domains_[domain_id-1]
 
     def select_domain(
         self,
@@ -246,13 +134,54 @@ class DomainAwareDataset:
         (X, y, sample_domain) : tuple if `return_X_y=True`
             Tuple of (data, target, sample_domain), see the description above.
         """
-        # xxx(okachaiev): validate there's no intersections
-        return _make_da_dataset(
-            sources=[(domain, *self.get_domain(domain)) for domain in as_sources],
-            targets=[(domain, *self.get_domain(domain)) for domain in as_targets],
-            return_X_y=return_X_y,
-            train=train,
+        Xs, ys, sample_domains = [], [], []
+        domain_labels = {}
+        for domain_name in as_sources:
+            domain_id = self.domain_names_[domain_name]
+            source = self.get_domain(domain_name)
+            if len(source) == 1:
+                X, = source
+                y = -np.ones_like(X)
+            elif len(source) == 2:
+                X, y = source
+            else:
+                raise ValueError("Invalid definition for domain data")
+            # xxx(okachaiev): this is horribly inefficient, re-write when API is fixed
+            Xs.append(X)
+            ys.append(y)
+            sample_domains.append(np.ones_like(y)*domain_id)
+            domain_labels[domain_name] = domain_id
+        # xxx(okachaiev): code duplication, re-write when API is fixed
+        for domain_name in as_targets:
+            domain_id = self.domain_names_[domain_name]
+            target = self.get_domain(domain_name)
+            if len(target) == 1:
+                X, = target
+                y = -np.ones_like(X)
+            elif len(target) == 2:
+                X, y = target
+            else:
+                raise ValueError("Invalid definition for domain data")
+            if train:
+                # always mask target labels for training dataset
+                y = -np.ones_like(X)
+            # xxx(okachaiev): this is horribly inefficient, rewrite when API is fixed
+            Xs.append(X)
+            ys.append(y)
+            sample_domains.append(-1 * domain_id * np.ones_like(y))
+            domain_labels[domain_name] = -1 * domain_id
+
+        # xxx(okachaiev): so far this only works if source and target has the same size
+        data = np.concatenate(Xs)
+        target = np.concatenate(ys)
+        sample_domain = np.concatenate(sample_domains)
+        return (data, target, sample_domain) if return_X_y else Bunch(
+            data=data,
+            target=target,
+            sample_domain=sample_domain,
+            domain_names=domain_labels,
         )
+
 
     def pack_for_train(
         self,
@@ -265,9 +194,9 @@ class DomainAwareDataset:
         Masks labels for target domains with -1 so they are not available
         at training time.
         """
-        return _make_da_dataset(
-            sources=[(domain, *self.get_domain(domain)) for domain in as_sources],
-            targets=[(domain, *self.get_domain(domain)) for domain in as_targets],
+        return self.pack(
+            as_sources=as_sources,
+            as_targets=as_targets,
             return_X_y=return_X_y,
             train=True,
         )
@@ -278,9 +207,9 @@ class DomainAwareDataset:
         as_targets: List[str],
         return_X_y: bool = True,
     ):
-        return _make_da_dataset(
-            sources=[(domain, *self.get_domain(domain)) for domain in as_sources],
-            targets=[(domain, *self.get_domain(domain)) for domain in as_targets],
+        return self.pack(
+            as_sources=as_sources,
+            as_targets=as_targets,
             return_X_y=return_X_y,
             train=False,
         )
@@ -294,5 +223,5 @@ def select_domain(
 ) -> np.ndarray:
     if isinstance(domains, str):
         domains = [domains]
-    # xxx(okachaiev: this version is not the most efficient)
+    # xxx(okachaiev): this version is not the most efficient
     return reduce(np.logical_or, (sample_domain == domain_names[domain] for domain in domains))

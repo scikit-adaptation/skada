@@ -377,7 +377,7 @@ def _fetch_office31_all(
             random_state=random_state,
             return_X_y=True,
         )
-        dataset.add_domain(X, y, domain_name=str(domain))
+        dataset.add_domain(X, y, domain_name=domain.value)
     return dataset
 
 
