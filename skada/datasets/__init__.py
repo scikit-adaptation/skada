@@ -11,7 +11,9 @@ from ._office import (
     Office31CategoriesPreset,
     Office31Domain,
     fetch_office31_decaf,
+    fetch_office31_decaf_all,
     fetch_office31_surf,
+    fetch_office31_surf_all,
 )
 from ._samples_generator import (
     make_shifted_blobs,
@@ -26,7 +28,9 @@ __all__ = [
     'Office31Domain',
     'get_data_home',
     'fetch_office31_decaf',
+    'fetch_office31_decaf_all',
     'fetch_office31_surf',
+    'fetch_office31_surf_all',
     'make_shifted_blobs',
     'make_shifted_datasets',
     'make_dataset_from_moons_distribution',

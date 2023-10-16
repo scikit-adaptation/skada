@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 import tarfile
 import time
-from typing import List, Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union
 import warnings
 
 import numpy as np
@@ -14,7 +14,7 @@ from sklearn.datasets import load_files
 from sklearn.datasets._base import RemoteFileMetadata, _fetch_remote
 from sklearn.utils import Bunch
 
-from ._base import get_data_home
+from ._base import get_data_home, DomainAwareDataset
 from .._utils import _logger
 
 
@@ -87,7 +87,6 @@ class Office31CategoriesPreset(Enum):
     CALTECH256 = "caltech256"
 
 
-# xxx(okachaiev): curious if we need to cache it
 def fetch_office31_surf(
     domain: Union[str, Office31Domain],
     categories: Union[None, Office31CategoriesPreset, List[str]] = None,
@@ -135,16 +134,16 @@ def fetch_office31_surf(
         all skada data is stored in '~/skada_datasets' subfolders.
         See :py:func:`skada.datasets.get_home_folder` for more information.
 
+    download_if_missing : bool, default=True
+        If False, raise an OSError if the data is not locally available
+        instead of trying to download the data from the source site.
+
     shuffle : bool, default=False
         If True the order of the dataset is shuffled.
 
     random_state : int, RandomState instance or None, default=0
         Determines random number generation for dataset shuffling. Pass an int
         for reproducible output across multiple function calls.
-
-    download_if_missing : bool, default=True
-        If False, raise an OSError if the data is not locally available
-        instead of trying to download the data from the source site.
 
     return_X_y : bool, default=False
         If True, returns `(data, target)` instead of a :class:`~sklearn.utils.Bunch`
@@ -174,6 +173,53 @@ def fetch_office31_surf(
         shuffle=shuffle,
         random_state=random_state,
         return_X_y=return_X_y
+    )
+
+
+def fetch_office31_surf_all(
+    categories: Union[None, Office31CategoriesPreset, List[str]] = None,
+    data_home: Union[None, str, os.PathLike] = None,
+    download_if_missing: bool = True,
+    shuffle: bool = False,
+    random_state: Union[None, int, np.random.RandomState] = None,
+) -> DomainAwareDataset:
+    """Load all domains for Office-31 SURF dataset.
+
+    Parameters
+    ----------
+    categories : list or Office31CategoriesPreset instance, default=None
+        Specify which categories to load. By default loads all 31 categories
+        from the datasets. Commonly used set of 10 categories, so-called 'Caltech-256',
+        could be loaded by passing :class:`Office31CategoriesPreset.CALTECH256` value.
+
+    data_home : str or path-like, default=None
+        Specify another download and cache folder for the datasets. By default
+        all skada data is stored in '~/skada_datasets' subfolders.
+        See :py:func:`skada.datasets.get_home_folder` for more information.
+
+    download_if_missing : bool, default=True
+        If False, raise an OSError if the data is not locally available
+        instead of trying to download the data from the source site.
+
+    shuffle : bool, default=False
+        If True the order of the dataset is shuffled.
+
+    random_state : int, RandomState instance or None, default=0
+        Determines random number generation for dataset shuffling. Pass an int
+        for reproducible output across multiple function calls.
+
+    Returns
+    -------
+    DomainAwareDataset : :class:`~skada.datasets.DomainAwareDataset`
+        Container carrying all dataset domains.
+    """
+    return _fetch_office31_all(
+        fetch_office31_surf,
+        categories=categories,
+        data_home=data_home,
+        download_if_missing=download_if_missing,
+        shuffle=shuffle,
+        random_state=random_state,
     )
 
 
@@ -223,16 +269,16 @@ def fetch_office31_decaf(
         all skada data is stored in '~/skada_datasets' subfolders.
         See :py:func:`skada.datasets.get_home_folder` for more information.
 
+    download_if_missing : bool, default=True
+        If False, raise an OSError if the data is not locally available
+        instead of trying to download the data from the source site.
+
     shuffle : bool, default=False
         If True the order of the dataset is shuffled.
 
     random_state : int, RandomState instance or None, default=0
         Determines random number generation for dataset shuffling. Pass an int
         for reproducible output across multiple function calls.
-
-    download_if_missing : bool, default=True
-        If False, raise an OSError if the data is not locally available
-        instead of trying to download the data from the source site.
 
     return_X_y : bool, default=False
         If True, returns `(data, target)` instead of a :class:`~sklearn.utils.Bunch`
@@ -263,6 +309,76 @@ def fetch_office31_decaf(
         random_state=random_state,
         return_X_y=return_X_y
     )
+
+
+def fetch_office31_decaf_all(
+    categories: Union[None, Office31CategoriesPreset, List[str]] = None,
+    data_home: Union[None, str, os.PathLike] = None,
+    download_if_missing: bool = True,
+    shuffle: bool = False,
+    random_state: Union[None, int, np.random.RandomState] = None,
+) -> DomainAwareDataset:
+    """Load all domains for the Office-31 DeCAF dataset.
+
+    Parameters
+    ----------
+    categories : list or Office31CategoriesPreset instance, default=None
+        Specify which categories to load. By default load all 31 categories from
+        the datasets. Commonly used set of 10 categories, so-called 'Caltech-256',
+        could be loaded by passing :class:`Office31CategoriesPreset.CALTECH256`.
+
+    data_home : str or path-like, default=None
+        Specify another download and cache folder for the datasets. By default
+        all skada data is stored in '~/skada_datasets' subfolders.
+        See :py:func:`skada.datasets.get_home_folder` for more information.
+
+    download_if_missing : bool, default=True
+        If False, raise an OSError if the data is not locally available
+        instead of trying to download the data from the source site.
+
+    shuffle : bool, default=False
+        If True the order of the dataset is shuffled.
+
+    random_state : int, RandomState instance or None, default=0
+        Determines random number generation for dataset shuffling. Pass an int
+        for reproducible output across multiple function calls.
+
+    Returns
+    -------
+    DomainAwareDataset : :class:`~skada.datasets.DomainAwareDataset`
+        Container carrying all dataset domains.
+    """
+    return _fetch_office31_all(
+        fetch_office31_decaf,
+        categories=categories,
+        data_home=data_home,
+        download_if_missing=download_if_missing,
+        shuffle=shuffle,
+        random_state=random_state,
+    )
+
+
+def _fetch_office31_all(
+    loader_fn: Callable,
+    categories: Union[None, Office31CategoriesPreset, List[str]] = None,
+    data_home: Union[None, str, os.PathLike] = None,
+    download_if_missing: bool = True,
+    shuffle: bool = False,
+    random_state: Union[None, int, np.random.RandomState] = None,
+) -> DomainAwareDataset:
+    dataset = DomainAwareDataset()
+    for domain in Office31Domain:
+        X, y = loader_fn(
+            domain,
+            categories=categories,
+            data_home=data_home,
+            download_if_missing=download_if_missing,
+            shuffle=shuffle,
+            random_state=random_state,
+            return_X_y=True,
+        )
+        dataset.add_domain(X, y, domain_name=str(domain))
+    return dataset
 
 
 def _fetch_office31(
