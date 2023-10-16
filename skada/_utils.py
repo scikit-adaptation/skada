@@ -1,3 +1,4 @@
+import logging
 from numbers import Real
 
 import numpy as np
@@ -20,3 +21,7 @@ def _estimate_covariance(X, shrinkage):
     elif isinstance(shrinkage, Real):
         s = shrunk_covariance(empirical_covariance(X), shrinkage)
     return s
+
+
+_logger = logging.getLogger('skada')
+_logger.setLevel(logging.DEBUG)

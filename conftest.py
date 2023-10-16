@@ -23,3 +23,9 @@ def tmp_da_dataset():
     )
 
     return X, y, X_target, y_target
+
+
+@pytest.fixture(scope="session")
+def tmp_folder(tmpdir_factory):
+    folder = tmpdir_factory.mktemp("skada_datasets")
+    return str(folder)
