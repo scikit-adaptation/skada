@@ -32,7 +32,6 @@ FileLoaderSpec = namedtuple(
     ]
 )
 
-
 _SURF_LOADER = FileLoaderSpec(
     dataset_dir="domain_adaptation_features",
     extract_root=True,
