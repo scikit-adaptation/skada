@@ -62,9 +62,17 @@ class DomainAwareDataset:
         # xxx(okachaiev): not sure if dictionary is a good format :thinking:
         domains: Union[List[DomainDataType], Dict[str, DomainDataType], None] = None
     ):
-        self.domains_ = domains or []
-        # xxx(okachaiev): fill this in if domains are given
+        self.domains_ = []
         self.domain_names_ = {}
+        # xxx(okachaiev): there should be a simpler way for adding those
+        if domains is not None:
+            for d in domains:
+                if len(d) == 2:
+                    X, y = d
+                    domain_name = None
+                elif len(d) == 3:
+                    X, y, domain_name = d
+                self.add_domain(X, y=y, domain_name=domain_name)
 
     def add_domain(self, X, y=None, domain_name: Optional[str] = None) -> 'DomainAwareDataset':
         if domain_name is not None:
@@ -141,7 +149,7 @@ class DomainAwareDataset:
             source = self.get_domain(domain_name)
             if len(source) == 1:
                 X, = source
-                y = -np.ones_like(X)
+                y = -np.ones(X.shape[0], dtype=np.int32)
             elif len(source) == 2:
                 X, y = source
             else:
@@ -157,14 +165,14 @@ class DomainAwareDataset:
             target = self.get_domain(domain_name)
             if len(target) == 1:
                 X, = target
-                y = -np.ones_like(X)
+                y = -np.ones(X.shape[0], dtype=np.int32)
             elif len(target) == 2:
                 X, y = target
             else:
                 raise ValueError("Invalid definition for domain data")
             if train:
                 # always mask target labels for training dataset
-                y = -np.ones_like(X)
+                y = -np.ones(X.shape[0], dtype=np.int32)
             # xxx(okachaiev): this is horribly inefficient, rewrite when API is fixed
             Xs.append(X)
             ys.append(y)
@@ -203,12 +211,11 @@ class DomainAwareDataset:
 
     def pack_for_test(
         self,
-        as_sources: List[str],
         as_targets: List[str],
         return_X_y: bool = True,
     ):
         return self.pack(
-            as_sources=as_sources,
+            as_sources=[],
             as_targets=as_targets,
             return_X_y=return_X_y,
             train=False,

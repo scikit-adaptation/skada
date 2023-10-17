@@ -7,6 +7,7 @@ from skada import (
     DiscriminatorReweightDensity,
     KLIEP,
 )
+from skada.datasets import DomainAwareDataset
 
 import pytest
 
@@ -22,9 +23,16 @@ import pytest
 )
 def test_reweight_estimator(estimator, tmp_da_dataset):
     X, y, X_target, y_target = tmp_da_dataset
+    # xxx(okachaiev): make a special fixture for DA dataset object
+    dataset = DomainAwareDataset([
+        (X, y, 's'),
+        (X_target, y_target, 't'),
+    ])
 
-    estimator.fit(X, y, X_target)
-    y_pred = estimator.predict(X_target)
-    assert np.mean(y_pred == y_target) > 0.9
-    score = estimator.score(X_target, y_target)
+    X_train, y_train, sample_domain = dataset.pack_for_train(as_sources=['s'], as_targets=['t'])
+    estimator.fit(X_train, y_train, sample_domain=sample_domain)
+    X_test, y_test, sample_domain = dataset.pack_for_test(as_targets=['t'])
+    y_pred = estimator.predict(X_test, sample_domain=sample_domain)
+    assert np.mean(y_pred == y_test) > 0.9
+    score = estimator.score(X_test, y_test, sample_domain=sample_domain)
     assert score > 0.9

@@ -98,6 +98,7 @@ def check_X_y_domain(
 def check_X_domain(
     X,
     sample_domain,
+    *,
     allow_domains: Optional[Set[int]] = None,
     allow_source: bool = True,
     allow_multi_source: bool = False,
