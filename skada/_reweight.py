@@ -58,17 +58,22 @@ class ReweightDensityAdapter(BaseAdapter):
         weights : array-like, shape (n_samples,)
             The weights of the samples.
         """
-        X_source, y_source, X_target, y_target = check_X_y_domain(
+        source_idx = check_X_domain(
             X,
-            y,
             sample_domain,
-            allow_multi_source=False,
-            allow_multi_target=False
+            return_indices=True,
         )
-        ws = self.weight_estimator_source_.score_samples(X_source)
-        wt = self.weight_estimator_target_.score_samples(X_source)
-        weights = np.exp(wt - ws)
-        weights /= weights.sum()
+        # xxx(okachaiev): move this to API
+        if source_idx.sum() > 0:
+            source_idx, = np.where(source_idx)
+            ws = self.weight_estimator_source_.score_samples(X[source_idx])
+            wt = self.weight_estimator_target_.score_samples(X[source_idx])
+            source_weights = np.exp(wt - ws)
+            source_weights /= source_weights.sum()
+            weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
+            weights[source_idx] = source_weights
+        else:
+            weights = None
         return X, y, sample_domain, weights
 
     def fit(self, X, y=None, sample_domain=None, **kwargs):
@@ -89,15 +94,14 @@ class ReweightDensityAdapter(BaseAdapter):
             Returns self.
         """
         # xxx(okachaiev): that's the reason we need a way to cache this call
-        X, X_target = check_X_domain(
+        X_source, X_target = check_X_domain(
             X,
             sample_domain,
-            allow_multi_source=False,
-            allow_multi_target=False
+            return_joint=False,
         )
         self.weight_estimator_source_ = clone(self.weight_estimator)
         self.weight_estimator_target_ = clone(self.weight_estimator)
-        self.weight_estimator_source_.fit(X)
+        self.weight_estimator_source_.fit(X_source)
         self.weight_estimator_target_.fit(X_target)
 
 
@@ -169,25 +173,25 @@ class GaussianReweightDensityAdapter(BaseAdapter):
             The weights of the samples.
         """
         check_is_fitted(self)
-        # xxx(okachaiev): what should happen to target here?
-        # i guess we just return it "as it". so it might be
-        # good to have helper like 'AdapterOnSource' + 'TargetAsIs'
-        # keeping this in mind, we have to consider option for
-        # the adapter to setup where and how it should be used
-        X_source, y_source, X_target, y_target = check_X_y_domain(
+        source_idx = check_X_domain(
             X,
-            y,
             sample_domain,
-            allow_multi_source=False,
-            allow_multi_target=False
+            return_indices=True,
         )
-        gaussian_target = multivariate_normal.pdf(
-            X_source, self.mean_target_, self.cov_target_
-        )
-        gaussian_source = multivariate_normal.pdf(
-            X_source, self.mean_source_, self.cov_source_
-        )
-        weights = gaussian_target / gaussian_source
+        # xxx(okachaiev): move this to API
+        if source_idx.sum() > 0:
+            source_idx, = np.where(source_idx)
+            gaussian_target = multivariate_normal.pdf(
+                X[source_idx], self.mean_target_, self.cov_target_
+            )
+            gaussian_source = multivariate_normal.pdf(
+                X[source_idx], self.mean_source_, self.cov_source_
+            )
+            source_weights = gaussian_target / gaussian_source
+            weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
+            weights[source_idx] = source_weights
+        else:
+            weights = None
         return X, y, sample_domain, weights
 
     def fit(self, X, y=None, sample_domain=None, **kwargs):
@@ -207,14 +211,13 @@ class GaussianReweightDensityAdapter(BaseAdapter):
         self : object
             Returns self.
         """
-        X, X_target = check_X_domain(
+        X_source, X_target = check_X_domain(
             X,
             sample_domain,
-            allow_multi_source=False,
-            allow_multi_target=False
+            return_joint=False
         )
-        self.mean_source_ = X.mean(axis=0)
-        self.cov_source_ = _estimate_covariance(X, shrinkage=self.reg)
+        self.mean_source_ = X_source.mean(axis=0)
+        self.cov_source_ = _estimate_covariance(X_source, shrinkage=self.reg)
         self.mean_target_ = X_target.mean(axis=0)
         self.cov_target_ = _estimate_covariance(X_target, shrinkage=self.reg)
 
@@ -276,14 +279,19 @@ class DiscriminatorReweightDensityAdapter(BaseAdapter):
         weights : array-like, shape (n_samples,)
             The weights of the samples.
         """
-        X_source, y_source, X_target, y_target = check_X_y_domain(
+        source_idx = check_X_domain(
             X,
-            y,
             sample_domain,
-            allow_multi_source=False,
-            allow_multi_target=False
+            return_indices=True,
         )
-        weights = self.domain_classifier_.predict_proba(X_source)[:, 1]
+        # xxx(okachaiev): move this to API
+        if source_idx.sum() > 0:
+            source_idx, = np.where(source_idx)
+            source_weights = self.domain_classifier_.predict_proba(X[source_idx])[:, 1]
+            weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
+            weights[source_idx] = source_weights
+        else:
+            weights = None
         return X, y, sample_domain, weights
 
     def fit(self, X, y=None, sample_domain=None, **kwargs):
@@ -409,15 +417,19 @@ class KLIEPAdapter(BaseAdapter):
         weights : array-like, shape (n_samples,)
             The weights of the samples.
         """
-        X_source, y_source, X_target, y_target = check_X_y_domain(
+        source_idx = check_X_domain(
             X,
-            y,
             sample_domain,
-            allow_multi_source=False,
-            allow_multi_target=False
+            return_indices=True,
         )
-        A = pairwise_kernels(X, self.centers_, metric="rbf", gamma=self.best_gamma_)
-        weights = A @ self.alpha_
+        if source_idx.sum() > 0:
+            source_idx, = np.where(source_idx)
+            A = pairwise_kernels(X[source_idx], self.centers_, metric="rbf", gamma=self.best_gamma_)
+            source_weights = A @ self.alpha_
+            weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
+            weights[source_idx] = source_weights
+        else:
+            weights = None
         return X, y, sample_domain, weights
 
     def fit(self, X, y=None, sample_domain=None, **kwargs):
@@ -437,23 +449,24 @@ class KLIEPAdapter(BaseAdapter):
         self : object
             Returns self.
         """
-        X, X_target = check_X_domain(
+        X_source, X_target = check_X_domain(
             X,
             sample_domain,
-            allow_multi_source=False,
-            allow_multi_target=False
+            allow_multi_source=True,
+            allow_multi_target=True,
+            return_joint=False,
         )
         if isinstance(self.gamma, list):
             self.best_gamma_ = self._likelihood_cross_validation(
-                self.gamma, X, X_target
+                self.gamma, X_source, X_target
             )
         else:
             self.best_gamma_ = self.gamma
         self.alpha_, self.centers_ = self._weights_optimization(
-            self.best_gamma_, X, X_target
+            self.best_gamma_, X_source, X_target
         )
 
-    def _weights_optimization(self, gamma, X, X_target):
+    def _weights_optimization(self, gamma, X_source, X_target):
         """Optimization loop."""
         rng = check_random_state(self.random_state)
         n_targets = len(X_target)
@@ -461,7 +474,7 @@ class KLIEPAdapter(BaseAdapter):
 
         centers = X_target[rng.choice(np.arange(n_targets), n_centers)]
         A = pairwise_kernels(X_target, centers, metric="rbf", gamma=gamma)
-        b = pairwise_kernels(X, centers, metric="rbf", gamma=gamma)
+        b = pairwise_kernels(X_source, centers, metric="rbf", gamma=gamma)
         b = np.mean(b, axis=0)
 
         alpha = np.ones(n_centers)
@@ -480,7 +493,7 @@ class KLIEPAdapter(BaseAdapter):
 
         return alpha, centers
 
-    def _likelihood_cross_validation(self, gammas, X, X_target):
+    def _likelihood_cross_validation(self, gammas, X_source, X_target):
         """Compute the likelihood cross validation to choose the
         best parameter for the kernel.
         """
@@ -495,7 +508,7 @@ class KLIEPAdapter(BaseAdapter):
             for train, test in cv.split(X_target):
                 alpha, centers = self._weights_optimization(
                     this_gamma,
-                    X,
+                    X_source,
                     X_target[train],
                 )
                 A = pairwise_kernels(
