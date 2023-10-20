@@ -10,7 +10,7 @@ from sklearn.utils import check_random_state
 from sklearn.utils.validation import check_is_fitted
 
 from .base import BaseAdapter, DomainAwareEstimator, SingleAdapterMixin, SingleEstimatorMixin, clone
-from ._utils import _estimate_covariance, check_X_y_domain, check_X_domain
+from ._utils import _estimate_covariance, check_X_domain
 
 
 EPS = np.finfo(float).eps
@@ -311,17 +311,16 @@ class DiscriminatorReweightDensityAdapter(BaseAdapter):
         self : object
             Returns self.
         """
-        X, y, X_target, y_target = check_X_y_domain(
+        source_idx = check_X_domain(
             X,
-            y,
             sample_domain,
-            allow_multi_source=False,
-            allow_multi_target=False
+            return_indices=True
         )
+        source_idx, = np.where(source_idx)
         self.domain_classifier_ = clone(self.domain_classifier)
-        # xxx(okachaiev): is this actually correct???
-        y_domain = np.concatenate((len(X) * [0], len(X_target) * [1]))
-        self.domain_classifier_.fit(np.concatenate((X, X_target)), y_domain)
+        y_domain = np.ones(X.shape[0], dtype=np.int32)
+        y_domain[source_idx] = 0
+        self.domain_classifier_.fit(X, y_domain)
         return self
 
 
