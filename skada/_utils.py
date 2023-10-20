@@ -87,7 +87,7 @@ def check_X_y_domain(
     if return_indices and not allow_multi_source and not allow_multi_target:
         # only source indices are given, target indices are ~source_idx
         return source_idx
-    elif not allow_multi_source and not allow_multi_target and not return_joint:
+    elif not return_joint:
         # commonly used X, y, X_target, y_target format
         return X[source_idx], y[source_idx], X[~source_idx], y[~source_idx]
     else:
@@ -153,3 +153,15 @@ def check_X_domain(
         return X[source_idx], X[~source_idx]
     else:
         return X, sample_domain
+
+
+def _merge_source_target(X_source, X_target, sample_domain) -> np.ndarray:
+    n_samples = X_source.shape[0] + X_target.shape[0]
+    assert n_samples > 0
+    if X_source.shape[0] > 0:
+        output = np.zeros((n_samples, X_source.shape[1]), dtype=X_source.dtype)
+    else:
+        output = np.zeros((n_samples, X_target.shape[1]), dtype=X_target.dtype)
+    output[sample_domain >= 0] = X_source
+    output[sample_domain < 0] = X_target
+    return output

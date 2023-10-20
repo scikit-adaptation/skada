@@ -1,11 +1,11 @@
 from .base import BaseAdapter, DomainAwareEstimator
-# from ._mapping import (
-#     ClassRegularizerOTMapping,
-#     CORAL,
-#     EntropicOTMapping,
-#     LinearOTMapping,
-#     OTMapping,
-# )
+from ._mapping import (
+    ClassRegularizerOTMappingAdapter,
+    CORALAdapter,
+    EntropicOTMappingAdapter,
+    LinearOTMappingAdapter,
+    OTMappingAdapter,
+)
 from ._reweight import (
     DiscriminatorReweightDensity,
     DiscriminatorReweightDensityAdapter,
@@ -29,11 +29,11 @@ __all__ = [
     "BaseAdapter",
     "DomainAwareEstimator",
 
-    # "ClassRegularizerOTMapping",
-    # "CORAL",
-    # "EntropicOTMapping",
-    # "LinearOTMapping",
-    # "OTMapping",
+    "ClassRegularizerOTMappingAdapter",
+    "CORALAdapter",
+    "EntropicOTMappingAdapter",
+    "LinearOTMappingAdapter",
+    "OTMappingAdapter",
 
     "DiscriminatorReweightDensity",
     "DiscriminatorReweightDensityAdapter",

@@ -521,3 +521,10 @@ class SourceTargetEstimatorMixin:
             (clone(self.source_estimator), DomainAwareEstimator.INCLUDE_ALL_SOURCES),
             (clone(self.target_estimator), DomainAwareEstimator.INCLUDE_ALL_TARGETS),
         ]
+
+
+# xxx(okachaiev): experimental
+# xxx(okachaiev): the name is bad
+# xxx(okachaiev): stacking of constructors is also incompatible with sklearn BaseEstimator 
+class DomainAdaptationStrategy(SingleAdapterMixin, SingleEstimatorMixin, DomainAwareEstimator):
+    pass

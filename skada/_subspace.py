@@ -10,7 +10,7 @@ from .base import (
     SingleAdapterMixin,
     SingleEstimatorMixin,
 )
-from ._utils import check_X_domain
+from ._utils import check_X_domain, _merge_source_target
 
 
 class SubspaceAlignmentAdapter(BaseAdapter):
@@ -64,6 +64,8 @@ class SubspaceAlignmentAdapter(BaseAdapter):
             The source data.
         y : array-like, shape (n_samples,)
             The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
 
         Returns
         -------
@@ -71,6 +73,8 @@ class SubspaceAlignmentAdapter(BaseAdapter):
             The data transformed to the target subspace.
         y_t : array-like, shape (n_samples,)
             The labels (same as y).
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels transformed to the target subspace (same as sample_domain).
         weights : None
             No weights are returned here.
         """
@@ -81,16 +85,13 @@ class SubspaceAlignmentAdapter(BaseAdapter):
             allow_multi_target=True,
             return_joint=False,
         )
-        # xxx(okachaiev): either move this to a helper or to a higher level API
-        # for example, by having separate calls for adapter fitting and "adapting"
-        output = np.zeros((X.shape[0], self.n_components_), dtype=X.dtype)
         if X_source.shape[0]:
-            X_source_ = np.dot(self.pca_source_.transform(X_source), self.M_)
-            output[sample_domain >= 0] = X_source_
+            X_source = np.dot(self.pca_source_.transform(X_source), self.M_)
         if X_target.shape[0]:
-            X_target_ = np.dot(self.pca_target_.transform(X_target), self.M_)
-            output[sample_domain < 0] = X_target_
-        return output, y, sample_domain, None
+            X_target = np.dot(self.pca_target_.transform(X_target), self.M_)
+        # xxx(okachaiev): this could be done through a more high-level API
+        X_ = _merge_source_target(X_source, X_target, sample_domain)
+        return X_, y, sample_domain, None
 
     def fit(self, X, y=None, sample_domain=None, **kwargs):
         """Fit adaptation parameters.
@@ -101,6 +102,8 @@ class SubspaceAlignmentAdapter(BaseAdapter):
             The source data.
         y : array-like, shape (n_samples,)
             The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
 
         Returns
         -------
@@ -200,6 +203,8 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
             The source data.
         y : array-like, shape (n_samples,)
             The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
 
         Returns
         -------
@@ -207,6 +212,8 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
             The data transformed to the target subspace.
         y_t : array-like, shape (n_samples,)
             The labels (same as y).
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels transformed to the target subspace (same as sample_domain).
         weights : None
             No weights are returned here.
         """
@@ -235,6 +242,8 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
             The source data.
         y : array-like, shape (n_samples,)
             The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
 
         Returns
         -------

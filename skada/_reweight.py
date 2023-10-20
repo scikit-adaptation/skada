@@ -46,6 +46,8 @@ class ReweightDensityAdapter(BaseAdapter):
             The source data.
         y : array-like, shape (n_samples,)
             The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
 
         Returns
         -------
@@ -78,6 +80,8 @@ class ReweightDensityAdapter(BaseAdapter):
             The source data.
         y : array-like, shape (n_samples,)
             The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
 
         Returns
         -------
@@ -152,6 +156,8 @@ class GaussianReweightDensityAdapter(BaseAdapter):
             The source data.
         y : array-like, shape (n_samples,)
             The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
 
         Returns
         -------
@@ -193,6 +199,8 @@ class GaussianReweightDensityAdapter(BaseAdapter):
             The source data.
         y : array-like, shape (n_samples,)
             The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
 
         Returns
         -------
@@ -256,6 +264,8 @@ class DiscriminatorReweightDensityAdapter(BaseAdapter):
             The source data.
         y : array-like, shape (n_samples,)
             The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
 
         Returns
         -------
@@ -285,6 +295,8 @@ class DiscriminatorReweightDensityAdapter(BaseAdapter):
             The source data.
         y : array-like, shape (n_samples,)
             The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
 
         Returns
         -------
@@ -385,10 +397,8 @@ class KLIEPAdapter(BaseAdapter):
             The source data.
         y : array-like, shape (n_samples,)
             The source labels.
-        X_target : array-like, shape (n_samples, n_features)
-            The target data.
-        y_target : array-like, shape (n_samples,), optional
-            The target labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
 
         Returns
         -------
@@ -419,10 +429,8 @@ class KLIEPAdapter(BaseAdapter):
             The source data.
         y : array-like, shape (n_samples,)
             The source labels.
-        X_target : array-like, shape (n_samples, n_features)
-            The target data.
-        y_target : array-like, shape (n_samples,), optional
-            The target labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
 
         Returns
         -------
