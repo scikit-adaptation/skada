@@ -1,27 +1,25 @@
-# Author: Theo Gnassounou <theo.gnassounou@inria.fr>
-#         Remi Flamary <remi.flamary@polytechnique.edu>
-#         Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
-# License: BSD 3-Clause
-
 import numpy as np
 
 from sklearn.decomposition import PCA
 from sklearn.metrics.pairwise import pairwise_kernels
 from sklearn.utils import check_random_state
 
-from .base import BaseSubspaceEstimator
+from .base import (
+    BaseAdapter,
+    DomainAwareEstimator,
+    SingleAdapterMixin,
+    SingleEstimatorMixin,
+)
+from ._utils import check_X_domain
 
 
-class SubspaceAlignment(BaseSubspaceEstimator):
+class SubspaceAlignmentAdapter(BaseAdapter):
     """Domain Adaptation Using Subspace Alignment.
 
     See [1]_ for details.
 
     Parameters
     ----------
-    base_estimator : estimator object
-        The base estimator to fit on reweighted data.
     n_components : int, default=None
         The numbers of components to learn with PCA.
         If n_components is not set all components are kept::
@@ -47,15 +45,17 @@ class SubspaceAlignment(BaseSubspaceEstimator):
 
     def __init__(
         self,
-        base_estimator,
         n_components=None,
         random_state=None,
     ):
-        super().__init__(base_estimator)
+        super().__init__()
         self.n_components = n_components
         self.random_state = random_state
 
-    def predict_adapt(self, X, y, X_target, y_target=None):
+    # xxx(okachaiev): more i'm thinking about this, more
+    # it seems like we need API to "request" sample domains
+    # to be fed into adapt/fit calls
+    def adapt(self, X, y=None, sample_domain=None, **kwargs):
         """Predict adaptation (weights, sample or labels).
 
         Parameters
@@ -64,10 +64,6 @@ class SubspaceAlignment(BaseSubspaceEstimator):
             The source data.
         y : array-like, shape (n_samples,)
             The source labels.
-        X_target : array-like, shape (n_samples, n_features)
-            The target data.
-        y_target : array-like, shape (n_samples,), optional
-            The target labels.
 
         Returns
         -------
@@ -78,11 +74,25 @@ class SubspaceAlignment(BaseSubspaceEstimator):
         weights : None
             No weights are returned here.
         """
-        weights = None
-        X_ = np.dot(self.pca_source_.transform(X), self.M_)
-        return X_, y, weights
+        X_source, X_target = check_X_domain(
+            X,
+            sample_domain,
+            allow_multi_source=True,
+            allow_multi_target=True,
+            return_joint=False,
+        )
+        # xxx(okachaiev): either move this to a helper or to a higher level API
+        # for example, by having separate calls for adapter fitting and "adapting"
+        output = np.zeros((X.shape[0], self.n_components_), dtype=X.dtype)
+        if X_source.shape[0]:
+            X_source_ = np.dot(self.pca_source_.transform(X_source), self.M_)
+            output[sample_domain >= 0] = X_source_
+        if X_target.shape[0]:
+            X_target_ = np.dot(self.pca_target_.transform(X_target), self.M_)
+            output[sample_domain < 0] = X_target_
+        return output, y, sample_domain, None
 
-    def fit_adapt(self, X, y, X_target, y_target=None):
+    def fit(self, X, y=None, sample_domain=None, **kwargs):
         """Fit adaptation parameters.
 
         Parameters
@@ -91,62 +101,55 @@ class SubspaceAlignment(BaseSubspaceEstimator):
             The source data.
         y : array-like, shape (n_samples,)
             The source labels.
-        X_target : array-like, shape (n_samples, n_features)
-            The target data.
-        y_target : array-like, shape (n_samples,), optional
-            The target labels.
 
         Returns
         -------
         self : object
             Returns self.
         """
+        X_source, X_target = check_X_domain(
+            X,
+            sample_domain,
+            allow_multi_source=True,
+            allow_multi_target=True,
+            return_joint=False,
+        )
         if self.n_components is None:
-            n_components = min(X.shape)
+            n_components = min(min(X_source.shape), min(X_target.shape))
         else:
             n_components = self.n_components
         self.random_state_ = check_random_state(self.random_state)
-        self.pca_source_ = PCA(n_components, random_state=self.random_state_).fit(X)
+        self.pca_source_ = PCA(n_components, random_state=self.random_state_).fit(X_source)
         self.pca_target_ = PCA(
             n_components,
             random_state=self.random_state_
         ).fit(X_target)
+        self.n_components_ = n_components
         self.M_ = np.dot(self.pca_source_.components_, self.pca_target_.components_.T)
         return self
 
-    def transform(self, X, domain='target'):
-        """Transform the data in the new subspace
 
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            The data to transform.
-        domain : str, default='target'
-            The domain to transform the data to.
+class SubspaceAlignment(SingleEstimatorMixin, SingleAdapterMixin, DomainAwareEstimator):
 
-        Returns
-        -------
-        X_t : array-like, shape (n_samples, n_components)
-            The transformed data.
-        """
-        assert domain in ['target', 'source']
-
-        if domain == 'source':
-            X_transform = np.dot(self.pca_source_.transform(X), self.M_)
-        else:
-            X_transform = self.pca_target_.transform(X)
-        return X_transform
+    def __init__(
+        self,
+        n_components=None,
+        random_state=None,
+        **kwargs
+    ):
+        self.n_components = n_components
+        self.random_state = random_state
+        base_adapter = SubspaceAlignmentAdapter(n_components, random_state)
+        super().__init__(base_adapter=base_adapter, **kwargs)
 
 
-class TransferComponentAnalysis(BaseSubspaceEstimator):
+class TransferComponentAnalysisAdapter(BaseAdapter):
     """Transfer Component Analysis.
 
     See [1]_ for details.
 
     Parameters
     ----------
-    base_estimator : estimator object
-        The base estimator to fit on reweighted data.
     kernel : kernel object, default='rbf'
         The kernel computed between data.
     n_components : int, default=None
@@ -160,14 +163,14 @@ class TransferComponentAnalysis(BaseSubspaceEstimator):
     Attributes
     ----------
     `X_source_` : array
-        Source data used for the optimisation problem.
+        Source data used for the optimization problem.
     `X_target_` : array
-        Target data used for the optimisation problem.
+        Target data used for the optimization problem.
     `K_` : array
         Kernel distance between the data (source and target).
     `eigvects_` : array
-        Highest n_components eigen vectors of the solution
-        of the optimisation problem used to project
+        Highest n_components eigenvectors of the solution
+        of the optimization problem used to project
         in the new subspace.
 
     References
@@ -179,18 +182,16 @@ class TransferComponentAnalysis(BaseSubspaceEstimator):
 
     def __init__(
         self,
-        base_estimator,
         kernel='rbf',
         n_components=None,
         mu=0.1
     ):
-        super().__init__(base_estimator)
-
+        super().__init__()
         self.kernel = kernel
         self.n_components = n_components
         self.mu = mu
 
-    def predict_adapt(self, X, y, X_target, y_target=None):
+    def adapt(self, X, y=None, sample_domain=None, **kwargs):
         """Predict adaptation (weights, sample or labels).
 
         Parameters
@@ -199,10 +200,6 @@ class TransferComponentAnalysis(BaseSubspaceEstimator):
             The source data.
         y : array-like, shape (n_samples,)
             The source labels.
-        X_target : array-like, shape (n_samples, n_features)
-            The target data.
-        y_target : array-like, shape (n_samples,), optional
-            The target labels.
 
         Returns
         -------
@@ -213,12 +210,23 @@ class TransferComponentAnalysis(BaseSubspaceEstimator):
         weights : None
             No weights are returned here.
         """
-        X_ = (self.K_ @ self.eigvects_)[:len(X)]
-        weights = None
+        X_source, X_target = check_X_domain(
+            X,
+            sample_domain,
+            allow_multi_source=True,
+            allow_multi_target=True,
+            return_joint=False,
+        )
+        if np.array_equal(X_source, self.X_source_) and np.array_equal(X_target, self.X_target_):
+            X_ = (self.K_ @ self.eigvects_)[:X.shape[0]]
+        else:
+            Ks = pairwise_kernels(X, self.X_source_, metric=self.kernel)
+            Kt = pairwise_kernels(X, self.X_target_, metric=self.kernel)
+            K = np.concatenate((Ks, Kt), axis=1)
+            X_ = (K @ self.eigvects_)[:X.shape[0]]
+        return X_, y, sample_domain, None
 
-        return X_, y, weights
-
-    def fit_adapt(self, X, y, X_target, y_target=None):
+    def fit(self, X, y=None, sample_domain=None, **kwargs):
         """Fit adaptation parameters.
 
         Parameters
@@ -227,27 +235,28 @@ class TransferComponentAnalysis(BaseSubspaceEstimator):
             The source data.
         y : array-like, shape (n_samples,)
             The source labels.
-        X_target : array-like, shape (n_samples, n_features)
-            The target data.
-        y_target : array-like, shape (n_samples,), optional
-            The target labels.
 
         Returns
         -------
         self : object
             Returns self.
         """
-        self.X_source_ = X
-        self.X_target_ = X_target
+        self.X_source_, self.X_target_ = check_X_domain(
+            X,
+            sample_domain,
+            allow_multi_source=True,
+            allow_multi_target=True,
+            return_joint=False,
+        )
 
-        Kss = pairwise_kernels(X, metric=self.kernel)
-        Ktt = pairwise_kernels(X_target, metric=self.kernel)
-        Kst = pairwise_kernels(X, X_target, metric=self.kernel)
+        Kss = pairwise_kernels(self.X_source_, metric=self.kernel)
+        Ktt = pairwise_kernels(self.X_target_, metric=self.kernel)
+        Kst = pairwise_kernels(self.X_source_, self.X_target_, metric=self.kernel)
         K = np.block([[Kss, Kst], [Kst.T, Ktt]])
         self.K_ = K
 
-        ns = len(X)
-        nt = len(X_target)
+        ns = self.X_source_.shape[0]
+        nt = self.X_target_.shape[0]
         Lss = 1/ns**2 * np.ones((ns, ns))
         Ltt = 1/nt**2 * np.ones((nt, nt))
         Lst = -1/(ns*nt) * np.ones((ns, nt))
@@ -262,30 +271,25 @@ class TransferComponentAnalysis(BaseSubspaceEstimator):
         eigvals, eigvects = np.linalg.eigh(solution)
 
         if self.n_components is None:
-            n_components = min(X.shape[0]+X_target.shape[0], X.shape[1])
+            n_components = min(X.shape[0], X.shape[1])
         else:
             n_components = self.n_components
         selected_components = np.argsort(np.abs(eigvals))[::-1][:n_components]
         self.eigvects_ = np.real(eigvects[:, selected_components])
         return self
 
-    def transform(self, X, domain='target'):
-        """Transform the data in the new subspace.
 
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            The data to transform.
-        domain : string, default='target
-            The domain from where come the data.
+class TransferComponentAnalysis(SingleEstimatorMixin, SingleAdapterMixin, DomainAwareEstimator):
 
-        Returns
-        -------
-        X_t : array-like, shape (n_samples, n_components)
-            The transformed data.
-        """
-        Ks = pairwise_kernels(X, self.X_source_, metric=self.kernel)
-        Kt = pairwise_kernels(X, self.X_target_, metric=self.kernel)
-        K = np.concatenate((Ks, Kt), axis=1)
-
-        return (K @ self.eigvects_)[:len(X)]
+    def __init__(
+        self,
+        kernel='rbf',
+        n_components=None,
+        mu=0.1,
+        **kwargs
+    ):
+        self.kernel = kernel
+        self.n_components = n_components
+        self.mu = mu
+        base_adapter = TransferComponentAnalysisAdapter(kernel, n_components, mu)
+        super().__init__(base_adapter=base_adapter, **kwargs)

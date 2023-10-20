@@ -16,7 +16,12 @@ from ._reweight import (
     ReweightDensity,
     ReweightDensityAdapter,
 )
-# from ._subspace import SubspaceAlignment, TransferComponentAnalysis
+from ._subspace import (
+    SubspaceAlignment,
+    SubspaceAlignmentAdapter,
+    TransferComponentAnalysis,
+    TransferComponentAnalysisAdapter,
+)
 # from ._pipeline import DAPipeline
 
 
@@ -39,8 +44,10 @@ __all__ = [
     "ReweightDensity",
     "ReweightDensityAdapter",
 
-    # "SubspaceAlignment",
-    # "TransferComponentAnalysis",
+    "SubspaceAlignment",
+    "SubspaceAlignmentAdapter",
+    "TransferComponentAnalysis",
+    "TransferComponentAnalysisAdapter",
 
     # "DAPipeline",
 ]

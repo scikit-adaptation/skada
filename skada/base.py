@@ -261,7 +261,7 @@ class DomainAwareEstimator(BaseEstimator):
         # xxx(okachaiev): this is going to run pretty much they same computation
         # trying to figure out which domains go where but it's okay, we can optimize
         # performance later
-        X_adapt, y_adapt, sample_domain = self.adapt(
+        X_adapt, y_adapt, sample_domain, _ = self.adapt(
             X,
             y=y,
             sample_domain=sample_domain,
@@ -294,13 +294,12 @@ class DomainAwareEstimator(BaseEstimator):
             # when estimators and adapters are defined on different sets
             # of domains (likely in 'fit', a bit too late here)
             allow_domains=self.fit_domains_,
-            return_joint=True,
             allow_auto_sample_domain=True,
         )
         # xxx(okachaiev): this is a good case were we don't
         #                 need to adapt labels, only samples
         #                 thus y is optional in 'adapt' API
-        X_adapt, _, _ = self.adapt(X, sample_domain=sample_domain)
+        X_adapt, _, sample_domain, _ = self.adapt(X, sample_domain=sample_domain)
         return X_adapt, sample_domain
 
     # xxx(okachaiev): this is, actually, not an 'int' as we are allowing for np.inf here as well
@@ -320,10 +319,10 @@ class DomainAwareEstimator(BaseEstimator):
     def _call_estimators_method(self, method_name: str, X, sample_domain) -> np.ndarray:
         output = None
         for estimator, indices in self.select_domain_estimators(sample_domain):
-            y = getattr(estimator, method_name)(X[indices])
+            out = getattr(estimator, method_name)(X[indices])
             if output is None:
-                output = np.zeros((X.shape[0], *y.shape), dtype=y.dtype)
-            output[indices] = y
+                output = np.zeros((X.shape[0], *out.shape), dtype=out.dtype)
+            output[indices] = out
         return output
 
     # xxx(okachaiev): i bet this should have parameters for weights as well
@@ -345,6 +344,14 @@ class DomainAwareEstimator(BaseEstimator):
     def predict_log_proba(self, X, sample_domain=None):
         X, sample_domain = self._check_and_adapt(X, sample_domain)
         return self._call_estimators_method('predict_log_proba', X, sample_domain)
+
+    # xxx(okachaiev): there's an interesting question of how to use score
+    # when we are in the situation of having multiple estimators (it would force us to
+    # return array here, which is not expected from a common 'score' API)
+    # @available_if(_estimator_has("score"))
+    # def score(self, X, y, sample_domain=None, sample_weight=None):
+    #     X, sample_domain = self._check_and_adapt(X, sample_domain)
+    #     return self._call_estimators_method('score', X, y, sample_domain)
 
     def fit_predict(self, X, y, sample_domain=None, *, sample_weight=None, **kwargs):
         """Fit and predict"""

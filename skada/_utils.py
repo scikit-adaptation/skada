@@ -106,7 +106,7 @@ def check_X_domain(
     allow_multi_target: bool = False,
     return_indices: bool = False,
     # xxx(okachaiev): most likely this needs to be removed as it doesn't fit new API
-    return_joint: bool = False,
+    return_joint: bool = True,
     allow_auto_sample_domain: bool = False,
 ):
     X = check_array(X, input_name='X')
@@ -148,7 +148,7 @@ def check_X_domain(
     if return_indices and not allow_multi_source and not allow_multi_target:
         # only source indices are given, target indices are ~source_idx
         return source_idx
-    elif not allow_multi_source and not allow_multi_target and not return_joint:
+    elif not return_joint:
         # commonly used X, y, X_target, y_target format
         return X[source_idx], X[~source_idx]
     else:
