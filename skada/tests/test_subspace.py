@@ -32,8 +32,7 @@ def test_subspace_alignment(estimator, tmp_da_dataset):
     y_pred = estimator.predict(X_test, sample_domain=sample_domain)
     # xxx(okachaiev): this should be like 0.9
     assert np.mean(y_pred == y_test) > 0.
-    # xxx(okachaiev): see the comment about 'score'
-    # score = estimator.score(X_test, y_test, sample_domain=sample_domain)
+    score = estimator.score(X_test, y_test, sample_domain=sample_domain)
     # assert score > 0.
 
 

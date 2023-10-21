@@ -1,29 +1,51 @@
-# Author: Theo Gnassounou <theo.gnassounou@inria.fr>
-#         Remi Flamary <remi.flamary@polytechnique.edu>
-#         Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
-# License: BSD 3-Clause
+from abc import abstractmethod
 import numpy as np
 
-from sklearn.neighbors import KernelDensity
 from sklearn.base import clone
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import log_loss, check_scoring
 from sklearn.model_selection import train_test_split
-from sklearn.utils import check_random_state
+from sklearn.neighbors import KernelDensity
 from sklearn.preprocessing import Normalizer
+from sklearn.utils import check_random_state
 from sklearn.utils.extmath import softmax
+from sklearn.utils.metadata_routing import (_MetadataRequester, _routing_enabled)
+
+from .._utils import check_X_domain, check_X_y_domain
 
 
-class SupervisedScorer:
+# xxx(okachaiev): maybe it would be easier to reuse _BaseScorer?
+# xxx(okachaiev): add proper __repr__
+# xxx(okachaiev): support clone()
+class _BaseDAScorer(_MetadataRequester):
+
+    __metadata_request__score = {'sample_domain': True}
+
+    @abstractmethod
+    def _score(self, estimator, X, y, sample_domain, sample_weight=None, **kwargs):
+        pass
+
+    def __call__(self, estimator, X, y, sample_weight=None, **kwargs):
+        if kwargs and not _routing_enabled():
+            raise ValueError(
+                "kwargs is only supported if enable_metadata_routing=True. See"
+                " the User Guide for more information."
+            )
+
+        sample_domain = kwargs['sample_domain']
+        del kwargs['sample_domain']
+
+        # xxx(okachaiev): it would be useful to have source/target strategies
+        # similar way we do for estimators (so the pre-processing could be
+        # simplified)
+        return self._score(estimator, X, y, sample_domain, sample_weight=sample_weight, **kwargs)
+
+
+class SupervisedScorer(_BaseDAScorer):
     """Compute score on supervised dataset.
 
     Parameters
     ----------
-    X_test : array-like
-        The test data used to compute the score.
-    y_test : array-like
-        The test label used to compute the score.
     scoring : str or callable, default=None
         A string (see model evaluation documentation) or
         a scorer callable object / function with signature
@@ -36,26 +58,24 @@ class SupervisedScorer:
 
     """
 
-    def __init__(self, X_test, y_test, scoring=None, greater_is_better=True):
-        self.X_test = X_test
-        self.y_test = y_test
+    def __init__(self, scoring=None, greater_is_better=True):
+        super().__init__()
         self.scoring = scoring
         self._sign = 1 if greater_is_better else -1
 
-    def __call__(self, estimator, X, y):
+    def _score(self, estimator, X, y, sample_domain, **kwargs):
         scorer = check_scoring(estimator, self.scoring)
-        return self._sign * scorer(estimator, self.X_test, self.y_test)
+        _, _, X_target, y_target = check_X_y_domain(X, y, sample_domain, return_joint=False)
+        return self._sign * scorer(estimator, X_target, y_target)
 
 
-class ImportanceWeightedScorer:
+class ImportanceWeightedScorer(_BaseDAScorer):
     """Score based on source data using sample weight.
 
     See [1]_ for details.
 
     Parameters
     ----------
-    X_target : array-like
-        The target data used by the scorer to compute the sample weights.
     weight_estimator : estimator object, optional
         The estimator to use to estimate the densities of source and target
         observations. If None, a KernelDensity estimator is with
@@ -87,12 +107,11 @@ class ImportanceWeightedScorer:
 
     def __init__(
         self,
-        X_target,
         weight_estimator=None,
         scoring=None,
         greater_is_better=True,
     ):
-        self.X_target = X_target
+        super().__init__()
         self.weight_estimator = weight_estimator
         self.scoring = scoring
         self._sign = 1 if greater_is_better else -1
@@ -120,10 +139,12 @@ class ImportanceWeightedScorer:
         self.weight_estimator_source_.fit(X)
         self.weight_estimator_target_.fit(X_target)
 
-    def __call__(self, estimator, X, y):
+    def _score(self, estimator, X, y, sample_domain, **kwargs):
         scorer = check_scoring(estimator, self.scoring)
-        self._fit_adapt(X, self.X_target)
+        X, y, X_target, _ = check_X_y_domain(X, y, sample_domain, return_joint=False)
+        self._fit_adapt(X, X_target)
         ws = self.weight_estimator_source_.score_samples(X)
+        # xxx(okachaiev): does it actually do the right job here???
         wt = self.weight_estimator_target_.score_samples(X)
         weights = np.exp(wt - ws)
         weights /= weights.sum()
@@ -135,15 +156,13 @@ class ImportanceWeightedScorer:
         )
 
 
-class PredictionEntropyScorer:
+class PredictionEntropyScorer(_BaseDAScorer):
     """Score based on the entropy of predictions on unsupervised dataset.
 
     See [1]_ for details.
 
     Parameters
     ----------
-    X_test : array-like
-        The test data used by the scorer to compute the entropy.
     greater_is_better : bool, default=False
         Whether `scorer` is a score function (default), meaning high is
         good, or a loss function, meaning low is good. In the latter case, the
@@ -156,35 +175,36 @@ class PredictionEntropyScorer:
             ICLR, 2018.
     """
 
-    def __init__(self, X_test, greater_is_better=False):
-        self.X_test = X_test
+    def __init__(self, greater_is_better=False):
+        super().__init__()
         self._sign = 1 if greater_is_better else -1
 
-    def __call__(self, estimator, X, y):
+    def _score(self, estimator, X, y, sample_domain, **kwargs):
         if not hasattr(estimator, "predict_proba"):
             raise AttributeError(
                 "The estimator passed should "
                 "have a 'predict_proba' method. "
                 "The estimator %r does not." % estimator
             )
-        proba = estimator.predict_proba(self.X_test)
+
+        _, X_target = check_X_domain(X, y, sample_domain, return_joint=False)
+
+        proba = estimator.predict_proba(X_target)
         if hasattr(estimator, "predict_log_proba"):
-            log_proba = estimator.predict_log_proba(self.X_test)
+            log_proba = estimator.predict_log_proba(X_target)
         else:
             log_proba = np.log(proba + 1e-7)
         entropy = np.sum(-proba * log_proba, axis=1)
         return - np.mean(entropy)
 
 
-class SoftNeighborhoodDensity:
+class SoftNeighborhoodDensity(_BaseDAScorer):
     """Score based on the entropy of similarity between unsupervised dataset.
 
     See [1]_ for details.
 
     Parameters
     ----------
-    X_test : array-like
-        The test data used by the scorer to similarity matrix.
     T :  float
         Temperature in the Eq. 2 in [1]_.
         Default is set to 0.05, the value proposed in the paper.
@@ -200,19 +220,22 @@ class SoftNeighborhoodDensity:
             International Conference on Computer Vision, 2021.
     """
 
-    def __init__(self, X_test, T=0.05, greater_is_better=True):
-        self.X_test = X_test
+    def __init__(self, T=0.05, greater_is_better=True):
+        super().__init__()
         self.T = T
         self._sign = 1 if greater_is_better else -1
 
-    def __call__(self, estimator, X, y):
+    def _score(self, estimator, X, y, sample_domain, **kwargs):
         if not hasattr(estimator, "predict_proba"):
             raise AttributeError(
                 "The estimator passed should"
                 "have a 'predict_proba' method."
                 "The estimator %r does not." % estimator
             )
-        proba = estimator.predict_proba(self.X_test)
+
+        _, _, X_target, _ = check_X_y_domain(X, y, sample_domain)
+
+        proba = estimator.predict_proba(X_target)
         proba = Normalizer(norm="l2").fit_transform(proba)
 
         similarity_matrix = proba @ proba.T / self.T
@@ -223,15 +246,13 @@ class SoftNeighborhoodDensity:
         return self._sign * np.mean(entropy)
 
 
-class DeepEmbeddedValidation:
-    """Loss based on source data using features represention to weight samples.
+class DeepEmbeddedValidation(_BaseDAScorer):
+    """Loss based on source data using features representation to weight samples.
 
     See [1]_ for details.
 
     Parameters
     ----------
-    X_test : array-like
-        The target data used by the scorer to compute the score.
     domain_classifier : sklearn classifier, optional
         Classifier used to predict the domains. If None, a
         LogisticRegression is used.
@@ -256,13 +277,12 @@ class DeepEmbeddedValidation:
 
     def __init__(
         self,
-        X_test,
         domain_classifier=None,
         loss_func=None,
         random_state=None,
         greater_is_better=False,
     ):
-        self.X_test = X_test
+        super().__init__()
         self.domain_classifier = domain_classifier
         self._loss_func = (
             loss_func if loss_func is not None else self._no_reduc_log_loss
@@ -287,16 +307,17 @@ class DeepEmbeddedValidation:
         self.domain_classifier_.fit(
             np.concatenate((features, features_target)), y_domain
         )
-        return
+        return self
 
-    def __call__(self, estimator, X, y):
+    def _score(self, estimator, X, y, sample_domain, **kwargs):
+        X, y, X_target, _ = check_X_y_domain(X, y, sample_domain, return_joint=False)
         rng = check_random_state(self.random_state)
         X_train, X_val, y_train, y_val = train_test_split(
             X, y, test_size=0.33, random_state=rng
         )
         features_train = estimator.get_features(X_train)
         features_val = estimator.get_features(X_val)
-        features_target = estimator.get_features(self.X_test)
+        features_target = estimator.get_features(X_target)
 
         self._fit_adapt(features_train, features_target)
         N, N_target = len(features_train), len(features_target)

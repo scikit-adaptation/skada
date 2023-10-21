@@ -35,5 +35,5 @@ def test_reweight_estimator(estimator, tmp_da_dataset):
     y_pred = estimator.predict(X_test, sample_domain=sample_domain)
     # xxx(okachaiev): see comments from other tests
     # assert np.mean(y_pred == y_test) > 0.9
-    # score = estimator.score(X_test, y_test, sample_domain=sample_domain)
+    score = estimator.score(X_test, y_test, sample_domain=sample_domain)
     # assert score > 0.9

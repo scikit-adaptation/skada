@@ -18,11 +18,14 @@ def _estimator_has(attr):
     First, we check the first fitted classifier if available, otherwise we
     check the unfitted classifier.
     """
-    return lambda estimator: (
-        hasattr(estimator.base_estimator_, attr)
-        if hasattr(estimator, "base_estimator_")
-        else hasattr(estimator.base_estimator, attr)
-    )
+    def has_base_estimator(estimator) -> bool:
+        return hasattr(estimator, "base_estimator") and hasattr(estimator.base_estimator, attr)
+
+    # xxx(okachaiev): there should be a simple way to access selector base estimator
+    def has_estimator_selector(estimator) -> bool:
+        return hasattr(estimator, "estimators_") and hasattr(estimator.estimators_[0], attr)
+
+    return lambda estimator: has_base_estimator(estimator) or has_estimator_selector(estimator)
 
 
 # xxx(okachaiev): implement clone, repr so we don't have to use BaseEstimator
@@ -345,13 +348,14 @@ class DomainAwareEstimator(BaseEstimator):
         X, sample_domain = self._check_and_adapt(X, sample_domain)
         return self._call_estimators_method('predict_log_proba', X, sample_domain)
 
-    # xxx(okachaiev): there's an interesting question of how to use score
-    # when we are in the situation of having multiple estimators (it would force us to
-    # return array here, which is not expected from a common 'score' API)
-    # @available_if(_estimator_has("score"))
-    # def score(self, X, y, sample_domain=None, sample_weight=None):
-    #     X, sample_domain = self._check_and_adapt(X, sample_domain)
-    #     return self._call_estimators_method('score', X, y, sample_domain)
+    @available_if(_estimator_has("score"))
+    def score(self, X, y, sample_domain=None, sample_weight=None):
+        X, sample_domain = self._check_and_adapt(X, sample_domain)
+        scores, n_samples = [], []
+        for estimator, indices in self.select_domain_estimators(sample_domain):
+            scores.append(estimator.score(X[indices], y[indices]))
+            n_samples.append(X[indices].shape[0])
+        return np.average(scores, weights=n_samples)
 
     def fit_predict(self, X, y, sample_domain=None, *, sample_weight=None, **kwargs):
         """Fit and predict"""
