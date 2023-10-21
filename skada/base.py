@@ -532,3 +532,18 @@ class SourceTargetEstimatorMixin:
 # xxx(okachaiev): stacking of constructors is also incompatible with sklearn BaseEstimator 
 class DomainAdaptationStrategy(SingleAdapterMixin, SingleEstimatorMixin, DomainAwareEstimator):
     pass
+
+
+class DomainAwareEstimatorWithSelectors(DomainAwareEstimator):
+    """API to move '*Mixin'(s) into '*Selector'(s)."""
+
+    def __init__(self, adapter_selector, estimator_selector, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.adapter_selector = adapter_selector
+        self.estimator_selector = estimator_selector
+
+    def get_domain_adapters(self, sample_domain) -> List[Tuple[BaseAdapter, np.ndarray]]:
+        return self.adapter_selector.select(sample_domain)
+
+    def get_domain_estimators(self, sample_domain) -> List[Tuple[BaseEstimator, np.ndarray]]:
+        return self.estimator_selector.select(sample_domain)
