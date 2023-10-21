@@ -40,7 +40,6 @@ def test_mapping_estimator(estimator, tmp_da_dataset):
     X_target_scaled = np.copy(X_target)
     X_scaled[:, 0] *= 2
     X_target_scaled[:, 1] *= 3
-    # xxx(okachaiev): make a special fixture for DA dataset object
     dataset = DomainAwareDataset([
         (X_scaled, y_source, 's'),
         (X_target_scaled, y_target, 't'),
