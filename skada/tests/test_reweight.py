@@ -1,11 +1,11 @@
-import numpy as np
 from sklearn.linear_model import LogisticRegression
 
 from skada import (
-    ReweightDensity,
-    GaussianReweightDensity,
-    DiscriminatorReweightDensity,
-    KLIEP,
+    DomainAwareEstimator,
+    ReweightDensityAdapter,
+    GaussianReweightDensityAdapter,
+    DiscriminatorReweightDensityAdapter,
+    KLIEPAdapter,
 )
 from skada.datasets import DomainAwareDataset
 
@@ -15,10 +15,10 @@ import pytest
 @pytest.mark.parametrize(
     "estimator",
     [
-        ReweightDensity(base_estimator=LogisticRegression()),
-        GaussianReweightDensity(base_estimator=LogisticRegression()),
-        DiscriminatorReweightDensity(base_estimator=LogisticRegression()),
-        KLIEP(base_estimator=LogisticRegression(), gamma=[0.1, 1], random_state=42),
+        DomainAwareEstimator(ReweightDensityAdapter(), LogisticRegression()),
+        DomainAwareEstimator(GaussianReweightDensityAdapter(), LogisticRegression()),
+        DomainAwareEstimator(DiscriminatorReweightDensityAdapter(), LogisticRegression()),
+        DomainAwareEstimator(KLIEPAdapter(gamma=[0.1, 1], random_state=42), LogisticRegression()),
     ],
 )
 def test_reweight_estimator(estimator, tmp_da_dataset):

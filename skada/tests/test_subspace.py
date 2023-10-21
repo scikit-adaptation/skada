@@ -2,9 +2,8 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 
 from skada import (
-    SubspaceAlignment,
+    DomainAwareEstimator,
     SubspaceAlignmentAdapter,
-    TransferComponentAnalysis,
     TransferComponentAnalysisAdapter,
 )
 from skada.datasets import DomainAwareDataset
@@ -14,8 +13,8 @@ import pytest
 
 @pytest.mark.parametrize(
     "estimator", [
-        SubspaceAlignment(base_estimator=LogisticRegression(), n_components=2),
-        TransferComponentAnalysis(base_estimator=LogisticRegression(), n_components=2),
+        DomainAwareEstimator(SubspaceAlignmentAdapter(n_components=2), LogisticRegression()),
+        DomainAwareEstimator(TransferComponentAnalysisAdapter(n_components=2), LogisticRegression()),
     ]
 )
 def test_subspace_alignment(estimator, tmp_da_dataset):

@@ -9,7 +9,7 @@ from sklearn.neighbors import KernelDensity
 from sklearn.utils import check_random_state
 from sklearn.utils.validation import check_is_fitted
 
-from .base import BaseAdapter, DomainAwareEstimator, SingleAdapterMixin, SingleEstimatorMixin, clone
+from .base import BaseAdapter, clone
 from ._utils import _estimate_covariance, check_X_domain
 
 
@@ -103,13 +103,6 @@ class ReweightDensityAdapter(BaseAdapter):
         self.weight_estimator_target_ = clone(self.weight_estimator)
         self.weight_estimator_source_.fit(X_source)
         self.weight_estimator_target_.fit(X_target)
-
-
-class ReweightDensity(SingleEstimatorMixin, SingleAdapterMixin, DomainAwareEstimator):
-
-    def __init__(self, weight_estimator=None, **kwargs):
-        self.weight_estimator = weight_estimator
-        super().__init__(base_adapter=ReweightDensityAdapter(weight_estimator), **kwargs)
 
 
 class GaussianReweightDensityAdapter(BaseAdapter):
@@ -222,15 +215,6 @@ class GaussianReweightDensityAdapter(BaseAdapter):
         self.cov_target_ = _estimate_covariance(X_target, shrinkage=self.reg)
 
 
-# xxx(okachaiev): chain of subclasses is an incredibly fragile design decision
-# try to use meta classes instead (same how it's done for routing)
-class GaussianReweightDensity(SingleEstimatorMixin, SingleAdapterMixin, DomainAwareEstimator):
-
-    def __init__(self, reg='auto', **kwargs):
-        self.reg = reg
-        super().__init__(base_adapter=GaussianReweightDensityAdapter(reg), **kwargs)
-
-
 class DiscriminatorReweightDensityAdapter(BaseAdapter):
     """Gaussian approximation re-weighting method.
 
@@ -322,14 +306,6 @@ class DiscriminatorReweightDensityAdapter(BaseAdapter):
         y_domain[source_idx] = 0
         self.domain_classifier_.fit(X, y_domain)
         return self
-
-
-class DiscriminatorReweightDensity(SingleEstimatorMixin, SingleAdapterMixin, DomainAwareEstimator):
-
-    def __init__(self, domain_classifier=None, **kwargs):
-        self.domain_classifier = domain_classifier
-        base_adapter = DiscriminatorReweightDensityAdapter(domain_classifier)
-        super().__init__(base_adapter=base_adapter, **kwargs)
 
 
 class KLIEPAdapter(BaseAdapter):
@@ -519,32 +495,3 @@ class KLIEPAdapter(BaseAdapter):
         best_gamma_ = gammas[np.argmax(log_liks)]
 
         return best_gamma_
-
-
-class KLIEP(SingleEstimatorMixin, SingleAdapterMixin, DomainAwareEstimator):
-
-    def __init__(
-        self,
-        gamma,  # XXX use the auto/scale mode as done with sklearn SVC
-        cv=5,
-        n_centers=100,
-        tol=1e-6,
-        max_iter=1000,
-        random_state=None,
-        **kwargs
-    ):
-        self.gamma = gamma
-        self.cv = cv
-        self.n_centers = n_centers
-        self.tol = tol
-        self.max_iter = max_iter
-        self.random_state = random_state
-        base_adapter = KLIEPAdapter(
-            gamma,
-            cv=cv,
-            n_centers=n_centers,
-            tol=tol,
-            max_iter=max_iter,
-            random_state=random_state
-        )
-        super().__init__(base_adapter=base_adapter, **kwargs)

@@ -47,7 +47,7 @@ class BaseAdapter(BaseEstimator):
         return self
 
 
-class DomainAwareEstimator(BaseEstimator):
+class BaseDomainAwareEstimator(BaseEstimator):
     """Base class for Data Adaptation estimators.
 
     This class forms the foundation for domain-aware estimators. Each specific
@@ -368,99 +368,10 @@ class DomainAwareEstimator(BaseEstimator):
         return self.predict(X, sample_domain=sample_domain)
 
 
-class SingleAdapterMixin:
-    """Use the same adapter (passed as `base_adapter` to the constructor)
-    for all domains (including source and target).
-    """
+class BaseSelector:
 
-    def __init__(
-        self,
-        base_adapter: Optional[BaseAdapter] = None,
-        *args,
-        **kwargs
-    ):
-        super().__init__(*args, **kwargs)
-        self.base_adapter = base_adapter
-
-    def get_domain_adapters(self, sample_domain) -> List[Tuple[BaseAdapter, np.ndarray]]:
-        """Creates new adapters.
-
-        Returns list of adapter each with a list of corresponding domain
-        labels. Special markers `INCLUDE_ALL_SOURCES` and `INCLUDE_ALL_TARGETS`
-        could be used to indicate that corresponding adapter is universal.
-        """
-        return [(
-            clone(self.base_adapter),
-            np.array([DomainAwareEstimator.INCLUDE_ALL_SOURCES, DomainAwareEstimator.INCLUDE_ALL_TARGETS])
-        )]
-
-
-class PerDomainAdapterMixin:
-    """Takes a single `base_adapter` as an argument but uses them (to fit and adapt)
-    separately: by creating copy per each domain.
-    """
-
-    def __init__(
-        self,
-        base_adapter: Optional[BaseAdapter] = None,
-        *args,
-        **kwargs
-    ):
-        super().__init__(*args, **kwargs)
-        self.base_adapter = base_adapter
-
-    def get_domain_adapters(self, sample_domain) -> List[Tuple[BaseAdapter, np.ndarray]]:
-        """Creates new adapters.
-
-        Returns list of adapter each with a list of corresponding domain
-        labels. Special markers `INCLUDE_ALL_SOURCES` and `INCLUDE_ALL_TARGETS`
-        could be used to indicate that corresponding adapter is universal.
-        """
-        return [(clone(self.base_adapter), domain) for domain in np.unique(sample_domain)]
-
-
-class SourceTargetAdapterMixin:
-    """Uses one adapter for all sources and one for all targets."""
-
-    def __init__(
-        self,
-        source_adapter: Optional[BaseAdapter] = None,
-        target_adapter: Optional[BaseAdapter] = None,
-        *args,
-        **kwargs
-    ):
-        super().__init__(*args, **kwargs)
-        self.source_adapter = source_adapter
-        self.target_adapter = target_adapter
-
-    def get_domain_adapters(self, sample_domain) -> List[Tuple[BaseAdapter, np.ndarray]]:
-        """Creates new adapters.
-
-        Returns list of adapter each with a list of corresponding domain
-        labels. Special markers `INCLUDE_ALL_SOURCES` and `INCLUDE_ALL_TARGETS`
-        could be used to indicate that corresponding adapter is universal.
-        """
-        return [
-            (clone(self.source_adapter), DomainAwareEstimator.INCLUDE_ALL_SOURCES),
-            (clone(self.target_adapter), DomainAwareEstimator.INCLUDE_ALL_TARGETS),
-        ]
-
-
-class SingleEstimatorMixin:
-    """Use the same estimator (passed as `base_estimator` to the constructor)
-    for all domains (including source and target).
-    """
-
-    def __init__(
-        self,
-        base_estimator: Optional[BaseEstimator] = None,
-        *args,
-        **kwargs
-    ):
-        super().__init__(*args, **kwargs)
-        self.base_estimator = base_estimator
-
-    def get_domain_estimators(self, sample_domain) -> List[Tuple[BaseEstimator, np.ndarray]]:
+    @abstractmethod
+    def select(self, sample_domain: np.ndarray) -> List[Tuple[BaseEstimator, np.ndarray]]:
         """Creates new estimators.
 
         Returns list of estimators each with a list of corresponding
@@ -468,27 +379,47 @@ class SingleEstimatorMixin:
         all labels. Note that with such API one have flexibility to
         manage which domains are eligible for 'predict'.
         """
+
+    # xxx(okachaiev): there might be a much easier way of doing this
+    @abstractmethod
+    def get_base_estimator(self) -> BaseEstimator:
+        """Return object of the estimator suitable for property testing
+        (for example, for detecting available methods of the estimator).
+        """
+
+
+class SingleEstimatorSelector(BaseSelector):
+    """Use the same estimator (passed as `base_estimator` to the constructor)
+    for all domains (including source and target).
+    """
+
+    def __init__(self, base_estimator: BaseEstimator):
+        super().__init__()
+        self.base_estimator = base_estimator
+
+    def select(self, sample_domain) -> List[Tuple[BaseEstimator, np.ndarray]]:
         return [(
             clone(self.base_estimator),
-            np.array([DomainAwareEstimator.INCLUDE_ALL_SOURCES, DomainAwareEstimator.INCLUDE_ALL_TARGETS])
+            np.array([
+                BaseDomainAwareEstimator.INCLUDE_ALL_SOURCES,
+                BaseDomainAwareEstimator.INCLUDE_ALL_TARGETS
+            ])
         )]
 
+    def get_base_estimator(self) -> BaseEstimator:
+        return self.base_estimator
 
-class PerDomainEstimatorMixin:
+
+class PerDomainEstimatorSelector(BaseSelector):
     """Takes a single `base_estimator` as an argument but uses them (to fit and adapt)
     separately: by creating copy per each domain.
     """
 
-    def __init__(
-        self,
-        base_estimator: Optional[BaseEstimator] = None,
-        *args,
-        **kwargs
-    ):
-        super().__init__(*args, **kwargs)
+    def __init__(self, base_estimator: BaseEstimator):
+        super().__init__()
         self.base_estimator = base_estimator
 
-    def get_domain_estimators(self, sample_domain) -> List[Tuple[BaseEstimator, np.ndarray]]:
+    def select_estimators(self, sample_domain) -> List[Tuple[BaseEstimator, np.ndarray]]:
         """Creates new estimators.
 
         Returns list of estimators each with a list of corresponding
@@ -498,22 +429,19 @@ class PerDomainEstimatorMixin:
         """
         return [(clone(self.base_estimator), domain) for domain in np.unique(sample_domain)]
 
+    def get_base_estimator(self) -> BaseEstimator:
+        return self.base_estimator
 
-class SourceTargetEstimatorMixin:
+
+class SourceTargetEstimatorSelector(BaseSelector):
     """Uses one estimator for all sources and one for all targets."""
 
-    def __init__(
-        self,
-        source_estimator: Optional[BaseAdapter] = None,
-        target_estimator: Optional[BaseAdapter] = None,
-        *args,
-        **kwargs
-    ):
-        super().__init__(*args, **kwargs)
+    def __init__(self, source_estimator: BaseEstimator, target_estimator: BaseEstimator):
+        super().__init__()
         self.source_estimator = source_estimator
         self.target_estimator = target_estimator
 
-    def get_domain_estimators(self, sample_domain) -> List[Tuple[BaseAdapter, np.ndarray]]:
+    def select(self, sample_domain) -> List[Tuple[BaseAdapter, np.ndarray]]:
         """Creates new estimators.
 
         Returns list of estimators each with a list of corresponding
@@ -522,25 +450,35 @@ class SourceTargetEstimatorMixin:
         manage which domains are eligible for 'predict'.
         """
         return [
-            (clone(self.source_estimator), DomainAwareEstimator.INCLUDE_ALL_SOURCES),
-            (clone(self.target_estimator), DomainAwareEstimator.INCLUDE_ALL_TARGETS),
+            (clone(self.source_estimator), BaseDomainAwareEstimator.INCLUDE_ALL_SOURCES),
+            (clone(self.target_estimator), BaseDomainAwareEstimator.INCLUDE_ALL_TARGETS),
         ]
 
-
-# xxx(okachaiev): experimental
-# xxx(okachaiev): the name is bad
-# xxx(okachaiev): stacking of constructors is also incompatible with sklearn BaseEstimator 
-class DomainAdaptationStrategy(SingleAdapterMixin, SingleEstimatorMixin, DomainAwareEstimator):
-    pass
+    def get_base_estimator(self) -> BaseEstimator:
+        return self.target_estimator
 
 
-class DomainAwareEstimatorWithSelectors(DomainAwareEstimator):
+# xxx(okachaiev): get_params and set_params should propagate settings
+class DomainAwareEstimator(BaseDomainAwareEstimator):
     """API to move '*Mixin'(s) into '*Selector'(s)."""
 
-    def __init__(self, adapter_selector, estimator_selector, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        # xxx(okachaiev): I guess we can make them into a type generic
+        adapter_selector: Union[BaseEstimator, BaseSelector],
+        estimator_selector: Union[BaseEstimator, BaseSelector],
+    ):
+        super().__init__()
+        if not isinstance(adapter_selector, BaseSelector):
+            adapter_selector = SingleEstimatorSelector(adapter_selector)
+        if not isinstance(estimator_selector, BaseSelector):
+            estimator_selector = SingleEstimatorSelector(estimator_selector)
         self.adapter_selector = adapter_selector
         self.estimator_selector = estimator_selector
+
+    @property
+    def base_estimator(self) -> BaseEstimator:
+        return self.estimator_selector.get_base_estimator()
 
     def get_domain_adapters(self, sample_domain) -> List[Tuple[BaseAdapter, np.ndarray]]:
         return self.adapter_selector.select(sample_domain)

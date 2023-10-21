@@ -4,12 +4,7 @@ from sklearn.decomposition import PCA
 from sklearn.metrics.pairwise import pairwise_kernels
 from sklearn.utils import check_random_state
 
-from .base import (
-    BaseAdapter,
-    DomainAwareEstimator,
-    SingleAdapterMixin,
-    SingleEstimatorMixin,
-)
+from .base import BaseAdapter
 from ._utils import check_X_domain, _merge_source_target
 
 
@@ -130,20 +125,6 @@ class SubspaceAlignmentAdapter(BaseAdapter):
         self.n_components_ = n_components
         self.M_ = np.dot(self.pca_source_.components_, self.pca_target_.components_.T)
         return self
-
-
-class SubspaceAlignment(SingleEstimatorMixin, SingleAdapterMixin, DomainAwareEstimator):
-
-    def __init__(
-        self,
-        n_components=None,
-        random_state=None,
-        **kwargs
-    ):
-        self.n_components = n_components
-        self.random_state = random_state
-        base_adapter = SubspaceAlignmentAdapter(n_components, random_state)
-        super().__init__(base_adapter=base_adapter, **kwargs)
 
 
 class TransferComponentAnalysisAdapter(BaseAdapter):
@@ -286,19 +267,3 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
         selected_components = np.argsort(np.abs(eigvals))[::-1][:n_components]
         self.eigvects_ = np.real(eigvects[:, selected_components])
         return self
-
-
-class TransferComponentAnalysis(SingleEstimatorMixin, SingleAdapterMixin, DomainAwareEstimator):
-
-    def __init__(
-        self,
-        kernel='rbf',
-        n_components=None,
-        mu=0.1,
-        **kwargs
-    ):
-        self.kernel = kernel
-        self.n_components = n_components
-        self.mu = mu
-        base_adapter = TransferComponentAnalysisAdapter(kernel, n_components, mu)
-        super().__init__(base_adapter=base_adapter, **kwargs)

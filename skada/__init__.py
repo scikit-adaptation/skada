@@ -7,19 +7,13 @@ from ._mapping import (
     OTMappingAdapter,
 )
 from ._reweight import (
-    DiscriminatorReweightDensity,
     DiscriminatorReweightDensityAdapter,
-    GaussianReweightDensity,
     GaussianReweightDensityAdapter,
-    KLIEP,
     KLIEPAdapter,
-    ReweightDensity,
     ReweightDensityAdapter,
 )
 from ._subspace import (
-    SubspaceAlignment,
     SubspaceAlignmentAdapter,
-    TransferComponentAnalysis,
     TransferComponentAnalysisAdapter,
 )
 # from ._pipeline import DAPipeline
@@ -35,18 +29,12 @@ __all__ = [
     "LinearOTMappingAdapter",
     "OTMappingAdapter",
 
-    "DiscriminatorReweightDensity",
     "DiscriminatorReweightDensityAdapter",
-    "GaussianReweightDensity",
     "GaussianReweightDensityAdapter",
-    "KLIEP",
     "KLIEPAdapter",
-    "ReweightDensity",
     "ReweightDensityAdapter",
 
-    "SubspaceAlignment",
     "SubspaceAlignmentAdapter",
-    "TransferComponentAnalysis",
     "TransferComponentAnalysisAdapter",
 
     # "DAPipeline",

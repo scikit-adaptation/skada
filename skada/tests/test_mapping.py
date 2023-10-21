@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 
-from skada.base import DomainAdaptationStrategy
+from skada.base import DomainAwareEstimator
 from skada.datasets import DomainAwareDataset
 from skada import (
     CORALAdapter,
@@ -16,20 +16,20 @@ import pytest
 
 @pytest.mark.parametrize(
     "estimator", [
-        DomainAdaptationStrategy(base_adapter=OTMappingAdapter(), base_estimator=LogisticRegression()),
-        DomainAdaptationStrategy(base_adapter=EntropicOTMappingAdapter(), base_estimator=LogisticRegression()),
-        DomainAdaptationStrategy(
-            base_adapter=ClassRegularizerOTMappingAdapter(norm="lpl1"),
-            base_estimator=LogisticRegression()
+        DomainAwareEstimator(OTMappingAdapter(), LogisticRegression()),
+        DomainAwareEstimator(EntropicOTMappingAdapter(), LogisticRegression()),
+        DomainAwareEstimator(
+            ClassRegularizerOTMappingAdapter(norm="lpl1"),
+            LogisticRegression()
         ),
-        DomainAdaptationStrategy(
-            base_adapter=ClassRegularizerOTMappingAdapter(norm="l1l2"),
-            base_estimator=LogisticRegression()
+        DomainAwareEstimator(
+            ClassRegularizerOTMappingAdapter(norm="l1l2"),
+            LogisticRegression()
         ),
-        DomainAdaptationStrategy(base_adapter=LinearOTMappingAdapter(), base_estimator=LogisticRegression()),
-        DomainAdaptationStrategy(base_adapter=CORALAdapter(), base_estimator=LogisticRegression()),
+        DomainAwareEstimator(LinearOTMappingAdapter(), LogisticRegression()),
+        DomainAwareEstimator(CORALAdapter(), LogisticRegression()),
         pytest.param(CORALAdapter(reg=None), marks=pytest.mark.xfail(reason='Fails without regularization')),
-        DomainAdaptationStrategy(base_adapter=CORALAdapter(reg=0.1), base_estimator=LogisticRegression()),
+        DomainAwareEstimator(CORALAdapter(reg=0.1), LogisticRegression()),
     ]
 )
 def test_mapping_estimator(estimator, tmp_da_dataset):
