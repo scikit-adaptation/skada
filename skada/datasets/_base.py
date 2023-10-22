@@ -101,8 +101,8 @@ class DomainAwareDataset:
     # we should not autogenerate them... otherwise it might be not obvious at all
     def pack(
         self,
-        as_sources: List[str],
-        as_targets: List[str],
+        as_sources: List[str] = None,
+        as_targets: List[str] = None,
         return_X_y: bool = True,
         train: bool = False,
     ) -> Union[Bunch, Tuple[np.ndarray, np.ndarray, np.ndarray]]:
@@ -144,6 +144,10 @@ class DomainAwareDataset:
         """
         Xs, ys, sample_domains = [], [], []
         domain_labels = {}
+        if as_sources is None:
+            as_sources = []
+        if as_targets is None:
+            as_targets = []
         for domain_name in as_sources:
             domain_id = self.domain_names_[domain_name]
             source = self.get_domain(domain_name)
