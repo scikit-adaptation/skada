@@ -32,19 +32,23 @@ def _estimator_has(attr):
 class BaseAdapter(BaseEstimator):
 
     @abstractmethod
-    def adapt(self, X, y=None, sample_domain=None, *, sample_weight=None, **kwargs):
+    def adapt(self, X, y=None, sample_domain=None, *, sample_weight=None):
         """Transform samples, labels, and weights into the space in which
         the estimator is trained.
         """
         # xxx(okachaiev): I'm still not sure if it's required for adapt
         # to return new sample_domain. I can't find any example where such
         # API would be useful (rather than being annoying)
-        return X, y, sample_domain, None
+        return X, y, sample_domain, sample_weight
 
     @abstractmethod
-    def fit(self, X, y=None, sample_domain=None, *, sample_weight=None, **kwargs):
+    def fit(self, X, y=None, sample_domain=None, *, sample_weight=None):
         """Fit adaptation parameters"""
         return self
+    
+    def fit_adapt(self, X, y=None, sample_domain=None, *, sample_weight=None, **kwargs):
+        self.fit(X, y=y, sample_domain=sample_domain, sample_weight=sample_weight, **kwargs)
+        return self.adapt(X, y=y, sample_domain=sample_domain, sample_weight=sample_weight, **kwargs)
 
 
 class BaseDomainAwareEstimator(BaseEstimator):
