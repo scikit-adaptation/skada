@@ -39,10 +39,10 @@ API and modules
    KLIEP
    SubspaceAlignment
    TransferComponentAnalysis
-   OTmapping
-   EntropicOTmapping
-   ClassRegularizerOTmapping
-   LinearOTmapping
+   OTMapping
+   EntropicOTMapping
+   ClassRegularizerOTMapping
+   LinearOTMapping
    CORAL
    DAPipeline
 
@@ -86,6 +86,6 @@ API and modules
 
    SupervisedScorer
    ImportanceWeightedScorer
-   PredictionPredictionEntropyScorer
+   PredictionEntropyScorer
    DeepEmbeddedValidation
    SoftNeighborhoodDensity
