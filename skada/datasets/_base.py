@@ -105,6 +105,7 @@ class DomainAwareDataset:
         as_targets: List[str] = None,
         return_X_y: bool = True,
         train: bool = False,
+        mask: Union[None, int, float] = None,
     ) -> Union[Bunch, Tuple[np.ndarray, np.ndarray, np.ndarray]]:
         """Takes all domain datasets and packs them into a single
         domain-aware representation compatible with DA estimators.
@@ -120,8 +121,10 @@ class DomainAwareDataset:
             returns :class:`~sklearn.utils.Bunch` object with the structure
             described below.
         train: bool, default=False
-            When set to True, masks labels for target domains with -1, so
-            they are not available at train time.
+            When set to True, masks labels for target domains with -1
+            (or a `mask` given), so they are not available at train time.
+        mask: int | float (optional), default=None
+            Value to mask labels at training time.
 
         Returns
         -------
@@ -175,8 +178,16 @@ class DomainAwareDataset:
             else:
                 raise ValueError("Invalid definition for domain data")
             if train:
-                # always mask target labels for training dataset
-                y = -np.ones(X.shape[0], dtype=np.int32)
+                if mask is not None:
+                    y = np.array([mask] * X.shape[0])
+                elif y.dtype == np.int32:
+                    y = -np.ones(X.shape[0], dtype=np.int32)
+                    # make sure that the mask is reused on the next iteration
+                    mask = -1
+                elif y.dtype == np.float32:
+                    y = np.array([np.nan] * X.shape[0])
+                    # make sure that the  mask is reused on the next iteration
+                    mask = np.nan
             # xxx(okachaiev): this is horribly inefficient, rewrite when API is fixed
             Xs.append(X)
             ys.append(y)
@@ -200,6 +211,7 @@ class DomainAwareDataset:
         as_sources: List[str],
         as_targets: List[str],
         return_X_y: bool = True,
+        mask: Union[None, int, float] = None,
     ):
         """Same as pack.
         
@@ -211,6 +223,7 @@ class DomainAwareDataset:
             as_targets=as_targets,
             return_X_y=return_X_y,
             train=True,
+            mask=mask,
         )
 
     def pack_for_test(
