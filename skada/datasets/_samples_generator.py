@@ -7,6 +7,8 @@ from scipy.fftpack import rfft, irfft
 
 from sklearn.datasets import make_blobs
 
+from ._base import DomainAwareDataset
+
 
 def _generate_unif_circle(n_samples, rng):
     angle = rng.rand(n_samples, 1) * 2 * np.pi
@@ -214,6 +216,8 @@ def make_shifted_blobs(
     centers=None,
     cluster_std=1.0,
     random_state=None,
+    return_X_y=True,
+    return_dataset=False,
 ):
     """Generate source and shift target isotropic Gaussian blobs .
 
@@ -243,17 +247,36 @@ def make_shifted_blobs(
     random_state : int, RandomState instance or None, default=None
         Determines random number generation for dataset creation. Pass an int
         for reproducible output across multiple function calls.
+    return_X_y : boolean, optional (default=True)
+        Returns source and target dataset as a pair of (X, y) tuples (for
+        the source and the target respectively). Otherwise returns tuple of
+        (X, y, sample_domain) where `sample_domain` is a categorical label
+        for the domain where sample is taken.
+    return_dataset : boolean, optional (default=False)
+        When set to `True`, the function returns :class:`~skada.datasets.DomainAwareDataset`
+        object.
 
     Returns
     -------
-    X_source : ndarray of shape (n_samples, n_features)
-        The generated source samples.
-    y_source : ndarray of shape (n_samples,)
-        The integer labels for cluster membership of each source sample.
-    X_target : ndarray of shape (n_samples, n_features)
-        The generated target samples.
-    y_target : ndarray of shape (n_samples,)
-        The integer labels for cluster membership of each target sample.
+    (X, y, sample_domain) : tuple if `return_X_y=True`
+        Tuple of (data, target, sample_domain), see the description below.
+
+    data : :class:`~sklearn.utils.Bunch`
+        Dictionary-like object, with the following attributes.
+
+        data: ndarray
+            Samples from all sources and all targets given.
+        target : ndarray
+            Target labels from all sources and all targets.
+        sample_domain : ndarray
+            The integer label for domain the sample was taken from.
+            By convention, source domains have non-negative labels,
+            and target domain label is always < 0.
+        domain_names : dict
+            The names of domains and associated domain labels.
+
+    dataset : :class:`~skada.datasets.DomainAwareDataset`
+        Dataset object.
     """
     rng = np.random.RandomState(random_state)
 
@@ -275,7 +298,14 @@ def make_shifted_blobs(
         X_source += rng.normal(scale=noise[0], size=X_source.shape)
         X_target += rng.normal(scale=noise[1], size=X_target.shape)
 
-    return X_source, y_source, X_target, y_target
+    dataset = DomainAwareDataset(domains=[
+        (X_source, y_source, 's'),
+        (X_target, y_target, 't'),
+    ])
+    if return_dataset:
+        return dataset
+    else:
+        return dataset.pack(as_sources=['s'], as_targets=['t'], return_X_y=return_X_y)
 
 
 def make_shifted_datasets(
@@ -290,6 +320,8 @@ def make_shifted_datasets(
     gamma=2,
     center=((0, 2)),
     random_state=None,
+    return_X_y=True,
+    return_dataset=False,
 ):
     """Generate source and shift target.
 
@@ -327,17 +359,36 @@ def make_shifted_datasets(
     random_state : int, RandomState instance or None, default=None
         Determines random number generation for dataset creation. Pass an int
         for reproducible output across multiple function calls.
+    return_X_y : boolean, optional (default=True)
+        Returns source and target dataset as a pair of (X, y) tuples (for
+        the source and the target respectively). Otherwise returns tuple of
+        (X, y, sample_domain) where `sample_domain` is a categorical label
+        for the domain where sample is taken.
+    return_dataset : boolean, optional (default=False)
+        When set to `True`, the function returns :class:`~skada.datasets.DomainAwareDataset`
+        object.
 
     Returns
     -------
-    X_source : ndarray of shape (n_samples, n_features)
-        The generated source samples.
-    y_source : ndarray of shape (n_samples,)
-        The integer labels for cluster membership of each source sample.
-    X_target : ndarray of shape (n_samples, n_features)
-        The generated target samples.
-    y_target : ndarray of shape (n_samples,)
-        The integer labels for cluster membership of each target sample.
+    (X, y, sample_domain) : tuple if `return_X_y=True`
+        Tuple of (data, target, sample_domain), see the description below.
+
+    data : :class:`~sklearn.utils.Bunch`
+        Dictionary-like object, with the following attributes.
+
+        data: ndarray
+            Samples from all sources and all targets given.
+        target : ndarray
+            Target labels from all sources and all targets.
+        sample_domain : ndarray
+            The integer label for domain the sample was taken from.
+            By convention, source domains have non-negative labels,
+            and target domain label is always < 0.
+        domain_names : dict
+            The names of domains and associated domain labels.
+
+    dataset : :class:`~skada.datasets.DomainAwareDataset`
+        Dataset object.
 
     References
     ----------
@@ -421,7 +472,14 @@ def make_shifted_datasets(
         X_source += rng.normal(scale=noise[0], size=X_source.shape)
         X_target += rng.normal(scale=noise[1], size=X_target.shape)
 
-    return X_source, y_source, X_target, y_target
+    dataset = DomainAwareDataset(domains=[
+        (X_source, y_source, 's'),
+        (X_target, y_target, 't'),
+    ])
+    if return_dataset:
+        return dataset
+    else:
+        return dataset.pack(as_sources=['s'], as_targets=['t'], return_X_y=return_X_y)
 
 
 def make_dataset_from_moons_distribution(
@@ -430,7 +488,9 @@ def make_dataset_from_moons_distribution(
     noise=None,
     pos_source=0.1,
     pos_target=0.2,
-    random_state=None
+    random_state=None,
+    return_X_y=True,
+    return_dataset=False,
 ):
     """Make dataset from moons.
 
@@ -457,17 +517,36 @@ def make_dataset_from_moons_distribution(
     random_state : int, RandomState instance or None, default=None
         Determines random number generation for dataset creation. Pass an int
         for reproducible output across multiple function calls.
+    return_X_y : boolean, optional (default=True)
+        Returns source and target dataset as a pair of (X, y) tuples (for
+        the source and the target respectively). Otherwise returns tuple of
+        (X, y, sample_domain) where `sample_domain` is a categorical label
+        for the domain where sample is taken.
+    return_dataset : boolean, optional (default=False)
+        When set to `True`, the function returns :class:`~skada.datasets.DomainAwareDataset`
+        object.
 
     Returns
     -------
-    X_source : ndarray of shape (n_samples, n_features)
-        The generated source samples.
-    y_source : ndarray of shape (n_samples,)
-        The integer labels for cluster membership of each source sample.
-    X_target : ndarray of shape (n_samples, n_features)
-        The generated target samples.
-    y_target : ndarray of shape (n_samples,)
-        The integer labels for cluster membership of each target sample.
+    (X, y, sample_domain) : tuple if `return_X_y=True`
+        Tuple of (data, target, sample_domain), see the description below.
+
+    data : :class:`~sklearn.utils.Bunch`
+        Dictionary-like object, with the following attributes.
+
+        data: ndarray
+            Samples from all sources and all targets given.
+        target : ndarray
+            Target labels from all sources and all targets.
+        sample_domain : ndarray
+            The integer label for domain the sample was taken from.
+            By convention, source domains have non-negative labels,
+            and target domain label is always < 0.
+        domain_names : dict
+            The names of domains and associated domain labels.
+
+    dataset : :class:`~skada.datasets.DomainAwareDataset`
+        Dataset object.
     """
 
     rng = np.random.RandomState(random_state)
@@ -507,7 +586,14 @@ def make_dataset_from_moons_distribution(
         X_source += rng.normal(scale=noise[0], size=X_source.shape)
         X_target += rng.normal(scale=noise[1], size=X_target.shape)
 
-    return X_source, y_source, X_target, y_target
+    dataset = DomainAwareDataset(domains=[
+        (X_source, y_source, 's'),
+        (X_target, y_target, 't'),
+    ])
+    if return_dataset:
+        return dataset
+    else:
+        return dataset.pack(as_sources=['s'], as_targets=['t'], return_X_y=return_X_y)
 
 
 def make_variable_frequency_dataset(
@@ -521,9 +607,11 @@ def make_variable_frequency_dataset(
     sigma_freq=0.25,
     sigma_ch=1,
     noise=None,
-    random_state=None
+    random_state=None,
+    return_X_y=True,
+    return_dataset=False,
 ):
-    """Make datasetwith different peak frequency.
+    """Make dataset with different peak frequency.
 
     Parameters
     ----------
@@ -539,7 +627,7 @@ def make_variable_frequency_dataset(
         Number of channels which generate frequency peak and propagate
         to other channels.
     n_classes : int, default=3
-        Number of classes in the signals. One classe correspond to a
+        Number of classes in the signals. One class correspond to a
         specific frequency band.
     delta_f : float, default=1
         Band frequency shift of the target data.
@@ -554,17 +642,36 @@ def make_variable_frequency_dataset(
     random_state : int, RandomState instance or None, default=None
         Determines random number generation for dataset creation. Pass an int
         for reproducible output across multiple function calls.
+    return_X_y : boolean, optional (default=True)
+        Returns source and target dataset as a pair of (X, y) tuples (for
+        the source and the target respectively). Otherwise returns tuple of
+        (X, y, sample_domain) where `sample_domain` is a categorical label
+        for the domain where sample is taken.
+    return_dataset : boolean, optional (default=False)
+        When set to `True`, the function returns :class:`~skada.datasets.DomainAwareDataset`
+        object.
 
     Returns
     -------
-    X_source : ndarray of shape (n_samples, n_features)
-        The generated source samples.
-    y_source : ndarray of shape (n_samples,)
-        The integer labels for cluster membership of each source sample.
-    X_target : ndarray of shape (n_samples, n_features)
-        The generated target samples.
-    y_target : ndarray of shape (n_samples,)
-        The integer labels for cluster membership of each target sample.
+    (X, y, sample_domain) : tuple if `return_X_y=True`
+        Tuple of (data, target, sample_domain), see the description below.
+
+    data : :class:`~sklearn.utils.Bunch`
+        Dictionary-like object, with the following attributes.
+
+        data: ndarray
+            Samples from all sources and all targets given.
+        target : ndarray
+            Target labels from all sources and all targets.
+        sample_domain : ndarray
+            The integer label for domain the sample was taken from.
+            By convention, source domains have non-negative labels,
+            and target domain label is always < 0.
+        domain_names : dict
+            The names of domains and associated domain labels.
+
+    dataset : :class:`~skada.datasets.DomainAwareDataset`
+        Dataset object.
     """
 
     rng = np.random.RandomState(random_state)
@@ -604,4 +711,11 @@ def make_variable_frequency_dataset(
         X_source += rng.normal(scale=noise[0], size=X_source.shape)
         X_target += rng.normal(scale=noise[1], size=X_target.shape)
 
-    return X_source, y_source, X_target, y_target
+    dataset = DomainAwareDataset(domains=[
+        (X_source, y_source, 's'),
+        (X_target, y_target, 't'),
+    ])
+    if return_dataset:
+        return dataset
+    else:
+        return dataset.pack(as_sources=['s'], as_targets=['t'], return_X_y=return_X_y)
