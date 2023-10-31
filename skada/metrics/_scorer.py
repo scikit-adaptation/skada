@@ -65,8 +65,13 @@ class SupervisedScorer(_BaseDomainAwareScorer):
 
     def _score(self, estimator, X, y, sample_domain=None, **kwargs):
         scorer = check_scoring(estimator, self.scoring)
-        _, _, X_target, y_target = check_X_y_domain(X, y, sample_domain, return_joint=False)
-        return self._sign * scorer(estimator, X_target, y_target)
+        source_idx = check_X_y_domain(X, y, sample_domain, return_indices=True)
+        return self._sign * scorer(
+            estimator,
+            X[~source_idx],
+            y[~source_idx],
+            sample_domain=sample_domain[~source_idx]
+        )
 
 
 class ImportanceWeightedScorer(_BaseDomainAwareScorer):
@@ -141,17 +146,17 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
 
     def _score(self, estimator, X, y, sample_domain, **kwargs):
         scorer = check_scoring(estimator, self.scoring)
-        X, y, X_target, _ = check_X_y_domain(X, y, sample_domain, return_joint=False)
-        self._fit_adapt(X, X_target)
-        ws = self.weight_estimator_source_.score_samples(X)
-        # xxx(okachaiev): does it actually do the right job here???
-        wt = self.weight_estimator_target_.score_samples(X)
+        X_source, y_source, X_target, _ = check_X_y_domain(X, y, sample_domain, return_joint=False)
+        self._fit_adapt(X_source, X_target)
+        ws = self.weight_estimator_source_.score_samples(X_source)
+        wt = self.weight_estimator_target_.score_samples(X_source)
         weights = np.exp(wt - ws)
         weights /= weights.sum()
         return self._sign * scorer(
             estimator,
-            X,
-            y,
+            X_source,
+            y_source,
+            sample_domain=sample_domain[sample_domain >= 0],
             sample_weight=weights,
         )
 
@@ -179,7 +184,7 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
         super().__init__()
         self._sign = 1 if greater_is_better else -1
 
-    def _score(self, estimator, X, y, sample_domain, **kwargs):
+    def _score(self, estimator, X, y, sample_domain=None, **kwargs):
         if not hasattr(estimator, "predict_proba"):
             raise AttributeError(
                 "The estimator passed should "
@@ -187,11 +192,13 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
                 "The estimator %r does not." % estimator
             )
 
-        _, _, X_target, _ = check_X_y_domain(X, y, sample_domain, return_joint=False)
-
-        proba = estimator.predict_proba(X_target)
+        source_idx = check_X_y_domain(X, y, sample_domain, return_indices=True)
+        proba = estimator.predict_proba(X[~source_idx], sample_domain=sample_domain[~source_idx])
         if hasattr(estimator, "predict_log_proba"):
-            log_proba = estimator.predict_log_proba(X_target)
+            log_proba = estimator.predict_log_proba(
+                X[~source_idx],
+                sample_domain=sample_domain[~source_idx]
+            )
         else:
             log_proba = np.log(proba + 1e-7)
         entropy = np.sum(-proba * log_proba, axis=1)
@@ -225,7 +232,7 @@ class SoftNeighborhoodDensity(_BaseDomainAwareScorer):
         self.T = T
         self._sign = 1 if greater_is_better else -1
 
-    def _score(self, estimator, X, y, sample_domain, **kwargs):
+    def _score(self, estimator, X, y, sample_domain=None, **kwargs):
         if not hasattr(estimator, "predict_proba"):
             raise AttributeError(
                 "The estimator passed should"
@@ -233,9 +240,8 @@ class SoftNeighborhoodDensity(_BaseDomainAwareScorer):
                 "The estimator %r does not." % estimator
             )
 
-        _, _, X_target, _ = check_X_y_domain(X, y, sample_domain, return_joint=False)
-
-        proba = estimator.predict_proba(X_target)
+        source_idx = check_X_y_domain(X, y, sample_domain, return_indices=True)
+        proba = estimator.predict_proba(X[~source_idx], sample_domain=sample_domain[~source_idx])
         proba = Normalizer(norm="l2").fit_transform(proba)
 
         similarity_matrix = proba @ proba.T / self.T
@@ -309,11 +315,11 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         )
         return self
 
-    def _score(self, estimator, X, y, sample_domain, **kwargs):
-        X, y, X_target, _ = check_X_y_domain(X, y, sample_domain, return_joint=False)
+    def _score(self, estimator, X, y, sample_domain=None, **kwargs):
+        X_source, y_source, X_target, _ = check_X_y_domain(X, y, sample_domain, return_joint=False)
         rng = check_random_state(self.random_state)
         X_train, X_val, y_train, y_val = train_test_split(
-            X, y, test_size=0.33, random_state=rng
+            X_source, y_source, test_size=0.33, random_state=rng
         )
         features_train = estimator.get_features(X_train)
         features_val = estimator.get_features(X_val)

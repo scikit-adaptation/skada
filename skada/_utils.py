@@ -84,7 +84,7 @@ def check_X_y_domain(
         raise ValueError(f"Number of targets provided is {n_targets} "
                          "and 'allow_multi_target' is set to False")
 
-    if return_indices and not allow_multi_source and not allow_multi_target:
+    if return_indices:
         # only source indices are given, target indices are ~source_idx
         return source_idx
     elif not return_joint:
