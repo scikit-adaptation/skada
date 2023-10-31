@@ -64,7 +64,6 @@ class SupervisedScorer(_BaseDomainAwareScorer):
         self._sign = 1 if greater_is_better else -1
 
     def _score(self, estimator, X, y, sample_domain=None, **kwargs):
-        print(sample_domain)
         scorer = check_scoring(estimator, self.scoring)
         _, _, X_target, y_target = check_X_y_domain(X, y, sample_domain, return_joint=False)
         return self._sign * scorer(estimator, X_target, y_target)

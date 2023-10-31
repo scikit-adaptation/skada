@@ -82,7 +82,7 @@ class DomainAwareDataset:
         else:
             domain_name = f"_{len(self.domain_names_)+1}"
         domain_id = len(self.domains_)+1
-        self.domains_.append((X, y))
+        self.domains_.append((X, y) if y is not None else (X,))
         self.domain_names_[domain_name] = domain_id
         return self
 
