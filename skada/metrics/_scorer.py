@@ -11,37 +11,38 @@ from sklearn.utils import check_random_state
 from sklearn.utils.extmath import softmax
 from sklearn.utils.metadata_routing import (_MetadataRequester, _routing_enabled)
 
-from .._utils import check_X_domain, check_X_y_domain
+from .._utils import check_X_y_domain
 
 
 # xxx(okachaiev): maybe it would be easier to reuse _BaseScorer?
 # xxx(okachaiev): add proper __repr__
 # xxx(okachaiev): support clone()
-class _BaseDAScorer(_MetadataRequester):
+class _BaseDomainAwareScorer(_MetadataRequester):
 
     __metadata_request__score = {'sample_domain': True}
 
     @abstractmethod
-    def _score(self, estimator, X, y, sample_domain, sample_weight=None, **kwargs):
+    def _score(self, estimator, X, y, sample_domain=None, sample_weight=None, **kwargs):
         pass
 
-    def __call__(self, estimator, X, y, sample_weight=None, **kwargs):
+    def __call__(self, estimator, X, y, sample_domain=None, sample_weight=None, **kwargs):
         if kwargs and not _routing_enabled():
             raise ValueError(
                 "kwargs is only supported if enable_metadata_routing=True. See"
                 " the User Guide for more information."
             )
 
-        sample_domain = kwargs['sample_domain']
-        del kwargs['sample_domain']
+        return self._score(
+            estimator,
+            X,
+            y,
+            sample_domain=sample_domain,
+            sample_weight=sample_weight,
+            **kwargs
+        )
 
-        # xxx(okachaiev): it would be useful to have source/target strategies
-        # similar way we do for estimators (so the pre-processing could be
-        # simplified)
-        return self._score(estimator, X, y, sample_domain, sample_weight=sample_weight, **kwargs)
 
-
-class SupervisedScorer(_BaseDAScorer):
+class SupervisedScorer(_BaseDomainAwareScorer):
     """Compute score on supervised dataset.
 
     Parameters
@@ -55,7 +56,6 @@ class SupervisedScorer(_BaseDAScorer):
         Whether `scorer` is a score function (default), meaning high is
         good, or a loss function, meaning low is good. In the latter case, the
         scorer object will sign-flip the outcome of the `scorer`.
-
     """
 
     def __init__(self, scoring=None, greater_is_better=True):
@@ -63,13 +63,14 @@ class SupervisedScorer(_BaseDAScorer):
         self.scoring = scoring
         self._sign = 1 if greater_is_better else -1
 
-    def _score(self, estimator, X, y, sample_domain, **kwargs):
+    def _score(self, estimator, X, y, sample_domain=None, **kwargs):
+        print(sample_domain)
         scorer = check_scoring(estimator, self.scoring)
         _, _, X_target, y_target = check_X_y_domain(X, y, sample_domain, return_joint=False)
         return self._sign * scorer(estimator, X_target, y_target)
 
 
-class ImportanceWeightedScorer(_BaseDAScorer):
+class ImportanceWeightedScorer(_BaseDomainAwareScorer):
     """Score based on source data using sample weight.
 
     See [1]_ for details.
@@ -156,7 +157,7 @@ class ImportanceWeightedScorer(_BaseDAScorer):
         )
 
 
-class PredictionEntropyScorer(_BaseDAScorer):
+class PredictionEntropyScorer(_BaseDomainAwareScorer):
     """Score based on the entropy of predictions on unsupervised dataset.
 
     See [1]_ for details.
@@ -187,7 +188,7 @@ class PredictionEntropyScorer(_BaseDAScorer):
                 "The estimator %r does not." % estimator
             )
 
-        _, X_target = check_X_domain(X, y, sample_domain, return_joint=False)
+        _, _, X_target, _ = check_X_y_domain(X, y, sample_domain, return_joint=False)
 
         proba = estimator.predict_proba(X_target)
         if hasattr(estimator, "predict_log_proba"):
@@ -198,7 +199,7 @@ class PredictionEntropyScorer(_BaseDAScorer):
         return - np.mean(entropy)
 
 
-class SoftNeighborhoodDensity(_BaseDAScorer):
+class SoftNeighborhoodDensity(_BaseDomainAwareScorer):
     """Score based on the entropy of similarity between unsupervised dataset.
 
     See [1]_ for details.
@@ -233,7 +234,7 @@ class SoftNeighborhoodDensity(_BaseDAScorer):
                 "The estimator %r does not." % estimator
             )
 
-        _, _, X_target, _ = check_X_y_domain(X, y, sample_domain)
+        _, _, X_target, _ = check_X_y_domain(X, y, sample_domain, return_joint=False)
 
         proba = estimator.predict_proba(X_target)
         proba = Normalizer(norm="l2").fit_transform(proba)
@@ -246,7 +247,7 @@ class SoftNeighborhoodDensity(_BaseDAScorer):
         return self._sign * np.mean(entropy)
 
 
-class DeepEmbeddedValidation(_BaseDAScorer):
+class DeepEmbeddedValidation(_BaseDomainAwareScorer):
     """Loss based on source data using features representation to weight samples.
 
     See [1]_ for details.
