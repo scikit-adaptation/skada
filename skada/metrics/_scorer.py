@@ -316,28 +316,28 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         return self
 
     def _score(self, estimator, X, y, sample_domain=None, **kwargs):
-        X_source, y_source, X_target, _ = check_X_y_domain(X, y, sample_domain, return_joint=False)
+        source_idx = check_X_y_domain(X, y, sample_domain, return_indices=True)
         rng = check_random_state(self.random_state)
-        X_train, X_val, y_train, y_val = train_test_split(
-            X_source, y_source, test_size=0.33, random_state=rng
+        X_train, X_val, _, y_val, _, sample_domain_val = train_test_split(
+            X[source_idx], y[source_idx], sample_domain[source_idx],
+            test_size=0.33, random_state=rng
         )
         features_train = estimator.get_features(X_train)
         features_val = estimator.get_features(X_val)
-        features_target = estimator.get_features(X_target)
+        features_target = estimator.get_features(X[~source_idx])
 
         self._fit_adapt(features_train, features_target)
         N, N_target = len(features_train), len(features_target)
         predictions = self.domain_classifier_.predict_proba(features_val)
         weights = N / N_target * predictions[:, :1] / predictions[:, 1:]
 
-        y_pred = estimator.predict_proba(X_val)
+        y_pred = estimator.predict_proba(X_val, sample_domain=sample_domain_val)
         error = self._loss_func(y_val, y_pred)
         assert weights.shape[0] == error.shape[0]
 
         weighted_error = weights * error
-        cov = np.cov(np.concatenate((weighted_error, weights), axis=1), rowvar=False)[
-            0
-        ][1]
+        weights_m = np.concatenate((weighted_error, weights), axis=1)
+        cov = np.cov(weights_m, rowvar=False)[0, 1]
         var_w = np.var(weights, ddof=1)
         eta = -cov / var_w
         return self._sign * (np.mean(weighted_error) + eta * np.mean(weights) - eta)
