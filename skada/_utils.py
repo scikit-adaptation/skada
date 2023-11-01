@@ -112,7 +112,7 @@ def check_X_domain(
     X = check_array(X, input_name='X')
     if sample_domain is None and allow_auto_sample_domain:
         # default target domain when sample_domain is not given
-        # xxx(okachaiev): put this constant somewhere visible
+        # xxx(okachaiev): I guess this should be -inf instead of a number
         sample_domain = -2*np.ones(X.shape[0], dtype=np.int32)
     else:
         sample_domain = check_array(

@@ -45,10 +45,27 @@ class BaseAdapter(BaseEstimator):
     def fit(self, X, y=None, sample_domain=None, *, sample_weight=None):
         """Fit adaptation parameters"""
         return self
-    
+
     def fit_adapt(self, X, y=None, sample_domain=None, *, sample_weight=None, **kwargs):
         self.fit(X, y=y, sample_domain=sample_domain, sample_weight=sample_weight, **kwargs)
         return self.adapt(X, y=y, sample_domain=sample_domain, sample_weight=sample_weight, **kwargs)
+
+    def transform(self, X, y=None, sample_domain=None, *, sample_weight=None):
+        check_is_fitted(self)
+        X, y, sample_domain = check_X_y_domain(
+            X,
+            sample_domain=sample_domain,
+            allow_source=False,
+            allow_auto_sample_domain=True
+        )
+        X_out, y_out, _, sample_weight_out = self.adapt(
+            X,
+            y=y,
+            sample_domain=sample_domain,
+            sample_weight=sample_weight
+        )
+        # xxx(okachaiev): not sure if this is a correct choice of output shape
+        return (X_out, y_out) if sample_weight_out is None else (X_out, y_out, sample_weight_out)
 
 
 class BaseDomainAwareEstimator(BaseEstimator):
