@@ -27,10 +27,10 @@ import pytest
     "scorer",
     [
         SupervisedScorer(),
-        # ImportanceWeightedScorer(),
-        # PredictionEntropyScorer(),
+        ImportanceWeightedScorer(),
+        PredictionEntropyScorer(),
         # DeepEmbeddedValidation(),
-        # SoftNeighborhoodDensity(),
+        SoftNeighborhoodDensity(),
     ],
 )
 def test_scorer(scorer, da_dataset):
