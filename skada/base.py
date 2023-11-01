@@ -328,7 +328,7 @@ class BaseDomainAwareEstimator(BaseEstimator):
         for estimator, indices in self.select_domain_estimators(sample_domain):
             out = getattr(estimator, method_name)(X[indices])
             if output is None:
-                output = np.zeros((X.shape[0], *out.shape), dtype=out.dtype)
+                output = np.zeros((X.shape[0], *out.shape[1:]), dtype=out.dtype)
             output[indices] = out
         return output
 
