@@ -392,7 +392,7 @@ class BaseSelector:
         """
 
 
-class SingleEstimatorSelector(BaseSelector):
+class SingleSelector(BaseSelector):
     """Use the same estimator (passed as `base_estimator` to the constructor)
     for all domains (including source and target).
     """
@@ -414,7 +414,7 @@ class SingleEstimatorSelector(BaseSelector):
         return self.base_estimator
 
 
-class PerDomainEstimatorSelector(BaseSelector):
+class PerDomainSelector(BaseSelector):
     """Takes a single `base_estimator` as an argument but uses them (to fit and adapt)
     separately: by creating copy per each domain.
     """
@@ -437,7 +437,7 @@ class PerDomainEstimatorSelector(BaseSelector):
         return self.base_estimator
 
 
-class SourceTargetEstimatorSelector(BaseSelector):
+class SourceTargetSelector(BaseSelector):
     """Uses one estimator for all sources and one for all targets."""
 
     def __init__(self, source_estimator: BaseEstimator, target_estimator: BaseEstimator):
@@ -474,9 +474,9 @@ class DomainAwareEstimator(BaseDomainAwareEstimator):
     ):
         super().__init__()
         if not isinstance(adapter_selector, BaseSelector):
-            adapter_selector = SingleEstimatorSelector(adapter_selector)
+            adapter_selector = SingleSelector(adapter_selector)
         if not isinstance(estimator_selector, BaseSelector):
-            estimator_selector = SingleEstimatorSelector(estimator_selector)
+            estimator_selector = SingleSelector(estimator_selector)
         self.adapter_selector = adapter_selector
         self.estimator_selector = estimator_selector
 
