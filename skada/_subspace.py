@@ -4,7 +4,7 @@ from sklearn.decomposition import PCA
 from sklearn.metrics.pairwise import pairwise_kernels
 from sklearn.utils import check_random_state
 
-from .base import BaseAdapter
+from .base import BaseAdapter, AdapterOutput
 from ._utils import check_X_domain, _merge_source_target
 
 
@@ -86,7 +86,7 @@ class SubspaceAlignmentAdapter(BaseAdapter):
             X_target = np.dot(self.pca_target_.transform(X_target), self.M_)
         # xxx(okachaiev): this could be done through a more high-level API
         X_ = _merge_source_target(X_source, X_target, sample_domain)
-        return X_, y, sample_domain, None
+        return AdapterOutput(X=X_, sample_domain=sample_domain)
 
     def fit(self, X, y=None, sample_domain=None, **kwargs):
         """Fit adaptation parameters.

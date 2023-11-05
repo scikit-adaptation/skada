@@ -16,7 +16,7 @@ from ._subspace import (
     SubspaceAlignmentAdapter,
     TransferComponentAnalysisAdapter,
 )
-# from ._pipeline import DAPipeline
+from ._pipeline import make_da_pipeline
 
 
 __all__ = [
@@ -37,5 +37,5 @@ __all__ = [
     "SubspaceAlignmentAdapter",
     "TransferComponentAnalysisAdapter",
 
-    # "DAPipeline",
+    "make_da_pipeline",
 ]
