@@ -2,10 +2,11 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 
 from skada import (
-    DomainAwareEstimator,
     SubspaceAlignmentAdapter,
     TransferComponentAnalysisAdapter,
+    make_da_pipeline,
 )
+from skada.base import AdaptationOutput
 from skada.datasets import DomainAwareDataset
 
 import pytest
@@ -13,8 +14,8 @@ import pytest
 
 @pytest.mark.parametrize(
     "estimator", [
-        DomainAwareEstimator(SubspaceAlignmentAdapter(n_components=2), LogisticRegression()),
-        DomainAwareEstimator(TransferComponentAnalysisAdapter(n_components=2), LogisticRegression()),
+        make_da_pipeline(SubspaceAlignmentAdapter(n_components=2), LogisticRegression()),
+        make_da_pipeline(TransferComponentAnalysisAdapter(n_components=2), LogisticRegression()),
     ]
 )
 def test_subspace_alignment(estimator, da_dataset):
@@ -22,10 +23,9 @@ def test_subspace_alignment(estimator, da_dataset):
     estimator.fit(X_train, y_train, sample_domain=sample_domain)
     X_test, y_test, sample_domain = da_dataset.pack_for_test(as_targets=['t'])
     y_pred = estimator.predict(X_test, sample_domain=sample_domain)
-    # xxx(okachaiev): this should be like 0.9
-    assert np.mean(y_pred == y_test) > 0.
+    assert np.mean(y_pred == y_test) > 0.9
     score = estimator.score(X_test, y_test, sample_domain=sample_domain)
-    # assert score > 0.
+    assert score > 0.9
 
 
 @pytest.mark.parametrize(
@@ -52,6 +52,8 @@ def test_subspace_default_n_components(adapter, n_samples, n_features, n_compone
 
     X_train, y_train, sample_domain = dataset.pack_for_train(as_sources=['s'], as_targets=['t'])
     adapter.fit(X_train, y_train, sample_domain=sample_domain)
-    X_test, y_test, sample_domain = dataset.pack_for_test(as_targets=['t'])
-    X_transform, _, _, _ = adapter.adapt(X_test, y_test, sample_domain)
-    assert X_transform.shape[1] == n_components
+    X_test, _, sample_domain = dataset.pack_for_test(as_targets=['t'])
+    output = adapter.transform(X_test, sample_domain=sample_domain)
+    if isinstance(output, AdaptationOutput):
+        output = output['X']
+    assert output.shape[1] == n_components

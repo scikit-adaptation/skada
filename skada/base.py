@@ -31,19 +31,17 @@ def _estimator_has(attr):
     return lambda estimator: has_base_estimator(estimator) or has_estimator_selector(estimator)
 
 
-class AdapterOutput(Bunch):
+class AdaptationOutput(Bunch):
     pass
 
 
-# xxx(okachaiev): implement clone, repr so we don't have to use BaseEstimator
-# xxx(okachaiev): as we implement 'transform', should this have 'TransformerMixin'
 class BaseAdapter(BaseEstimator):
 
     __metadata_request__fit = {'sample_domain': True}
     __metadata_request__transform = {'sample_domain': True}
 
     @abstractmethod
-    def adapt(self, X, y=None, sample_domain=None, **params) -> Union[np.ndarray, AdapterOutput]:
+    def adapt(self, X, y=None, sample_domain=None, **params) -> Union[np.ndarray, AdaptationOutput]:
         """Transform samples, labels, and weights into the space in which
         the estimator is trained.
         """
@@ -60,7 +58,7 @@ class BaseAdapter(BaseEstimator):
         # thus we allow for the source domain to be passed through
         return self.adapt(X, y=y, sample_domain=sample_domain, **params)
 
-    def transform(self, X, y=None, sample_domain=None, **params) -> Union[np.ndarray, AdapterOutput]:
+    def transform(self, X, y=None, sample_domain=None, **params) -> Union[np.ndarray, AdaptationOutput]:
         check_is_fitted(self)
         X, sample_domain = check_X_domain(
             X,
@@ -456,12 +454,13 @@ class Shared(BaseSelector):
         routing = get_routing_for_object(self.base_estimator)
         routed_params = routing.fit._route_params(params=params)
         # xxx(okachaiev): this should be done in each method
-        if isinstance(X, AdapterOutput):
+        if isinstance(X, AdaptationOutput):
             for k, v in X.items():
                 if k != 'X' and k in routed_params:
                     routed_params[k] = v
             X = X['X']
-        estimator = self.base_estimator.fit(X, y, **routed_params)
+        estimator = clone(self.base_estimator)
+        estimator.fit(X, y, **routed_params)
         self.base_estimator_ = estimator
         self.domains_ = domains
         self.routing_ = get_routing_for_object(self.base_estimator)
@@ -493,7 +492,7 @@ class Shared(BaseSelector):
         check_is_fitted(self)
         routed_params = self.routing_.predict._route_params(params=params)
         # xxx(okachaiev): this should be done in each method
-        if isinstance(X, AdapterOutput):
+        if isinstance(X, AdaptationOutput):
             for k, v in X.items():
                 if k != 'X' and k in routed_params:
                     routed_params[k] = v
@@ -507,7 +506,7 @@ class Shared(BaseSelector):
         check_is_fitted(self)
         routed_params = self.routing_.score._route_params(params=params)
         # xxx(okachaiev): this should be done in each method
-        if isinstance(X, AdapterOutput):
+        if isinstance(X, AdaptationOutput):
             for k, v in X.items():
                 if k != 'X' and k in routed_params:
                     routed_params[k] = v

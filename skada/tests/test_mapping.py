@@ -1,7 +1,6 @@
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 
-from skada.base import DomainAwareEstimator
 from skada.datasets import DomainAwareDataset
 from skada import (
     CORALAdapter,
@@ -9,6 +8,7 @@ from skada import (
     EntropicOTMappingAdapter,
     LinearOTMappingAdapter,
     OTMappingAdapter,
+    make_da_pipeline,
 )
 
 import pytest
@@ -16,20 +16,20 @@ import pytest
 
 @pytest.mark.parametrize(
     "estimator", [
-        DomainAwareEstimator(OTMappingAdapter(), LogisticRegression()),
-        DomainAwareEstimator(EntropicOTMappingAdapter(), LogisticRegression()),
-        DomainAwareEstimator(
+        make_da_pipeline(OTMappingAdapter(), LogisticRegression()),
+        make_da_pipeline(EntropicOTMappingAdapter(), LogisticRegression()),
+        make_da_pipeline(
             ClassRegularizerOTMappingAdapter(norm="lpl1"),
             LogisticRegression()
         ),
-        DomainAwareEstimator(
+        make_da_pipeline(
             ClassRegularizerOTMappingAdapter(norm="l1l2"),
             LogisticRegression()
         ),
-        DomainAwareEstimator(LinearOTMappingAdapter(), LogisticRegression()),
-        DomainAwareEstimator(CORALAdapter(), LogisticRegression()),
+        make_da_pipeline(LinearOTMappingAdapter(), LogisticRegression()),
+        make_da_pipeline(CORALAdapter(), LogisticRegression()),
         pytest.param(CORALAdapter(reg=None), marks=pytest.mark.xfail(reason='Fails without regularization')),
-        DomainAwareEstimator(CORALAdapter(reg=0.1), LogisticRegression()),
+        make_da_pipeline(CORALAdapter(reg=0.1), LogisticRegression()),
     ]
 )
 def test_mapping_estimator(estimator, tmp_da_dataset):
@@ -49,7 +49,6 @@ def test_mapping_estimator(estimator, tmp_da_dataset):
     estimator.fit(X_train, y_train, sample_domain=sample_domain)
     X_test, y_test, sample_domain = dataset.pack_for_test(as_targets=['t'])
     y_pred = estimator.predict(X_test, sample_domain=sample_domain)
-    # xxx(okachaiev): this should be like 0.9
-    assert np.mean(y_pred == y_test) > 0.
+    assert np.mean(y_pred == y_test) > 0.9
     score = estimator.score(X_test, y_test, sample_domain=sample_domain)
-    # assert score > 0.
+    assert score > 0.9

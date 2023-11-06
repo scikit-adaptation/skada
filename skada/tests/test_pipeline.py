@@ -1,8 +1,6 @@
 import numpy as np
-from numpy.testing import assert_almost_equal, assert_array_equal
+from numpy.testing import assert_array_equal
 
-import sklearn
-sklearn.set_config(enable_metadata_routing=True)
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler

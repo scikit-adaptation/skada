@@ -1,22 +1,18 @@
 import numpy as np
-import sklearn
-sklearn.set_config(enable_metadata_routing=True)
-
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.model_selection import ShuffleSplit, cross_validate
 
 from skada import (
-    DomainAwareEstimator,
     ReweightDensityAdapter,
     SubspaceAlignmentAdapter,
+    make_da_pipeline,
 )
 from skada.datasets import DomainAwareDataset
 from skada.metrics import (
     SupervisedScorer,
     ImportanceWeightedScorer,
     PredictionEntropyScorer,
-    DeepEmbeddedValidation,
     SoftNeighborhoodDensity,
 )
 
@@ -29,13 +25,12 @@ import pytest
         SupervisedScorer(),
         ImportanceWeightedScorer(),
         PredictionEntropyScorer(),
-        # DeepEmbeddedValidation(),
         SoftNeighborhoodDensity(),
     ],
 )
 def test_scorer(scorer, da_dataset):
-    X, y, sample_domain = da_dataset.pack(as_sources=['s'], as_targets=['t'])
-    estimator = DomainAwareEstimator(ReweightDensityAdapter(), LogisticRegression())
+    X, y, sample_domain = da_dataset.pack_for_train(as_sources=['s'], as_targets=['t'])
+    estimator = make_da_pipeline(ReweightDensityAdapter(), LogisticRegression())
     cv = ShuffleSplit(n_splits=3, test_size=0.3, random_state=0)
     scores = cross_validate(
         estimator,
@@ -57,9 +52,9 @@ def test_scorer(scorer, da_dataset):
     ],
 )
 def test_scorer_with_entropy_requires_predict_proba(scorer, da_dataset):
-    X, y, sample_domain = da_dataset.pack(as_sources=['s'], as_targets=['t'])
-    estimator = DomainAwareEstimator(ReweightDensityAdapter(), SVC())
-    estimator.fit(X, y, sample_domain)
+    X, y, sample_domain = da_dataset.pack_for_train(as_sources=['s'], as_targets=['t'])
+    estimator = make_da_pipeline(ReweightDensityAdapter(), SVC())
+    estimator.fit(X, y, sample_domain=sample_domain)
     with pytest.raises(AttributeError):
         scorer(estimator, X, y, sample_domain=sample_domain)
 
@@ -71,8 +66,8 @@ def test_scorer_with_log_proba():
         (rng.rand(n_samples, n_features), rng.randint(2, size=n_samples), 's'),
         (rng.rand(n_samples, n_features), None, 't')
     ])
-    X, y, sample_domain = dataset.pack(as_sources=['s'], as_targets=['t'])
-    estimator = DomainAwareEstimator(
+    X, y, sample_domain = dataset.pack_for_train(as_sources=['s'], as_targets=['t'])
+    estimator = make_da_pipeline(
         SubspaceAlignmentAdapter(n_components=2),
         LogisticRegression()
     )

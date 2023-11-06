@@ -4,7 +4,7 @@ from sklearn.decomposition import PCA
 from sklearn.metrics.pairwise import pairwise_kernels
 from sklearn.utils import check_random_state
 
-from .base import BaseAdapter, AdapterOutput
+from .base import BaseAdapter
 from ._utils import check_X_domain, _merge_source_target
 
 
@@ -85,8 +85,8 @@ class SubspaceAlignmentAdapter(BaseAdapter):
         if X_target.shape[0]:
             X_target = np.dot(self.pca_target_.transform(X_target), self.M_)
         # xxx(okachaiev): this could be done through a more high-level API
-        X_ = _merge_source_target(X_source, X_target, sample_domain)
-        return AdapterOutput(X=X_, sample_domain=sample_domain)
+        X_adapt = _merge_source_target(X_source, X_target, sample_domain)
+        return X_adapt
 
     def fit(self, X, y=None, sample_domain=None, **kwargs):
         """Fit adaptation parameters.
@@ -175,45 +175,6 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
         self.n_components = n_components
         self.mu = mu
 
-    def adapt(self, X, y=None, sample_domain=None, **kwargs):
-        """Predict adaptation (weights, sample or labels).
-
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            The source data.
-        y : array-like, shape (n_samples,)
-            The source labels.
-        sample_domain : array-like, shape (n_samples,)
-            The domain labels (same as sample_domain).
-
-        Returns
-        -------
-        X_t : array-like, shape (n_samples, n_components)
-            The data transformed to the target subspace.
-        y_t : array-like, shape (n_samples,)
-            The labels (same as y).
-        sample_domain : array-like, shape (n_samples,)
-            The domain labels transformed to the target subspace (same as sample_domain).
-        weights : None
-            No weights are returned here.
-        """
-        X_source, X_target = check_X_domain(
-            X,
-            sample_domain,
-            allow_multi_source=True,
-            allow_multi_target=True,
-            return_joint=False,
-        )
-        if np.array_equal(X_source, self.X_source_) and np.array_equal(X_target, self.X_target_):
-            X_ = (self.K_ @ self.eigvects_)[:X.shape[0]]
-        else:
-            Ks = pairwise_kernels(X, self.X_source_, metric=self.kernel)
-            Kt = pairwise_kernels(X, self.X_target_, metric=self.kernel)
-            K = np.concatenate((Ks, Kt), axis=1)
-            X_ = (K @ self.eigvects_)[:X.shape[0]]
-        return X_, y, sample_domain, None
-
     def fit(self, X, y=None, sample_domain=None, **kwargs):
         """Fit adaptation parameters.
 
@@ -267,3 +228,42 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
         selected_components = np.argsort(np.abs(eigvals))[::-1][:n_components]
         self.eigvects_ = np.real(eigvects[:, selected_components])
         return self
+
+    def adapt(self, X, y=None, sample_domain=None, **kwargs):
+        """Predict adaptation (weights, sample or labels).
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        X_t : array-like, shape (n_samples, n_components)
+            The data transformed to the target subspace.
+        y_t : array-like, shape (n_samples,)
+            The labels (same as y).
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels transformed to the target subspace (same as sample_domain).
+        weights : None
+            No weights are returned here.
+        """
+        X_source, X_target = check_X_domain(
+            X,
+            sample_domain,
+            allow_multi_source=True,
+            allow_multi_target=True,
+            return_joint=False,
+        )
+        if np.array_equal(X_source, self.X_source_) and np.array_equal(X_target, self.X_target_):
+            X_ = (self.K_ @ self.eigvects_)[:X.shape[0]]
+        else:
+            Ks = pairwise_kernels(X, self.X_source_, metric=self.kernel)
+            Kt = pairwise_kernels(X, self.X_target_, metric=self.kernel)
+            K = np.concatenate((Ks, Kt), axis=1)
+            X_ = (K @ self.eigvects_)[:X.shape[0]]
+        return X_

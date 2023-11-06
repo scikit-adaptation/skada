@@ -19,7 +19,7 @@ class BaseOTMappingAdapter(BaseAdapter):
     to create OT object using parameters saved in the constructor.
     """
 
-    def fit(self, X, y=None, sample_domain=None, **kwargs):
+    def fit(self, X, y=None, sample_domain=None):
         """Fit adaptation parameters.
 
         Parameters
@@ -49,7 +49,7 @@ class BaseOTMappingAdapter(BaseAdapter):
         self.ot_transport_.fit(Xs=X, ys=y, Xt=X_target, yt=y_target)
         return self
 
-    def adapt(self, X, y=None, sample_domain=None, **kwargs):
+    def adapt(self, X, y=None, sample_domain=None):
         """Predict adaptation (weights, sample or labels).
 
         Parameters
@@ -70,6 +70,7 @@ class BaseOTMappingAdapter(BaseAdapter):
         weights : array-like, shape (n_samples,)
             The weights of the samples.
         """
+        # xxx(okachaiev): implement auto-infer for sample_domain
         X_source, X_target = check_X_domain(
             X,
             sample_domain,
@@ -79,11 +80,10 @@ class BaseOTMappingAdapter(BaseAdapter):
         )
         # in case of prediction we would get only target samples here,
         # thus there's no need to perform any transformations
-        # xxx(okachaiev): i wounder if this would be a better high-level API
         if X_source.shape[0] > 0:
             X_source = self.ot_transport_.transform(Xs=X_source)
-        X_ = _merge_source_target(X_source, X_target, sample_domain)
-        return X_, y, sample_domain, None
+        X_adapt = _merge_source_target(X_source, X_target, sample_domain)
+        return X_adapt
 
     @abstractmethod
     def _create_transport_estimator(self):
@@ -376,7 +376,7 @@ class CORALAdapter(BaseAdapter):
         super().__init__()
         self.reg = reg
 
-    def fit(self, X, y=None, sample_domain=None, **kwargs):
+    def fit(self, X, y=None, sample_domain=None):
         """Fit adaptation parameters.
 
         Parameters
@@ -406,7 +406,7 @@ class CORALAdapter(BaseAdapter):
         self.cov_target_sqrt_ = _sqrtm(cov_target_)
         return self
 
-    def adapt(self, X, y=None, sample_domain=None, **kwargs):
+    def adapt(self, X, y=None, sample_domain=None):
         """Predict adaptation (weights, sample or labels).
 
         Parameters
@@ -427,6 +427,10 @@ class CORALAdapter(BaseAdapter):
         weights : None
             No weights are returned here.
         """
-        X_ = np.dot(X, self.cov_source_inv_sqrt_)
-        X_ = np.dot(X_, self.cov_target_sqrt_)
-        return X_, y, sample_domain, None
+        X_adapt = np.dot(X, self.cov_source_inv_sqrt_)
+        X_adapt = np.dot(X_adapt, self.cov_target_sqrt_)
+        # xxx(okachaiev): i feel this is straight up incorrect,
+        # in the previous version of the code only source data
+        # was transformed, and the target was never updated. i
+        # guess it should just 'passthrough' for a target space
+        return X_adapt
