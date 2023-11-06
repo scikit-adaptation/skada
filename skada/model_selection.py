@@ -14,7 +14,7 @@ from ._utils import check_X_domain
 class BaseDomainAwareShuffleSplit(_MetadataRequester, metaclass=ABCMeta):
     """Base class for ShuffleSplit and StratifiedShuffleSplit"""
 
-    __metadata_request__split = {"groups": "sample_domain"}
+    __metadata_request__split = {"sample_domain": True}
 
     def __init__(
         self, n_splits=10, *, test_size=None, train_size=None, random_state=None

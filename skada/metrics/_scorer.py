@@ -9,36 +9,29 @@ from sklearn.neighbors import KernelDensity
 from sklearn.preprocessing import Normalizer
 from sklearn.utils import check_random_state
 from sklearn.utils.extmath import softmax
-from sklearn.utils.metadata_routing import (_MetadataRequester, _routing_enabled)
+from sklearn.utils.metadata_routing import _MetadataRequester, get_routing_for_object
 
 from .._utils import check_X_y_domain
 
 
 # xxx(okachaiev): maybe it would be easier to reuse _BaseScorer?
-# xxx(okachaiev): add proper __repr__
+# xxx(okachaiev): add proper __repr__/__str__
 # xxx(okachaiev): support clone()
 class _BaseDomainAwareScorer(_MetadataRequester):
 
     __metadata_request__score = {'sample_domain': True}
 
     @abstractmethod
-    def _score(self, estimator, X, y, sample_domain=None, sample_weight=None, **kwargs):
+    def _score(self, estimator, X, y, sample_domain=None, **params):
         pass
 
-    def __call__(self, estimator, X, y, sample_domain=None, sample_weight=None, **kwargs):
-        if kwargs and not _routing_enabled():
-            raise ValueError(
-                "kwargs is only supported if enable_metadata_routing=True. See"
-                " the User Guide for more information."
-            )
-
+    def __call__(self, estimator, X, y=None, sample_domain=None, **params):
         return self._score(
             estimator,
             X,
             y,
             sample_domain=sample_domain,
-            sample_weight=sample_weight,
-            **kwargs
+            **params
         )
 
 
@@ -63,17 +56,20 @@ class SupervisedScorer(_BaseDomainAwareScorer):
         self.scoring = scoring
         self._sign = 1 if greater_is_better else -1
 
-    def _score(self, estimator, X, y, sample_domain=None, **kwargs):
+    def _score(self, estimator, X, y, sample_domain=None, **params):
         scorer = check_scoring(estimator, self.scoring)
         source_idx = check_X_y_domain(X, y, sample_domain, return_indices=True)
         return self._sign * scorer(
             estimator,
             X[~source_idx],
             y[~source_idx],
-            sample_domain=sample_domain[~source_idx]
+            sample_domain=sample_domain[~source_idx],
+            **params
         )
 
 
+# xxx(okachaiev): make sure that estimator/scorer actually
+# consumes sample_weights as a parameter
 class ImportanceWeightedScorer(_BaseDomainAwareScorer):
     """Score based on source data using sample weight.
 
@@ -121,7 +117,7 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
         self.scoring = scoring
         self._sign = 1 if greater_is_better else -1
 
-    def _fit_adapt(self, X, X_target):
+    def _fit(self, X_source, X_target):
         """Fit adaptation parameters.
 
         Parameters
@@ -141,13 +137,21 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
             weight_estimator = KernelDensity()
         self.weight_estimator_source_ = clone(weight_estimator)
         self.weight_estimator_target_ = clone(weight_estimator)
-        self.weight_estimator_source_.fit(X)
+        self.weight_estimator_source_.fit(X_source)
         self.weight_estimator_target_.fit(X_target)
+        return self
 
-    def _score(self, estimator, X, y, sample_domain, **kwargs):
+    def _score(self, estimator, X, y, sample_domain=None, **params):
         scorer = check_scoring(estimator, self.scoring)
+        # xxx(okachaiev): similar should be done for the pipeline with re-weight adapters
+        if not get_routing_for_object(scorer).consumes('score', ['sample_weight']):
+            raise ValueError(
+                "The estimator passed should accept 'sample_weight' parameter. "
+                f"The estimator {estimator!r} does not."
+            )
+
         X_source, y_source, X_target, _ = check_X_y_domain(X, y, sample_domain, return_joint=False)
-        self._fit_adapt(X_source, X_target)
+        self._fit(X_source, X_target)
         ws = self.weight_estimator_source_.score_samples(X_source)
         wt = self.weight_estimator_target_.score_samples(X_source)
         weights = np.exp(wt - ws)
@@ -158,6 +162,7 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
             y_source,
             sample_domain=sample_domain[sample_domain >= 0],
             sample_weight=weights,
+            **params
         )
 
 
@@ -184,20 +189,24 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
         super().__init__()
         self._sign = 1 if greater_is_better else -1
 
-    def _score(self, estimator, X, y, sample_domain=None, **kwargs):
+    def _score(self, estimator, X, y, sample_domain=None, **params):
         if not hasattr(estimator, "predict_proba"):
             raise AttributeError(
-                "The estimator passed should "
-                "have a 'predict_proba' method. "
-                "The estimator %r does not." % estimator
+                "The estimator passed should have a 'predict_proba' method. "
+                f"The estimator {estimator!r} does not."
             )
 
         source_idx = check_X_y_domain(X, y, sample_domain, return_indices=True)
-        proba = estimator.predict_proba(X[~source_idx], sample_domain=sample_domain[~source_idx])
+        proba = estimator.predict_proba(
+            X[~source_idx],
+            sample_domain=sample_domain[~source_idx],
+            **params
+        )
         if hasattr(estimator, "predict_log_proba"):
             log_proba = estimator.predict_log_proba(
                 X[~source_idx],
-                sample_domain=sample_domain[~source_idx]
+                sample_domain=sample_domain[~source_idx],
+                **params
             )
         else:
             log_proba = np.log(proba + 1e-7)
@@ -232,16 +241,19 @@ class SoftNeighborhoodDensity(_BaseDomainAwareScorer):
         self.T = T
         self._sign = 1 if greater_is_better else -1
 
-    def _score(self, estimator, X, y, sample_domain=None, **kwargs):
+    def _score(self, estimator, X, y, sample_domain=None, **params):
         if not hasattr(estimator, "predict_proba"):
             raise AttributeError(
-                "The estimator passed should"
-                "have a 'predict_proba' method."
-                "The estimator %r does not." % estimator
+                "The estimator passed should have a 'predict_proba' method. "
+                f"The estimator {estimator!r} does not."
             )
 
         source_idx = check_X_y_domain(X, y, sample_domain, return_indices=True)
-        proba = estimator.predict_proba(X[~source_idx], sample_domain=sample_domain[~source_idx])
+        proba = estimator.predict_proba(
+            X[~source_idx],
+            sample_domain=sample_domain[~source_idx],
+            **params
+        )
         proba = Normalizer(norm="l2").fit_transform(proba)
 
         similarity_matrix = proba @ proba.T / self.T

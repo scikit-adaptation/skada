@@ -440,6 +440,8 @@ class Shared(BaseSelector):
         request.fit.add_request(param='sample_domain', alias=True)
         request.transform.add_request(param='sample_domain', alias=True)
         request.predict.add_request(param='sample_domain', alias=True)
+        if hasattr(self.base_estimator, 'predict_proba'):
+            request.predict_proba.add_request(param='sample_domain', alias=True)
         if hasattr(self.base_estimator, 'score'):
             request.score.add_request(param='sample_domain', alias=True)
         return request
@@ -487,7 +489,6 @@ class Shared(BaseSelector):
             output = self.base_estimator_.transform(X, **routed_params)
         return output
 
-    # xxx(okachaiev): fail if sources are given
     def predict(self, X, **params):
         check_is_fitted(self)
         routed_params = self.routing_.predict._route_params(params=params)
@@ -498,6 +499,20 @@ class Shared(BaseSelector):
                     routed_params[k] = v
             X = X['X']
         output = self.base_estimator_.predict(X, **routed_params)
+        return output
+
+    # xxx(okachaiev): code duplication
+    @available_if(_estimator_has("predict_proba"))
+    def predict_proba(self, X, **params):
+        check_is_fitted(self)
+        routed_params = self.routing_.predict_proba._route_params(params=params)
+        # xxx(okachaiev): this should be done in each method
+        if isinstance(X, AdaptationOutput):
+            for k, v in X.items():
+                if k != 'X' and k in routed_params:
+                    routed_params[k] = v
+            X = X['X']
+        output = self.base_estimator_.predict_proba(X, **routed_params)
         return output
 
     # xxx(okachaiev): code duplication

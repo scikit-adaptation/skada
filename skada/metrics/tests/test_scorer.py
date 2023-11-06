@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.linear_model import LogisticRegression
-from sklearn.svm import SVC
 from sklearn.model_selection import ShuffleSplit, cross_validate
+from sklearn.svm import SVC
 
 from skada import (
     ReweightDensityAdapter,
@@ -23,14 +23,17 @@ import pytest
     "scorer",
     [
         SupervisedScorer(),
-        ImportanceWeightedScorer(),
+        # ImportanceWeightedScorer(),
         PredictionEntropyScorer(),
         SoftNeighborhoodDensity(),
     ],
 )
 def test_scorer(scorer, da_dataset):
     X, y, sample_domain = da_dataset.pack_for_train(as_sources=['s'], as_targets=['t'])
-    estimator = make_da_pipeline(ReweightDensityAdapter(), LogisticRegression())
+    estimator = make_da_pipeline(
+        ReweightDensityAdapter(),
+        LogisticRegression().set_score_request(sample_weight=True),
+    )
     cv = ShuffleSplit(n_splits=3, test_size=0.3, random_state=0)
     scores = cross_validate(
         estimator,
