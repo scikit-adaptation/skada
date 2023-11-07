@@ -47,9 +47,6 @@ class SubspaceAlignmentAdapter(BaseAdapter):
         self.n_components = n_components
         self.random_state = random_state
 
-    # xxx(okachaiev): more i'm thinking about this, more
-    # it seems like we need API to "request" sample domains
-    # to be fed into adapt/fit calls
     def adapt(self, X, y=None, sample_domain=None, **kwargs):
         """Predict adaptation (weights, sample or labels).
 
