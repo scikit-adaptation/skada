@@ -68,8 +68,6 @@ class SupervisedScorer(_BaseDomainAwareScorer):
         )
 
 
-# xxx(okachaiev): make sure that estimator/scorer actually
-# consumes sample_weights as a parameter
 class ImportanceWeightedScorer(_BaseDomainAwareScorer):
     """Score based on source data using sample weight.
 
@@ -162,6 +160,7 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
             y_source,
             sample_domain=sample_domain[sample_domain >= 0],
             sample_weight=weights,
+            allow_source=True,
             **params
         )
 
@@ -181,7 +180,7 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
     References
     ----------
     .. [1]  Pietro Morerio. Minimal-Entropy correlation alignment
-            for unsupervised deep domain adapation.
+            for unsupervised deep domain adaptation.
             ICLR, 2018.
     """
 

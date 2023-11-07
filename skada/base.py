@@ -38,7 +38,7 @@ class AdaptationOutput(Bunch):
 class BaseAdapter(BaseEstimator):
 
     __metadata_request__fit = {'sample_domain': True}
-    __metadata_request__transform = {'sample_domain': True}
+    __metadata_request__transform = {'sample_domain': True, 'allow_source': True}
 
     @abstractmethod
     def adapt(self, X, y=None, sample_domain=None, **params) -> Union[np.ndarray, AdaptationOutput]:
@@ -55,16 +55,23 @@ class BaseAdapter(BaseEstimator):
     def fit_transform(self, X, y=None, sample_domain=None, **params):
         self.fit(X, y=y, sample_domain=sample_domain, **params)
         # assume 'fit_transform' is called to fit the estimator,
-        # thus we allow for the source domain to be passed through
-        return self.adapt(X, y=y, sample_domain=sample_domain, **params)
+        # thus we allow for the source domain to be adapted
+        return self.transform(X, y=y, sample_domain=sample_domain, allow_source=True, **params)
 
-    def transform(self, X, y=None, sample_domain=None, **params) -> Union[np.ndarray, AdaptationOutput]:
+    def transform(
+        self,
+        X,
+        y=None,
+        sample_domain=None,
+        allow_source=False,
+        **params
+    ) -> Union[np.ndarray, AdaptationOutput]:
         check_is_fitted(self)
         X, sample_domain = check_X_domain(
             X,
             sample_domain=sample_domain,
             allow_auto_sample_domain=True,
-            allow_source=False,
+            allow_source=allow_source,
         )
         return self.adapt(
             X,

@@ -23,7 +23,7 @@ import pytest
     "scorer",
     [
         SupervisedScorer(),
-        # ImportanceWeightedScorer(),
+        ImportanceWeightedScorer(),
         PredictionEntropyScorer(),
         SoftNeighborhoodDensity(),
     ],
