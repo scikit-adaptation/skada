@@ -14,9 +14,6 @@ from skada.model_selection import SourceTargetShuffleSplit
 
 import pytest
 
-# xxx(okachaiev): reconsider folders structure
-# these tests should likely be moved to the folder where `model_selection`
-# is implemented
 
 @pytest.mark.parametrize(
     'cv, n_splits',

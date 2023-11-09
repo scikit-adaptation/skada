@@ -11,7 +11,7 @@ from sklearn.utils import check_random_state
 from sklearn.utils.extmath import softmax
 from sklearn.utils.metadata_routing import _MetadataRequester, get_routing_for_object
 
-from .._utils import check_X_y_domain
+from ._utils import check_X_y_domain
 
 
 # xxx(okachaiev): maybe it would be easier to reuse _BaseScorer?

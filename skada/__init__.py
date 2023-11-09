@@ -4,6 +4,7 @@ import sklearn
 sklearn.set_config(enable_metadata_routing=True)
 
 from . import model_selection
+from . import metrics
 from .base import BaseAdapter
 from ._mapping import (
     ClassRegularizerOTMappingAdapter,
@@ -26,6 +27,7 @@ from ._pipeline import make_da_pipeline
 
 
 __all__ = [
+    "metrics",
     "model_selection",
 
     "BaseAdapter",
