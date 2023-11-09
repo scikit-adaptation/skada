@@ -3,7 +3,8 @@ import sklearn
 # without metadata routing being enabled in the configuration
 sklearn.set_config(enable_metadata_routing=True)
 
-from .base import BaseAdapter, DomainAwareEstimator
+from . import model_selection
+from .base import BaseAdapter
 from ._mapping import (
     ClassRegularizerOTMappingAdapter,
     CORALAdapter,
@@ -25,8 +26,9 @@ from ._pipeline import make_da_pipeline
 
 
 __all__ = [
+    "model_selection",
+
     "BaseAdapter",
-    "DomainAwareEstimator",
 
     "ClassRegularizerOTMappingAdapter",
     "CORALAdapter",

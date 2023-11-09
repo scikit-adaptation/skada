@@ -1,6 +1,6 @@
 from functools import reduce
 import os
-from typing import Dict, Iterable, List, Optional, Tuple, Union
+from typing import Dict, Iterable, List, Mapping, Optional, Tuple, Union
 
 import numpy as np
 from sklearn.utils import Bunch
@@ -84,6 +84,17 @@ class DomainAwareDataset:
         domain_id = len(self.domains_)+1
         self.domains_.append((X, y) if y is not None else (X,))
         self.domain_names_[domain_name] = domain_id
+        return self
+
+    def merge(self, dataset: 'DomainAwareDataset', names_mapping: Optional[Mapping] = None) -> 'DomainAwareDataset':
+        for domain_name in dataset.domain_names_:
+            # xxx(okachaiev): this needs to be more flexible
+            # as it should be possible to pass only X with y=None
+            # i guess best way of doing so is to change 'add_domain' API
+            X, y = dataset.get_domain(domain_name)
+            if names_mapping is not None:
+                domain_name = names_mapping.get(domain_name, domain_name)
+            self.add_domain(X, y, domain_name)
         return self
 
     def get_domain(self, domain_name: str) -> Tuple[np.ndarray, Optional[np.ndarray]]:

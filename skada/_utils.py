@@ -36,9 +36,9 @@ def check_X_y_domain(
     y,
     sample_domain,
     allow_source: bool = True,
-    allow_multi_source: bool = False,
+    allow_multi_source: bool = True,
     allow_target: bool = True,
-    allow_multi_target: bool = False,
+    allow_multi_target: bool = True,
     return_indices: bool = False,
     # xxx(okachaiev): most likely this needs to be removed as it doesn't fit new API
     return_joint: bool = False,
@@ -101,9 +101,9 @@ def check_X_domain(
     *,
     allow_domains: Optional[Set[int]] = None,
     allow_source: bool = True,
-    allow_multi_source: bool = False,
+    allow_multi_source: bool = True,
     allow_target: bool = True,
-    allow_multi_target: bool = False,
+    allow_multi_target: bool = True,
     return_indices: bool = False,
     # xxx(okachaiev): most likely this needs to be removed as it doesn't fit new API
     return_joint: bool = True,

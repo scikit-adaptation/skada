@@ -34,7 +34,7 @@ def tmp_da_dataset():
 def da_dataset() -> DomainAwareDataset:
     centers = np.array([[0, 0], [1, 1]])
     _, n_features = centers.shape
-    return make_shifted_blobs(
+    dataset = make_shifted_blobs(
         n_samples=100,
         centers=centers,
         n_features=n_features,
@@ -43,6 +43,18 @@ def da_dataset() -> DomainAwareDataset:
         cluster_std=0.05,
         return_dataset=True,
     )
+    centers = np.array([[2, 0], [-1, 2]])
+    _, n_features = centers.shape
+    dataset2 = make_shifted_blobs(
+        n_samples=100,
+        centers=centers,
+        n_features=n_features,
+        shift=0.13,
+        random_state=42,
+        cluster_std=0.05,
+        return_dataset=True,
+    )
+    return dataset.merge(dataset2, names_mapping={'s': 's2', 't': 't2'})
 
 
 @pytest.fixture(scope="session")
