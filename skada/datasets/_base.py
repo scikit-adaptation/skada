@@ -248,6 +248,14 @@ class DomainAwareDataset:
             return_X_y=return_X_y,
             train=False,
         )
+    
+    def pack_flatten(self, return_X_y: bool = True):
+        return self.pack(
+            as_sources=list(self.domain_names_.keys()),
+            as_targets=list(self.domain_names_.keys()),
+            return_X_y=return_X_y,
+            train=True,
+        )
 
 
 # xxx(okachaiev): putting `domain_names` first argument so it's compatible with `partial`
