@@ -142,7 +142,7 @@ class SourceTargetShuffleSplit(BaseDomainAwareShuffleSplit):
             )
 
 
-class LeaveOutDomainOut(SplitSampleDomainRequesterMixin):
+class LeaveOneDomainOut(SplitSampleDomainRequesterMixin):
     """Leave-One-Domain-Out cross-validator.
     
     Provides train/test indices to split data in train/test sets.

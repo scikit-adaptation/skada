@@ -10,7 +10,7 @@ from sklearn.model_selection import (
 
 from skada import SubspaceAlignmentAdapter, make_da_pipeline
 from skada.metrics import PredictionEntropyScorer
-from skada.model_selection import LeaveOutDomainOut, SourceTargetShuffleSplit
+from skada.model_selection import LeaveOneDomainOut, SourceTargetShuffleSplit
 
 import pytest
 
@@ -80,7 +80,7 @@ def test_leave_one_domain_out(da_dataset, max_n_splits, n_splits):
         LogisticRegression(),
     )
     pipe.fit(X, y, sample_domain=sample_domain)
-    cv = LeaveOutDomainOut(max_n_splits=max_n_splits, test_size=0.3, random_state=0)
+    cv = LeaveOneDomainOut(max_n_splits=max_n_splits, test_size=0.3, random_state=0)
     scores = cross_validate(
         pipe,
         X,
