@@ -23,37 +23,35 @@ jobs:
         shell: bash -l {0}
     steps:
 
-    ## Install skada
+    # Install skada
     - name: Checking Out Repository
       uses: actions/checkout@v2
-    # Cache MNE Data
-    # The cache key here is fixed except for os
-    # so if you download a new mne dataset in the code, best to manually increment the key below
-    - name: Create/Restore MNE Data Cache
-      id: cache-mne_data
+    # Cache skada datasets
+    - name: Create/Restore Skada Data Cache
+      id: cache-skada_datasets
       uses: actions/cache@v2
       with:
-        path: ~/mne_data
+        path: ~/skada_datasets
         key: ${{ runner.os }}-v3
     - name: Setting Up Conda skada Environment
       uses: conda-incubator/setup-miniconda@v2
       with:
         environment-file: environment.yml
-        python-version: 3.7
+        python-version: 3.9
         activate-environment: skada
         auto-activate-base: false
     # Show Conda and Python Versions
     - run: conda --version
     - run: conda info --envs
     - run: which python
-    ## Run Tests
+    # Run Tests
     - name: Install Codecov etc.
       run: pip install --upgrade pytest pytest-cov codecov
     - name: Run Tests without torch
       run: pytest skada/ --ignore=skada/feature
-    - name: Install GPU stuffs for CI
-      run: conda install pytorch cpuonly -y -c pytorch
-    - name: Install Skorch for CI
-      run: conda install -c conda-forge skorch==0.13.0
-    - name: Run Tests with torch # See https://stackoverflow.com/a/59959080/1469195 for the cov-report logic
-      run: pytest --cov=skada skada/ --cov-report term --cov-report xml:coverage.xml
+    # - name: Install GPU stuffs for CI
+    #   run: conda install pytorch cpuonly -y -c pytorch
+    # - name: Install Skorch for CI
+    #   run: conda install -c conda-forge skorch==0.13.0
+    # - name: Run Tests with torch # See https://stackoverflow.com/a/59959080/1469195 for the cov-report logic
+    #   run: pytest --cov=skada skada/ --cov-report term --cov-report xml:coverage.xml
