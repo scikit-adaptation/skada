@@ -33,17 +33,23 @@ jobs:
       with:
         path: ~/skada_datasets
         key: ${{ runner.os }}-v3
-    - name: Setting Up Conda skada Environment
-      uses: conda-incubator/setup-miniconda@v2
+    # Install Python
+    - uses: actions/setup-python@v4
       with:
-        environment-file: environment.yml
-        python-version: 3.9
-        activate-environment: skada
-        auto-activate-base: false
+        python-version: 3.8
+    # - name: Setting Up Conda skada Environment
+    #   uses: conda-incubator/setup-miniconda@v2
+    #   with:
+    #     environment-file: environment.yml
+    #     python-version: 3.9
+    #     activate-environment: skada
+    #     auto-activate-base: false
     # Show Conda and Python Versions
-    - run: conda --version
-    - run: conda info --envs
+    # - run: conda --version
+    # - run: conda info --envs
     - run: which python
+    - name: Install package
+      run: pip install -ve . && pip install -r requirements.txt
     # Run Tests
     - name: Install Codecov etc.
       run: pip install --upgrade pytest pytest-cov codecov
