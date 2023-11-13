@@ -101,7 +101,9 @@ def test_surf_all_fetcher(tmp_folder, load_all, load_domain):
     assert np.array_equal(X[sample_domain < 0], X_webcam), "correct targets"
     assert y.shape[0] == y_amazon.shape[0] + y_webcam.shape[0], "correct selection size"
     _, _, sample_domain_rev = dataset.pack(as_sources=['webcam'], as_targets=['amazon'])
-    assert set(np.unique(sample_domain)) == set(-1 * np.unique(sample_domain_rev)), "same domain labels"
+    uniq_domain = np.unique(sample_domain)
+    rev_uniq_domain = -1 * np.unique(sample_domain_rev)
+    assert set(uniq_domain) == set(rev_uniq_domain), "same domain labels"
 
 
 def test_categories_mapping(tmp_folder):

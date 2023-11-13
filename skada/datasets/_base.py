@@ -74,7 +74,12 @@ class DomainAwareDataset:
                     X, y, domain_name = d
                 self.add_domain(X, y=y, domain_name=domain_name)
 
-    def add_domain(self, X, y=None, domain_name: Optional[str] = None) -> 'DomainAwareDataset':
+    def add_domain(
+        self,
+        X,
+        y=None,
+        domain_name: Optional[str] = None
+    ) -> 'DomainAwareDataset':
         if domain_name is not None:
             # check the name is unique
             # xxx(okachaiev): ValueError would be more appropriate
@@ -86,7 +91,11 @@ class DomainAwareDataset:
         self.domain_names_[domain_name] = domain_id
         return self
 
-    def merge(self, dataset: 'DomainAwareDataset', names_mapping: Optional[Mapping] = None) -> 'DomainAwareDataset':
+    def merge(
+        self,
+        dataset: 'DomainAwareDataset',
+        names_mapping: Optional[Mapping] = None
+    ) -> 'DomainAwareDataset':
         for domain_name in dataset.domain_names_:
             # xxx(okachaiev): this needs to be more flexible
             # as it should be possible to pass only X with y=None
@@ -216,7 +225,6 @@ class DomainAwareDataset:
             domain_names=domain_labels,
         )
 
-
     def pack_for_train(
         self,
         as_sources: List[str],
@@ -225,7 +233,7 @@ class DomainAwareDataset:
         mask: Union[None, int, float] = None,
     ):
         """Same as pack.
-        
+
         Masks labels for target domains with -1 so they are not available
         at training time.
         """
@@ -248,7 +256,7 @@ class DomainAwareDataset:
             return_X_y=return_X_y,
             train=False,
         )
-    
+
     def pack_flatten(self, return_X_y: bool = True):
         return self.pack(
             as_sources=list(self.domain_names_.keys()),
@@ -258,7 +266,8 @@ class DomainAwareDataset:
         )
 
 
-# xxx(okachaiev): putting `domain_names` first argument so it's compatible with `partial`
+# xxx(okachaiev): putting `domain_names` first argument
+# so it's compatible with `partial`
 def select_domain(
     domain_names: Dict[str, int],
     sample_domain: np.ndarray,
@@ -267,4 +276,7 @@ def select_domain(
     if isinstance(domains, str):
         domains = [domains]
     # xxx(okachaiev): this version is not the most efficient
-    return reduce(np.logical_or, (sample_domain == domain_names[domain] for domain in domains))
+    return reduce(
+        np.logical_or,
+        (sample_domain == domain_names[domain] for domain in domains)
+    )

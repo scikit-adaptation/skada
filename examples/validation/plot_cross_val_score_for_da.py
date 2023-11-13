@@ -28,7 +28,11 @@ X, y, X_target, y_target = make_shifted_datasets(
 )
 
 base_estimator = SVC()
-estimator = EntropicOTMappingAdapter(base_estimator=base_estimator, reg_e=0.05, tol=1e-3)
+estimator = EntropicOTMappingAdapter(
+    base_estimator=base_estimator,
+    reg_e=0.05,
+    tol=1e-3
+)
 
 cv = ShuffleSplit(n_splits=5, test_size=0.3, random_state=0)
 scores = cross_val_score(

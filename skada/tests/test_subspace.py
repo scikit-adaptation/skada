@@ -14,12 +14,21 @@ import pytest
 
 @pytest.mark.parametrize(
     "estimator", [
-        make_da_pipeline(SubspaceAlignmentAdapter(n_components=2), LogisticRegression()),
-        make_da_pipeline(TransferComponentAnalysisAdapter(n_components=2), LogisticRegression()),
+        make_da_pipeline(
+            SubspaceAlignmentAdapter(n_components=2),
+            LogisticRegression()
+        ),
+        make_da_pipeline(
+            TransferComponentAnalysisAdapter(n_components=2),
+            LogisticRegression()
+        ),
     ]
 )
 def test_subspace_alignment(estimator, da_dataset):
-    X_train, y_train, sample_domain = da_dataset.pack_for_train(as_sources=['s'], as_targets=['t'])
+    X_train, y_train, sample_domain = da_dataset.pack_for_train(
+        as_sources=['s'],
+        as_targets=['t']
+    )
     estimator.fit(X_train, y_train, sample_domain=sample_domain)
     X_test, y_test, sample_domain = da_dataset.pack_for_test(as_targets=['t'])
     y_pred = estimator.predict(X_test, sample_domain=sample_domain)
@@ -50,7 +59,10 @@ def test_subspace_default_n_components(adapter, n_samples, n_features, n_compone
         (X_target, y_target, 't'),
     ])
 
-    X_train, y_train, sample_domain = dataset.pack_for_train(as_sources=['s'], as_targets=['t'])
+    X_train, y_train, sample_domain = dataset.pack_for_train(
+        as_sources=['s'],
+        as_targets=['t']
+    )
     adapter.fit(X_train, y_train, sample_domain=sample_domain)
     X_test, _, sample_domain = dataset.pack_for_test(as_targets=['t'])
     output = adapter.transform(X_test, sample_domain=sample_domain)

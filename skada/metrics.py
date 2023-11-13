@@ -58,7 +58,15 @@ class SupervisedScorer(_BaseDomainAwareScorer):
         self.scoring = scoring
         self._sign = 1 if greater_is_better else -1
 
-    def _score(self, estimator, X, y=None, sample_domain=None, target_labels=None, **params):
+    def _score(
+        self,
+        estimator,
+        X,
+        y=None,
+        sample_domain=None,
+        target_labels=None,
+        **params
+    ):
         scorer = check_scoring(estimator, self.scoring)
         source_idx = check_X_y_domain(X, y, sample_domain, return_indices=True)
         return self._sign * scorer(
@@ -143,14 +151,16 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
 
     def _score(self, estimator, X, y, sample_domain=None, **params):
         scorer = check_scoring(estimator, self.scoring)
-        # xxx(okachaiev): similar should be done for the pipeline with re-weight adapters
+        # xxx(okachaiev): similar should be done
+        # for the pipeline with re-weight adapters
         if not get_routing_for_object(scorer).consumes('score', ['sample_weight']):
             raise ValueError(
                 "The estimator passed should accept 'sample_weight' parameter. "
                 f"The estimator {estimator!r} does not."
             )
 
-        X_source, y_source, X_target, _ = check_X_y_domain(X, y, sample_domain, return_joint=False)
+        X_source, y_source, X_target, _ = check_X_y_domain(
+            X, y, sample_domain, return_joint=False)
         self._fit(X_source, X_target)
         ws = self.weight_estimator_source_.score_samples(X_source)
         wt = self.weight_estimator_target_.score_samples(X_source)

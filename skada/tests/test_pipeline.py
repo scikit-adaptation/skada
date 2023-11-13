@@ -34,7 +34,8 @@ def test_pipeline(da_dataset):
     # automatically derives as a single target domain when sample_domain is `None`
     y_pred_derived = pipe.predict(X_target)
     assert_array_equal(y_pred, y_pred_derived, 'automatically derives as target')
-    # proxy to the default scoring of the final estimator (`LogisticRegression` in this case)
+    # proxy to the default scoring of the final estimator
+    # (`LogisticRegression` in this case)
     score = pipe.score(X_target, y_target, sample_domain=sample_domain)
     assert score > 0.9
     score_derived = pipe.score(X_target, y_target)

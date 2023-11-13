@@ -492,7 +492,12 @@ class KLIEPAdapter(BaseAdapter):
         )
         if source_idx.sum() > 0:
             source_idx, = np.where(source_idx)
-            A = pairwise_kernels(X[source_idx], self.centers_, metric="rbf", gamma=self.best_gamma_)
+            A = pairwise_kernels(
+                X[source_idx],
+                self.centers_,
+                metric="rbf",
+                gamma=self.best_gamma_
+            )
             source_weights = A @ self.alpha_
             weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
             weights[source_idx] = source_weights

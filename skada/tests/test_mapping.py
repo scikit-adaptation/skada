@@ -28,7 +28,10 @@ import pytest
         ),
         make_da_pipeline(LinearOTMappingAdapter(), LogisticRegression()),
         make_da_pipeline(CORALAdapter(), LogisticRegression()),
-        pytest.param(CORALAdapter(reg=None), marks=pytest.mark.xfail(reason='Fails without regularization')),
+        pytest.param(
+            CORALAdapter(reg=None),
+            marks=pytest.mark.xfail(reason='Fails without regularization')
+        ),
         make_da_pipeline(CORALAdapter(reg=0.1), LogisticRegression()),
     ]
 )
@@ -45,7 +48,10 @@ def test_mapping_estimator(estimator, tmp_da_dataset):
         (X_target_scaled, y_target, 't'),
     ])
 
-    X_train, y_train, sample_domain = dataset.pack_for_train(as_sources=['s'], as_targets=['t'])
+    X_train, y_train, sample_domain = dataset.pack_for_train(
+        as_sources=['s'],
+        as_targets=['t']
+    )
     estimator.fit(X_train, y_train, sample_domain=sample_domain)
     X_test, y_test, sample_domain = dataset.pack_for_test(as_targets=['t'])
     y_pred = estimator.predict(X_test, sample_domain=sample_domain)

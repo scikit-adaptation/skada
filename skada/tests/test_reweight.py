@@ -11,6 +11,7 @@ from skada import (
 
 import pytest
 
+
 # xxx(okachaiev): the problem with the pipeline being setup this way,
 #                 the estimator does not accept sample_weights (as it
 #                 doesn't request it from the routing)
@@ -20,11 +21,17 @@ import pytest
         make_da_pipeline(ReweightDensityAdapter(), LogisticRegression()),
         make_da_pipeline(GaussianReweightDensityAdapter(), LogisticRegression()),
         make_da_pipeline(DiscriminatorReweightDensityAdapter(), LogisticRegression()),
-        make_da_pipeline(KLIEPAdapter(gamma=[0.1, 1], random_state=42), LogisticRegression()),
+        make_da_pipeline(
+            KLIEPAdapter(gamma=[0.1, 1], random_state=42),
+            LogisticRegression()
+        ),
     ],
 )
 def test_reweight_estimator(estimator, da_dataset):
-    X_train, y_train, sample_domain = da_dataset.pack_for_train(as_sources=['s'], as_targets=['t'])
+    X_train, y_train, sample_domain = da_dataset.pack_for_train(
+        as_sources=['s'],
+        as_targets=['t']
+    )
     estimator.fit(X_train, y_train, sample_domain=sample_domain)
     X_test, y_test, sample_domain = da_dataset.pack_for_test(as_targets=['t'])
     y_pred = estimator.predict(X_test, sample_domain=sample_domain)

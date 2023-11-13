@@ -21,13 +21,20 @@ def _estimator_has(attr):
     check the unfitted classifier.
     """
     def has_base_estimator(estimator) -> bool:
-        return hasattr(estimator, "base_estimator") and hasattr(estimator.base_estimator, attr)
+        return hasattr(estimator, "base_estimator") and hasattr(
+            estimator.base_estimator,
+            attr
+        )
 
     # xxx(okachaiev): there should be a simple way to access selector base estimator
     def has_estimator_selector(estimator) -> bool:
-        return hasattr(estimator, "estimators_") and hasattr(estimator.estimators_[0], attr)
+        return hasattr(estimator, "estimators_") and hasattr(
+            estimator.estimators_[0],
+            attr
+        )
 
-    return lambda estimator: has_base_estimator(estimator) or has_estimator_selector(estimator)
+    return lambda estimator: (has_base_estimator(estimator) or
+                              has_estimator_selector(estimator))
 
 
 class AdaptationOutput(Bunch):
@@ -40,7 +47,13 @@ class BaseAdapter(BaseEstimator):
     __metadata_request__transform = {'sample_domain': True, 'allow_source': True}
 
     @abstractmethod
-    def adapt(self, X, y=None, sample_domain=None, **params) -> Union[np.ndarray, AdaptationOutput]:
+    def adapt(
+        self,
+        X,
+        y=None,
+        sample_domain=None,
+        **params
+    ) -> Union[np.ndarray, AdaptationOutput]:
         """Transform samples, labels, and weights into the space in which
         the estimator is trained.
         """
@@ -55,7 +68,13 @@ class BaseAdapter(BaseEstimator):
         self.fit(X, y=y, sample_domain=sample_domain, **params)
         # assume 'fit_transform' is called to fit the estimator,
         # thus we allow for the source domain to be adapted
-        return self.transform(X, y=y, sample_domain=sample_domain, allow_source=True, **params)
+        return self.transform(
+            X,
+            y=y,
+            sample_domain=sample_domain,
+            allow_source=True,
+            **params
+        )
 
     def transform(
         self,
@@ -93,7 +112,10 @@ class BaseSelector(BaseEstimator):
     __metadata_request__score = {'sample_domain': True}
 
     @abstractmethod
-    def select(self, sample_domain: np.ndarray) -> List[Tuple[BaseEstimator, np.ndarray]]:
+    def select(
+        self,
+        sample_domain: np.ndarray
+    ) -> List[Tuple[BaseEstimator, np.ndarray]]:
         """Creates new estimators.
 
         Returns list of estimators each with a list of corresponding
@@ -148,7 +170,7 @@ class Shared(BaseSelector):
         if 'sample_domain' in params:
             domains = set(np.unique(params['sample_domain']))
         else:
-            domains = set([1, -2]) # default source and target labels
+            domains = set([1, -2])  # default source and target labels
         # xxx(okachaiev): this code is awkward, and it's duplicated everywhere
         routing = get_routing_for_object(self.base_estimator)
         routed_params = routing.fit._route_params(params=params)

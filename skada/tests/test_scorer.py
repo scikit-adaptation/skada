@@ -54,7 +54,11 @@ def test_supervised_scorer(da_dataset):
         LogisticRegression().set_score_request(sample_weight=True),
     )
     cv = ShuffleSplit(n_splits=3, test_size=0.3, random_state=0)
-    _, target_labels, _ = da_dataset.pack(as_sources=['s'], as_targets=['t'], train=False)
+    _, target_labels, _ = da_dataset.pack(
+        as_sources=['s'],
+        as_targets=['t'],
+        train=False
+    )
     scoring = SupervisedScorer()
     scores = cross_validate(
         estimator,

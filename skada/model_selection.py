@@ -20,7 +20,9 @@ class SplitSampleDomainRequesterMixin(_MetadataRequester):
 
 
 class BaseDomainAwareShuffleSplit(SplitSampleDomainRequesterMixin, metaclass=ABCMeta):
-    """Base class for domain aware implementation of the ShuffleSplit and StratifiedShuffleSplit"""
+    """Base class for domain aware implementation of the
+    ShuffleSplit and StratifiedShuffleSplit.
+    """
 
     def __init__(
         self, n_splits=10, *, test_size=None, train_size=None, random_state=None
@@ -62,7 +64,11 @@ class BaseDomainAwareShuffleSplit(SplitSampleDomainRequesterMixin, metaclass=ABC
         to an integer.
         """
         # automatically derive sample_domain if it is not provided
-        X, sample_domain = check_X_domain(X, sample_domain, allow_auto_sample_domain=True)
+        X, sample_domain = check_X_domain(
+            X,
+            sample_domain,
+            allow_auto_sample_domain=True
+        )
         X, y, sample_domain = indexable(X, y, sample_domain)
         yield from self._iter_indices(X, y, sample_domain=sample_domain)
 
@@ -131,10 +137,14 @@ class SourceTargetShuffleSplit(BaseDomainAwareShuffleSplit):
         for i in range(self.n_splits):
             # random partition
             source_permutation = source_idx[rng.permutation(n_source_samples)]
-            ind_source_train = source_permutation[n_source_test : (n_source_test + n_source_train)]
+            ind_source_train = source_permutation[
+                n_source_test : (n_source_test + n_source_train)
+            ]
             ind_source_test = source_permutation[:n_source_test]
             target_permutation = target_idx[rng.permutation(n_target_samples)]
-            ind_target_train = target_permutation[n_target_test : (n_target_test + n_target_train)]
+            ind_target_train = target_permutation[
+                n_target_test : (n_target_test + n_target_train)
+            ]
             ind_target_test = target_permutation[:n_target_test]
             yield (
                 np.concatenate([ind_source_train, ind_target_train]),
@@ -144,7 +154,7 @@ class SourceTargetShuffleSplit(BaseDomainAwareShuffleSplit):
 
 class LeaveOneDomainOut(SplitSampleDomainRequesterMixin):
     """Leave-One-Domain-Out cross-validator.
-    
+
     Provides train/test indices to split data in train/test sets.
     Each sample is used once as a test set (singleton) while the
     remaining samples form the training set.
@@ -162,7 +172,8 @@ class LeaveOneDomainOut(SplitSampleDomainRequesterMixin):
         self.train_size = train_size
         self.random_state = random_state
         self._default_test_size = 0.1
-        self._n_splits = 1 # so we can re-use existing implementation for shuffle split
+        # so we can re-use existing implementation for shuffle split
+        self._n_splits = 1
 
     def split(self, X, y=None, sample_domain=None):
         """Generate indices to split data into training and test set.
@@ -195,7 +206,11 @@ class LeaveOneDomainOut(SplitSampleDomainRequesterMixin):
         to an integer.
         """
         # automatically derive sample_domain if it is not provided
-        X, sample_domain = check_X_domain(X, sample_domain, allow_auto_sample_domain=True)
+        X, sample_domain = check_X_domain(
+            X,
+            sample_domain,
+            allow_auto_sample_domain=True
+        )
         X, y, sample_domain = indexable(X, y, sample_domain)
         # xxx(okachaiev): make sure all domains are given both as sources and targets
         domains = self._get_domain_labels(sample_domain)
@@ -208,12 +223,20 @@ class LeaveOneDomainOut(SplitSampleDomainRequesterMixin):
             target_domain = domains[target_domain_idx]
             split_idx = reduce(
                 np.logical_or,
-                (sample_domain == (domain if domain != target_domain else -domain) for domain in domains)
+                (
+                    sample_domain == (domain if domain != target_domain else -domain)
+                    for domain
+                    in domains
+                )
             )
             split_idx, = np.where(split_idx)
             X_split = X[split_idx]
             split_sample_domain = sample_domain[split_idx]
-            for train_idx, test_idx in self._iter_indices(X_split, y=None, sample_domain=split_sample_domain):
+            for train_idx, test_idx in self._iter_indices(
+                X_split,
+                y=None,
+                sample_domain=split_sample_domain
+            ):
                 yield split_idx[train_idx], split_idx[test_idx]
 
     def _iter_indices(self, X, y=None, sample_domain=None):
@@ -239,10 +262,14 @@ class LeaveOneDomainOut(SplitSampleDomainRequesterMixin):
         for i in range(self._n_splits):
             # random partition
             source_permutation = source_idx[rng.permutation(n_source_samples)]
-            ind_source_train = source_permutation[n_source_test : (n_source_test + n_source_train)]
+            ind_source_train = source_permutation[
+                n_source_test : (n_source_test + n_source_train)
+            ]
             ind_source_test = source_permutation[:n_source_test]
             target_permutation = target_idx[rng.permutation(n_target_samples)]
-            ind_target_train = target_permutation[n_target_test : (n_target_test + n_target_train)]
+            ind_target_train = target_permutation[
+                n_target_test : (n_target_test + n_target_train)
+            ]
             ind_target_test = target_permutation[:n_target_test]
             yield (
                 np.concatenate([ind_source_train, ind_target_train]),

@@ -253,8 +253,8 @@ def make_shifted_blobs(
         (X, y, sample_domain) where `sample_domain` is a categorical label
         for the domain where sample is taken.
     return_dataset : boolean, optional (default=False)
-        When set to `True`, the function returns :class:`~skada.datasets.DomainAwareDataset`
-        object.
+        When set to `True`, the function returns
+        :class:`~skada.datasets.DomainAwareDataset` object.
 
     Returns
     -------
@@ -365,8 +365,8 @@ def make_shifted_datasets(
         (X, y, sample_domain) where `sample_domain` is a categorical label
         for the domain where sample is taken.
     return_dataset : boolean, optional (default=False)
-        When set to `True`, the function returns :class:`~skada.datasets.DomainAwareDataset`
-        object.
+        When set to `True`, the function returns
+        :class:`~skada.datasets.DomainAwareDataset` object.
 
     Returns
     -------
@@ -523,8 +523,8 @@ def make_dataset_from_moons_distribution(
         (X, y, sample_domain) where `sample_domain` is a categorical label
         for the domain where sample is taken.
     return_dataset : boolean, optional (default=False)
-        When set to `True`, the function returns :class:`~skada.datasets.DomainAwareDataset`
-        object.
+        When set to `True`, the function returns
+        :class:`~skada.datasets.DomainAwareDataset` object.
 
     Returns
     -------
@@ -648,8 +648,8 @@ def make_variable_frequency_dataset(
         (X, y, sample_domain) where `sample_domain` is a categorical label
         for the domain where sample is taken.
     return_dataset : boolean, optional (default=False)
-        When set to `True`, the function returns :class:`~skada.datasets.DomainAwareDataset`
-        object.
+        When set to `True`, the function returns
+        :class:`~skada.datasets.DomainAwareDataset` object.
 
     Returns
     -------

@@ -95,7 +95,10 @@ dataset = DomainAwareDataset(domains=[
     (X_source, y_source, 's'),
     (X_target, y_target, 't')
 ])
-X_train, y_train, sample_domain = dataset.pack_for_train(as_sources=['s'], as_targets=['t'])
+X_train, y_train, sample_domain = dataset.pack_for_train(
+    as_sources=['s'],
+    as_targets=['t']
+)
 clf_otda = DomainAwareEstimator(OTMappingAdapter(), SVC(kernel='rbf', C=1))
 clf_otda.fit(X_train, y_train, sample_domain)
 

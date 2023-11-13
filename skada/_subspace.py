@@ -66,7 +66,8 @@ class SubspaceAlignmentAdapter(BaseAdapter):
         y_t : array-like, shape (n_samples,)
             The labels (same as y).
         sample_domain : array-like, shape (n_samples,)
-            The domain labels transformed to the target subspace (same as sample_domain).
+            The domain labels transformed to the target subspace
+            (same as sample_domain).
         weights : None
             No weights are returned here.
         """
@@ -114,7 +115,9 @@ class SubspaceAlignmentAdapter(BaseAdapter):
         else:
             n_components = self.n_components
         self.random_state_ = check_random_state(self.random_state)
-        self.pca_source_ = PCA(n_components, random_state=self.random_state_).fit(X_source)
+        self.pca_source_ = PCA(n_components, random_state=self.random_state_).fit(
+            X_source
+        )
         self.pca_target_ = PCA(
             n_components,
             random_state=self.random_state_
@@ -245,7 +248,8 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
         y_t : array-like, shape (n_samples,)
             The labels (same as y).
         sample_domain : array-like, shape (n_samples,)
-            The domain labels transformed to the target subspace (same as sample_domain).
+            The domain labels transformed to the target subspace
+            (same as sample_domain).
         weights : None
             No weights are returned here.
         """
@@ -256,7 +260,9 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
             allow_multi_target=True,
             return_joint=False,
         )
-        if np.array_equal(X_source, self.X_source_) and np.array_equal(X_target, self.X_target_):
+        if np.array_equal(X_source, self.X_source_) and np.array_equal(
+            X_target, self.X_target_
+        ):
             X_ = (self.K_ @ self.eigvects_)[:X.shape[0]]
         else:
             Ks = pairwise_kernels(X, self.X_source_, metric=self.kernel)
