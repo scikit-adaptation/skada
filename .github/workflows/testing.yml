@@ -26,7 +26,7 @@ jobs:
     # Install skada
     - name: Checking Out Repository
       uses: actions/checkout@v2
-    # Cache skada datasets
+    # Cache 'skada' datasets
     - name: Create/Restore Skada Data Cache
       id: cache-skada_datasets
       uses: actions/cache@v2
