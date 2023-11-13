@@ -1,15 +1,15 @@
-on: [] # [status]
+on: [status]
 jobs:
-  circleci_artifacts_redirector_job:
-    runs-on: ubuntu-latest
-    if: "${{ startsWith(github.event.context, 'ci/circleci: build_docs') }}"
-    name: Run CircleCI artifacts redirector
-    steps:
-      - name: GitHub Action step
-        uses: larsoner/circleci-artifacts-redirector-action@master
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          api-token: ${{ secrets.CIRCLECI_API_TOKEN }}
-          artifact-path: 0/dev/index.html
-          circleci-jobs: build_docs
-          job-title: View rendered docs here!
+  # circleci_artifacts_redirector_job:
+  #   runs-on: ubuntu-latest
+  #   if: "${{ startsWith(github.event.context, 'ci/circleci: build_docs') }}"
+  #   name: Run CircleCI artifacts redirector
+  #   steps:
+  #     - name: GitHub Action step
+  #       uses: larsoner/circleci-artifacts-redirector-action@master
+  #       with:
+  #         repo-token: ${{ secrets.GITHUB_TOKEN }}
+  #         api-token: ${{ secrets.CIRCLECI_API_TOKEN }}
+  #         artifact-path: 0/dev/index.html
+  #         circleci-jobs: build_docs
+  #         job-title: View rendered docs here!
