@@ -1,30 +1,55 @@
-# Author: Theo Gnassounou <theo.gnassounou@inria.fr>
-#         Remi Flamary <remi.flamary@polytechnique.edu>
-#         Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
-# License: BSD 3-Clause
-
 from abc import abstractmethod
 
 import numpy as np
-
 from ot import da
 
-from .base import BaseDataAdaptEstimator, clone
-from ._utils import _estimate_covariance
+from .base import BaseAdapter, clone
+from ._utils import (
+    check_X_domain,
+    check_X_y_domain,
+    _estimate_covariance,
+    _merge_source_target,
+)
 
 
-class BaseOTMapping(BaseDataAdaptEstimator):
+class BaseOTMappingAdapter(BaseAdapter):
     """Base class for all DA estimators implemented using OT mapping.
 
     Each implementation has to provide `_create_transport_estimator` callback
     to create OT object using parameters saved in the constructor.
     """
 
-    def __init__(self, base_estimator):
-        super().__init__(base_estimator)
+    def fit(self, X, y=None, sample_domain=None):
+        """Fit adaptation parameters.
 
-    def predict_adapt(self, X, y, X_target, y_target=None):
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
+        X, y, X_target, y_target = check_X_y_domain(
+            X,
+            y,
+            sample_domain,
+            allow_multi_source=True,
+            allow_multi_target=True,
+            return_joint=False,
+        )
+        transport = self._create_transport_estimator()
+        self.ot_transport_ = clone(transport)
+        self.ot_transport_.fit(Xs=X, ys=y, Xt=X_target, yt=y_target)
+        return self
+
+    def adapt(self, X, y=None, sample_domain=None):
         """Predict adaptation (weights, sample or labels).
 
         Parameters
@@ -33,10 +58,8 @@ class BaseOTMapping(BaseDataAdaptEstimator):
             The source data.
         y : array-like, shape (n_samples,)
             The source labels.
-        X_target : array-like, shape (n_samples, n_features)
-            The target data.
-        y_target : array-like, shape (n_samples,), optional
-            The target labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels.
 
         Returns
         -------
@@ -47,46 +70,31 @@ class BaseOTMapping(BaseDataAdaptEstimator):
         weights : array-like, shape (n_samples,)
             The weights of the samples.
         """
-        X_ = self.ot_transport_.transform(Xs=X)
-        weights = None
-        return X_, y, weights
-
-    def fit_adapt(self, X, y, X_target, y_target=None):
-        """Fit adaptation parameters.
-
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            The source data.
-        y : array-like, shape (n_samples,)
-            The source labels.
-        X_target : array-like, shape (n_samples, n_features)
-            The target data.
-        y_target : array-like, shape (n_samples,), optional
-            The target labels.
-
-        Returns
-        -------
-        self : object
-            Returns self.
-        """
-        transport = self._create_transport_estimator()
-        self.ot_transport_ = clone(transport)
-        self.ot_transport_.fit(Xs=X, ys=y, Xt=X_target, yt=y_target)
-        return self
+        # xxx(okachaiev): implement auto-infer for sample_domain
+        X_source, X_target = check_X_domain(
+            X,
+            sample_domain,
+            allow_multi_source=True,
+            allow_multi_target=True,
+            return_joint=False,
+        )
+        # in case of prediction we would get only target samples here,
+        # thus there's no need to perform any transformations
+        if X_source.shape[0] > 0:
+            X_source = self.ot_transport_.transform(Xs=X_source)
+        X_adapt = _merge_source_target(X_source, X_target, sample_domain)
+        return X_adapt
 
     @abstractmethod
     def _create_transport_estimator(self):
         pass
 
 
-class OTMapping(BaseOTMapping):
+class OTMappingAdapter(BaseOTMappingAdapter):
     """Domain Adaptation Using Optimal Transport.
 
     Parameters
     ----------
-    base_estimator : estimator object
-        The base estimator to fit on reweighted data.
     metric : string, optional (default="sqeuclidean")
         The ground metric for the Wasserstein problem
     norm : string, optional (default=None)
@@ -111,12 +119,11 @@ class OTMapping(BaseOTMapping):
 
     def __init__(
         self,
-        base_estimator,
         metric="sqeuclidean",
         norm=None,
         max_iter=100_000,
     ):
-        super().__init__(base_estimator)
+        super().__init__()
         self.metric = metric
         self.norm = norm
         self.max_iter = max_iter
@@ -129,13 +136,11 @@ class OTMapping(BaseOTMapping):
         )
 
 
-class EntropicOTMapping(BaseOTMapping):
+class EntropicOTMappingAdapter(BaseOTMappingAdapter):
     """Domain Adaptation Using Optimal Transport.
 
     Parameters
     ----------
-    base_estimator : estimator object
-        The base estimator to fit on reweighted data.
     reg_e : float, default=1
         Entropic regularization parameter.
     metric : string, optional (default="sqeuclidean")
@@ -165,14 +170,13 @@ class EntropicOTMapping(BaseOTMapping):
 
     def __init__(
         self,
-        base_estimator,
         reg_e=1,
         metric="sqeuclidean",
         norm=None,
         max_iter=1000,
         tol=10e-9,
     ):
-        super().__init__(base_estimator)
+        super().__init__()
         self.reg_e = reg_e
         self.metric = metric
         self.norm = norm
@@ -189,13 +193,11 @@ class EntropicOTMapping(BaseOTMapping):
         )
 
 
-class ClassRegularizerOTMapping(BaseOTMapping):
+class ClassRegularizerOTMappingAdapter(BaseOTMappingAdapter):
     """Domain Adaptation Using Optimal Transport.
 
     Parameters
     ----------
-    base_estimator : estimator object
-        The base estimator to fit on reweighted data.
     reg_e : float, default=1
         Entropic regularization parameter.
     reg_cl : float, default=0.1
@@ -230,7 +232,6 @@ class ClassRegularizerOTMapping(BaseOTMapping):
 
     def __init__(
         self,
-        base_estimator,
         reg_e=1,
         reg_cl=0.1,
         norm="lpl1",
@@ -239,7 +240,7 @@ class ClassRegularizerOTMapping(BaseOTMapping):
         max_inner_iter=200,
         tol=10e-9,
     ):
-        super().__init__(base_estimator)
+        super().__init__()
         self.reg_e = reg_e
         self.reg_cl = reg_cl
         self.norm = norm
@@ -265,13 +266,11 @@ class ClassRegularizerOTMapping(BaseOTMapping):
         )
 
 
-class LinearOTMapping(BaseOTMapping):
+class LinearOTMappingAdapter(BaseOTMappingAdapter):
     """Domain Adaptation Using Optimal Transport.
 
     Parameters
     ----------
-    base_estimator : estimator object
-        The base estimator to fit on reweighted data.
     reg : float, (default=1e-08)
         regularization added to the diagonals of covariances.
     bias: boolean, optional (default=True)
@@ -285,13 +284,8 @@ class LinearOTMapping(BaseOTMapping):
         and target data.
     """
 
-    def __init__(
-        self,
-        base_estimator,
-        reg=1e-08,
-        bias=True,
-    ):
-        super().__init__(base_estimator)
+    def __init__(self, reg=1e-08, bias=True):
+        super().__init__()
         self.reg = reg
         self.bias = bias
 
@@ -351,13 +345,11 @@ def _invsqrtm(C):
     return (eigvecs * 1. / np.sqrt(eigvals)) @ eigvecs.T
 
 
-class CORAL(BaseDataAdaptEstimator):
+class CORALAdapter(BaseAdapter):
     """Estimator based on Correlation Alignment [1]_.
 
     Parameters
     ----------
-    base_estimator : estimator object
-        The base estimator to fit on reweighted data.
     reg : 'auto' or float, default="auto"
         The regularization parameter of the covariance estimator.
         Possible values:
@@ -380,15 +372,41 @@ class CORAL(BaseDataAdaptEstimator):
            In Advances in Computer Vision and Pattern Recognition, 2017.
     """
 
-    def __init__(
-        self,
-        base_estimator,
-        reg='auto'
-    ):
-        super().__init__(base_estimator)
+    def __init__(self, reg='auto'):
+        super().__init__()
         self.reg = reg
 
-    def predict_adapt(self, X, y, X_target, y_target=None):
+    def fit(self, X, y=None, sample_domain=None):
+        """Fit adaptation parameters.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
+        X_source, X_target = check_X_domain(
+            X,
+            sample_domain,
+            allow_multi_source=True,
+            allow_multi_target=True,
+            return_joint=False,
+        )
+        cov_source_ = _estimate_covariance(X_source, shrinkage=self.reg)
+        cov_target_ = _estimate_covariance(X_target, shrinkage=self.reg)
+        self.cov_source_inv_sqrt_ = _invsqrtm(cov_source_)
+        self.cov_target_sqrt_ = _sqrtm(cov_target_)
+        return self
+
+    def adapt(self, X, y=None, sample_domain=None):
         """Predict adaptation (weights, sample or labels).
 
         Parameters
@@ -397,10 +415,8 @@ class CORAL(BaseDataAdaptEstimator):
             The source data.
         y : array-like, shape (n_samples,)
             The source labels.
-        X_target : array-like, shape (n_samples, n_features)
-            The target data.
-        y_target : array-like, shape (n_samples,), optional
-            The target labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
 
         Returns
         -------
@@ -411,32 +427,10 @@ class CORAL(BaseDataAdaptEstimator):
         weights : None
             No weights are returned here.
         """
-        X_ = np.dot(X, self.cov_source_inv_sqrt_)
-        X_ = np.dot(X_, self.cov_target_sqrt_)
-        weights = None
-        return X_, y, weights
-
-    def fit_adapt(self, X, y, X_target, y_target=None):
-        """Fit adaptation parameters.
-
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            The source data.
-        y : array-like, shape (n_samples,)
-            The source labels.
-        X_target : array-like, shape (n_samples, n_features)
-            The target data.
-        y_target : array-like, shape (n_samples,), optional
-            The target labels.
-
-        Returns
-        -------
-        self : object
-            Returns self.
-        """
-        cov_source_ = _estimate_covariance(X, shrinkage=self.reg)
-        cov_target_ = _estimate_covariance(X_target, shrinkage=self.reg)
-        self.cov_source_inv_sqrt_ = _invsqrtm(cov_source_)
-        self.cov_target_sqrt_ = _sqrtm(cov_target_)
-        return self
+        X_adapt = np.dot(X, self.cov_source_inv_sqrt_)
+        X_adapt = np.dot(X_adapt, self.cov_target_sqrt_)
+        # xxx(okachaiev): i feel this is straight up incorrect,
+        # in the previous version of the code only source data
+        # was transformed, and the target was never updated. i
+        # guess it should just 'passthrough' for a target space
+        return X_adapt
