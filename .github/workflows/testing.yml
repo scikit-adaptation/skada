@@ -48,8 +48,6 @@ jobs:
     # - run: conda --version
     # - run: conda info --envs
     - run: which python
-    - name: Install sklearn (nightly)
-      run: pip install --pre --extra-index https://pypi.anaconda.org/scientific-python-nightly-wheels/simple scikit-learn
     - name: Install 'skada' package
       run: pip install -ve . && pip install -r requirements.txt
     # Run Tests
