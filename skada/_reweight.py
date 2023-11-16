@@ -11,6 +11,7 @@ from sklearn.utils.validation import check_is_fitted
 
 from .base import AdaptationOutput, BaseAdapter, clone
 from ._utils import _estimate_covariance, check_X_domain
+from ._pipeline import make_da_pipeline
 
 
 EPS = np.finfo(float).eps
@@ -104,6 +105,31 @@ class ReweightDensityAdapter(BaseAdapter):
         else:
             weights = None
         return AdaptationOutput(X=X, sample_weights=weights)
+
+
+def ReweightDensity(
+    base_estimator=LogisticRegression(),
+    weight_estimator=None,
+):
+    """Density re-weighting pipeline adapter and estimator.
+
+    Parameters
+    ----------
+    base_estimator : sklearn estimator, default=LogisticRegression()
+        estimator used for fitting and prediction
+    weight_estimator : estimator object, optional
+        The estimator to use to estimate the densities of source and target
+        observations. If None, a KernelDensity estimator is used.
+
+    Returns
+    -------
+    pipeline : sklearn pipeline
+        Pipeline containing the ReweightDensity adapter and the base estimator.
+    """
+    return make_da_pipeline(
+        ReweightDensityAdapter(weight_estimator=weight_estimator),
+        base_estimator=base_estimator,
+    )
 
 
 class GaussianReweightDensityAdapter(BaseAdapter):
@@ -217,6 +243,36 @@ class GaussianReweightDensityAdapter(BaseAdapter):
         return AdaptationOutput(X=X, sample_weights=weights)
 
 
+def GaussianReweightDensity(
+    base_estimator=LogisticRegression(),
+    reg='auto',
+):
+    """Gaussian approximation re-weighting pipeline adapter and estimator.
+
+    Parameters
+    ----------
+    base_estimator : sklearn estimator, default=LogisticRegression()
+        estimator used for fitting and prediction
+    reg : 'auto' or float, default="auto"
+        The regularization parameter of the covariance estimator.
+        Possible values:
+
+          - None: no shrinkage.
+          - 'auto': automatic shrinkage using the Ledoit-Wolf lemma.
+          - float between 0 and 1: fixed shrinkage parameter.
+
+    Returns
+    -------
+    pipeline : sklearn pipeline
+        Pipeline containing the GaussianReweightDensity adapter and the
+        base estimator.
+    """
+    return make_da_pipeline(
+        GaussianReweightDensityAdapter(reg=reg),
+        base_estimator=base_estimator,
+    )
+
+
 class DiscriminatorReweightDensityAdapter(BaseAdapter):
     """Gaussian approximation re-weighting method.
 
@@ -309,6 +365,33 @@ class DiscriminatorReweightDensityAdapter(BaseAdapter):
         else:
             weights = None
         return AdaptationOutput(X=X, sample_weights=weights)
+
+
+def DiscriminatorReweightDensity(
+    base_estimator=LogisticRegression(), domain_classifier=None
+):
+    """Discriminator re-weighting pipeline adapter and estimator.
+
+    Parameters
+    ----------
+    base_estimator : sklearn estimator, default=LogisticRegression()
+        estimator used for fitting and prediction
+    domain_classifier : sklearn classifier, optional
+        Classifier used to predict the domains. If None, a
+        LogisticRegression is used.
+
+    Returns
+    -------
+    pipeline : sklearn pipeline
+        Pipeline containing the DiscriminatorReweightDensity adapter and the
+        base estimator.
+    """
+    return make_da_pipeline(
+        DiscriminatorReweightDensityAdapter(
+            domain_classifier=domain_classifier
+        ),
+        base_estimator=base_estimator,
+    )
 
 
 class KLIEPAdapter(BaseAdapter):
@@ -504,3 +587,50 @@ class KLIEPAdapter(BaseAdapter):
         else:
             weights = None
         return AdaptationOutput(X=X, sample_weights=weights)
+
+
+def KLIEP(
+    base_estimator=LogisticRegression(),
+    gamma=1.0,
+    cv=5,
+    n_centers=100,
+    tol=1e-6,
+    max_iter=1000,
+    random_state=None,
+):
+    """KLIEP pipeline adapter and estimator.
+
+    Parameters
+    ----------
+    base_estimator : sklearn estimator, default=LogisticRegression()
+        estimator used for fitting and prediction
+    gamma : float or array like
+        Parameters for the kernels.
+        If array like, compute the likelihood cross validation to choose
+        the best parameters for the RBF kernel.
+        If float, solve the optimization for the given kernel parameter.
+    cv : int, cross-validation generator or an iterable, default=5
+        Determines the cross-validation splitting strategy.
+        If it is an int it is the number of folds for the cross validation.
+    n_centers : int, default=100
+        Number of kernel centers defining their number.
+    tol : float, default=1e-6
+        Tolerance for the stopping criterion in the optimization.
+    max_iter : int, default=1000
+        Number of maximum iteration before stopping the optimization.
+    random_state : int, RandomState instance or None, default=None
+        Determines random number generation for dataset creation. Pass an int
+        for reproducible output across multiple function calls.
+
+    Returns
+    -------
+    pipeline : sklearn pipeline
+        Pipeline containing the KLIEP adapter and the base estimator.
+    """
+    return make_da_pipeline(
+        KLIEPAdapter(
+            gamma=gamma, cv=cv, n_centers=n_centers, tol=tol,
+            max_iter=max_iter, random_state=random_state
+        ),
+        base_estimator=base_estimator,
+    )
