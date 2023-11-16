@@ -3,7 +3,9 @@ from sklearn.linear_model import LogisticRegression
 
 from skada import (
     SubspaceAlignmentAdapter,
+    SubspaceAlignment,
     TransferComponentAnalysisAdapter,
+    TransferComponentAnalysis,
     make_da_pipeline,
 )
 from skada.base import AdaptationOutput
@@ -18,10 +20,12 @@ import pytest
             SubspaceAlignmentAdapter(n_components=2),
             LogisticRegression()
         ),
+        SubspaceAlignment(n_components=2),
         make_da_pipeline(
             TransferComponentAnalysisAdapter(n_components=2),
             LogisticRegression()
         ),
+        TransferComponentAnalysis(n_components=2),
     ]
 )
 def test_subspace_alignment(estimator, da_dataset):
