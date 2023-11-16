@@ -5,7 +5,7 @@ from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 
-from skada import make_da_pipeline, SubspaceAlignmentAdapter
+from skada import SubspaceAlignmentAdapter, PerDomain, make_da_pipeline
 
 import pytest
 
@@ -40,3 +40,18 @@ def test_pipeline(da_dataset):
     assert score > 0.9
     score_derived = pipe.score(X_target, y_target)
     assert score == score_derived, 'automatically derives as target'
+
+
+def test_per_domain_selector():
+    scaler = PerDomain(StandardScaler())
+    X = np.array([[1., 0.], [0., 8.], [3., 0.], [0., 0.]])
+    sample_domain = np.array([1, 2, 1, 2])
+    scaler.fit(X, None, sample_domain=sample_domain)
+    assert_array_equal(
+        np.array([[-3., 1.]]),
+        scaler.transform(np.array([[-1., 1.]]), sample_domain=[1])
+    )
+    assert_array_equal(
+        np.array([[-1., -0.75]]),
+        scaler.transform(np.array([[-1., 1.]]), sample_domain=[2])
+    )
