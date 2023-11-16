@@ -101,16 +101,6 @@ class BaseAdapter(BaseEstimator):
 
 class BaseSelector(BaseEstimator):
 
-    # xxx(okachaiev): this is wrong, it should take routing information from
-    #                 for downstream estimators rather than declaring on its own
-    # __metadata_request__fit = {'sample_domain': True}
-    # __metadata_request__transform = {'sample_domain': True}
-    # __metadata_request__predict = {'sample_domain': True}
-    # __metadata_request__predict_proba = {'sample_domain': True}
-    # __metadata_request__predict_log_proba = {'sample_domain': True}
-    # __metadata_request__decision_function = {'sample_domain': True}
-    # __metadata_request__score = {'sample_domain': True}
-
     def __init__(self, base_estimator: BaseEstimator):
         super().__init__()
         self.base_estimator = base_estimator
@@ -158,7 +148,7 @@ class Shared(BaseSelector):
         # xxx(okachaiev): this code is awkward, and it's duplicated everywhere
         routing = get_routing_for_object(self.base_estimator)
         routed_params = routing.fit._route_params(params=params)
-        # xxx(okachaiev): this should be done in each method
+        # xxx(okachaiev): code duplication
         if isinstance(X, AdaptationOutput):
             for k, v in X.items():
                 if k != 'X' and k in routed_params:
@@ -193,7 +183,7 @@ class Shared(BaseSelector):
             output = self.base_estimator_.transform(X, **routed_params)
         return output
 
-    def _route_to_estimator(self, method_name, X, **params):
+    def _route_to_estimator(self, method_name, X, y=None, **params):
         check_is_fitted(self)
         routed_params = getattr(self.routing_, method_name)._route_params(params=params)
         if isinstance(X, AdaptationOutput):
@@ -201,7 +191,8 @@ class Shared(BaseSelector):
                 if k != 'X' and k in routed_params:
                     routed_params[k] = v
             X = X['X']
-        output = getattr(self.base_estimator_, method_name)(X, **routed_params)
+        method = getattr(self.base_estimator_, method_name)
+        output = method(X, **routed_params) if y is None else method(X, y, **routed_params)
         return output
 
     def predict(self, X, **params):
@@ -221,4 +212,4 @@ class Shared(BaseSelector):
 
     @available_if(_estimator_has("score"))
     def score(self, X, y, **params):
-        return self._route_to_estimator('score', X, **params)
+        return self._route_to_estimator('score', X, y=y, **params)
