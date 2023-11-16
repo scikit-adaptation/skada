@@ -145,7 +145,7 @@ def OTMapping(
     norm=None,
     max_iter=100000
 ):
-    """Returns a the OT mapping method with adapter and estimator.
+    """OTmapping pipeline with adapter and estimator.
 
     Parameters
     ----------
@@ -159,6 +159,11 @@ def OTMapping(
     max_iter : int, optional (default=100_000)
         The maximum number of iterations before stopping OT algorithm if it
         has not converged.
+
+    Returns
+    -------
+    pipeline : Pipeline
+        Pipeline containing OTMapping adapter and base estimator.
     """
     ot_mapping = make_da_pipeline(
         OTMappingAdapter(metric=metric, norm=norm, max_iter=max_iter),
@@ -232,7 +237,7 @@ def EntropicOTMapping(
     reg_e=1,
     tol=1e-8,
 ):
-    """Returns a the entropic OT mapping method with adapter and estimator.
+    """EntropicOTMapping pipeline with adapter and estimator.
 
     Parameters
     ----------
@@ -251,6 +256,11 @@ def EntropicOTMapping(
     tol : float, optional (default=10e-9)
         The precision required to stop the optimization of the Sinkhorn
         algorithm.
+
+    Returns
+    -------
+    pipeline : Pipeline
+        Pipeline containing EntropicOTMapping adapter and base estimator.
     """
     ot_mapping = make_da_pipeline(
         EntropicOTMappingAdapter(
@@ -348,7 +358,7 @@ def ClassRegularizerOTMapping(
     reg_cl=0.1,
     tol=1e-8,
 ):
-    """Returns a the class regularized OT mapping method with adapter and estimator.
+    """ClassRegularizedOTMapping pipeline with adapter and estimator.
 
     Parameters
     ----------
@@ -371,6 +381,11 @@ def ClassRegularizerOTMapping(
         The number of iteration in the inner loop
     tol : float, optional (default=10e-9)
         Stop threshold on error (inner sinkhorn solver) (>0)
+
+    Returns
+    -------
+    pipeline : Pipeline
+        Pipeline containing ClassRegularizerOTMapping adapter and base estimator.
     """
     ot_mapping = make_da_pipeline(
         ClassRegularizerOTMappingAdapter(
@@ -429,6 +444,11 @@ def LinearOTMapping(
         regularization added to the diagonals of covariances.
     bias: boolean, optional (default=True)
         estimate bias.
+
+    Returns
+    -------
+    pipeline : Pipeline
+        Pipeline containing linear OT mapping adapter and base estimator.
     """
     ot_mapping = make_da_pipeline(
         LinearOTMappingAdapter(
@@ -587,7 +607,7 @@ def CORAL(
     base_estimator=SVC(kernel="rbf"),
     reg="auto",
 ):
-    """Returns a the CORAL method with adapter and estimator.
+    """CORAL pipeline with adapter and estimator.
 
     Parameters
     ----------
@@ -600,6 +620,11 @@ def CORAL(
           - None: no shrinkage).
           - 'auto': automatic shrinkage using the Ledoit-Wolf lemma.
           - float between 0 and 1: fixed shrinkage parameter.
+
+    Returns
+    -------
+    pipeline : Pipeline
+        Pipeline containing CORAL adapter and base estimator.
     """
     ot_mapping = make_da_pipeline(
         CORALAdapter(reg=reg),
