@@ -103,33 +103,33 @@ class BaseSelector(BaseEstimator):
 
     # xxx(okachaiev): this is wrong, it should take routing information from
     #                 for downstream estimators rather than declaring on its own
-    __metadata_request__fit = {'sample_domain': True}
-    __metadata_request__transform = {'sample_domain': True}
-    __metadata_request__predict = {'sample_domain': True}
-    __metadata_request__predict_proba = {'sample_domain': True}
-    __metadata_request__predict_log_proba = {'sample_domain': True}
-    __metadata_request__decision_function = {'sample_domain': True}
-    __metadata_request__score = {'sample_domain': True}
+    # __metadata_request__fit = {'sample_domain': True}
+    # __metadata_request__transform = {'sample_domain': True}
+    # __metadata_request__predict = {'sample_domain': True}
+    # __metadata_request__predict_proba = {'sample_domain': True}
+    # __metadata_request__predict_log_proba = {'sample_domain': True}
+    # __metadata_request__decision_function = {'sample_domain': True}
+    # __metadata_request__score = {'sample_domain': True}
 
-    @abstractmethod
-    def select(
-        self,
-        sample_domain: np.ndarray
-    ) -> List[Tuple[BaseEstimator, np.ndarray]]:
-        """Creates new estimators.
+    def __init__(self, base_estimator: BaseEstimator):
+        super().__init__()
+        self.base_estimator = base_estimator
 
-        Returns list of estimators each with a list of corresponding
-        domain labels. In case there's a single estimator, just specify
-        all labels. Note that with such API one have flexibility to
-        manage which domains are eligible for 'predict'.
-        """
-
-    # xxx(okachaiev): there might be a much easier way of doing this
-    @abstractmethod
-    def get_base_estimator(self) -> BaseEstimator:
-        """Return object of the estimator suitable for property testing
-        (for example, for detecting available methods of the estimator).
-        """
+    # xxx(okachaiev): should this be a metadata routing object instead of request?
+    def get_metadata_routing(self):
+        request = get_routing_for_object(self.base_estimator)
+        request.fit.add_request(param='sample_domain', alias=True)
+        request.transform.add_request(param='sample_domain', alias=True)
+        request.predict.add_request(param='sample_domain', alias=True)
+        if hasattr(self.base_estimator, 'predict_proba'):
+            request.predict_proba.add_request(param='sample_domain', alias=True)
+        if hasattr(self.base_estimator, 'predict_log_proba'):
+            request.predict_log_proba.add_request(param='sample_domain', alias=True)
+        if hasattr(self.base_estimator, 'decision_function'):
+            request.decision_function.add_request(param='sample_domain', alias=True)
+        if hasattr(self.base_estimator, 'score'):
+            request.score.add_request(param='sample_domain', alias=True)
+        return request
 
 
 # xxx(okachaiev): the default flow for this selector would look
@@ -149,23 +149,8 @@ class BaseSelector(BaseEstimator):
 #    flog seems somewhat fragile from that perspective
 class Shared(BaseSelector):
 
-    def __init__(self, base_estimator: BaseEstimator):
-        super().__init__()
-        self.base_estimator = base_estimator
-
-    # xxx(okachaiev): should this be a metadata routing object instead of request?
-    def get_metadata_routing(self):
-        request = get_routing_for_object(self.base_estimator)
-        request.fit.add_request(param='sample_domain', alias=True)
-        request.transform.add_request(param='sample_domain', alias=True)
-        request.predict.add_request(param='sample_domain', alias=True)
-        if hasattr(self.base_estimator, 'predict_proba'):
-            request.predict_proba.add_request(param='sample_domain', alias=True)
-        if hasattr(self.base_estimator, 'score'):
-            request.score.add_request(param='sample_domain', alias=True)
-        return request
-
     def fit(self, X, y, **params):
+        # xxx(okachaiev): this should be done in the utils helper
         if 'sample_domain' in params:
             domains = set(np.unique(params['sample_domain']))
         else:
@@ -201,49 +186,39 @@ class Shared(BaseSelector):
         # 'fit_transform' allows transformation for source domains
         # as well, that's why it calls 'adapt' directly
         if isinstance(self.base_estimator_, BaseAdapter):
+            # xxx(okachaiev): adapt should take 'y' as well, as in many cases
+            # we need to bound estimator fitting to a sub-group of the input
             output = self.base_estimator_.adapt(X, **routed_params)
         else:
             output = self.base_estimator_.transform(X, **routed_params)
         return output
 
-    def predict(self, X, **params):
+    def _route_to_estimator(self, method_name, X, **params):
         check_is_fitted(self)
-        routed_params = self.routing_.predict._route_params(params=params)
-        # xxx(okachaiev): this should be done in each method
+        routed_params = getattr(self.routing_, method_name)._route_params(params=params)
         if isinstance(X, AdaptationOutput):
             for k, v in X.items():
                 if k != 'X' and k in routed_params:
                     routed_params[k] = v
             X = X['X']
-        output = self.base_estimator_.predict(X, **routed_params)
+        output = getattr(self.base_estimator_, method_name)(X, **routed_params)
         return output
 
-    # xxx(okachaiev): code duplication
+    def predict(self, X, **params):
+        return self._route_to_estimator('predict', X, **params)
+
     @available_if(_estimator_has("predict_proba"))
     def predict_proba(self, X, **params):
-        check_is_fitted(self)
-        routed_params = self.routing_.predict_proba._route_params(params=params)
-        # xxx(okachaiev): this should be done in each method
-        if isinstance(X, AdaptationOutput):
-            for k, v in X.items():
-                if k != 'X' and k in routed_params:
-                    routed_params[k] = v
-            X = X['X']
-        output = self.base_estimator_.predict_proba(X, **routed_params)
-        return output
+        return self._route_to_estimator('predict_proba', X, **params)
 
-    # xxx(okachaiev): code duplication
+    @available_if(_estimator_has("predict_log_proba"))
+    def predict_log_proba(self, X, **params):
+        return self._route_to_estimator('predict_log_proba', X, **params)
+
+    @available_if(_estimator_has("decision_function"))
+    def decision_function(self, X, **params):
+        return self._route_to_estimator('decision_function', X, **params)
+
     @available_if(_estimator_has("score"))
     def score(self, X, y, **params):
-        check_is_fitted(self)
-        routed_params = self.routing_.score._route_params(params=params)
-        # xxx(okachaiev): this should be done in each method
-        if isinstance(X, AdaptationOutput):
-            for k, v in X.items():
-                if k != 'X' and k in routed_params:
-                    routed_params[k] = v
-                elif k == 'y':
-                    y = X['y']
-            X = X['X']
-        output = self.base_estimator_.score(X, y, **routed_params)
-        return output
+        return self._route_to_estimator('score', X, **params)
