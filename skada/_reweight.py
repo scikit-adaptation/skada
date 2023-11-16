@@ -128,7 +128,7 @@ def ReweightDensity(
     """
     return make_da_pipeline(
         ReweightDensityAdapter(weight_estimator=weight_estimator),
-        base_estimator=base_estimator,
+        base_estimator,
     )
 
 
@@ -277,7 +277,7 @@ def GaussianReweightDensity(
     """
     return make_da_pipeline(
         GaussianReweightDensityAdapter(reg=reg),
-        base_estimator=base_estimator,
+        base_estimator,
     )
 
 
@@ -406,7 +406,7 @@ def DiscriminatorReweightDensity(
         DiscriminatorReweightDensityAdapter(
             domain_classifier=domain_classifier
         ),
-        base_estimator=base_estimator,
+        base_estimator,
     )
 
 
@@ -656,5 +656,5 @@ def KLIEP(
             gamma=gamma, cv=cv, n_centers=n_centers, tol=tol,
             max_iter=max_iter, random_state=random_state
         ),
-        base_estimator=base_estimator,
+        base_estimator,
     )

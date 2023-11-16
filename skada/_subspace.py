@@ -167,7 +167,7 @@ def SubspaceAlignment(
             n_components=n_components,
             random_state=random_state,
         ),
-        base_estimator=base_estimator,
+        base_estimator,
     )
 
 
@@ -357,5 +357,5 @@ def TransferComponentAnalysis(
             n_components=n_components,
             mu=mu
         ),
-        base_estimator=base_estimator,
+        base_estimator,
     )
