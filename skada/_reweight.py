@@ -249,6 +249,8 @@ def GaussianReweightDensity(
 ):
     """Gaussian approximation re-weighting pipeline adapter and estimator.
 
+    see [1]_ for details.
+
     Parameters
     ----------
     base_estimator : sklearn estimator, default=LogisticRegression()
@@ -266,6 +268,12 @@ def GaussianReweightDensity(
     pipeline : sklearn pipeline
         Pipeline containing the GaussianReweightDensity adapter and the
         base estimator.
+
+    References
+    ----------
+    .. [1] Hidetoshi Shimodaira. Improving predictive inference under
+           covariate shift by weighting the log-likelihood function.
+           In Journal of Statistical Planning and Inference, 2000.
     """
     return make_da_pipeline(
         GaussianReweightDensityAdapter(reg=reg),
@@ -372,6 +380,8 @@ def DiscriminatorReweightDensity(
 ):
     """Discriminator re-weighting pipeline adapter and estimator.
 
+    see [1]_ for details.
+
     Parameters
     ----------
     base_estimator : sklearn estimator, default=LogisticRegression()
@@ -385,6 +395,12 @@ def DiscriminatorReweightDensity(
     pipeline : sklearn pipeline
         Pipeline containing the DiscriminatorReweightDensity adapter and the
         base estimator.
+
+    References
+    ----------
+    .. [1] Hidetoshi Shimodaira. Improving predictive inference under
+           covariate shift by weighting the log-likelihood function.
+           In Journal of Statistical Planning and Inference, 2000.
     """
     return make_da_pipeline(
         DiscriminatorReweightDensityAdapter(
@@ -600,6 +616,8 @@ def KLIEP(
 ):
     """KLIEP pipeline adapter and estimator.
 
+    see [1]_ for details.
+
     Parameters
     ----------
     base_estimator : sklearn estimator, default=LogisticRegression()
@@ -626,6 +644,12 @@ def KLIEP(
     -------
     pipeline : sklearn pipeline
         Pipeline containing the KLIEP adapter and the base estimator.
+
+    References
+    ----------
+    .. [1] Masashi Sugiyama et. al. Direct Importance Estimation with Model Selection
+           and Its Application to Covariate Shift Adaptation.
+           In NeurIPS, 2007.
     """
     return make_da_pipeline(
         KLIEPAdapter(

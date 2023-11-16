@@ -147,6 +147,8 @@ def OTMapping(
 ):
     """OTmapping pipeline with adapter and estimator.
 
+    see [1]_ for details.
+
     Parameters
     ----------
     base_estimator : object, optional (default=SVC(kernel="rbf"))
@@ -164,6 +166,12 @@ def OTMapping(
     -------
     pipeline : Pipeline
         Pipeline containing OTMapping adapter and base estimator.
+
+    References
+    ----------
+    .. [1] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
+           Optimal Transport for Domain Adaptation, in IEEE
+           Transactions on Pattern Analysis and Machine Intelligence
     """
     ot_mapping = make_da_pipeline(
         OTMappingAdapter(metric=metric, norm=norm, max_iter=max_iter),
@@ -239,6 +247,8 @@ def EntropicOTMapping(
 ):
     """EntropicOTMapping pipeline with adapter and estimator.
 
+    see [1]_ for details.
+
     Parameters
     ----------
     base_estimator : object, optional (default=SVC(kernel="rbf"))
@@ -261,6 +271,12 @@ def EntropicOTMapping(
     -------
     pipeline : Pipeline
         Pipeline containing EntropicOTMapping adapter and base estimator.
+
+    References
+    ----------
+    .. [1] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
+           Optimal Transport for Domain Adaptation, in IEEE
+           Transactions on Pattern Analysis and Machine Intelligence
     """
     ot_mapping = make_da_pipeline(
         EntropicOTMappingAdapter(
@@ -360,6 +376,8 @@ def ClassRegularizerOTMapping(
 ):
     """ClassRegularizedOTMapping pipeline with adapter and estimator.
 
+    see [1]_ for details.
+
     Parameters
     ----------
     base_estimator : object, optional (default=SVC(kernel="rbf"))
@@ -386,6 +404,12 @@ def ClassRegularizerOTMapping(
     -------
     pipeline : Pipeline
         Pipeline containing ClassRegularizerOTMapping adapter and base estimator.
+
+    References
+    ----------
+    .. [1] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
+           Optimal Transport for Domain Adaptation, in IEEE
+           Transactions on Pattern Analysis and Machine Intelligence
     """
     ot_mapping = make_da_pipeline(
         ClassRegularizerOTMappingAdapter(
@@ -436,6 +460,8 @@ def LinearOTMapping(
 ):
     """Returns a the linear OT mapping method with adapter and estimator.
 
+    see [1]_ for details.
+
     Parameters
     ----------
     base_estimator : object, optional (default=SVC(kernel="rbf"))
@@ -449,6 +475,12 @@ def LinearOTMapping(
     -------
     pipeline : Pipeline
         Pipeline containing linear OT mapping adapter and base estimator.
+
+    References
+    ----------
+    .. [1] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
+           Optimal Transport for Domain Adaptation, in IEEE
+           Transactions on Pattern Analysis and Machine Intelligence
     """
     ot_mapping = make_da_pipeline(
         LinearOTMappingAdapter(
@@ -609,6 +641,8 @@ def CORAL(
 ):
     """CORAL pipeline with adapter and estimator.
 
+    see [1]_ for details.
+
     Parameters
     ----------
     base_estimator : object, optional (default=SVC(kernel="rbf"))
@@ -625,6 +659,12 @@ def CORAL(
     -------
     pipeline : Pipeline
         Pipeline containing CORAL adapter and base estimator.
+
+    References
+    ----------
+    .. [1] Baochen Sun, Jiashi Feng, and Kate Saenko.
+           Correlation Alignment for Unsupervised Domain Adaptation.
+           In Advances in Computer Vision and Pattern Recognition, 2017.
     """
     ot_mapping = make_da_pipeline(
         CORALAdapter(reg=reg),
