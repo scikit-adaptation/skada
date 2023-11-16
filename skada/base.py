@@ -165,7 +165,6 @@ class Shared(BaseSelector):
             request.score.add_request(param='sample_domain', alias=True)
         return request
 
-    # xxx(okachaiev): check if X is `AdapterOutput` class to update routing params
     def fit(self, X, y, **params):
         if 'sample_domain' in params:
             domains = set(np.unique(params['sample_domain']))
@@ -187,9 +186,8 @@ class Shared(BaseSelector):
         self.routing_ = get_routing_for_object(self.base_estimator)
         return self
 
-    # xxx(okachaiev): fail if sources are given
     # xxx(okachaiev): fail if unknown domain is given
-    # xxx(okachaiev): only defined when underlying estimator supports transform
+    @available_if(_estimator_has("transform"))
     def transform(self, X, **params):
         check_is_fitted(self)
         routed_params = self.routing_.transform._route_params(params=params)
