@@ -108,14 +108,14 @@ class ReweightDensityAdapter(BaseAdapter):
 
 
 def ReweightDensity(
-    base_estimator=LogisticRegression(),
+    base_estimator=None,
     weight_estimator=None,
 ):
     """Density re-weighting pipeline adapter and estimator.
 
     Parameters
     ----------
-    base_estimator : sklearn estimator, default=LogisticRegression()
+    base_estimator : sklearn estimator, default=None
         estimator used for fitting and prediction
     weight_estimator : estimator object, optional
         The estimator to use to estimate the densities of source and target
@@ -126,6 +126,9 @@ def ReweightDensity(
     pipeline : sklearn pipeline
         Pipeline containing the ReweightDensity adapter and the base estimator.
     """
+    if base_estimator is None:
+        base_estimator = LogisticRegression()
+
     return make_da_pipeline(
         ReweightDensityAdapter(weight_estimator=weight_estimator),
         base_estimator,
@@ -244,7 +247,7 @@ class GaussianReweightDensityAdapter(BaseAdapter):
 
 
 def GaussianReweightDensity(
-    base_estimator=LogisticRegression(),
+    base_estimator=None,
     reg='auto',
 ):
     """Gaussian approximation re-weighting pipeline adapter and estimator.
@@ -253,7 +256,7 @@ def GaussianReweightDensity(
 
     Parameters
     ----------
-    base_estimator : sklearn estimator, default=LogisticRegression()
+    base_estimator : sklearn estimator, default=None
         estimator used for fitting and prediction
     reg : 'auto' or float, default="auto"
         The regularization parameter of the covariance estimator.
@@ -275,6 +278,9 @@ def GaussianReweightDensity(
            covariate shift by weighting the log-likelihood function.
            In Journal of Statistical Planning and Inference, 2000.
     """
+    if base_estimator is None:
+        base_estimator = LogisticRegression()
+
     return make_da_pipeline(
         GaussianReweightDensityAdapter(reg=reg),
         base_estimator,
@@ -376,7 +382,7 @@ class DiscriminatorReweightDensityAdapter(BaseAdapter):
 
 
 def DiscriminatorReweightDensity(
-    base_estimator=LogisticRegression(), domain_classifier=None
+    base_estimator=None, domain_classifier=None
 ):
     """Discriminator re-weighting pipeline adapter and estimator.
 
@@ -384,7 +390,7 @@ def DiscriminatorReweightDensity(
 
     Parameters
     ----------
-    base_estimator : sklearn estimator, default=LogisticRegression()
+    base_estimator : sklearn estimator, default=None
         estimator used for fitting and prediction
     domain_classifier : sklearn classifier, optional
         Classifier used to predict the domains. If None, a
@@ -402,6 +408,9 @@ def DiscriminatorReweightDensity(
            covariate shift by weighting the log-likelihood function.
            In Journal of Statistical Planning and Inference, 2000.
     """
+    if base_estimator is None:
+        base_estimator = LogisticRegression()
+
     return make_da_pipeline(
         DiscriminatorReweightDensityAdapter(
             domain_classifier=domain_classifier

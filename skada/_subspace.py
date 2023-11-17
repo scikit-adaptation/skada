@@ -130,7 +130,7 @@ class SubspaceAlignmentAdapter(BaseAdapter):
 
 
 def SubspaceAlignment(
-    base_estimator=SVC(),
+    base_estimator=None,
     n_components=None,
     random_state=None,
 ):
@@ -140,7 +140,7 @@ def SubspaceAlignment(
 
     Parameters
     ----------
-    base_estimator : object, default=SVC()
+    base_estimator : object, default=None
         estimator used for fitting and prediction
     n_components : int, default=None
         The numbers of components to learn with PCA.
@@ -162,6 +162,9 @@ def SubspaceAlignment(
            Domain Adaptation Using Subspace Alignment.
            In IEEE International Conference on Computer Vision, 2013.
     """
+    if base_estimator is None:
+        base_estimator = SVC()
+
     return make_da_pipeline(
         SubspaceAlignmentAdapter(
             n_components=n_components,
@@ -317,7 +320,7 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
 
 
 def TransferComponentAnalysis(
-    base_estimator=SVC(),
+    base_estimator=None,
     kernel='rbf',
     n_components=None,
     mu=0.1
@@ -328,7 +331,7 @@ def TransferComponentAnalysis(
 
     Parameters
     ----------
-    base_estimator : object, default=SVC()
+    base_estimator : object, default=None
         estimator used for fitting and prediction
     kernel : kernel object, default='rbf'
         The kernel computed between data.
@@ -351,6 +354,9 @@ def TransferComponentAnalysis(
            Transfer Component Analysis. In IEEE Transactions
            on Neural Networks, 2011.
     """
+    if base_estimator is None:
+        base_estimator = SVC()
+
     return make_da_pipeline(
         TransferComponentAnalysisAdapter(
             kernel=kernel,

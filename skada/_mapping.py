@@ -140,7 +140,7 @@ class OTMappingAdapter(BaseOTMappingAdapter):
 
 
 def OTMapping(
-    base_estimator=SVC(kernel="rbf"),
+    base_estimator=None,
     metric="sqeuclidean",
     norm=None,
     max_iter=100000
@@ -151,7 +151,7 @@ def OTMapping(
 
     Parameters
     ----------
-    base_estimator : object, optional (default=SVC(kernel="rbf"))
+    base_estimator : object, optional (default=None)
         The base estimator to fit on the target dataset.
     metric : string, optional (default="sqeuclidean")
         The ground metric for the Wasserstein problem
@@ -173,11 +173,13 @@ def OTMapping(
            Optimal Transport for Domain Adaptation, in IEEE
            Transactions on Pattern Analysis and Machine Intelligence
     """
-    ot_mapping = make_da_pipeline(
+    if base_estimator is None:
+        base_estimator = SVC(kernel="rbf")
+
+    return make_da_pipeline(
         OTMappingAdapter(metric=metric, norm=norm, max_iter=max_iter),
         base_estimator,
     )
-    return ot_mapping
 
 
 class EntropicOTMappingAdapter(BaseOTMappingAdapter):
@@ -238,7 +240,7 @@ class EntropicOTMappingAdapter(BaseOTMappingAdapter):
 
 
 def EntropicOTMapping(
-    base_estimator=SVC(kernel="rbf"),
+    base_estimator=None,
     metric="sqeuclidean",
     norm=None,
     max_iter=1000,
@@ -251,7 +253,7 @@ def EntropicOTMapping(
 
     Parameters
     ----------
-    base_estimator : object, optional (default=SVC(kernel="rbf"))
+    base_estimator : object, optional (default=None)
         The base estimator to fit on the target dataset.
     reg_e : float, default=1
         Entropic regularization parameter.
@@ -278,7 +280,10 @@ def EntropicOTMapping(
            Optimal Transport for Domain Adaptation, in IEEE
            Transactions on Pattern Analysis and Machine Intelligence
     """
-    ot_mapping = make_da_pipeline(
+    if base_estimator is None:
+        base_estimator = SVC(kernel="rbf")
+
+    return make_da_pipeline(
         EntropicOTMappingAdapter(
             metric=metric,
             norm=norm,
@@ -288,7 +293,6 @@ def EntropicOTMapping(
         ),
         base_estimator,
     )
-    return ot_mapping
 
 
 class ClassRegularizerOTMappingAdapter(BaseOTMappingAdapter):
@@ -454,7 +458,7 @@ class LinearOTMappingAdapter(BaseOTMappingAdapter):
 
 
 def LinearOTMapping(
-    base_estimator=SVC(kernel="rbf"),
+    base_estimator=None,
     reg=1,
     bias=True,
 ):
@@ -464,7 +468,7 @@ def LinearOTMapping(
 
     Parameters
     ----------
-    base_estimator : object, optional (default=SVC(kernel="rbf"))
+    base_estimator : object, optional (default=None)
         The base estimator to fit on the target dataset.
     reg : float, (default=1e-08)
         regularization added to the diagonals of covariances.
@@ -482,14 +486,16 @@ def LinearOTMapping(
            Optimal Transport for Domain Adaptation, in IEEE
            Transactions on Pattern Analysis and Machine Intelligence
     """
-    ot_mapping = make_da_pipeline(
+    if base_estimator is None:
+        base_estimator = SVC(kernel="rbf")
+
+    return make_da_pipeline(
         LinearOTMappingAdapter(
             reg=reg,
             bias=bias,
         ),
         base_estimator,
     )
-    return ot_mapping
 
 
 def _sqrtm(C):
@@ -636,7 +642,7 @@ class CORALAdapter(BaseAdapter):
 
 
 def CORAL(
-    base_estimator=SVC(kernel="rbf"),
+    base_estimator=None,
     reg="auto",
 ):
     """CORAL pipeline with adapter and estimator.
@@ -645,7 +651,7 @@ def CORAL(
 
     Parameters
     ----------
-    base_estimator : object, optional (default=SVC(kernel="rbf"))
+    base_estimator : object, optional (default=None)
         The base estimator to fit on the target dataset.
     reg : 'auto' or float, default="auto"
         The regularization parameter of the covariance estimator.
@@ -666,8 +672,10 @@ def CORAL(
            Correlation Alignment for Unsupervised Domain Adaptation.
            In Advances in Computer Vision and Pattern Recognition, 2017.
     """
-    ot_mapping = make_da_pipeline(
+    if base_estimator is None:
+        base_estimator = SVC(kernel="rbf")
+
+    return make_da_pipeline(
         CORALAdapter(reg=reg),
         base_estimator,
     )
-    return ot_mapping
