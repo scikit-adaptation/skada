@@ -98,9 +98,9 @@ class OTMappingAdapter(BaseOTMappingAdapter):
 
     Parameters
     ----------
-    metric : string, optional (default="sqeuclidean")
+    metric : str, optional (default="sqeuclidean")
         The ground metric for the Wasserstein problem
-    norm : string, optional (default=None)
+    norm : {'median', 'max', 'log', 'loglog'} (default=None)
         If given, normalize the ground metric to avoid numerical errors that
         can occur with large metric values.
     max_iter : int, optional (default=100_000)
@@ -153,9 +153,9 @@ def OTMapping(
     ----------
     base_estimator : object, optional (default=None)
         The base estimator to fit on the target dataset.
-    metric : string, optional (default="sqeuclidean")
+    metric : str, optional (default="sqeuclidean")
         The ground metric for the Wasserstein problem
-    norm : string, optional (default=None)
+    norm : {'median', 'max', 'log', 'loglog'} (default=None)
         If given, normalize the ground metric to avoid numerical errors that
         can occur with large metric values.
     max_iter : int, optional (default=100_000)
@@ -189,9 +189,9 @@ class EntropicOTMappingAdapter(BaseOTMappingAdapter):
     ----------
     reg_e : float, default=1
         Entropic regularization parameter.
-    metric : string, optional (default="sqeuclidean")
+    metric : str, optional (default="sqeuclidean")
         The ground metric for the Wasserstein problem.
-    norm : string, optional (default=None)
+    norm : {'median', 'max', 'log', 'loglog'} (default=None)
         If given, normalize the ground metric to avoid numerical errors that
         can occur with large metric values.
     max_iter : int, float, optional (default=1000)
@@ -216,7 +216,7 @@ class EntropicOTMappingAdapter(BaseOTMappingAdapter):
 
     def __init__(
         self,
-        reg_e=1,
+        reg_e=1.,
         metric="sqeuclidean",
         norm=None,
         max_iter=1000,
@@ -244,7 +244,7 @@ def EntropicOTMapping(
     metric="sqeuclidean",
     norm=None,
     max_iter=1000,
-    reg_e=1,
+    reg_e=1.,
     tol=1e-8,
 ):
     """EntropicOTMapping pipeline with adapter and estimator.
@@ -257,9 +257,9 @@ def EntropicOTMapping(
         The base estimator to fit on the target dataset.
     reg_e : float, default=1
         Entropic regularization parameter.
-    metric : string, optional (default="sqeuclidean")
+    metric : str, optional (default="sqeuclidean")
         The ground metric for the Wasserstein problem.
-    norm : string, optional (default=None)
+    norm : {'median', 'max', 'log', 'loglog'} (default=None)
         If given, normalize the ground metric to avoid numerical errors that
         can occur with large metric values.
     max_iter : int, float, optional (default=1000)
@@ -304,11 +304,11 @@ class ClassRegularizerOTMappingAdapter(BaseOTMappingAdapter):
         Entropic regularization parameter.
     reg_cl : float, default=0.1
         Class regularization parameter.
-    norm : string, default="lpl1"
+    norm : str, default="lpl1"
         Norm use for the regularizer of the class labels.
         If "lpl1", use the lp l1 norm.
         If "l1l2", use the l1 l2 norm.
-    metric : string, optional (default="sqeuclidean")
+    metric : str, optional (default="sqeuclidean")
         The ground metric for the Wasserstein problem
     max_iter : int, float, optional (default=10)
         The minimum number of iteration before stopping the optimization
@@ -334,7 +334,7 @@ class ClassRegularizerOTMappingAdapter(BaseOTMappingAdapter):
 
     def __init__(
         self,
-        reg_e=1,
+        reg_e=1.,
         reg_cl=0.1,
         norm="lpl1",
         metric="sqeuclidean",
@@ -374,7 +374,7 @@ def ClassRegularizerOTMapping(
     norm="lpl1",
     max_iter=10,
     max_inner_iter=200,
-    reg_e=1,
+    reg_e=1.,
     reg_cl=0.1,
     tol=1e-8,
 ):
@@ -390,11 +390,11 @@ def ClassRegularizerOTMapping(
         Entropic regularization parameter.
     reg_cl : float, default=0.1
         Class regularization parameter.
-    norm : string, default="lpl1"
+    norm : str, default="lpl1"
         Norm use for the regularizer of the class labels.
         If "lpl1", use the lp l1 norm.
         If "l1l2", use the l1 l2 norm.
-    metric : string, optional (default="sqeuclidean")
+    metric : str, optional (default="sqeuclidean")
         The ground metric for the Wasserstein problem
     max_iter : int, float, optional (default=10)
         The minimum number of iteration before stopping the optimization
@@ -437,7 +437,7 @@ class LinearOTMappingAdapter(BaseOTMappingAdapter):
     ----------
     reg : float, (default=1e-08)
         regularization added to the diagonals of covariances.
-    bias: boolean, optional (default=True)
+    bias: bool, optional (default=True)
         estimate bias.
 
     Attributes
@@ -459,7 +459,7 @@ class LinearOTMappingAdapter(BaseOTMappingAdapter):
 
 def LinearOTMapping(
     base_estimator=None,
-    reg=1,
+    reg=1.,
     bias=True,
 ):
     """Returns a the linear OT mapping method with adapter and estimator.
@@ -472,7 +472,7 @@ def LinearOTMapping(
         The base estimator to fit on the target dataset.
     reg : float, (default=1e-08)
         regularization added to the diagonals of covariances.
-    bias: boolean, optional (default=True)
+    bias: bool, optional (default=True)
         estimate bias.
 
     Returns
