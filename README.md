@@ -265,3 +265,7 @@ scores = cross_validate(
 ```
 
 More examples demonstrating the usage of splitters and scorers can be found in the  `skada/tests/test_cv.py` test suite. 
+
+# License
+
+The library is distributed under the 3-Clause BSD license.
