@@ -10,9 +10,13 @@ from sklearn.linear_model import LogisticRegression
 
 from skada import (
     ReweightDensityAdapter,
+    ReweightDensity,
     GaussianReweightDensityAdapter,
+    GaussianReweightDensity,
     DiscriminatorReweightDensityAdapter,
+    DiscriminatorReweightDensity,
     KLIEPAdapter,
+    KLIEP,
     make_da_pipeline,
 )
 
@@ -26,12 +30,16 @@ import pytest
     "estimator",
     [
         make_da_pipeline(ReweightDensityAdapter(), LogisticRegression()),
+        ReweightDensity(),
         make_da_pipeline(GaussianReweightDensityAdapter(), LogisticRegression()),
+        GaussianReweightDensity(),
         make_da_pipeline(DiscriminatorReweightDensityAdapter(), LogisticRegression()),
+        DiscriminatorReweightDensity(),
         make_da_pipeline(
             KLIEPAdapter(gamma=[0.1, 1], random_state=42),
             LogisticRegression()
         ),
+        KLIEP(gamma=[0.1, 1], random_state=42),
     ],
 )
 def test_reweight_estimator(estimator, da_dataset):

@@ -10,9 +10,11 @@ import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.metrics.pairwise import pairwise_kernels
 from sklearn.utils import check_random_state
+from sklearn.svm import SVC
 
 from .base import BaseAdapter
 from ._utils import check_X_domain, _merge_source_target
+from ._pipeline import make_da_pipeline
 
 
 class SubspaceAlignmentAdapter(BaseAdapter):
@@ -132,6 +134,51 @@ class SubspaceAlignmentAdapter(BaseAdapter):
         self.n_components_ = n_components
         self.M_ = np.dot(self.pca_source_.components_, self.pca_target_.components_.T)
         return self
+
+
+def SubspaceAlignment(
+    base_estimator=None,
+    n_components=None,
+    random_state=None,
+):
+    """Domain Adaptation Using Subspace Alignment.
+
+    See [1]_ for details.
+
+    Parameters
+    ----------
+    base_estimator : object, default=None
+        estimator used for fitting and prediction
+    n_components : int, default=None
+        The numbers of components to learn with PCA.
+        If n_components is not set all components are kept::
+
+            n_components == min(n_samples, n_features)
+    random_state : int, RandomState instance or None, default=None
+        Determines random number generation for dataset creation. Pass an int
+        for reproducible output across multiple function calls.
+
+    Returns
+    -------
+    pipeline : Pipeline
+        A pipeline containing a SubspaceAlignmentAdapter.
+
+    References
+    ----------
+    .. [1] Basura Fernando et. al. Unsupervised Visual
+           Domain Adaptation Using Subspace Alignment.
+           In IEEE International Conference on Computer Vision, 2013.
+    """
+    if base_estimator is None:
+        base_estimator = SVC()
+
+    return make_da_pipeline(
+        SubspaceAlignmentAdapter(
+            n_components=n_components,
+            random_state=random_state,
+        ),
+        base_estimator,
+    )
 
 
 class TransferComponentAnalysisAdapter(BaseAdapter):
@@ -277,3 +324,51 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
             K = np.concatenate((Ks, Kt), axis=1)
             X_ = (K @ self.eigvects_)[:X.shape[0]]
         return X_
+
+
+def TransferComponentAnalysis(
+    base_estimator=None,
+    kernel='rbf',
+    n_components=None,
+    mu=0.1
+):
+    """Domain Adaptation Using Transfer Component Analysis.
+
+    See [1]_ for details.
+
+    Parameters
+    ----------
+    base_estimator : object, default=None
+        estimator used for fitting and prediction
+    kernel : kernel object, default='rbf'
+        The kernel computed between data.
+    n_components : int, default=None
+        The numbers of components to learn with PCA.
+        Should be less or equal to the number of samples
+        of the source and target data.
+    mu : float, default=0.1
+        The parameter of the regularization in the optimization
+        problem.
+
+    Returns
+    -------
+    pipeline : Pipeline
+        A pipeline containing a TransferComponentAnalysisAdapter.
+
+    References
+    ----------
+    .. [1] Sinno Jialin Pan et. al. Domain Adaptation via
+           Transfer Component Analysis. In IEEE Transactions
+           on Neural Networks, 2011.
+    """
+    if base_estimator is None:
+        base_estimator = SVC()
+
+    return make_da_pipeline(
+        TransferComponentAnalysisAdapter(
+            kernel=kernel,
+            n_components=n_components,
+            mu=mu
+        ),
+        base_estimator,
+    )

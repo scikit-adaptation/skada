@@ -11,10 +11,15 @@ from sklearn.linear_model import LogisticRegression
 from skada.datasets import DomainAwareDataset
 from skada import (
     CORALAdapter,
+    CORAL,
     ClassRegularizerOTMappingAdapter,
+    ClassRegularizerOTMapping,
     EntropicOTMappingAdapter,
+    EntropicOTMapping,
     LinearOTMappingAdapter,
+    LinearOTMapping,
     OTMappingAdapter,
+    OTMapping,
     make_da_pipeline,
 )
 
@@ -24,22 +29,28 @@ import pytest
 @pytest.mark.parametrize(
     "estimator", [
         make_da_pipeline(OTMappingAdapter(), LogisticRegression()),
+        OTMapping(),
         make_da_pipeline(EntropicOTMappingAdapter(), LogisticRegression()),
+        EntropicOTMapping(),
         make_da_pipeline(
             ClassRegularizerOTMappingAdapter(norm="lpl1"),
             LogisticRegression()
         ),
+        ClassRegularizerOTMapping(),
         make_da_pipeline(
             ClassRegularizerOTMappingAdapter(norm="l1l2"),
             LogisticRegression()
         ),
+        ClassRegularizerOTMapping(norm="l1l2"),
         make_da_pipeline(LinearOTMappingAdapter(), LogisticRegression()),
+        LinearOTMapping(),
         make_da_pipeline(CORALAdapter(), LogisticRegression()),
         pytest.param(
             CORALAdapter(reg=None),
             marks=pytest.mark.xfail(reason='Fails without regularization')
         ),
         make_da_pipeline(CORALAdapter(reg=0.1), LogisticRegression()),
+        CORAL(),
     ]
 )
 def test_mapping_estimator(estimator, tmp_da_dataset):
