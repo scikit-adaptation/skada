@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import List, Tuple, Union
+from typing import Union
 
 import numpy as np
 from sklearn.base import BaseEstimator, clone
@@ -197,7 +197,9 @@ class Shared(BaseSelector):
                     routed_params[k] = v
             X = X['X']
         method = getattr(self.base_estimator_, method_name)
-        output = method(X, **routed_params) if y is None else method(X, y, **routed_params)
+        output = method(X, **routed_params) if y is None else method(
+            X, y, **routed_params
+        )
         return output
 
 
@@ -218,12 +220,12 @@ class PerDomain(BaseSelector):
         estimators = {}
         # xxx(okachaiev): maybe return_index?
         for domain_label in np.unique(sample_domain):
-            idx, = np.where(sample_domain==domain_label)
+            idx, = np.where(sample_domain == domain_label)
             estimator = clone(self.base_estimator)
             estimator.fit(
                 X[idx],
                 y[idx] if y is not None else None,
-                **{k:v[idx] for k, v in routed_params.items()}
+                **{k: v[idx] for k, v in routed_params.items()}
             )
             estimators[domain_label] = estimator
         self.estimators_ = estimators
@@ -246,12 +248,12 @@ class PerDomain(BaseSelector):
         for domain_label in np.unique(sample_domain):
             # xxx(okachaiev): fail if unknown domain is given
             method = getattr(self.estimators_[domain_label], method_name)
-            idx, = np.where(sample_domain==domain_label)
+            idx, = np.where(sample_domain == domain_label)
             X_domain = X[idx]
             y_domain = y[idx] if y is not None else None
-            domain_params = {k:v[idx] for k, v in routed_params.items()}
+            domain_params = {k: v[idx] for k, v in routed_params.items()}
             if y is None:
-                domain_output = method(X_domain, **domain_params) 
+                domain_output = method(X_domain, **domain_params)
             else:
                 domain_output = method(X_domain, y_domain, **domain_params)
             if output is None:
