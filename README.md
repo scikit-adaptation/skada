@@ -1,3 +1,8 @@
+> **Warning**
+This library is currently in a phase of active development. All features are subject to change without prior notice.
+If you are interested in collaborating, please feel free to reach out by opening an issue or starting a discussion.
+
+
 # Domain Aware API
 
 The core concept introduced with this API are the following:
@@ -260,3 +265,7 @@ scores = cross_validate(
 ```
 
 More examples demonstrating the usage of splitters and scorers can be found in the  `skada/tests/test_cv.py` test suite. 
+
+# License
+
+The library is distributed under the 3-Clause BSD license.

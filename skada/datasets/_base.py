@@ -1,3 +1,7 @@
+# Author: Oleksii Kachaiev <kachayev@gmail.com>
+#
+# License: BSD 3-Clause
+
 from functools import reduce
 import os
 from typing import Dict, Iterable, List, Mapping, Optional, Tuple, Union
