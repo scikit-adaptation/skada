@@ -9,7 +9,7 @@ import sklearn
 
 from . import model_selection
 from . import metrics
-from .base import BaseAdapter
+from .base import BaseAdapter, PerDomain, Shared
 from ._mapping import (
     ClassRegularizerOTMappingAdapter,
     ClassRegularizerOTMapping,
@@ -49,6 +49,8 @@ __all__ = [
     "model_selection",
 
     "BaseAdapter",
+    "PerDomain",
+    "Shared",
 
     "ClassRegularizerOTMappingAdapter",
     "ClassRegularizerOTMapping",

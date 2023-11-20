@@ -6,7 +6,7 @@
 # License: BSD 3-Clause
 
 from abc import abstractmethod
-from typing import List, Tuple, Union
+from typing import Union
 
 import numpy as np
 from sklearn.base import BaseEstimator, clone
@@ -108,54 +108,6 @@ class BaseAdapter(BaseEstimator):
 
 class BaseSelector(BaseEstimator):
 
-    # xxx(okachaiev): this is wrong, it should take routing information from
-    #                 for downstream estimators rather than declaring on its own
-    __metadata_request__fit = {'sample_domain': True}
-    __metadata_request__transform = {'sample_domain': True}
-    __metadata_request__predict = {'sample_domain': True}
-    __metadata_request__predict_proba = {'sample_domain': True}
-    __metadata_request__predict_log_proba = {'sample_domain': True}
-    __metadata_request__decision_function = {'sample_domain': True}
-    __metadata_request__score = {'sample_domain': True}
-
-    @abstractmethod
-    def select(
-        self,
-        sample_domain: np.ndarray
-    ) -> List[Tuple[BaseEstimator, np.ndarray]]:
-        """Creates new estimators.
-
-        Returns list of estimators each with a list of corresponding
-        domain labels. In case there's a single estimator, just specify
-        all labels. Note that with such API one have flexibility to
-        manage which domains are eligible for 'predict'.
-        """
-
-    # xxx(okachaiev): there might be a much easier way of doing this
-    @abstractmethod
-    def get_base_estimator(self) -> BaseEstimator:
-        """Return object of the estimator suitable for property testing
-        (for example, for detecting available methods of the estimator).
-        """
-
-
-# xxx(okachaiev): the default flow for this selector would look
-# like the following:
-# * fit: adapter takes source & target, transforms source
-# * fit: estimator takes transformed source
-# * predict: adapter takes target and transforms it, when necessary
-# * predict: estimator works with whatever it got from the adapter
-#
-# a few notes:
-# 1) for per-domain that would look very differently
-# 2) semi-supervised learning would require us to transform
-#    both source and target for fitting
-# 3) it still feels valuable to have ability to use the
-#    estimator for source data (specifically in the case of
-#    learning latent space in the adaptation phase). allow_source
-#    flog seems somewhat fragile from that perspective
-class Shared(BaseSelector):
-
     def __init__(self, base_estimator: BaseEstimator):
         super().__init__()
         self.base_estimator = base_estimator
@@ -168,12 +120,46 @@ class Shared(BaseSelector):
         request.predict.add_request(param='sample_domain', alias=True)
         if hasattr(self.base_estimator, 'predict_proba'):
             request.predict_proba.add_request(param='sample_domain', alias=True)
+        if hasattr(self.base_estimator, 'predict_log_proba'):
+            request.predict_log_proba.add_request(param='sample_domain', alias=True)
+        if hasattr(self.base_estimator, 'decision_function'):
+            request.decision_function.add_request(param='sample_domain', alias=True)
         if hasattr(self.base_estimator, 'score'):
             request.score.add_request(param='sample_domain', alias=True)
         return request
 
-    # xxx(okachaiev): check if X is `AdapterOutput` class to update routing params
+    @abstractmethod
+    def _route_to_estimator(self, method_name, X, y=None, **params) -> np.ndarray:
+        pass
+
+    @available_if(_estimator_has('transform'))
+    def transform(self, X, **params):
+        return self._route_to_estimator('transform', X, **params)
+
+    def predict(self, X, **params):
+        return self._route_to_estimator('predict', X, **params)
+
+    @available_if(_estimator_has('predict_proba'))
+    def predict_proba(self, X, **params):
+        return self._route_to_estimator('predict_proba', X, **params)
+
+    @available_if(_estimator_has('predict_log_proba'))
+    def predict_log_proba(self, X, **params):
+        return self._route_to_estimator('predict_log_proba', X, **params)
+
+    @available_if(_estimator_has('decision_function'))
+    def decision_function(self, X, **params):
+        return self._route_to_estimator('decision_function', X, **params)
+
+    @available_if(_estimator_has('score'))
+    def score(self, X, y, **params):
+        return self._route_to_estimator('score', X, y=y, **params)
+
+
+class Shared(BaseSelector):
+
     def fit(self, X, y, **params):
+        # xxx(okachaiev): this should be done in the utils helper
         if 'sample_domain' in params:
             domains = set(np.unique(params['sample_domain']))
         else:
@@ -181,7 +167,7 @@ class Shared(BaseSelector):
         # xxx(okachaiev): this code is awkward, and it's duplicated everywhere
         routing = get_routing_for_object(self.base_estimator)
         routed_params = routing.fit._route_params(params=params)
-        # xxx(okachaiev): this should be done in each method
+        # xxx(okachaiev): code duplication
         if isinstance(X, AdaptationOutput):
             for k, v in X.items():
                 if k != 'X' and k in routed_params:
@@ -191,17 +177,8 @@ class Shared(BaseSelector):
         estimator.fit(X, y, **routed_params)
         self.base_estimator_ = estimator
         self.domains_ = domains
-        self.routing_ = get_routing_for_object(self.base_estimator)
+        self.routing_ = get_routing_for_object(estimator)
         return self
-
-    # xxx(okachaiev): fail if sources are given
-    # xxx(okachaiev): fail if unknown domain is given
-    # xxx(okachaiev): only defined when underlying estimator supports transform
-    def transform(self, X, **params):
-        check_is_fitted(self)
-        routed_params = self.routing_.transform._route_params(params=params)
-        output = self.base_estimator_.transform(X, **routed_params)
-        return output
 
     # xxx(okachaiev): check if underlying estimator supports 'fit_transform'
     def fit_transform(self, X, y=None, **params):
@@ -210,49 +187,86 @@ class Shared(BaseSelector):
         # 'fit_transform' allows transformation for source domains
         # as well, that's why it calls 'adapt' directly
         if isinstance(self.base_estimator_, BaseAdapter):
+            # xxx(okachaiev): adapt should take 'y' as well, as in many cases
+            # we need to bound estimator fitting to a sub-group of the input
             output = self.base_estimator_.adapt(X, **routed_params)
         else:
             output = self.base_estimator_.transform(X, **routed_params)
         return output
 
-    def predict(self, X, **params):
+    # xxx(okachaiev): fail if unknown domain is given
+    def _route_to_estimator(self, method_name, X, y=None, **params):
         check_is_fitted(self)
-        routed_params = self.routing_.predict._route_params(params=params)
-        # xxx(okachaiev): this should be done in each method
+        routed_params = getattr(self.routing_, method_name)._route_params(params=params)
         if isinstance(X, AdaptationOutput):
             for k, v in X.items():
                 if k != 'X' and k in routed_params:
                     routed_params[k] = v
             X = X['X']
-        output = self.base_estimator_.predict(X, **routed_params)
+        method = getattr(self.base_estimator_, method_name)
+        output = method(X, **routed_params) if y is None else method(
+            X, y, **routed_params
+        )
         return output
 
-    # xxx(okachaiev): code duplication
-    @available_if(_estimator_has("predict_proba"))
-    def predict_proba(self, X, **params):
-        check_is_fitted(self)
-        routed_params = self.routing_.predict_proba._route_params(params=params)
-        # xxx(okachaiev): this should be done in each method
-        if isinstance(X, AdaptationOutput):
-            for k, v in X.items():
-                if k != 'X' and k in routed_params:
-                    routed_params[k] = v
-            X = X['X']
-        output = self.base_estimator_.predict_proba(X, **routed_params)
-        return output
 
-    # xxx(okachaiev): code duplication
-    @available_if(_estimator_has("score"))
-    def score(self, X, y, **params):
-        check_is_fitted(self)
-        routed_params = self.routing_.score._route_params(params=params)
-        # xxx(okachaiev): this should be done in each method
+class PerDomain(BaseSelector):
+
+    def fit(self, X, y, **params):
+        # xxx(okachaiev): use check_*_domain to derive default domain labels
+        sample_domain = params['sample_domain']
+        # xxx(okachaiev): this code is awkward, and it's duplicated everywhere
+        routing = get_routing_for_object(self.base_estimator)
+        routed_params = routing.fit._route_params(params=params)
+        # xxx(okachaiev): code duplication
         if isinstance(X, AdaptationOutput):
             for k, v in X.items():
                 if k != 'X' and k in routed_params:
                     routed_params[k] = v
-                elif k == 'y':
-                    y = X['y']
             X = X['X']
-        output = self.base_estimator_.score(X, y, **routed_params)
+        estimators = {}
+        # xxx(okachaiev): maybe return_index?
+        for domain_label in np.unique(sample_domain):
+            idx, = np.where(sample_domain == domain_label)
+            estimator = clone(self.base_estimator)
+            estimator.fit(
+                X[idx],
+                y[idx] if y is not None else None,
+                **{k: v[idx] for k, v in routed_params.items()}
+            )
+            estimators[domain_label] = estimator
+        self.estimators_ = estimators
+        self.routing_ = routing
+        return self
+
+    def _route_to_estimator(self, method_name, X, y=None, **params):
+        check_is_fitted(self)
+        routed_params = getattr(self.routing_, method_name)._route_params(params=params)
+        # xxx(okachaiev): again, code duplication
+        if isinstance(X, AdaptationOutput):
+            for k, v in X.items():
+                if k != 'X' and k in routed_params:
+                    routed_params[k] = v
+            X = X['X']
+        # xxx(okachaiev): use check_*_domain to derive default domain labels
+        sample_domain = params['sample_domain']
+        output = None
+        # xxx(okachaiev): maybe return_index?
+        for domain_label in np.unique(sample_domain):
+            # xxx(okachaiev): fail if unknown domain is given
+            method = getattr(self.estimators_[domain_label], method_name)
+            idx, = np.where(sample_domain == domain_label)
+            X_domain = X[idx]
+            y_domain = y[idx] if y is not None else None
+            domain_params = {k: v[idx] for k, v in routed_params.items()}
+            if y is None:
+                domain_output = method(X_domain, **domain_params)
+            else:
+                domain_output = method(X_domain, y_domain, **domain_params)
+            if output is None:
+                output = np.zeros(
+                    (X.shape[0], *domain_output.shape[1:]),
+                    dtype=domain_output.dtype
+                )
+            output[idx] = domain_output
         return output
