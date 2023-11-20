@@ -101,18 +101,18 @@ def _generate_data_2d_classif_subspace(n_samples, rng, label='binary'):
     n1 = n2 * 2
     # make data of class 1
     Sigma1 = np.array([[0.5, 0], [0, 0.5]])
-    mu1 = np.array([-2, 2])
+    mu1 = np.array([-1, 1])
     x1 = rng.randn(n1, 2).dot(Sigma1) + mu1[None, :]
 
     # make data of the first cluster of class 2
     Sigma2 = np.array([[0.1, 0], [0, 0.1]])
-    mu2 = np.array([2.5, 0])
+    mu2 = np.array([1.5, 0.5])
 
     x21 = rng.randn(n2, 2).dot(Sigma2) + mu2[None, :]
 
     # make data of the second cluster of class 2
     Sigma2 = np.array([[0.2, 0], [0, 0.2]])
-    mu2 = np.array([0, -2.5])
+    mu2 = np.array([-0.5, -1.5])
 
     x22 = rng.randn(n2, 2).dot(Sigma2) + mu2[None, :]
 

@@ -5,6 +5,12 @@
 # License: BSD 3-Clause
 
 import torch
+<<<<<<< HEAD:skada/utils.py
+from torch import nn
+from torch.autograd import Function
+from torch.utils.data import Dataset
+=======
+>>>>>>> refs/rewritten/main-8:skada/feature/_losses.py
 
 import ot
 
@@ -181,3 +187,146 @@ def dan_loss(source_features, target_features, sigmas=None):
     )
 
     return loss
+
+
+class NeuralNetwork(nn.Module):
+    def __init__(
+        self, n_channels, input_size, n_classes, kernel_size=64, out_channels=10
+    ):
+        super(NeuralNetwork, self).__init__()
+
+        self.feature_extractor = nn.Sequential(
+            nn.Conv1d(n_channels, out_channels, kernel_size),
+            nn.ReLU(),
+            nn.AvgPool1d(kernel_size)
+        )
+        self.len_last_layer = self._len_last_layer(n_channels, input_size)
+        self.fc = nn.Linear(self.len_last_layer, n_classes)
+
+    def forward(self, x):
+        x = self.feature_extractor(x)
+        x = self.fc(x.flatten(start_dim=1))
+        return x
+
+    def _len_last_layer(self, n_channels, input_size):
+        self.feature_extractor.eval()
+        with torch.no_grad():
+            out = self.feature_extractor(
+                torch.Tensor(1, n_channels, input_size))
+        self.feature_extractor.train()
+        return len(out.flatten())
+
+
+class CustomDataset(Dataset):
+    def __init__(
+        self,
+        data,
+        label=None,
+    ):
+        self.data = data
+        self.label = label
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        X = self.data[idx]
+        if self.label is None:
+            return X
+        else:
+            y = self.label[idx]
+            return X, y
+
+
+class MNISTtoUSPSNet(nn.Module):
+    def __init__(self):
+        super(MNISTtoUSPSNet, self).__init__()
+        self.conv1 = nn.Conv2d(1, 32, 3, 1)
+        self.conv2 = nn.Conv2d(32, 64, 3, 1)
+        self.dropout1 = nn.Dropout(0.25)
+        self.dropout2 = nn.Dropout(0.5)
+        self.fc1 = nn.Linear(9216, 128)
+        self.fc2 = nn.Linear(128, 10)
+        self.relu = nn.ReLU()
+        self.maxpool = nn.MaxPool2d(2)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.relu(x)
+        x = self.conv2(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+        x = self.dropout1(x)
+        x = torch.flatten(x, 1)
+        x = self.fc1(x)
+        x = self.relu(x)
+        x = self.dropout2(x)
+        output = self.fc2(x)
+        return output
+
+
+class ReverseLayerF(Function):
+
+    @staticmethod
+    def forward(ctx, x, reg):
+        ctx.reg = reg
+
+        return x.view_as(x)
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        output = grad_output.neg() * ctx.reg
+
+        return output, None
+
+
+class DomainClassifier(nn.Module):
+    """Classifier Architecture for DANN method.
+    Parameters
+    ----------
+    n_channels : int
+        Number of EEG channels.
+    sfreq : float
+        EEG sampling frequency.
+    n_conv_chs : int
+        Number of convolutional channels. Set to 8 in [1]_.
+    time_conv_size_s : float
+        Size of filters in temporal convolution layers, in seconds. Set to 0.5
+        in [1]_ (64 samples at sfreq=128).
+    max_pool_size_s : float
+        Max pooling size, in seconds. Set to 0.125 in [1]_ (16 samples at
+        sfreq=128).
+    n_classes : int
+        Number of classes.
+    input_size_s : float
+        Size of the input, in seconds.
+    dropout : float
+        Dropout rate before the output dense layer.
+    """
+
+    def __init__(
+        self,
+        len_last_layer,
+        dropout=0.25,
+        n_classes=1
+    ):
+        super().__init__()
+        self.classifier = nn.Sequential(
+            nn.Linear(len_last_layer, 100),
+            nn.BatchNorm1d(100),
+            nn.ReLU(),
+            nn.Linear(100, n_classes),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x, reg=None):
+        """Forward pass.
+        Parameters
+        ---------
+        x: torch.Tensor
+            Batch of EEG windows of shape (batch_size, n_channels, n_times).
+        lamb: float
+            Parameter for the reverse layer
+        """
+        reverse_x = ReverseLayerF.apply(x, reg)
+        return self.classifier(reverse_x)
