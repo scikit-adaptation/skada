@@ -1,7 +1,5 @@
-> **Warning**
-This library is currently in a phase of active development. All features are subject to change without prior notice.
-If you are interested in collaborating, please feel free to reach out by opening an issue or starting a discussion.
-
+> [!WARNING]
+> This library is currently in a phase of active development. All features are subject to change without prior notice. If you are interested in collaborating, please feel free to reach out by opening an issue or starting a discussion.
 
 # Domain Aware API
 
