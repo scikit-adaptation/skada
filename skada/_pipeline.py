@@ -53,10 +53,10 @@ def make_da_pipeline(
 
     default_selector : str or callable, default = 'shared'
         Specifies a domain selector to wrap the estimator, if it is not already
-        wrapped. Refer to :class:~skada.base.BaseSelector for an understanding of
+        wrapped. Refer to :class:`~skada.base.BaseSelector` for an understanding of
         selector functionalities. The available options include 'shared' and
-        'per-domain'. For integrating a custom selector as the default, pass a
-        callable that accepts :class:~sklearn.base.BaseEstimator and returns
+        'per_domain'. For integrating a custom selector as the default, pass a
+        callable that accepts :class:`~sklearn.base.BaseEstimator` and returns
         the estimator encapsulated within a domain selector.
 
     Returns
@@ -86,6 +86,9 @@ def _wrap_with_selector(
     if not isinstance(estimator, BaseSelector):
         if callable(selector):
             estimator = selector(estimator)
+            if not isinstance(estimator, BaseSelector):
+                raise ValueError("Callable `default_selector` has to return `BaseSelector` "  # noqa: E501
+                                 f"instance, got {type(estimator)} instead.")
         elif isinstance(selector, str):
             selector_cls = _DEFAULT_SELECTORS.get(selector)
             if selector_cls is None:

@@ -73,6 +73,10 @@ def test_per_domain_selector():
         pytest.param(
             'non_existing_one', None,
             marks=pytest.mark.xfail(reason='Fails non-existing selector')
+        ),
+        pytest.param(
+            lambda x: 42, None,
+            marks=pytest.mark.xfail(reason='Incorrect output type for the callable')
         )
     ]
 )
