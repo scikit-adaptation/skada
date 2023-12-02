@@ -242,10 +242,10 @@ scores = cross_validate(
 
 `skada.model_selection.LeaveOneDomainOut` is a cross-validator that, in each iteration, randomly selects a single domain to serve as the target. After this selection, the train/test split is performed using the `ShuffleSplit` algorithm. The `max_n_splits` parameter limits the number of splits; in its absence, each domain is used as a target exactly once.
 
-This splitter requires the dataset to be specially prepared so that each domain is represented as both a source and a target simultaneously. This preparation can be achieved using the `pack_flatten` method. An example is provided below for clarity:
+This splitter requires the dataset to be specially prepared so that each domain is represented as both a source and a target simultaneously. This preparation can be achieved using the `pack_for_lodo` method. An example is provided below for clarity:
 
 ```python
-X, y, sample_domain = da_dataset.pack_flatten()
+X, y, sample_domain = da_dataset.pack_for_lodo()
 pipe = make_da_pipeline(
     SubspaceAlignmentAdapter(n_components=2),
     LogisticRegression(),

@@ -86,7 +86,7 @@ def test_domain_aware_split(da_dataset):
     [(2, 2), (10, 4)]
 )
 def test_leave_one_domain_out(da_dataset, max_n_splits, n_splits):
-    X, y, sample_domain = da_dataset.pack_flatten()
+    X, y, sample_domain = da_dataset.pack_for_lodo()
     pipe = make_da_pipeline(
         SubspaceAlignmentAdapter(n_components=2),
         LogisticRegression(),
