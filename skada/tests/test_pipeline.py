@@ -84,3 +84,15 @@ def test_default_selector_parameter(selector_name, selector_cls):
     )
     _, estimator = pipe.steps[0]
     assert isinstance(estimator, selector_cls)
+
+
+def test_default_selector_ignored_for_selector():
+    pipe = make_da_pipeline(
+        Shared(SubspaceAlignmentAdapter(n_components=2)),
+        LogisticRegression(),
+        default_selector='per_domain',
+    )
+    _, estimator = pipe.steps[0]
+    assert isinstance(estimator, Shared)
+    _, estimator = pipe.steps[1]
+    assert isinstance(estimator, PerDomain)
