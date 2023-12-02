@@ -4,14 +4,28 @@
 #
 # License: BSD 3-Clause
 
+from typing import Callable, Optional, Union
+
+from joblib import Memory
 from sklearn.base import BaseEstimator
 from sklearn.pipeline import Pipeline, _name_estimators
 
-from .base import BaseSelector, Shared
+from .base import BaseSelector, PerDomain, Shared
+
+
+_DEFAULT_SELECTORS = {
+    'shared': Shared,
+    'per_domain': PerDomain,
+}
 
 
 # xxx(okachaiev): block 'fit_predict' as it is somewhat unexpected
-def make_da_pipeline(*steps, memory=None, verbose=False, default_selector='shared'):
+def make_da_pipeline(
+    *steps,
+    memory: Optional[Memory] = None,
+    verbose: bool = False,
+    default_selector: Union[str, Callable[[BaseEstimator], BaseSelector]] = 'shared',
+) -> Pipeline:
     """Construct a :class:`~sklearn.pipeline.Pipeline` from the given estimators.
 
     This is a shorthand for the :class:`sklearn.pipeline.Pipeline` constructor;
@@ -37,6 +51,14 @@ def make_da_pipeline(*steps, memory=None, verbose=False, default_selector='share
         If True, the time elapsed while fitting each step will be printed as it
         is completed.
 
+    default_selector : str or callable, default = 'shared'
+        Specifies a domain selector to wrap the estimator, if it is not already
+        wrapped. Refer to :class:~skada.base.BaseSelector for an understanding of
+        selector functionalities. The available options include 'shared' and
+        'per-domain'. For integrating a custom selector as the default, pass a
+        callable that accepts :class:~sklearn.base.BaseEstimator and returns
+        the estimator encapsulated within a domain selector.
+
     Returns
     -------
     p : Pipeline
@@ -53,16 +75,33 @@ def make_da_pipeline(*steps, memory=None, verbose=False, default_selector='share
     """
     # note that we generate names before wrapping estimators into the selector
     # xxx(okachaiev): unwrap from the selector when passed explicitly
-    steps = _wrap_selectors(_name_estimators(steps), default_selector=default_selector)
+    steps = _wrap_with_selectors(_name_estimators(steps), default_selector)
     return Pipeline(steps, memory=memory, verbose=verbose)
 
 
-def _wrap_selectors(
+def _wrap_with_selector(
+    estimator: BaseEstimator,
+    selector: Union[str, Callable[[BaseEstimator], BaseSelector]]
+) -> BaseSelector:
+    if not isinstance(estimator, BaseSelector):
+        if callable(selector):
+            estimator = selector(estimator)
+        elif isinstance(selector, str):
+            selector_cls = _DEFAULT_SELECTORS.get(selector)
+            if selector_cls is None:
+                raise ValueError(f"Unsupported `default_selector` name: {selector}."
+                                 f"Use one of {_DEFAULT_SELECTORS.keys().join(', ')}")
+            estimator = selector_cls(estimator)
+        else:
+            raise ValueError("Unsupported `default_selector` type: {type(selector)}")
+    return estimator
+
+
+def _wrap_with_selectors(
     steps: [(str, BaseEstimator)],
-    default_selector: str = 'shared'
+    default_selector: Union[str, Callable[[BaseEstimator], BaseSelector]]
 ) -> [(str, BaseEstimator)]:
-    # xxx(okachaiev): respect 'default' configuration
     return [
-        (name, estimator if isinstance(estimator, BaseSelector) else Shared(estimator))
+        (name, _wrap_with_selector(estimator, default_selector))
         for (name, estimator) in steps
     ]

@@ -11,7 +11,7 @@ from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 
-from skada import SubspaceAlignmentAdapter, PerDomain, make_da_pipeline
+from skada import SubspaceAlignmentAdapter, PerDomain, Shared, make_da_pipeline
 
 import pytest
 
@@ -61,3 +61,26 @@ def test_per_domain_selector():
         np.array([[-1., -0.75]]),
         scaler.transform(np.array([[-1., 1.]]), sample_domain=[2])
     )
+
+
+@pytest.mark.parametrize(
+    'selector_name, selector_cls',
+    [
+        ('per_domain', PerDomain),
+        ('shared', Shared),
+        (PerDomain, PerDomain),
+        (lambda x: PerDomain(x), PerDomain),
+        pytest.param(
+            'non_existing_one', None,
+            marks=pytest.mark.xfail(reason='Fails non-existing selector')
+        )
+    ]
+)
+def test_default_selector_parameter(selector_name, selector_cls):
+    pipe = make_da_pipeline(
+        SubspaceAlignmentAdapter(n_components=2),
+        LogisticRegression(),
+        default_selector=selector_name
+    )
+    _, estimator = pipe.steps[0]
+    assert isinstance(estimator, selector_cls)
