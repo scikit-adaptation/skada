@@ -95,7 +95,7 @@ dataset = DomainAwareDataset(domains=[
     (X_source, y_source, 's'),
     (X_target, y_target, 't')
 ])
-X_train, y_train, sample_domain = dataset.pack_for_train(
+X_train, y_train, sample_domain = dataset.pack_train(
     as_sources=['s'],
     as_targets=['t']
 )
@@ -215,7 +215,7 @@ clf_otda_sinkhorn = DomainAwareEstimator(
     SVC(kernel='rbf', C=1)
 )
 clf_otda_sinkhorn.fit(X_train, y_train, sample_domain)
-X_test, y_test, sample_domain_test = dataset.pack_for_test(as_targets=['t'])
+X_test, y_test, sample_domain_test = dataset.pack_test(as_targets=['t'])
 ACC_sinkhorn = clf_otda_sinkhorn.score(X_test, y_test, sample_domain_test)
 X_adapted_sinkhorn = clf_otda_sinkhorn.adapt(X_train, y_train, sample_domain)[0]
 X_source_adapted_sinkhorn = X_adapted_sinkhorn[sample_domain > 0]
