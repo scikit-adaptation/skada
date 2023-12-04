@@ -48,8 +48,12 @@ jobs:
     # - run: conda --version
     # - run: conda info --envs
     - run: which python
-    - name: Install 'skada' package
-      run: pip install -ve . && pip install -r requirements.txt
+    - run:
+        name: Install 'skada' package
+        command: |
+          python -m pip install --user --upgrade --progress-bar off pip
+          python -m pip install --user --progress-bar off  -ve .
+          python -m pip install --progress-bar off -r requirements.txt
     # Run Tests
     - name: Install Codecov etc.
       run: pip install --upgrade pytest pytest-cov codecov
