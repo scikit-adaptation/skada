@@ -40,6 +40,7 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx_gallery.gen_gallery',
     'sphinx.ext.graphviz',
+    'myst_parser',
 ]
 
 # autodoc / autosummary

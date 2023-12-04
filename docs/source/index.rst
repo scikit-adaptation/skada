@@ -17,7 +17,8 @@ Contents
    auto_examples/index
    scorer
 
-.. include:: ../../README.rst
+.. include:: ../../README.md
+   :parser: myst_parser.sphinx_
 
 
 Indices and tables
