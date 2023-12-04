@@ -235,7 +235,7 @@ class DomainAwareDataset:
             domain_names=domain_labels,
         )
 
-    def pack_for_train(
+    def pack_train(
         self,
         as_sources: List[str],
         as_targets: List[str],
@@ -255,7 +255,7 @@ class DomainAwareDataset:
             mask=mask,
         )
 
-    def pack_for_test(
+    def pack_test(
         self,
         as_targets: List[str],
         return_X_y: bool = True,
@@ -267,7 +267,7 @@ class DomainAwareDataset:
             train=False,
         )
 
-    def pack_for_lodo(self, return_X_y: bool = True) -> PackedDatasetType:
+    def pack_lodo(self, return_X_y: bool = True) -> PackedDatasetType:
         """Packages all domains in a format compatible with the Leave-One-Domain-Out
         cross-validator (refer to :class:`~skada.model_selection.LeaveOneDomainOut` for
         more details). To enable the splitter's dynamic assignment of source and target

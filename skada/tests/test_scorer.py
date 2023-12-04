@@ -34,7 +34,7 @@ import pytest
     ],
 )
 def test_generic_scorer(scorer, da_dataset):
-    X, y, sample_domain = da_dataset.pack_for_train(as_sources=['s'], as_targets=['t'])
+    X, y, sample_domain = da_dataset.pack_train(as_sources=['s'], as_targets=['t'])
     estimator = make_da_pipeline(
         ReweightDensityAdapter(),
         LogisticRegression().set_score_request(sample_weight=True),
@@ -54,7 +54,7 @@ def test_generic_scorer(scorer, da_dataset):
 
 def test_supervised_scorer(da_dataset):
     """`SupervisedScorer` requires unmasked target label to be available."""
-    X, y, sample_domain = da_dataset.pack_for_train(as_sources=['s'], as_targets=['t'])
+    X, y, sample_domain = da_dataset.pack_train(as_sources=['s'], as_targets=['t'])
     estimator = make_da_pipeline(
         ReweightDensityAdapter(),
         LogisticRegression().set_score_request(sample_weight=True),
@@ -86,7 +86,7 @@ def test_supervised_scorer(da_dataset):
     ],
 )
 def test_scorer_with_entropy_requires_predict_proba(scorer, da_dataset):
-    X, y, sample_domain = da_dataset.pack_for_train(as_sources=['s'], as_targets=['t'])
+    X, y, sample_domain = da_dataset.pack_train(as_sources=['s'], as_targets=['t'])
     estimator = make_da_pipeline(ReweightDensityAdapter(), SVC())
     estimator.fit(X, y, sample_domain=sample_domain)
     with pytest.raises(AttributeError):
@@ -100,7 +100,7 @@ def test_scorer_with_log_proba():
         (rng.rand(n_samples, n_features), rng.randint(2, size=n_samples), 's'),
         (rng.rand(n_samples, n_features), None, 't')
     ])
-    X, y, sample_domain = dataset.pack_for_train(as_sources=['s'], as_targets=['t'])
+    X, y, sample_domain = dataset.pack_train(as_sources=['s'], as_targets=['t'])
     estimator = make_da_pipeline(
         SubspaceAlignmentAdapter(n_components=2),
         LogisticRegression()

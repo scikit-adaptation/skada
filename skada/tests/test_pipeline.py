@@ -18,7 +18,7 @@ import pytest
 
 def test_pipeline(da_dataset):
     # single source, single target, target labels are masked
-    X, y, sample_domain = da_dataset.pack_for_train(as_sources=['s'], as_targets=['t'])
+    X, y, sample_domain = da_dataset.pack_train(as_sources=['s'], as_targets=['t'])
     # by default, each estimator in the pipeline is wrapped into `Shared` selector
     pipe = make_da_pipeline(
         StandardScaler(),
@@ -34,7 +34,7 @@ def test_pipeline(da_dataset):
     with pytest.raises(ValueError):
         pipe.score(X, y, sample_domain=sample_domain)
     # target only, no label masking
-    X_target, y_target, sample_domain = da_dataset.pack_for_test(as_targets=['t'])
+    X_target, y_target, sample_domain = da_dataset.pack_test(as_targets=['t'])
     y_pred = pipe.predict(X_target, sample_domain=sample_domain)
     assert np.mean(y_pred == y_target) > 0.9
     # automatically derives as a single target domain when sample_domain is `None`
