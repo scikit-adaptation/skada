@@ -33,30 +33,19 @@ jobs:
       with:
         path: ~/skada_datasets
         key: ${{ runner.os }}-v3
-    # Install Python
+    # Install Python & Packages
     - uses: actions/setup-python@v4
       with:
         python-version: "3.10"
-    # - name: Setting Up Conda skada Environment
-    #   uses: conda-incubator/setup-miniconda@v2
-    #   with:
-    #     environment-file: environment.yml
-    #     python-version: 3.9
-    #     activate-environment: skada
-    #     auto-activate-base: false
-    # Show Conda and Python Versions
-    # - run: conda --version
-    # - run: conda info --envs
     - run: which python
     - run:
         name: Install 'skada' package
         command: |
           python -m pip install --user --upgrade --progress-bar off pip
-          python -m pip install --user --progress-bar off  -ve .
-          python -m pip install --progress-bar off -r requirements.txt
+          python -m pip install --user -e .
+          python -m pip install --user --upgrade --no-cache-dir --progress-bar off -r requirements.txt
+          python -m pip pip install --upgrade pytest pytest-cov codecov
     # Run Tests
-    - name: Install Codecov etc.
-      run: pip install --upgrade pytest pytest-cov codecov
     - name: Run Tests without torch
       run: pytest skada/ --ignore=skada/feature
     # - name: Install GPU stuffs for CI
