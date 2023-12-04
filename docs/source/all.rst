@@ -31,7 +31,7 @@ API and modules
 
 .. autosummary::
    :toctree: gen_modules/
-   :template: class.rst
+   :template: function.rst
 
    ReweightDensity
    GaussianReweightDensity
@@ -44,7 +44,8 @@ API and modules
    ClassRegularizerOTMapping
    LinearOTMapping
    CORAL
-   DAPipeline
+   make_da_pipeline
+
 
 .. currentmodule:: skada.feature
 
