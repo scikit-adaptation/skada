@@ -1,5 +1,5 @@
-#-i 
-scikit-learn>=1.4.dev0 @ https://pypi.anaconda.org/scientific-python-nightly-wheels/simple
+#-i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple
+scikit-learn>=1.4.dev0 
 pandas
 scipy
 matplotlib
