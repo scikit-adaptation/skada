@@ -1,0 +1,98 @@
+# Tagging a commit with [circle front] will build the front page and perform test-doc.
+# Tagging a commit with [circle full] will build everything.
+version: 2
+jobs:
+    build_docs:
+      docker:
+        - image: cimg/python:3.10
+      resource_class: medium
+      steps:
+        - checkout
+        - run:
+            name: Set BASH_ENV
+            command: |
+              echo "set -e" >> $BASH_ENV
+              echo "export DISPLAY=:99" >> $BASH_ENV
+              echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
+              echo "BASH_ENV:"
+              cat $BASH_ENV
+
+        - run:
+            name: Merge with upstream
+            command: |
+              echo $(git log -1 --pretty=%B) | tee gitlog.txt
+              echo ${CI_PULL_REQUEST//*pull\//} | tee merge.txt
+              if [[ $(cat merge.txt) != "" ]]; then
+                echo "Merging $(cat merge.txt)";
+                git remote add upstream https://github.com/PythonOT/POT.git;
+                git pull --ff-only upstream "refs/pull/$(cat merge.txt)/merge";
+                git fetch upstream master;
+              fi
+
+        # Load our data
+        - restore_cache:
+            keys:
+              - data-cache-0
+              - pip-cache
+
+        - run:
+            name: Install ffmpeg
+            command: |
+              sudo apt update 
+              sudo apt install ffmpeg
+
+        - run:
+            name: Get Python running
+            command: |
+              python -m pip install --user --upgrade --progress-bar off pip
+              python -m pip install --user --progress-bar off -r requirements.txt
+              python -m pip install --user --pre --extra-index https://pypi.anaconda.org/scientific-python-nightly-wheels/simple 'scikit-learn==1.4.dev0'
+              python -m pip install --user --upgrade --progress-bar off -r docs/requirements.txt
+              python -m pip install --user --upgrade --progress-bar off ipython sphinx-gallery memory_profiler              
+          # python -m pip install --user --upgrade --progress-bar off ipython "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" memory_profiler
+        - save_cache:
+            key: pip-cache
+            paths:
+              - ~/.cache/pip
+
+
+        # Look at what we have and fail early if there is some library conflict
+        - run:
+            name: Check installation
+            command: |
+               which python
+               python -c "import skada"
+
+        - run:
+            name: Correct link in release file
+            command: |
+              sed -i -r 's/PR #([[:digit:]]*)/\[PR #\1\]\(https:\/\/github.com\/scikit-adaptation\/skada\/pull\/\1\)/' RELEASES.md
+              sed -i -r 's/Issue #([[:digit:]]*)/\[Issue #\1\]\(https:\/\/github.com\/scikit-adaptation\/skada\/issues\/\1\)/' RELEASES.md
+        # Build docs
+        - run:
+            name: make html
+            command: |
+              cd docs;
+              make html;
+            no_output_timeout: 30m
+
+        # Save the outputs
+        - store_artifacts:
+            path: docs/build/html/
+            destination: dev
+        - persist_to_workspace:
+            root: docs/build
+            paths:
+              - html
+
+
+workflows:
+  version: 2
+
+  default:
+
+    jobs:
+      - build_docs:
+          filters:
+            tags:
+              only: /[0-9]+(\.[0-9]+)*$/  
