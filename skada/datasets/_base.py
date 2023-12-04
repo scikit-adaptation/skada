@@ -271,8 +271,8 @@ class DomainAwareDataset:
         """Packages all domains in a format compatible with the Leave-One-Domain-Out
         cross-validator (refer to :class:`~skada.model_selection.LeaveOneDomainOut` for
         more details). To enable the splitter's dynamic assignment of source and target
-        domains, data from each domain is included in the output twice — once as a source
-        and once as a target.
+        domains, data from each domain is included in the output twice — once as a
+        source and once as a target.
 
         Exercise caution when using this output for purposes other than its intended
         use, as this could lead to incorrect results and data leakage.
