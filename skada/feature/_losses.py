@@ -4,12 +4,9 @@
 # License: BSD 3-Clause
 
 import torch
-<<<<<<< HEAD:skada/utils.py
 from torch import nn
 from torch.autograd import Function
 from torch.utils.data import Dataset
-=======
->>>>>>> refs/rewritten/main-8:skada/feature/_losses.py
 
 import ot
 
