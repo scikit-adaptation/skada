@@ -5,6 +5,9 @@ Using cross_val_score with skada
 This illustrates the use of DA scorer such :class:`~skada.metrics.TargetAccuracyScorer`
 with `cross_val_score <https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.cross_val_score.html#sklearn.model_selection.cross_val_score>`_.
 """  # noqa
+# %%
+# Prepare dataset and estimators
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -12,48 +15,67 @@ from sklearn.svm import SVC
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import ShuffleSplit
 
-from skada import EntropicOTMappingAdapter
+from skada import EntropicOTMapping, source_target_split
 from skada.datasets import make_shifted_datasets
 from skada.metrics import SupervisedScorer
 
 
 RANDOM_SEED = 0
-X, y, X_target, y_target = make_shifted_datasets(
+dataset = make_shifted_datasets(
     n_samples_source=30,
     n_samples_target=20,
     shift="concept_drift",
     label="binary",
     noise=0.4,
     random_state=RANDOM_SEED,
+    return_dataset=True
 )
 
-base_estimator = SVC()
-estimator = EntropicOTMappingAdapter(
+base_estimator = SVC(probability=True)
+estimator = EntropicOTMapping(
     base_estimator=base_estimator,
-    reg_e=0.05,
+    reg_e=0.5,
     tol=1e-3
 )
 
+X, y, sample_domain = dataset.pack_for_train(as_sources=['s'], as_targets=['t'])
+X_source, y_source, X_target, y_target = source_target_split(X, y, sample_domain)
 cv = ShuffleSplit(n_splits=5, test_size=0.3, random_state=0)
-scores = cross_val_score(
+
+# %%
+# Cross Validate using supervised labels from the target domain
+#
+# Supervised scoring requires target labels to be passed into the pipeline
+# separately, so they are only available for the scoring.
+
+_, target_labels, _ = dataset.pack(as_sources=['s'], as_targets=['t'], train=False)
+scores_sup = cross_val_score(
     estimator,
     X,
     y,
     cv=cv,
-    fit_params={"X_target": X_target},
-    scoring=SupervisedScorer(X_target, y_target),
+    params={'sample_domain': sample_domain, 'target_labels': target_labels},
+    scoring=SupervisedScorer(),
 )
 
-scores_no_da = cross_val_score(
-    base_estimator, X, y, cv=cv, scoring=SupervisedScorer(X_target, y_target)
+print(
+    f"Cross-validation score with supervised DA: {np.mean(scores_sup):.2f} (+/- {np.std(scores_sup):.2f})"
 )
 
 # %%
-# Compare scores with the dummy estimator that does not use DA
+# Compare scores with the simple estimator with no adaptation
 
-print(
-    f"Cross-validation score with DA: {np.mean(scores):.2f} (+/- {np.std(scores):.2f})"
+def _scorer(estimator, X, y):
+    return estimator.score(X_target, y_target)
+
+scores_no_da = cross_val_score(
+    base_estimator,
+    X_source,
+    y_source,
+    cv=cv,
+    scoring=_scorer,
 )
+
 print(
     "Cross-validation score without DA: "
     f"{np.mean(scores_no_da):.2f} (+/- {np.std(scores_no_da):.2f})"
@@ -64,11 +86,13 @@ print(
 plt.figure(figsize=(6, 4))
 plt.barh(
     [0, 1],
-    [np.mean(scores), np.mean(scores_no_da)],
-    yerr=[np.std(scores), np.std(scores_no_da)],
+    [np.mean(scores_sup), np.mean(scores_no_da)],
+    yerr=[np.std(scores_sup), np.std(scores_no_da)],
 )
 plt.yticks([0, 1], ["DA", "No DA"])
 plt.xlabel("Accuracy")
 plt.axvline(0.5, color="k", linestyle="--", label="Random guess")
 plt.legend()
 plt.show()
+
+# %%
