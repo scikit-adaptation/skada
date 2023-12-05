@@ -59,14 +59,17 @@ scores_sup = cross_val_score(
 )
 
 print(
-    f"Cross-validation score with supervised DA: {np.mean(scores_sup):.2f} (+/- {np.std(scores_sup):.2f})"
+    "Cross-validation score with supervised DA: "
+    f"{np.mean(scores_sup):.2f} (+/- {np.std(scores_sup):.2f})"
 )
 
 # %%
 # Compare scores with the simple estimator with no adaptation
 
+
 def _scorer(estimator, X, y):
     return estimator.score(X_target, y_target)
+
 
 scores_no_da = cross_val_score(
     base_estimator,
