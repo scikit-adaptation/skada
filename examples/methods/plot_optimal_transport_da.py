@@ -161,7 +161,8 @@ lims = plt.axis()
 # We illustrate below the different steps of the OTDA method.
 
 # recovering the OT plan
-T = clf_otda.named_steps['OTMappingAdapter'].ot_transport_.coupling_
+adapter = clf_otda.named_steps['otmappingadapter'].get_estimator()
+T = adapter.ot_transport_.coupling_
 T = T / T.max()
 
 # computing the transported samples
