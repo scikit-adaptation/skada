@@ -237,6 +237,11 @@ X_train, y_train, sample_domain_train = dataset.pack_train(
     as_targets=['t']
 )
 X_test, y_test, sample_domain_test = dataset.pack_test(as_targets=['t'])
+X_source, y_source, X_target, y_target = source_target_split(
+    X_test,
+    y_test,
+    sample_domain_test
+)
 
 # Sinkhorn OT solver
 clf_otda_sinkhorn = make_da_pipeline(
@@ -245,7 +250,10 @@ clf_otda_sinkhorn = make_da_pipeline(
 )
 clf_otda_sinkhorn.fit(X_train, y_train, sample_domain=sample_domain_train)
 ACC_sinkhorn = clf_otda_sinkhorn.score(X_test, y_test, sample_domain=sample_domain_test)
-X_adapted_sinkhorn = clf_otda_sinkhorn.transform(X_train, sample_domain=sample_domain)
+X_adapted_sinkhorn = clf_otda_sinkhorn.transform(
+    X_train,
+    sample_domain=sample_domain_train
+)
 X_source_adapted_sinkhorn = X_adapted_sinkhorn[sample_domain > 0]
 
 # Sinkhorn OT solver with class regularization
@@ -253,12 +261,11 @@ clf_otds_classreg = make_da_pipeline(
     ClassRegularizerOTMappingAdapter(reg_e=0.2, reg_cl=1),
     SVC(kernel='rbf', C=1)
 )
-clf_otds_classreg.fit(X_train, y_train, sample_domain)
+clf_otds_classreg.fit(X_train, y_train, sample_domain=sample_domain_train)
 ACC_classreg = clf_otds_classreg.score(X_test, y_test, sample_domain=sample_domain_test)
 X_adapted_classreg = clf_otds_classreg.transform(
     X_train,
-    y_train,
-    sample_domain=sample_domain,
+    sample_domain=sample_domain_train
 )
 X_source_adapted_classreg = X_adapted_classreg[sample_domain > 0]
 
@@ -269,7 +276,7 @@ clf_otda_linear = make_da_pipeline(
 )
 clf_otda_linear.fit(X_train, y_train, sample_domain)
 ACC_linear = clf_otda_linear.score(X_test, y_test, sample_domain=sample_domain_test)
-X_adapted_linear = clf_otda_linear.transform(X_train, y_train, sample_domain)
+X_adapted_linear = clf_otda_linear.transform(X_train, sample_domain=sample_domain_train)
 X_source_adapted_linear = X_adapted_linear[sample_domain > 0]
 
 plt.figure(5, figsize=(14, 7))
