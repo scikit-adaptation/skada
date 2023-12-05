@@ -17,6 +17,7 @@ See detailed description of each shift in [1]_.
 import matplotlib.pyplot as plt
 
 from skada.datasets import make_shifted_datasets
+from skada import source_target_split
 
 
 def plot_shifted_dataset(shift, random_state=42):
@@ -28,7 +29,7 @@ def plot_shifted_dataset(shift, random_state=42):
     We use here the same random seed for multiple calls to
     ensure same distributions.
     """
-    X_source, y_source, X_target, y_target = make_shifted_datasets(
+    X, y, sample_domain = make_shifted_datasets(
         n_samples_source=20,
         n_samples_target=20,
         shift=shift,
@@ -36,6 +37,8 @@ def plot_shifted_dataset(shift, random_state=42):
         label="multiclass",
         random_state=random_state,
     )
+
+    X_source, y_source, X_target, y_target = source_target_split(X, y, sample_domain)
 
     fig, (ax1, ax2) = plt.subplots(1, 2, sharex="row", sharey="row", figsize=(8, 4))
     fig.suptitle(shift.replace("_", " ").title(), fontsize=14)
