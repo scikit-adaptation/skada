@@ -22,26 +22,30 @@ from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.svm import SVC
 
 from skada import (
-    DomainAwareEstimator,
-    OTMappingAdapter,
-    EntropicOTMappingAdapter,
-    ClassRegularizerOTMappingAdapter,
-    LinearOTMappingAdapter,
+    OTMapping,
+    EntropicOTMapping,
+    ClassRegularizerOTMapping,
+    LinearOTMapping,
 )
 from skada.datasets import DomainAwareDataset, make_shifted_datasets
-
+from skada import source_target_split
 
 # %%
 # Generate concept drift dataset
 # ------------------------------
 n_samples = 20
-X_source, y_source, X_target, y_target = make_shifted_datasets(
+X, y, sample_domain = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=n_samples+1,
         shift='concept_drift',
         noise=0.1,
         random_state=42,
 )
+
+
+X_source, y_source, X_target, y_target = source_target_split(X, y, sample_domain)
+
+
 n_tot_source = X_source.shape[0]
 n_tot_target = X_target.shape[0]
 
@@ -91,16 +95,9 @@ lims = plt.axis()
 # Optimal Transport Domain Adaptation
 # -----------------------------------
 
-dataset = DomainAwareDataset(domains=[
-    (X_source, y_source, 's'),
-    (X_target, y_target, 't')
-])
-X_train, y_train, sample_domain = dataset.pack_for_train(
-    as_sources=['s'],
-    as_targets=['t']
-)
-clf_otda = DomainAwareEstimator(OTMappingAdapter(), SVC(kernel='rbf', C=1))
-clf_otda.fit(X_train, y_train, sample_domain)
+
+clf_otda = OTMapping(SVC(kernel='rbf', C=1))
+clf_otda.fit(X, y, sample_domain)
 
 # Compute accuracy on source and target
 # xxx(okachaiev): do we need to provide "per_domain score" out of the box?

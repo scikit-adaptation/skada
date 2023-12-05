@@ -37,6 +37,7 @@ from skada import (
     CORAL
 )
 from skada.datasets import make_shifted_datasets
+from skada import source_target_split
 
 # Use same random seed for multiple calls to make_datasets to
 # ensure same distributions
@@ -116,8 +117,7 @@ for ds_cnt, ds in enumerate(datasets):
     # preprocess dataset, split into training and test part
     X, y, sample_domain = ds
 
-    Xs, ys = X[sample_domain >= 0], y[sample_domain >= 0]
-    Xt, yt = X[sample_domain < 0], y[sample_domain < 0]
+    Xs, ys, Xt, yt = source_target_split(X, y, sample_domain=sample_domain)
 
     x_min, x_max = X[:, 0].min() - 0.5, X[:, 0].max() + 0.5
     y_min, y_max = X[:, 1].min() - 0.5, X[:, 1].max() + 0.5

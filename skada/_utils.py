@@ -171,3 +171,73 @@ def _merge_source_target(X_source, X_target, sample_domain) -> np.ndarray:
         output = np.zeros((n_samples, X_target.shape[1]), dtype=X_target.dtype)
     output[sample_domain < 0] = X_target
     return output
+
+
+def source_target_split(X, y, sample_domain=None,
+                        sample_weight=None, return_domain=False):
+    r""" Split data into source and target domains
+
+    Parameters
+    ----------
+    X : array-like of shape (n_samples, n_features)
+        Data to be split
+    y : array-like of shape (n_samples,)
+        Labels for the data
+    sample_domain : array-like of shape (n_samples,)
+        Domain labels for the data. Positive values are treated as source
+        domains, negative values are treated as target domains. If not given,
+        all samples are treated as source domains except those with y==-1.
+    sample_weight : array-like of shape (n_samples,), default=None
+        Sample weights
+    return_domain : bool, default=False
+        Whether to return domain labels
+
+    Returns
+    -------
+    X_s : array-like of shape (n_samples_s, n_features)
+        Source data
+    y_s : array-like of shape (n_samples_s,)
+        Source labels
+    domain_s : array-like of shape (n_samples_s,)
+        Source domain labels (returned only if `return_domain` is True)
+    sample_weight_s : array-like of shape (n_samples_s,), default=None
+        Source sample weights (returned only if `sample_weight` is not None)
+    X_t : array-like of shape (n_samples_t, n_features)
+        Target data
+    y_t : array-like of shape (n_samples_t,)
+        Target labels
+    domain_t : array-like of shape (n_samples_t,)
+        Target domain labels (returned only if `return_domain` is True)
+    sample_weight_t : array-like of shape (n_samples_t,),
+        Target sample weights (returned only if `sample_weight` is not None)
+
+    """
+
+    if sample_domain is None:
+        sample_domain = np.ones_like(y)
+        # labels masked with -1 are recognized as targets,
+        # the rest is treated as a source
+        sample_domain[y == -1] = -1
+
+    X_s = X[sample_domain >= 0]
+    y_s = y[sample_domain >= 0]
+    domain_s = sample_domain[sample_domain >= 0]
+
+    X_t = X[sample_domain < 0]
+    y_t = y[sample_domain < 0]
+    domain_t = sample_domain[sample_domain < 0]
+
+    if sample_weight is not None:
+        sample_weight_s = sample_weight[sample_domain >= 0]
+        sample_weight_t = sample_weight[sample_domain < 0]
+
+        if return_domain:
+            return X_s, y_s, domain_s, sample_weight_s, X_t, y_t, domain_t, sample_weight_t
+        else:
+            return X_s, y_s, sample_weight_s, X_t, y_t, sample_weight_t
+    else:
+
+        if return_domain:
+            return X_s, y_s, domain_s, X_t, y_t, domain_t
+        else:
+            return X_s, y_s, X_t, y_t
