@@ -161,11 +161,16 @@ lims = plt.axis()
 # We illustrate below the different steps of the OTDA method.
 
 # recovering the OT plan
-T = clf_otda.named_steps['OTMappingAdapter'].ot_transport_.coupling_
+adapter = clf_otda.named_steps['otmappingadapter'].get_estimator()
+T = adapter.ot_transport_.coupling_
 T = T / T.max()
 
 # computing the transported samples
-X_adapted = clf_otda.transform(X, sample_domain=sample_domain)
+X_adapted = clf_otda[:-1].transform(
+    X,
+    sample_domain=sample_domain,
+    allow_source=True
+)
 # this could also be done with 'select_domain' helper
 X_source_adapted = X_adapted[sample_domain > 0]
 
@@ -222,42 +227,41 @@ plt.title(label="Step 3: train on adapted source")
 # The OTDA method can be used with different optimal transport solvers. Here we
 # illustrate the different methods available in SKADA.
 
-dataset = make_shifted_datasets(
-    n_samples_source=n_samples,
-    n_samples_target=n_samples+1,
-    shift='concept_drift',
-    noise=0.1,
-    random_state=42,
-    return_X_y=False,
-)
-
-X_train, y_train, sample_domain_train = dataset.pack_train(
-    as_sources=['s'],
-    as_targets=['t']
-)
-X_test, y_test, sample_domain_test = dataset.pack_test(as_targets=['t'])
-
 # Sinkhorn OT solver
 clf_otda_sinkhorn = make_da_pipeline(
     EntropicOTMappingAdapter(reg_e=1),
     SVC(kernel='rbf', C=1)
 )
-clf_otda_sinkhorn.fit(X_train, y_train, sample_domain=sample_domain_train)
-ACC_sinkhorn = clf_otda_sinkhorn.score(X_test, y_test, sample_domain=sample_domain_test)
-X_adapted_sinkhorn = clf_otda_sinkhorn.transform(X_train, sample_domain=sample_domain)
+clf_otda_sinkhorn.fit(X, y, sample_domain=sample_domain)
+ACC_sinkhorn = clf_otda_sinkhorn.score(
+    X,
+    y,
+    sample_domain=sample_domain,
+    allow_source=True,
+)
+X_adapted_sinkhorn = clf_otda_sinkhorn[:-1].transform(
+    X,
+    sample_domain=sample_domain,
+    allow_source=True,
+)
 X_source_adapted_sinkhorn = X_adapted_sinkhorn[sample_domain > 0]
 
 # Sinkhorn OT solver with class regularization
 clf_otds_classreg = make_da_pipeline(
-    ClassRegularizerOTMappingAdapter(reg_e=0.2, reg_cl=1),
+    ClassRegularizerOTMappingAdapter(reg_e=1., reg_cl=1.),
     SVC(kernel='rbf', C=1)
 )
-clf_otds_classreg.fit(X_train, y_train, sample_domain)
-ACC_classreg = clf_otds_classreg.score(X_test, y_test, sample_domain=sample_domain_test)
-X_adapted_classreg = clf_otds_classreg.transform(
-    X_train,
-    y_train,
+clf_otds_classreg.fit(X, y, sample_domain=sample_domain)
+ACC_classreg = clf_otds_classreg.score(
+    X,
+    y,
     sample_domain=sample_domain,
+    allow_source=True,
+)
+X_adapted_classreg = clf_otds_classreg[:-1].transform(
+    X,
+    sample_domain=sample_domain,
+    allow_source=True,
 )
 X_source_adapted_classreg = X_adapted_classreg[sample_domain > 0]
 
@@ -266,9 +270,18 @@ clf_otda_linear = make_da_pipeline(
     LinearOTMappingAdapter(),
     SVC(kernel='rbf', C=1)
 )
-clf_otda_linear.fit(X_train, y_train, sample_domain)
-ACC_linear = clf_otda_linear.score(X_test, y_test, sample_domain=sample_domain_test)
-X_adapted_linear = clf_otda_linear.transform(X_train, y_train, sample_domain)
+clf_otda_linear.fit(X, y, sample_domain=sample_domain)
+ACC_linear = clf_otda_linear.score(
+    X,
+    y,
+    sample_domain=sample_domain,
+    allow_source=True,
+)
+X_adapted_linear = clf_otda_linear[:-1].transform(
+    X,
+    sample_domain=sample_domain,
+    allow_source=True,
+)
 X_source_adapted_linear = X_adapted_linear[sample_domain > 0]
 
 plt.figure(5, figsize=(14, 7))
