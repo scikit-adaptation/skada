@@ -60,7 +60,7 @@ plt.plot(
     grid_search.cv_results_["mean_test_score"]
 )
 plt.xlabel("Regulariation parameter")
-plt.ylabel("Importance weighted scorer")
+plt.ylabel("Prediction entropy score")
 plt.show()
 
 # %% Visualize the results
