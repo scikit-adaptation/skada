@@ -31,7 +31,7 @@ dataset = make_shifted_datasets(
     return_dataset=True
 )
 
-base_estimator = SVC(probability=True)
+base_estimator = SVC()
 estimator = EntropicOTMapping(
     base_estimator=base_estimator,
     reg_e=0.5,
