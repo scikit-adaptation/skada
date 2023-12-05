@@ -67,7 +67,7 @@ master_doc = "index"
 # General information about the project.
 project = "SKADA"
 copyright = "2023, The SKADA team"
-author = "Théo Gnassounou, Rémi Flamary"
+author = "Théo Gnassounou, Rémi Flamary, Oleksii Kachaiev"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

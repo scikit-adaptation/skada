@@ -232,7 +232,10 @@ def source_target_split(X, y, sample_domain=None,
         sample_weight_t = sample_weight[sample_domain < 0]
 
         if return_domain:
-            return X_s, y_s, domain_s, sample_weight_s, X_t, y_t, domain_t, sample_weight_t
+            return (
+                X_s, y_s, domain_s, sample_weight_s,
+                X_t, y_t, domain_t, sample_weight_t
+            )
         else:
             return X_s, y_s, sample_weight_s, X_t, y_t, sample_weight_t
     else:
