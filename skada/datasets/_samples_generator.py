@@ -554,52 +554,58 @@ def make_dataset_from_moons_distribution(
     dataset : :class:`~skada.datasets.DomainAwareDataset`
         Dataset object.
     """
-
     rng = np.random.RandomState(random_state)
+
+    dataset = DomainAwareDataset(domains=[])
+    sources = []
+    targets = []
 
     if isinstance(pos_source, numbers.Real):
         X_source, y_source = _generate_data_from_moons(
             n_samples_source, pos_source, rng
         )
+        if isinstance(noise, numbers.Real):
+            X_source += rng.normal(scale=noise, size=X_source.shape)
+        elif noise is not None:
+            X_source += rng.normal(scale=noise[0], size=X_source.shape)
+        dataset.add_domain(X_source, y_source, 's')
+        sources.append('s')
     else:
-        X_source = []
-        y_source = []
-        for pos in pos_source:
+        for i, pos in enumerate(pos_source):
             X, y = _generate_data_from_moons(n_samples_source, pos, rng)
-            X_source.append(X)
-            y_source.append(y)
-        X_source = np.array(X_source)
-        y_source = np.array(y_source)
+            if isinstance(noise, numbers.Real):
+                X += rng.normal(scale=noise, size=X.shape)
+            elif noise is not None:
+                X += rng.normal(scale=noise[0], size=X.shape)
+            dataset.add_domain(X, y, 's{}'.format(i))
+            sources.append('s{}'.format(i))
 
     if isinstance(pos_target, numbers.Real):
         X_target, y_target = _generate_data_from_moons(
             n_samples_target, pos_target, rng
         )
+        if isinstance(noise, numbers.Real):
+            X_target += rng.normal(scale=noise, size=X_target.shape)
+        elif noise is not None:
+            X_target += rng.normal(scale=noise[1], size=X_target.shape)
+        dataset.add_domain(X_target, y_target, 't')
+        targets.append('t')
     else:
-        X_target = []
-        y_target = []
-        for pos in pos_target:
+        for i, pos in enumerate(pos_target):
             X, y = _generate_data_from_moons(n_samples_target, pos, rng)
-            X_target.append(X)
-            y_target.append(y)
-        X_target = np.array(X_target)
-        y_target = np.array(y_target)
+            if isinstance(noise, numbers.Real):
+                X += rng.normal(scale=noise, size=X.shape)
+            elif noise is not None:
+                X += rng.normal(scale=noise[1], size=X.shape)
+            dataset.add_domain(X, y, 't{}'.format(i))
+            targets.append('t{}'.format(i))
 
-    if isinstance(noise, numbers.Real):
-        X_source += rng.normal(scale=noise, size=X_source.shape)
-        X_target += rng.normal(scale=noise, size=X_target.shape)
-    elif noise is not None:
-        X_source += rng.normal(scale=noise[0], size=X_source.shape)
-        X_target += rng.normal(scale=noise[1], size=X_target.shape)
-
-    dataset = DomainAwareDataset(domains=[
-        (X_source, y_source, 's'),
-        (X_target, y_target, 't'),
-    ])
     if return_dataset:
         return dataset
     else:
-        return dataset.pack(as_sources=['s'], as_targets=['t'], return_X_y=return_X_y)
+        return dataset.pack(
+            as_sources=sources, as_targets=targets, return_X_y=return_X_y
+        )
 
 
 def make_variable_frequency_dataset(
