@@ -97,12 +97,12 @@ lims = plt.axis()
 
 
 clf_otda = OTMapping(SVC(kernel='rbf', C=1))
-clf_otda.fit(X, y, sample_domain)
+clf_otda.fit(X, y, sample_domain=sample_domain)
 
 # Compute accuracy on source and target
 # xxx(okachaiev): do we need to provide "per_domain score" out of the box?
-ACC_source = clf_otda.score(*dataset.pack(as_sources=['s'], train=False))
-ACC_target = clf_otda.score(*dataset.pack(as_targets=['t'], train=False))
+ACC_source = clf_otda.score(X_source, y_source)
+ACC_target = clf_otda.score(X_target, y_target)
 
 plt.figure(3, figsize=(8, 3.5))
 plt.subplot(121)
