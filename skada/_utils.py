@@ -49,13 +49,14 @@ def check_X_y_domain(
     # xxx(okachaiev): most likely this needs to be removed as it doesn't fit new API
     return_joint: bool = False,
     allow_auto_sample_domain: bool = False,
+    allow_nd: bool = False,
 ):
     """Input validation for DA estimator.
     If we work in single-source and single target mode, return source and target
     separately to avoid additional scan for 'sample_domain' array.
     """
 
-    X = check_array(X, input_name='X')
+    X = check_array(X, input_name='X', allow_nd=allow_nd)
     y = check_array(y, force_all_finite=True, ensure_2d=False, input_name='y')
     check_consistent_length(X, y)
     if sample_domain is None and allow_auto_sample_domain:
