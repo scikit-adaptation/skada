@@ -41,6 +41,7 @@ extensions = [
     'sphinx_gallery.gen_gallery',
     'sphinx.ext.graphviz',
     'myst_parser',
+    'myst_parser',
 ]
 
 # autodoc / autosummary
@@ -146,7 +147,7 @@ html_theme_options = {}
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
-html_title = "SKADA : Scikit Adapation"
+html_title = "SKADA : Scikit Domain Adaptation"
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
 # html_short_title = None
@@ -248,7 +249,7 @@ htmlhelp_basename = "SKADAdoc"
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, "SKADA.tex", "SKADA : Scikit Adaptation", author, "manual"),
+    (master_doc, "SKADA.tex", "SKADA : Scikit Domain Adaptation", author, "manual"),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
