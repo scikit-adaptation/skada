@@ -107,9 +107,10 @@ class BaseAdapter(BaseEstimator):
 
 class BaseSelector(BaseEstimator):
 
-    def __init__(self, base_estimator: BaseEstimator):
+    def __init__(self, base_estimator: BaseEstimator, **kwargs):
         super().__init__()
         self.base_estimator = base_estimator
+        self.base_estimator.set_params(**kwargs)
 
     # xxx(okachaiev): should this be a metadata routing object instead of request?
     def get_metadata_routing(self):
@@ -152,9 +153,11 @@ class BaseSelector(BaseEstimator):
         params : mapping of string to any
             Parameter names mapped to their values.
         """
-        return self.base_estimator.get_params()
+        params = self.base_estimator.get_params()
+        params['base_estimator'] = self.base_estimator
+        return params
 
-    def set_params(self, **kwargs):
+    def set_params(self, base_estimator=None, **kwargs):
         """Set the parameters of this estimator.
 
         Valid parameter keys can be listed with ``get_params()``. Note that
@@ -171,6 +174,8 @@ class BaseSelector(BaseEstimator):
         self : object
             Selector class instance.
         """
+        if base_estimator is not None:
+            self.base_estimator = base_estimator
         self.base_estimator.set_params(**kwargs)
         return self
 
