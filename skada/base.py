@@ -129,10 +129,50 @@ class BaseSelector(BaseEstimator):
 
     @abstractmethod
     def get_estimator(self, *params) -> BaseEstimator:
-        """Returns estimator associated with `params`. The set of available
-        estimators and access to them has to be provided by specific implementations.
+        """Returns estimator associated with `params`.
+
+        The set of available estimators and access to them has to be provided
+        by specific implementations.
         """
         pass
+
+    def get_params(self, deep=True):
+        """Get parameters for this estimator.
+
+        Returns the parameters of the base estimator provided in the constructor.
+
+        Parameters
+        ----------
+        deep : bool, default=True
+            If True, will return the parameters for this estimator and
+            contained sub-objects that are estimators.
+
+        Returns
+        -------
+        params : mapping of string to any
+            Parameter names mapped to their values.
+        """
+        return self.base_estimator.get_params()
+
+    def set_params(self, **kwargs):
+        """Set the parameters of this estimator.
+
+        Valid parameter keys can be listed with ``get_params()``. Note that
+        you can directly set the parameters of the estimator using `base_estimator`
+        attribute.
+
+        Parameters
+        ----------
+        **kwargs : dict
+            Parameters of of the base estimator.
+
+        Returns
+        -------
+        self : object
+            Selector class instance.
+        """
+        self.base_estimator.set_params(**kwargs)
+        return self
 
     @abstractmethod
     def _route_to_estimator(self, method_name, X, y=None, **params) -> np.ndarray:
