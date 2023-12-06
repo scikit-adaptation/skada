@@ -67,7 +67,7 @@ master_doc = "index"
 # General information about the project.
 project = "SKADA"
 copyright = "2023, The SKADA team"
-author = "Théo Gnassounou, Rémi Flamary"
+author = "Théo Gnassounou, Rémi Flamary, Oleksii Kachaiev"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -146,7 +146,7 @@ html_theme_options = {}
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
-html_title = "SKADA : Scikit Adapation"
+html_title = "SKADA : Scikit Adaptation"
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
 # html_short_title = None

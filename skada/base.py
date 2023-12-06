@@ -128,6 +128,13 @@ class BaseSelector(BaseEstimator):
         return request
 
     @abstractmethod
+    def get_estimator(self, *params) -> BaseEstimator:
+        """Returns estimator associated with `params`. The set of available
+        estimators and access to them has to be provided by specific implementations.
+        """
+        pass
+
+    @abstractmethod
     def _route_to_estimator(self, method_name, X, y=None, **params) -> np.ndarray:
         pass
 
@@ -156,6 +163,10 @@ class BaseSelector(BaseEstimator):
 
 
 class Shared(BaseSelector):
+
+    def get_estimator(self) -> BaseEstimator:
+        """Provides access to the fitted estimator."""
+        return self.base_estimator_
 
     def fit(self, X, y, **params):
         # xxx(okachaiev): this should be done in the utils helper
@@ -210,6 +221,10 @@ class Shared(BaseSelector):
 
 
 class PerDomain(BaseSelector):
+
+    def get_estimator(self, domain_label: int) -> BaseEstimator:
+        """Provides access to the fitted estimator based on the domain label."""
+        return self.estimators_[domain_label]
 
     def fit(self, X, y, **params):
         # xxx(okachaiev): use check_*_domain to derive default domain labels
