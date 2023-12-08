@@ -106,6 +106,18 @@ def test_default_selector_ignored_for_selector():
     assert isinstance(estimator, PerDomain)
 
 
+def test_pipeline_step_parameters(da_dataset):
+    pipe = make_da_pipeline(
+        StandardScaler(),
+        PCA(),
+        SubspaceAlignmentAdapter(n_components=2),
+        LogisticRegression(),
+    )
+    pipe.set_params(subspacealignmentadapter__n_components=5)
+    with pytest.raises(ValueError):
+        pipe.set_params(subspacealignmentadapter__reg=2.)
+
+
 def test_named_estimator():
     pipe = make_da_pipeline(
         ('adapter', SubspaceAlignmentAdapter(n_components=2)),
