@@ -11,7 +11,7 @@ from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 
-from skada import SubspaceAlignmentAdapter, PerDomain, make_da_pipeline
+from skada import SubspaceAlignmentAdapter, PerDomain, Shared, make_da_pipeline
 
 import pytest
 
@@ -61,3 +61,58 @@ def test_per_domain_selector():
         np.array([[-1., -0.75]]),
         scaler.transform(np.array([[-1., 1.]]), sample_domain=[2])
     )
+
+
+@pytest.mark.parametrize(
+    'selector_name, selector_cls',
+    [
+        ('per_domain', PerDomain),
+        ('shared', Shared),
+        (PerDomain, PerDomain),
+        (lambda x: PerDomain(x), PerDomain),
+        pytest.param(
+            'non_existing_one', None,
+            marks=pytest.mark.xfail(reason='Fails non-existing selector')
+        ),
+        pytest.param(
+            42, None,
+            marks=pytest.mark.xfail(reason='Fails uninterpretable type')
+        ),
+        pytest.param(
+            lambda x: 42, None,
+            marks=pytest.mark.xfail(reason='Incorrect output type for the callable')
+        )
+    ]
+)
+def test_default_selector_parameter(selector_name, selector_cls):
+    pipe = make_da_pipeline(
+        SubspaceAlignmentAdapter(n_components=2),
+        LogisticRegression(),
+        default_selector=selector_name
+    )
+    _, estimator = pipe.steps[0]
+    assert isinstance(estimator, selector_cls)
+
+
+def test_default_selector_ignored_for_selector():
+    pipe = make_da_pipeline(
+        Shared(SubspaceAlignmentAdapter(n_components=2)),
+        LogisticRegression(),
+        default_selector='per_domain',
+    )
+    _, estimator = pipe.steps[0]
+    assert isinstance(estimator, Shared)
+    _, estimator = pipe.steps[1]
+    assert isinstance(estimator, PerDomain)
+
+
+def test_pipeline_step_parameters(da_dataset):
+    pipe = make_da_pipeline(
+        StandardScaler(),
+        PCA(),
+        SubspaceAlignmentAdapter(n_components=2),
+        LogisticRegression(),
+    )
+    pipe.set_params(subspacealignmentadapter__n_components=5)
+    with pytest.raises(ValueError):
+        pipe.set_params(subspacealignmentadapter__reg=2.)

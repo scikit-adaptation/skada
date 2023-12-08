@@ -11,13 +11,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from skada.datasets import make_dataset_from_moons_distribution
+from skada import source_target_split
 
 # Use same random seed for multiple calls to make_shifted_datasets to
 # ensure same distributions
 RANDOM_SEED = np.random.randint(2**10)
 
 
-X_source, y_source, X_target, y_target = make_dataset_from_moons_distribution(
+X, y, sample_domain = make_dataset_from_moons_distribution(
     pos_source=0.1,
     pos_target=0.4,
     n_samples_source=50,
@@ -25,6 +26,8 @@ X_source, y_source, X_target, y_target = make_dataset_from_moons_distribution(
     noise=0.1,
     random_state=RANDOM_SEED
 )
+
+X_source, y_source, X_target, y_target = source_target_split(X, y, sample_domain)
 
 fig, (ax1, ax2) = plt.subplots(1, 2, sharex="row", sharey="row", figsize=(8, 4))
 fig.suptitle('One source and one target', fontsize=14)
@@ -43,7 +46,7 @@ ax1.set_ylabel("Feature 2")
 ax2.scatter(
     X_source[:, 0],
     X_source[:, 1],
-    c=y_source,
+    c="grey",
     cmap='tab10',
     vmax=10,
     alpha=0.1,)
@@ -60,7 +63,7 @@ ax2.set_ylabel("Feature 2")
 
 plt.show()
 
-X_source, y_source, X_target, y_target = make_dataset_from_moons_distribution(
+X, y, sample_domain = make_dataset_from_moons_distribution(
     pos_source=[0.1, 0.3, 0.5],
     pos_target=[0.4, 0.9],
     n_samples_source=50,
@@ -69,14 +72,19 @@ X_source, y_source, X_target, y_target = make_dataset_from_moons_distribution(
     random_state=RANDOM_SEED
 )
 
+X_source, y_source, domain_source, X_target, y_target, domain_target = (
+    source_target_split(X, y, sample_domain, return_domain=True)
+)
 fig, (ax1, ax2) = plt.subplots(1, 2, sharex="row", sharey="row", figsize=(8, 4))
 fig.suptitle('Multi-source and Multi-target', fontsize=14)
 plt.subplots_adjust(bottom=0.15)
-for i in range(len(X_source)):
+# for i in sample_domain and positive
+
+for i in np.unique(domain_source):
     ax1.scatter(
-        X_source[i, :, 0],
-        X_source[i, :, 1],
-        c=y_source[i],
+        X_source[domain_source == i, 0],
+        X_source[domain_source == i, 1],
+        c=y_source[domain_source == i],
         cmap='tab10',
         vmax=10,
         alpha=0.5,)
@@ -84,19 +92,19 @@ ax1.set_title("Source data")
 ax1.set_xlabel("Feature 1")
 ax1.set_ylabel("Feature 2")
 
-for i in range(len(X_source)):
+for i in np.unique(domain_source):
     ax2.scatter(
-        X_source[i, :, 0],
-        X_source[i, :, 1],
-        c=y_source[i],
+        X_source[domain_source == i, 0],
+        X_source[domain_source == i, 1],
+        c="grey",
         cmap='tab10',
         vmax=10,
         alpha=0.1,)
-for i in range(len(X_target)):
+for i in np.unique(domain_target):
     ax2.scatter(
-        X_target[i, :, 0],
-        X_target[i, :, 1],
-        c=y_target[i],
+        X_target[domain_target == i, 0],
+        X_target[domain_target == i, 1],
+        c=y_target[domain_target == i],
         cmap='tab10',
         vmax=10,
         alpha=0.5,)

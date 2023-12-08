@@ -22,7 +22,7 @@ DomainDataType = Union[
     # (X, y)
     Tuple[np.ndarray, np.ndarray],
     # (X,)
-    Tuple[np.ndarray,],
+    Tuple[np.ndarray, ],
 ]
 
 PackedDatasetType = Union[

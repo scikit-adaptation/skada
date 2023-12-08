@@ -6,6 +6,7 @@
 
 import sklearn
 
+from .version import __version__  # noqa: F401
 from . import model_selection
 from . import metrics
 from .base import BaseAdapter, PerDomain, Shared
@@ -38,6 +39,8 @@ from ._subspace import (
     TransferComponentAnalysis,
 )
 from ._pipeline import make_da_pipeline
+from ._utils import source_target_split
+
 
 # make sure that the usage of the library is not possible
 # without metadata routing being enabled in the configuration
@@ -77,4 +80,6 @@ __all__ = [
     "TransferComponentAnalysis",
 
     "make_da_pipeline",
+
+    "source_target_split",
 ]

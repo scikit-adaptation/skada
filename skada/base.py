@@ -107,9 +107,10 @@ class BaseAdapter(BaseEstimator):
 
 class BaseSelector(BaseEstimator):
 
-    def __init__(self, base_estimator: BaseEstimator):
+    def __init__(self, base_estimator: BaseEstimator, **kwargs):
         super().__init__()
         self.base_estimator = base_estimator
+        self.base_estimator.set_params(**kwargs)
 
     # xxx(okachaiev): should this be a metadata routing object instead of request?
     def get_metadata_routing(self):
@@ -126,6 +127,57 @@ class BaseSelector(BaseEstimator):
         if hasattr(self.base_estimator, 'score'):
             request.score.add_request(param='sample_domain', alias=True)
         return request
+
+    @abstractmethod
+    def get_estimator(self, *params) -> BaseEstimator:
+        """Returns estimator associated with `params`.
+
+        The set of available estimators and access to them has to be provided
+        by specific implementations.
+        """
+        pass
+
+    def get_params(self, deep=True):
+        """Get parameters for this estimator.
+
+        Returns the parameters of the base estimator provided in the constructor.
+
+        Parameters
+        ----------
+        deep : bool, default=True
+            If True, will return the parameters for this estimator and
+            contained sub-objects that are estimators.
+
+        Returns
+        -------
+        params : mapping of string to any
+            Parameter names mapped to their values.
+        """
+        params = self.base_estimator.get_params()
+        params['base_estimator'] = self.base_estimator
+        return params
+
+    def set_params(self, base_estimator=None, **kwargs):
+        """Set the parameters of this estimator.
+
+        Valid parameter keys can be listed with ``get_params()``. Note that
+        you can directly set the parameters of the estimator using `base_estimator`
+        attribute.
+
+        Parameters
+        ----------
+        **kwargs : dict
+            Parameters of of the base estimator.
+
+        Returns
+        -------
+        self : object
+            Selector class instance.
+        """
+        if base_estimator is not None:
+            self.base_estimator = base_estimator
+        self.base_estimator.set_params(**kwargs)
+        return self
 
     @abstractmethod
     def _route_to_estimator(self, method_name, X, y=None, **params) -> np.ndarray:
@@ -156,6 +208,10 @@ class BaseSelector(BaseEstimator):
 
 
 class Shared(BaseSelector):
+
+    def get_estimator(self) -> BaseEstimator:
+        """Provides access to the fitted estimator."""
+        return self.base_estimator_
 
     def fit(self, X, y, **params):
         # xxx(okachaiev): this should be done in the utils helper
@@ -210,6 +266,10 @@ class Shared(BaseSelector):
 
 
 class PerDomain(BaseSelector):
+
+    def get_estimator(self, domain_label: int) -> BaseEstimator:
+        """Provides access to the fitted estimator based on the domain label."""
+        return self.estimators_[domain_label]
 
     def fit(self, X, y, **params):
         # xxx(okachaiev): use check_*_domain to derive default domain labels

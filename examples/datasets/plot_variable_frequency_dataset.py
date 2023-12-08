@@ -10,12 +10,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from skada.datasets import make_variable_frequency_dataset
+from skada import source_target_split
 
 # Use same random seed for multiple calls to make_datasets to
 # ensure same distributions
 RANDOM_SEED = np.random.randint(2**10)
 
-X_source, y_source, X_target, y_target = make_variable_frequency_dataset(
+X, y, sample_domain = make_variable_frequency_dataset(
     n_samples_source=1,
     n_samples_target=1,
     n_channels=3,
@@ -27,6 +28,8 @@ X_source, y_source, X_target, y_target = make_variable_frequency_dataset(
     noise=0.2,
     random_state=RANDOM_SEED
 )
+
+X_source, y_source, X_target, y_target = source_target_split(X, y, sample_domain)
 
 fig, ax = plt.subplots(3, 2, sharex="all", sharey="all", figsize=(8, 4))
 plt.subplots_adjust(bottom=0.15)

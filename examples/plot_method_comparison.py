@@ -30,13 +30,14 @@ from skada import (
 )
 from skada import SubspaceAlignment, TransferComponentAnalysis
 from skada import (
-    OTmapping,
-    EntropicOTmapping,
-    ClassRegularizerOTmapping,
-    LinearOTmapping,
+    OTMapping,
+    EntropicOTMapping,
+    ClassRegularizerOTMapping,
+    LinearOTMapping,
     CORAL
 )
 from skada.datasets import make_shifted_datasets
+from skada import source_target_split
 
 # Use same random seed for multiple calls to make_datasets to
 # ensure same distributions
@@ -68,10 +69,10 @@ classifiers = [
     KLIEP(base_estimator=SVC(), gamma=[1, 0.1, 0.001]),
     SubspaceAlignment(base_estimator=SVC(), n_components=1),
     TransferComponentAnalysis(base_estimator=SVC(), n_components=1, mu=0.5),
-    OTmapping(base_estimator=SVC()),
-    EntropicOTmapping(base_estimator=SVC()),
-    ClassRegularizerOTmapping(base_estimator=SVC()),
-    LinearOTmapping(base_estimator=SVC()),
+    OTMapping(base_estimator=SVC()),
+    EntropicOTMapping(base_estimator=SVC()),
+    ClassRegularizerOTMapping(base_estimator=SVC()),
+    LinearOTMapping(base_estimator=SVC()),
     CORAL(base_estimator=SVC()),
 ]
 
@@ -114,7 +115,10 @@ figure, axes = plt.subplots(len(classifiers) + 2, len(datasets), figsize=(9, 27)
 # iterate over datasets
 for ds_cnt, ds in enumerate(datasets):
     # preprocess dataset, split into training and test part
-    X, y, X_target, y_target = ds
+    X, y, sample_domain = ds
+
+    Xs, ys, Xt, yt = source_target_split(X, y, sample_domain=sample_domain)
+
     x_min, x_max = X[:, 0].min() - 0.5, X[:, 0].max() + 0.5
     y_min, y_max = X[:, 1].min() - 0.5, X[:, 1].max() + 0.5
     # just plot the dataset first
@@ -125,9 +129,9 @@ for ds_cnt, ds in enumerate(datasets):
         ax.set_ylabel("Source data")
     # Plot the source points
     ax.scatter(
-        X[:, 0],
-        X[:, 1],
-        c=y,
+        Xs[:, 0],
+        Xs[:, 1],
+        c=ys,
         cmap=cm_bright,
         alpha=0.5,
     )
@@ -138,16 +142,16 @@ for ds_cnt, ds in enumerate(datasets):
         ax.set_ylabel("Target data")
     # Plot the target points
     ax.scatter(
-        X[:, 0],
-        X[:, 1],
-        c=y,
+        Xs[:, 0],
+        Xs[:, 1],
+        c=ys,
         cmap=cm_bright,
         alpha=0.1,
     )
     ax.scatter(
-        X_target[:, 0],
-        X_target[:, 1],
-        c=y_target,
+        Xt[:, 0],
+        Xt[:, 1],
+        c=yt,
         cmap=cm_bright,
         alpha=0.5,
     )
@@ -159,21 +163,22 @@ for ds_cnt, ds in enumerate(datasets):
 
     # iterate over classifiers
     for name, clf in zip(names, classifiers):
+        print(name, clf)
         ax = axes[i, ds_cnt]
         if name == "Without da":
-            clf.fit(X, y)
+            clf.fit(Xs, ys)
         else:
-            clf.fit(X, y, X_target)
-        score = clf.score(X_target, y_target)
+            clf.fit(X, y, sample_domain=sample_domain)
+        score = clf.score(Xt, yt)
         DecisionBoundaryDisplay.from_estimator(
-            clf, X, cmap=cm, alpha=0.8, ax=ax, eps=0.5
+            clf, Xs, cmap=cm, alpha=0.8, ax=ax, eps=0.5, response_method="predict",
         )
 
         # Plot the target points
         ax.scatter(
-            X_target[:, 0],
-            X_target[:, 1],
-            c=y_target,
+            Xt[:, 0],
+            Xt[:, 1],
+            c=yt,
             cmap=cm_bright,
             alpha=0.5,
         )
