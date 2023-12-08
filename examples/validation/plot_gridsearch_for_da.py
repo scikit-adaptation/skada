@@ -42,21 +42,21 @@ estimator = EntropicOTMapping(base_estimator=SVC(probability=True))
 cv = ShuffleSplit(n_splits=5, test_size=0.3, random_state=0)
 grid_search = GridSearchCV(
     estimator,
-    {"entropicotmappingadapter__base_estimator__reg_e": reg_e},
+    {"entropicotmappingadapter__reg_e": reg_e},
     cv=cv,
     scoring=PredictionEntropyScorer(),
 )
 
 grid_search.fit(X, y, sample_domain=sample_domain)
 
-best_reg_e = grid_search.best_params_['entropicotmappingadapter__base_estimator__reg_e']
+best_reg_e = grid_search.best_params_['entropicotmappingadapter__reg_e']
 print(f"Best regularization parameter: {best_reg_e}")
 
 # %%
 # Plot the results
 
 plt.plot(
-    grid_search.cv_results_["param_entropicotmappingadapter__base_estimator__reg_e"],
+    grid_search.cv_results_["param_entropicotmappingadapter__reg_e"],
     grid_search.cv_results_["mean_test_score"]
 )
 plt.xlabel("Regulariation parameter")

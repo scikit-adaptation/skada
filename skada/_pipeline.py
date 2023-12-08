@@ -70,8 +70,12 @@ def make_da_pipeline(
     >>> from sklearn.preprocessing import StandardScaler
     >>> from skada import make_da_pipeline
     >>> make_da_pipeline(StandardScaler(), GaussianNB(priors=None))
-    Pipeline(steps=[('standardscaler', Shared(base_estimator=StandardScaler())),
-                    ('gaussiannb', Shared(base_estimator=GaussianNB()))])
+    Pipeline(steps=[('standardscaler',
+                     Shared(base_estimator=StandardScaler(), copy=True,
+                            with_mean=True, with_std=True)),
+                    ('gaussiannb',
+                     Shared(base_estimator=GaussianNB(), priors=None,
+                            var_smoothing=1e-09))])
     """
     # note that we generate names before wrapping estimators into the selector
     # xxx(okachaiev): unwrap from the selector when passed explicitly
