@@ -34,7 +34,7 @@ def make_da_pipeline(
 
     Parameters
     ----------
-    *steps : list of Estimator objects
+    *steps : list of estimators or tuples of the form (name of step, estimator).
         List of the scikit-learn estimators that are chained together.
 
     memory : str or object with the joblib.Memory interface, default=None
@@ -75,8 +75,14 @@ def make_da_pipeline(
     """
     # note that we generate names before wrapping estimators into the selector
     # xxx(okachaiev): unwrap from the selector when passed explicitly
-    steps = _wrap_with_selectors(_name_estimators(steps), default_selector)
-    return Pipeline(steps, memory=memory, verbose=verbose)
+    names = [step[0] if isinstance(step, tuple) else None for step in steps]
+    estimators = [step[1] if isinstance(step, tuple) else step for step in steps]
+    steps = _wrap_with_selectors(_name_estimators(estimators), default_selector)
+    named_steps = [
+        (auto_name, step) if user_name is None else (user_name, step)
+        for user_name, (auto_name, step) in zip(names, steps)
+    ]
+    return Pipeline(named_steps, memory=memory, verbose=verbose)
 
 
 def _wrap_with_selector(
