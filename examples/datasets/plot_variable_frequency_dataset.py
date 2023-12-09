@@ -115,6 +115,4 @@ ax[2, 0].set_xlabel("Frequency")
 ax[2, 1].set_xlabel("Frequency")
 plt.show()
 
-print("The data was generated from (random_state=%d):" % RANDOM_SEED)
-
-# %%
+print(f"The data was generated from (random_state={RANDOM_SEED})")
