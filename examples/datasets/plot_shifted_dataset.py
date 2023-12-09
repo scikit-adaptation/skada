@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 from skada.datasets import make_shifted_datasets
 from skada import source_target_split
 
+
 # %% Helper function
 
 def plot_shifted_dataset(shift, random_state=42):
@@ -78,6 +79,7 @@ def plot_shifted_dataset(shift, random_state=42):
     ax2.set_ylabel("Feature 2")
 
     plt.show()
+
 
 # %% Visualize shifted datasets
 
