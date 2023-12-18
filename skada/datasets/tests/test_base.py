@@ -24,7 +24,8 @@ def test_dataset_train_label_masking():
     # test label masking
     assert_array_equal(y[sample_domain < 0], np.array([-1, -1, -1]))
     assert np.all(y[sample_domain > 0])
-    
+
     # custom mask
-    X, y, sample_domain = dataset.pack_for_train(as_sources=['s1'], as_targets=['t1'], mask=-10)
+    X, y, sample_domain = dataset.pack_for_train(
+        as_sources=['s1'], as_targets=['t1'], mask=-10)
     assert_array_equal(y[sample_domain < 0], np.array([-10, -10, -10]))
