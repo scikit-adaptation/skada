@@ -111,6 +111,7 @@ class BaseSelector(BaseEstimator):
         super().__init__()
         self.base_estimator = base_estimator
         self.base_estimator.set_params(**kwargs)
+        self._is_final = False
 
     # xxx(okachaiev): should this be a metadata routing object instead of request?
     def get_metadata_routing(self):
@@ -206,6 +207,23 @@ class BaseSelector(BaseEstimator):
     def score(self, X, y, **params):
         return self._route_to_estimator('score', X, y=y, **params)
 
+    def _mark_as_final(self) -> 'BaseSelector':
+        self._is_final = True
+        return self
+
+    def _remove_masked(self, X, y, routed_params):
+        if not self._is_final:
+            return X, y, routed_params
+        # in case the estimator is marked as final in the pipeline,
+        # the selector is responsible for removing masked labels
+        # from the targets
+        # xxx(okachaiev): make sure to recognize all labels
+        idx = (y != -1).copy()
+        X = X[idx]
+        y = y[idx]
+        routed_params = {k: v[idx] for k, v in routed_params.items()}
+        return X, y, routed_params
+
 
 class Shared(BaseSelector):
 
@@ -228,6 +246,7 @@ class Shared(BaseSelector):
                 if k != 'X' and k in routed_params:
                     routed_params[k] = v
             X = X['X']
+        X, y, routed_params = self._remove_masked(X, y, routed_params)
         estimator = clone(self.base_estimator)
         estimator.fit(X, y, **routed_params)
         self.base_estimator_ = estimator
@@ -283,6 +302,7 @@ class PerDomain(BaseSelector):
                 if k != 'X' and k in routed_params:
                     routed_params[k] = v
             X = X['X']
+        X, y, routed_params = self._remove_masked(X, y, routed_params)
         estimators = {}
         # xxx(okachaiev): maybe return_index?
         for domain_label in np.unique(sample_domain):
