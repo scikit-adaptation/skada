@@ -6,7 +6,7 @@ This illustrates the :func:`~skada.datasets.make_dataset_from_moons_distribution
 dataset generator. Each method consists of generating source data
 and shifted target data.
 """
-
+# %% Imports
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -17,6 +17,7 @@ from skada import source_target_split
 # ensure same distributions
 RANDOM_SEED = np.random.randint(2**10)
 
+# %% Generate and visualize single-source single-target dataset
 
 X, y, sample_domain = make_dataset_from_moons_distribution(
     pos_source=0.1,
@@ -63,6 +64,8 @@ ax2.set_ylabel("Feature 2")
 
 plt.show()
 
+# %% Generate and visualize multi-source multi-target dataset
+
 X, y, sample_domain = make_dataset_from_moons_distribution(
     pos_source=[0.1, 0.3, 0.5],
     pos_target=[0.4, 0.9],
@@ -78,7 +81,6 @@ X_source, y_source, domain_source, X_target, y_target, domain_target = (
 fig, (ax1, ax2) = plt.subplots(1, 2, sharex="row", sharey="row", figsize=(8, 4))
 fig.suptitle('Multi-source and Multi-target', fontsize=14)
 plt.subplots_adjust(bottom=0.15)
-# for i in sample_domain and positive
 
 for i in np.unique(domain_source):
     ax1.scatter(
@@ -114,4 +116,4 @@ ax2.set_ylabel("Feature 2")
 
 plt.show()
 
-print("The data was generated from (random_state=%d):" % RANDOM_SEED)
+print(f"The data was generated from (random_state={RANDOM_SEED})")

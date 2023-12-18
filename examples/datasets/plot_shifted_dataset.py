@@ -13,12 +13,15 @@ See detailed description of each shift in [1]_.
        A unifying view on dataset shift in classification.
        Pattern recognition, 45(1):521-530.
 """
+# %% Imports
 
 import matplotlib.pyplot as plt
 
 from skada.datasets import make_shifted_datasets
 from skada import source_target_split
 
+
+# %% Helper function
 
 def plot_shifted_dataset(shift, random_state=42):
     """Plot source and shifted target data for a given type of shift.
@@ -77,6 +80,8 @@ def plot_shifted_dataset(shift, random_state=42):
 
     plt.show()
 
+
+# %% Visualize shifted datasets
 
 for shift in [
     "covariate_shift",
