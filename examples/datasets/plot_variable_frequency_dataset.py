@@ -6,6 +6,8 @@ This illustrates the :func:`~skada.datasets.make_variable_frequency_dataset`
 dataset generator. Each method consists of generating source data
 and shifted target data.
 """
+# %% Imports
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -15,6 +17,8 @@ from skada import source_target_split
 # Use same random seed for multiple calls to make_datasets to
 # ensure same distributions
 RANDOM_SEED = np.random.randint(2**10)
+
+# %% Generate the dataset
 
 X, y, sample_domain = make_variable_frequency_dataset(
     n_samples_source=1,
@@ -30,6 +34,8 @@ X, y, sample_domain = make_variable_frequency_dataset(
 )
 
 X_source, y_source, X_target, y_target = source_target_split(X, y, sample_domain)
+
+# %% Visualize the signal
 
 fig, ax = plt.subplots(3, 2, sharex="all", sharey="all", figsize=(8, 4))
 plt.subplots_adjust(bottom=0.15)
@@ -66,6 +72,8 @@ ax[2, 0].set_xlabel("Time (s)")
 ax[2, 1].set_xlabel("Time (s)")
 ax[0, 0].legend()
 plt.show()
+
+# %% Visualize PSD shift
 
 fig, ax = plt.subplots(3, 2, sharex="all", sharey="all", figsize=(8, 4))
 plt.subplots_adjust(bottom=0.15)
@@ -107,4 +115,4 @@ ax[2, 0].set_xlabel("Frequency")
 ax[2, 1].set_xlabel("Frequency")
 plt.show()
 
-print("The data was generated from (random_state=%d):" % RANDOM_SEED)
+print(f"The data was generated from (random_state={RANDOM_SEED})")
