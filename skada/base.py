@@ -208,20 +208,34 @@ class BaseSelector(BaseEstimator):
         return self._route_to_estimator('score', X, y=y, **params)
 
     def _mark_as_final(self) -> 'BaseSelector':
+        """Internal API for keeping track of which estimator is final
+        in the Pipeline.
+        """
         self._is_final = True
         return self
 
     def _remove_masked(self, X, y, routed_params):
+        """Internal API for removing masked samples before passing them
+        to the final estimator. Only applicable for the final estimator
+        within the Pipeline.
+        """
         if not self._is_final:
             return X, y, routed_params
         # in case the estimator is marked as final in the pipeline,
         # the selector is responsible for removing masked labels
         # from the targets
-        # xxx(okachaiev): make sure to recognize all labels
-        idx = (y != -1).copy()
-        X = X[idx]
-        y = y[idx]
-        routed_params = {k: v[idx] for k, v in routed_params.items()}
+        if y.dtype in (np.float32, np.float64):
+            unmasked_idx = ~np.isfinite(y)
+        else:
+            unmasked_idx = (y != -1)
+        X = X[unmasked_idx]
+        y = y[unmasked_idx]
+        routed_params = {
+            # this is somewhat crude way to test is `v` is indexable
+            k: v[unmasked_idx] if hasattr(v, "__len__") else v
+            for k, v
+            in routed_params.items()
+        }
         return X, y, routed_params
 
 
