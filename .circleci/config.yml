@@ -44,7 +44,8 @@ jobs:
             name: Install latex (for logo)
             command: |
               sudo apt install texlive-latex-base texlive-fonts-recommended
-              texlive-latex-extra cm-super dvipng 
+              texlive-latex-extra cm-super
+              sudo apt install dvipng
 
         - run:
             name: Get Python running
