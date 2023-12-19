@@ -18,9 +18,7 @@ matplotlib and plotting the solution of the EMD solver from POT.
 # %% Imports
 
 import numpy as np
-import scipy as sp
 import pylab as pl
-from scipy.spatial.transform import Rotation as R
 
 import matplotlib.pyplot as plt
 plt.rcParams.update({
@@ -77,7 +75,7 @@ xt[n//2:, 1] -= 0.2
 yt = np.ones(n)*7
 
 
-# %% Plot the smal logo
+# %% Plot the small logo
 nb = 10
 alpha0 = 0.2
 
@@ -146,7 +144,6 @@ for i in range(nb):
 pl.text(1.3, -1.18, r'\bf\textsf{SKADA}', fontsize=80,
         usetex=True, zorder=0.5, color=(0.2, 0.2, 0.2))
 
-#pl.scatter(xcs[:,0],xcs[:,1],c='gray',cmap='tab10',vmin=0,vmax=10,alpha=0.5,label='Target data')
 pl.axis(ax)
 pl.axis('off')
 
