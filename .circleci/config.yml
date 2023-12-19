@@ -43,7 +43,7 @@ jobs:
         - run:
             name: Install latex (for logo)
             command: |
-              sudo apt install texlive-latex-base              
+              sudo apt install texlive-latex-base texlive-fonts-recommended             
 
         - run:
             name: Get Python running
