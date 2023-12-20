@@ -80,6 +80,7 @@ def make_da_pipeline(
     # note that we generate names before wrapping estimators into the selector
     # xxx(okachaiev): unwrap from the selector when passed explicitly
     steps = _wrap_with_selectors(_name_estimators(steps), default_selector)
+    steps[-1][1]._mark_as_final()
     return Pipeline(steps, memory=memory, verbose=verbose)
 
 
