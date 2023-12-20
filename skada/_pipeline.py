@@ -82,6 +82,7 @@ def make_da_pipeline(
     names = [step[0] if isinstance(step, tuple) else None for step in steps]
     estimators = [step[1] if isinstance(step, tuple) else step for step in steps]
     steps = _wrap_with_selectors(_name_estimators(estimators), default_selector)
+    steps[-1][1]._mark_as_final()
     named_steps = [
         (auto_name, step) if user_name is None else (user_name, step)
         for user_name, (auto_name, step) in zip(names, steps)

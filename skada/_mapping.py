@@ -638,12 +638,16 @@ class CORALAdapter(BaseAdapter):
         weights : None
             No weights are returned here.
         """
-        X_adapt = np.dot(X, self.cov_source_inv_sqrt_)
-        X_adapt = np.dot(X_adapt, self.cov_target_sqrt_)
-        # xxx(okachaiev): i feel this is straight up incorrect,
-        # in the previous version of the code only source data
-        # was transformed, and the target was never updated. i
-        # guess it should just 'passthrough' for a target space
+        X_source, X_target = check_X_domain(
+            X,
+            sample_domain,
+            allow_multi_source=True,
+            allow_multi_target=True,
+            return_joint=False,
+        )
+        X_source_adapt = np.dot(X_source, self.cov_source_inv_sqrt_)
+        X_source_adapt = np.dot(X_source_adapt, self.cov_target_sqrt_)
+        X_adapt = _merge_source_target(X_source_adapt, X_target, sample_domain)
         return X_adapt
 
 
