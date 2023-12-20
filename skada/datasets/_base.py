@@ -197,11 +197,14 @@ class DomainAwareDataset:
             sample_domains.append(np.ones_like(y)*domain_id)
             domain_labels[domain_name] = domain_id
         # xxx(okachaiev): code duplication, re-write when API is fixed
+        dtype = None
         for domain_name in as_targets:
             domain_id = self.domain_names_[domain_name]
             target = self.get_domain(domain_name)
             if len(target) == 1:
                 X, = target
+                # xxx(okachaiev): for what it's worth, we should likely to
+                # move the decision about dtype to the very end of the list
                 y = -np.ones(X.shape[0], dtype=np.int32)
             elif len(target) == 2:
                 X, y = target
@@ -209,15 +212,15 @@ class DomainAwareDataset:
                 raise ValueError("Invalid definition for domain data")
             if train:
                 if mask is not None:
-                    y = np.array([mask] * X.shape[0])
-                elif y.dtype == np.int32:
-                    y = -np.ones(X.shape[0], dtype=np.int32)
+                    y = np.array([mask] * X.shape[0], dtype=dtype)
+                elif y.dtype in (np.int32, np.int64):
+                    y = -np.ones(X.shape[0], dtype=y.dtype)
                     # make sure that the mask is reused on the next iteration
-                    mask = -1
-                elif y.dtype == np.float32:
-                    y = np.array([np.nan] * X.shape[0])
+                    mask, dtype = -1, y.dtype
+                elif y.dtype in (np.float32, np.float64):
+                    y = np.array([np.nan] * X.shape[0], dtype=y.dtype)
                     # make sure that the  mask is reused on the next iteration
-                    mask = np.nan
+                    mask, dtype = np.nan, y.dtype
             # xxx(okachaiev): this is horribly inefficient, rewrite when API is fixed
             Xs.append(X)
             ys.append(y)
