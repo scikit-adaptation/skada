@@ -116,3 +116,12 @@ def test_pipeline_step_parameters(da_dataset):
     pipe.set_params(subspacealignmentadapter__n_components=5)
     with pytest.raises(ValueError):
         pipe.set_params(subspacealignmentadapter__reg=2.)
+
+
+def test_named_estimator():
+    pipe = make_da_pipeline(
+        ('adapter', SubspaceAlignmentAdapter(n_components=2)),
+        LogisticRegression(),
+    )
+    assert 'adapter' in pipe.named_steps
+    assert 'logisticregression' in pipe.named_steps
