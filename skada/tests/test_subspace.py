@@ -35,12 +35,12 @@ import pytest
     ]
 )
 def test_subspace_alignment(estimator, da_dataset):
-    X_train, y_train, sample_domain = da_dataset.pack_for_train(
+    X_train, y_train, sample_domain = da_dataset.pack_train(
         as_sources=['s'],
         as_targets=['t']
     )
     estimator.fit(X_train, y_train, sample_domain=sample_domain)
-    X_test, y_test, sample_domain = da_dataset.pack_for_test(as_targets=['t'])
+    X_test, y_test, sample_domain = da_dataset.pack_test(as_targets=['t'])
     y_pred = estimator.predict(X_test, sample_domain=sample_domain)
     assert np.mean(y_pred == y_test) > 0.9
     score = estimator.score(X_test, y_test, sample_domain=sample_domain)
@@ -69,12 +69,12 @@ def test_subspace_default_n_components(adapter, n_samples, n_features, n_compone
         (X_target, y_target, 't'),
     ])
 
-    X_train, y_train, sample_domain = dataset.pack_for_train(
+    X_train, y_train, sample_domain = dataset.pack_train(
         as_sources=['s'],
         as_targets=['t']
     )
     adapter.fit(X_train, y_train, sample_domain=sample_domain)
-    X_test, _, sample_domain = dataset.pack_for_test(as_targets=['t'])
+    X_test, _, sample_domain = dataset.pack_test(as_targets=['t'])
     output = adapter.transform(X_test, sample_domain=sample_domain)
     if isinstance(output, AdaptationOutput):
         output = output['X']

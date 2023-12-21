@@ -33,7 +33,7 @@ def test_group_based_cv(da_dataset, cv, n_splits):
     assert hasattr(cv, 'set_split_request'), 'splitter has to support routing'
     cv.set_split_request(groups='sample_domain')
     # single source, single target, target labels are masked
-    X, y, sample_domain = da_dataset.pack_for_train(
+    X, y, sample_domain = da_dataset.pack_train(
         as_sources=['s', 's2'],
         as_targets=['t', 't2']
     )
@@ -58,7 +58,7 @@ def test_group_based_cv(da_dataset, cv, n_splits):
 
 
 def test_domain_aware_split(da_dataset):
-    X, y, sample_domain = da_dataset.pack_for_train(
+    X, y, sample_domain = da_dataset.pack_train(
         as_sources=['s', 's2'],
         as_targets=['t', 't2']
     )
@@ -86,7 +86,7 @@ def test_domain_aware_split(da_dataset):
     [(2, 2), (10, 4)]
 )
 def test_leave_one_domain_out(da_dataset, max_n_splits, n_splits):
-    X, y, sample_domain = da_dataset.pack_flatten()
+    X, y, sample_domain = da_dataset.pack_lodo()
     pipe = make_da_pipeline(
         SubspaceAlignmentAdapter(n_components=2),
         LogisticRegression(),

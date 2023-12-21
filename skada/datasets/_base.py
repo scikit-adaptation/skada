@@ -25,6 +25,11 @@ DomainDataType = Union[
     Tuple[np.ndarray, ],
 ]
 
+PackedDatasetType = Union[
+    Bunch,
+    Tuple[np.ndarray, np.ndarray, np.ndarray]
+]
+
 
 def get_data_home(data_home: Union[str, os.PathLike, None]) -> str:
     """Return the path of the `skada` data folder.
@@ -130,9 +135,10 @@ class DomainAwareDataset:
         return_X_y: bool = True,
         train: bool = False,
         mask: Union[None, int, float] = None,
-    ) -> Union[Bunch, Tuple[np.ndarray, np.ndarray, np.ndarray]]:
-        """Takes all domain datasets and packs them into a single
-        domain-aware representation compatible with DA estimators.
+    ) -> PackedDatasetType:
+        """Aggregates datasets from all domains into a unified domain-aware
+        representation, ensuring compatibility with domain adaptation (DA)
+        estimators.
 
         Parameters
         ----------
@@ -159,7 +165,7 @@ class DomainAwareDataset:
                 Samples from all sources and all targets given.
             target : ndarray
                 Target labels from all sources and all targets.
-            sample_domain : ndarray)
+            sample_domain : ndarray
                 The integer label for domain the sample was taken from.
                 By convention, source domains have non-negative labels,
                 and target domain label is always < 0.
@@ -232,14 +238,14 @@ class DomainAwareDataset:
             domain_names=domain_labels,
         )
 
-    def pack_for_train(
+    def pack_train(
         self,
         as_sources: List[str],
         as_targets: List[str],
         return_X_y: bool = True,
         mask: Union[None, int, float] = None,
-    ):
-        """Same as pack.
+    ) -> PackedDatasetType:
+        """Same as `pack`.
 
         Masks labels for target domains with -1 so they are not available
         at training time.
@@ -252,11 +258,11 @@ class DomainAwareDataset:
             mask=mask,
         )
 
-    def pack_for_test(
+    def pack_test(
         self,
         as_targets: List[str],
         return_X_y: bool = True,
-    ):
+    ) -> PackedDatasetType:
         return self.pack(
             as_sources=[],
             as_targets=as_targets,
@@ -264,7 +270,42 @@ class DomainAwareDataset:
             train=False,
         )
 
-    def pack_flatten(self, return_X_y: bool = True):
+    def pack_lodo(self, return_X_y: bool = True) -> PackedDatasetType:
+        """Packages all domains in a format compatible with the Leave-One-Domain-Out
+        cross-validator (refer to :class:`~skada.model_selection.LeaveOneDomainOut` for
+        more details). To enable the splitter's dynamic assignment of source and target
+        domains, data from each domain is included in the output twice — once as a
+        source and once as a target.
+
+        Exercise caution when using this output for purposes other than its intended
+        use, as this could lead to incorrect results and data leakage.
+
+        Parameters
+        ----------
+        return_X_y : bool, default=True
+            When set to True, returns a tuple (X, y, sample_domain). Otherwise
+            returns :class:`~sklearn.utils.Bunch` object with the structure
+            described below.
+
+        Returns
+        -------
+        data : :class:`~sklearn.utils.Bunch`
+            Dictionary-like object, with the following attributes.
+
+            data: np.ndarray
+                Samples from all sources and all targets given.
+            target : np.ndarray
+                Target labels from all sources and all targets.
+            sample_domain : np.ndarray
+                The integer label for domain the sample was taken from.
+                By convention, source domains have non-negative labels,
+                and target domain label is always < 0.
+            domain_names : dict
+                The names of domains and associated domain labels.
+
+        (X, y, sample_domain) : tuple if `return_X_y=True`
+            Tuple of (data, target, sample_domain), see the description above.
+        """
         return self.pack(
             as_sources=list(self.domain_names_.keys()),
             as_targets=list(self.domain_names_.keys()),
