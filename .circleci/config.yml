@@ -40,7 +40,11 @@ jobs:
             command: |
               sudo apt update 
               sudo apt install ffmpeg
-
+        - run:
+            name: Install latex (for logo)
+            command: |
+              sudo apt install texlive-latex-base texlive-fonts-recommended texlive-latex-extra cm-super dvipng
+              
         - run:
             name: Get Python running
             command: |
