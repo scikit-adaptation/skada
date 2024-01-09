@@ -270,10 +270,10 @@ def make_shifted_blobs(
     data : :class:`~sklearn.utils.Bunch`
         Dictionary-like object, with the following attributes.
 
-        data: ndarray
+        X: ndarray
             Samples from all sources and all targets given.
-        target : ndarray
-            Target labels from all sources and all targets.
+        y : ndarray
+            Labels from all sources and all targets.
         sample_domain : ndarray
             The integer label for domain the sample was taken from.
             By convention, source domains have non-negative labels,
@@ -382,10 +382,10 @@ def make_shifted_datasets(
     data : :class:`~sklearn.utils.Bunch`
         Dictionary-like object, with the following attributes.
 
-        data: ndarray
+        X: ndarray
             Samples from all sources and all targets given.
-        target : ndarray
-            Target labels from all sources and all targets.
+        y : ndarray
+            Labels from all sources and all targets.
         sample_domain : ndarray
             The integer label for domain the sample was taken from.
             By convention, source domains have non-negative labels,
@@ -540,10 +540,10 @@ def make_dataset_from_moons_distribution(
     data : :class:`~sklearn.utils.Bunch`
         Dictionary-like object, with the following attributes.
 
-        data: ndarray
+        X: ndarray
             Samples from all sources and all targets given.
-        target : ndarray
-            Target labels from all sources and all targets.
+        y : ndarray
+            Labels from all sources and all targets.
         sample_domain : ndarray
             The integer label for domain the sample was taken from.
             By convention, source domains have non-negative labels,
@@ -671,10 +671,10 @@ def make_variable_frequency_dataset(
     data : :class:`~sklearn.utils.Bunch`
         Dictionary-like object, with the following attributes.
 
-        data: ndarray
+        X: ndarray
             Samples from all sources and all targets given.
-        target : ndarray
-            Target labels from all sources and all targets.
+        y : ndarray
+            Labels from all sources and all targets.
         sample_domain : ndarray
             The integer label for domain the sample was taken from.
             By convention, source domains have non-negative labels,

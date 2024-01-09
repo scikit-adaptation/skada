@@ -73,7 +73,7 @@ Method `pack` also accepts optional `return_X_y` argument (defaults to `True`). 
 >>> office31 = fetch_all_office31_surf()
 >>> data = office31.pack(as_sources=['amazon', 'dslr'], as_targets=['webcam'], return_X_y=False)
 >>> data.keys()
-dict_keys(['data', 'target', 'sample_domain', 'domain_names'])
+dict_keys(['X', 'y', 'sample_domain', 'domain_names'])
 ```
 
 This is mostly to cover use cases where you need access to `'domain_names'` labels. Domain labels are assigned following the convention that source gets non-negative integer (1,2,..) and target always gets negative (-1,-2,...). Labels are assigned in the order that datasets are provided, should make it easier to "reconstruct" labels even working with tuple output (without access to `Bunch` object). Absolute value of the label is always static for a given domain name, for example if "amazon" domain gets index 2 it will be included in `sample_domain` as 2 when included as source and -2 when included as target. Such convention is required to avoid fluctuations of domain labels (otherwise multi-estimator API won't be possible).
