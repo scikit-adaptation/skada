@@ -313,6 +313,12 @@ class DomainAwareDataset:
             train=True,
         )
 
+    def __str__(self) -> str:
+        return f"DomainAwareDataset(domains={list(self.domain_names_.keys())})"
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
 
 # xxx(okachaiev): putting `domain_names` first argument
 # so it's compatible with `partial`
