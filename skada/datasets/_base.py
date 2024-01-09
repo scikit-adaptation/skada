@@ -232,8 +232,8 @@ class DomainAwareDataset:
         target = np.concatenate(ys)
         sample_domain = np.concatenate(sample_domains)
         return (data, target, sample_domain) if return_X_y else Bunch(
-            data=data,
-            target=target,
+            X=data,
+            y=target,
             sample_domain=sample_domain,
             domain_names=domain_labels,
         )
