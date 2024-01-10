@@ -8,6 +8,25 @@ from torch import nn
 from torch.autograd import Function
 
 
+class ToyModule(torch.nn.Module):
+    def __init__(self, n_classes=2, num_units=10, nonlin=torch.nn.ReLU()):
+        super(ToyModule, self).__init__()
+
+        self.dense0 = torch.nn.Linear(2, num_units)
+        self.nonlin = nonlin
+        self.dropout = torch.nn.Dropout(0.5)
+        self.dense1 = torch.nn.Linear(num_units, n_classes)
+
+    def forward(
+        self,
+        X,
+    ):
+        X = self.nonlin(self.dense0(X))
+        X = self.dropout(X)
+        X = self.dense1(X)
+        return X
+
+
 class ToyCNN(nn.Module):
     """Toy CNN for examples and tests.
 

@@ -295,7 +295,7 @@ class BaseDANetwork(NeuralNetClassifier):
         self.history.record(prefix + "_batch_count", batch_count)
 
     # pylint: disable=unused-argument
-    def partial_fit(self, X, y=None, X_target=None, classes=None, **fit_params):
+    def partial_fit(self, X, y=None, sample_domain=None, classes=None, **fit_params):
         """Fit the module.
 
         If the module is initialized, it is not re-initialized, which
@@ -341,13 +341,13 @@ class BaseDANetwork(NeuralNetClassifier):
 
         self.notify("on_train_begin", X=X, y=y)
         try:
-            self.fit_loop(X, y, X_target, **fit_params)
+            self.fit_loop(X, y, sample_domain, **fit_params)
         except KeyboardInterrupt:
             pass
         self.notify("on_train_end", X=X, y=y)
         return self
 
-    def fit(self, X, y=None, X_target=None, **fit_params):
+    def fit(self, X, y=None, sample_domain=None, **fit_params):
         """Initialize and fit the module.
 
         If the module was already initialized, by calling fit, the
@@ -388,7 +388,7 @@ class BaseDANetwork(NeuralNetClassifier):
         if not self.warm_start or not self.initialized_:
             self.initialize()
 
-        self.partial_fit(X, y, X_target, **fit_params)
+        self.partial_fit(X, y, sample_domain, **fit_params)
         return self
 
     def initialize_module(self):
