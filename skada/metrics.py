@@ -17,8 +17,6 @@ from sklearn.utils import check_random_state
 from sklearn.utils.extmath import softmax
 from sklearn.utils.metadata_routing import _MetadataRequester, get_routing_for_object
 
-import imp
-
 from ._utils import check_X_y_domain
 
 
