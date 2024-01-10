@@ -17,6 +17,8 @@ from sklearn.utils import check_random_state
 from sklearn.utils.extmath import softmax
 from sklearn.utils.metadata_routing import _MetadataRequester, get_routing_for_object
 
+import imp
+
 from ._utils import check_X_y_domain
 
 
@@ -328,10 +330,17 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
     def _no_reduc_log_loss(self, y, y_pred):
         return np.array(
             [
-                log_loss(y[i : i + 1], y_pred[i : i + 1], labels=np.unique(y))
+                self.cross_entropy_loss(y[i : i + 1], y_pred[i : i + 1])
                 for i in range(len(y))
             ]
         )
+
+        # return np.array(
+        #     [
+        #         log_loss(y[i : i + 1], y_pred[i : i + 1], labels=np.unique(y))
+        #         for i in range(len(y))
+        #     ]
+        # )
 
     def _fit_adapt(self, features, features_target):
         domain_classifier = self.domain_classifier
@@ -379,7 +388,7 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         predictions = self.domain_classifier_.predict_proba(features_val.get('X'))
         weights = (N_train / N_target) * predictions[:, :1] / predictions[:, 1:] 
         
-        y_pred = estimator.predict_proba(X_val, sample_domain=sample_domain_val)
+        y_pred = estimator.predict_proba(X_val, sample_domain=sample_domain_val, allow_source=True)
         error = self._loss_func(y_val, y_pred)
         assert weights.shape[0] == error.shape[0]
 
@@ -389,3 +398,24 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         var_w = np.var(weights, ddof=1)
         eta = -cov / var_w
         return self._sign * (np.mean(weighted_error) + eta * np.mean(weights) - eta)
+    
+
+    def cross_entropy_loss(self, y_true, y_pred, epsilon=1e-15):
+        """
+        Compute cross-entropy loss between true labels and predicted probability estimates.
+
+        Parameters:
+        - y_true: true labels (integer labels).
+        - y_pred: predicted probabilities
+        - epsilon: a small constant to avoid numerical instability (default is 1e-15).
+
+        Returns:
+        - Cross-entropy loss.
+        """
+        num_classes = y_pred.shape[1]
+        y_true_one_hot = np.eye(num_classes)[y_true]  # Convert integer labels to one-hot encoding
+
+        y_pred = np.clip(y_pred, epsilon, 1 - epsilon)  # Clip predicted probabilities to avoid log(0) or log(1)
+        
+        cross_entropy = -np.sum(y_true_one_hot * np.log(y_pred))
+        return cross_entropy
