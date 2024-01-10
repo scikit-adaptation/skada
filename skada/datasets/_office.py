@@ -160,15 +160,15 @@ def fetch_office31_surf(
     data : :class:`~sklearn.utils.Bunch`
         Dictionary-like object, with the following attributes.
 
-        data: ndarray, shape (n_samples, 800)
+        X: ndarray, shape (n_samples, 800)
             Each row corresponds to a single quantized SURF BoW histogram.
-        target : ndarray, shape (n_samples,)
+        y : ndarray, shape (n_samples,)
             Labels associated to each image.
         target_names : list
             List of label names for inverse encoding of labels.
 
-    (data, target) : tuple if `return_X_y=True`
-        Tuple with the `data` and `target` objects described above.
+    (X, y) : tuple if `return_X_y=True`
+        Tuple with the `X` and `y` objects described above.
     """
     return _fetch_office31(
         _SURF_LOADER,
@@ -295,14 +295,14 @@ def fetch_office31_decaf(
     data : :class:`~sklearn.utils.Bunch`
         Dictionary-like object, with the following attributes.
 
-        data: ndarray, shape (n_samples, 1000)
+        X: ndarray, shape (n_samples, 1000)
             Each row corresponds to a single decaf vector.
-        target : ndarray, shape (n_samples,)
+        y : ndarray, shape (n_samples,)
             Labels associated to each image.
         target_names : list
             List of label names for inverse encoding of labels.
 
-    (data, target) : tuple if `return_X_y=True`
+    (X, y) : tuple if `return_X_y=True`
         Tuple with the `data` and `target` objects described above.
     """
     return _fetch_office31(

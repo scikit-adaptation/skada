@@ -292,10 +292,10 @@ class DomainAwareDataset:
         data : :class:`~sklearn.utils.Bunch`
             Dictionary-like object, with the following attributes.
 
-            data: np.ndarray
+            X: ndarray
                 Samples from all sources and all targets given.
-            target : np.ndarray
-                Target labels from all sources and all targets.
+            y : ndarray
+                Labels from all sources and all targets.
             sample_domain : np.ndarray
                 The integer label for domain the sample was taken from.
                 By convention, source domains have non-negative labels,
