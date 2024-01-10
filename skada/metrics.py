@@ -338,28 +338,47 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         if domain_classifier is None:
             domain_classifier = LogisticRegression()
         self.domain_classifier_ = clone(domain_classifier)
-        y_domain = np.concatenate((len(features) * [0], len(features_target) * [1]))
+        y_domain = np.concatenate((len(features.get('X')) * [1], len(features_target.get('X')) * [0]))
         self.domain_classifier_.fit(
-            np.concatenate((features, features_target)), y_domain
+            np.concatenate((features.get('X'), features_target.get('X'))), y_domain
         )
         return self
 
     def _score(self, estimator, X, y, sample_domain=None, **kwargs):
+        if not hasattr(estimator, "predict_proba"):
+            raise AttributeError(
+                "The estimator passed should have a 'predict_proba' method. "
+                f"The estimator {estimator!r} does not."
+            )
+        
+        # We need to find the last layer of the pipeline with a transform method
+        pipeline_steps = list(estimator.named_steps.items())
+        
+        for index_transformer, (step_name, step_process) in reversed(list(enumerate(pipeline_steps))):
+            if hasattr(step_process, 'transform'):
+                break  # Stop after the first occurrence if there are multiple
+        else:
+            raise AttributeError(
+                "The estimator passed should have a 'transform' method. "
+                f"The estimator {estimator!r} does not."
+            )
+        
         source_idx = check_X_y_domain(X, y, sample_domain, return_indices=True)
         rng = check_random_state(self.random_state)
         X_train, X_val, _, y_val, _, sample_domain_val = train_test_split(
             X[source_idx], y[source_idx], sample_domain[source_idx],
             test_size=0.33, random_state=rng
         )
-        features_train = estimator.get_features(X_train)
-        features_val = estimator.get_features(X_val)
-        features_target = estimator.get_features(X[~source_idx])
 
+        features_train = estimator[:index_transformer+1].transform(X_train)
+        features_val = estimator[:index_transformer+1].transform(X_val)
+        features_target = estimator[:index_transformer+1].transform(X[~source_idx])
+        
         self._fit_adapt(features_train, features_target)
-        N, N_target = len(features_train), len(features_target)
-        predictions = self.domain_classifier_.predict_proba(features_val)
-        weights = N / N_target * predictions[:, :1] / predictions[:, 1:]
-
+        N_train, N_target = len(features_train), len(features_target)
+        predictions = self.domain_classifier_.predict_proba(features_val.get('X'))
+        weights = (N_train / N_target) * predictions[:, :1] / predictions[:, 1:] 
+        
         y_pred = estimator.predict_proba(X_val, sample_domain=sample_domain_val)
         error = self._loss_func(y_val, y_pred)
         assert weights.shape[0] == error.shape[0]
