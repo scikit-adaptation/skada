@@ -318,7 +318,8 @@ class DomainAwareDataset:
 
     def __repr__(self) -> str:
         head = self.__str__()
-        body = [f"Number of datapoints: {sum(len(tup[0]) for tup in self.domains_)}"]
+        body = [f"Number of domains: {len(self.domains_)}"]
+        body.append(f"Total size: {sum(len(tup[0]) for tup in self.domains_)}")
         output = "\n".join([head] + body)
         return output
     
