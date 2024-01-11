@@ -79,6 +79,9 @@ def make_da_pipeline(
     """
     # note that we generate names before wrapping estimators into the selector
     # xxx(okachaiev): unwrap from the selector when passed explicitly
+    if not steps:
+        raise TypeError("Missing 1 required positional argument: 'steps'")
+    
     names = [step[0] if isinstance(step, tuple) else None for step in steps]
     estimators = [step[1] if isinstance(step, tuple) else step for step in steps]
     steps = _wrap_with_selectors(_name_estimators(estimators), default_selector)
