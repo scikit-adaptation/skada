@@ -459,17 +459,8 @@ def make_shifted_datasets(
         )
         X_target *= -1
 
-    elif shift == "subspace":
-        X_source, y_source = _generate_data_2d_classif_subspace(
-            n_samples_source, rng, "binary"
-        )
-        X_target, y_target = _generate_data_2d_classif_subspace(
-            n_samples_target, rng, "binary"
-        )
-        X_target *= -1
-
     else:
-        raise NotImplementedError("unknown shift {}".format(shift))
+        raise ValueError(f"Invalid shift value: {shift}")
 
     if isinstance(noise, numbers.Real):
         X_source += rng.normal(scale=noise, size=X_source.shape)
