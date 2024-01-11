@@ -10,6 +10,7 @@ import numpy as np
 
 from scipy import signal
 from scipy.fftpack import rfft, irfft
+from scipy.stats import multivariate_normal
 
 from sklearn.datasets import make_blobs
 
@@ -37,6 +38,7 @@ def _generate_data_2d_classif(n_samples, rng, label='binary'):
     label : tuple, default='binary'
         If 'binary, return binary class
         If 'multiclass', return multiclass
+        if 'regression', return regression
     """
     n2 = n_samples
     n1 = n2 * 4
@@ -75,15 +77,17 @@ def _generate_data_2d_classif(n_samples, rng, label='binary'):
     # make labels
     if label == 'binary':
         y = np.concatenate((np.zeros(n1), np.ones(4 * n2)), 0)
+        y = y.astype(int)
     elif label == 'multiclass':
         y = np.zeros(n1)
         for i in range(4):
             y = np.concatenate((y, (i + 1) * np.ones(n2)), 0)
+        y = y.astype(int)
     elif label == 'regression':
         # create label y with gaussian distribution
         normal_rv = multivariate_normal(mu1, Sigma1)
         y = normal_rv.pdf(x)
-    return x, y.astype(int)
+    return x, y
 
 
 def _generate_data_2d_classif_subspace(n_samples, rng, label='binary'):
