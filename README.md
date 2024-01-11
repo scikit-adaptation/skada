@@ -166,7 +166,7 @@ Even though, as of now, we don't have any adapters that would be reasonable to s
 
 ```python
 estimator = make_da_pipeline(
-    OTMappingAdapter(reg=0.1),
+    OTMappingAdapter(),
     PerDomain(LogisticRegression())
 )
 estimator.fit(X_train, y_train, sample_domain)
