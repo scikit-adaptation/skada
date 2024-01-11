@@ -79,6 +79,9 @@ def _generate_data_2d_classif(n_samples, rng, label='binary'):
         y = np.zeros(n1)
         for i in range(4):
             y = np.concatenate((y, (i + 1) * np.ones(n2)), 0)
+    else:
+        raise ValueError(f"Invalid label value: {label}. The label should either be "
+                 "'binary' or 'multiclass'")
     return x, y.astype(int)
 
 
@@ -125,6 +128,10 @@ def _generate_data_2d_classif_subspace(n_samples, rng, label='binary'):
         y = np.zeros(n1)
         for i in range(4):
             y = np.concatenate((y, (i + 1) * np.ones(n2)), 0)
+    else:
+        raise ValueError(f"Invalid label value: {label}. The label should either be "
+                 "'binary' or 'multiclass'")
+
     return x, y.astype(int)
 
 
@@ -139,9 +146,6 @@ def _generate_data_from_moons(n_samples, index, rng):
         Give the position fo the centers in the moons
     rng : random generator
         Generator for dataset creation
-    label : tuple, default='binary'
-        If 'binary, return binary class
-        If 'multiclass', return multiclass
     """
     n_samples_circ = 100
     outer_circ_x = np.cos(np.linspace(0, np.pi, n_samples_circ))
@@ -460,7 +464,9 @@ def make_shifted_datasets(
         X_target *= -1
 
     else:
-        raise ValueError(f"Invalid shift value: {shift}")
+        raise ValueError(f"Invalid shift value: {shift}. The shift should either be "
+                         "'covariate_shift', 'target_shift', 'concept_drift' or 'subspace'")
+
 
     if isinstance(noise, numbers.Real):
         X_source += rng.normal(scale=noise, size=X_source.shape)
