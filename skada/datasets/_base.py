@@ -314,7 +314,7 @@ class DomainAwareDataset:
         )
 
     def __str__(self) -> str:
-        return f"DomainAwareDataset(domains={self.get_domain_representation()})"
+        return f"DomainAwareDataset(domains={self._get_domain_representation()})"
 
     def __repr__(self) -> str:
         head = self.__str__()
@@ -323,7 +323,7 @@ class DomainAwareDataset:
         output = "\n".join([head] + body)
         return output
     
-    def get_domain_representation(self, max_domains=5, max_length=50):
+    def _get_domain_representation(self, max_domains=5, max_length=50):
         domain_names = list(self.domain_names_.keys())
 
         if len(domain_names) <= max_domains:
