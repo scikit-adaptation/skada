@@ -14,7 +14,7 @@ on:
       - '**'
 
 jobs:
-  Test:
+  Test-minimal:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -49,10 +49,42 @@ jobs:
         python -m pip install --user -e .
     # Run Tests
     - name: Run Tests without torch
-      run: pytest skada/ --verbose --ignore=skada/feature
-    # - name: Install GPU stuffs for CI
-    #   run: conda install pytorch cpuonly -y -c pytorch
-    # - name: Install Skorch for CI
-    #   run: conda install -c conda-forge skorch==0.13.0
-    # - name: Run Tests with torch # See https://stackoverflow.com/a/59959080/1469195 for the cov-report logic
-    #   run: pytest --cov=skada skada/ --cov-report term --cov-report xml:coverage.xml
+      run: pytest skada/ --verbose --cov=skada skada/ --cov-report term
+
+  Test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+
+    # Install skada
+    - name: Checking Out Repository
+      uses: actions/checkout@v2
+    # Cache 'skada' datasets
+    - name: Create/Restore Skada Data Cache
+      id: cache-skada_datasets
+      uses: actions/cache@v2
+      with:
+        path: ~/skada_datasets
+        key: ${{ runner.os }}-v3
+    # Install Python & Packages
+    - uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+    - run: which python
+    - name: Install dependencies
+      run: |
+        python -m pip install --user --upgrade --progress-bar off pip
+        python -m pip install --user -r requirements_full.txt
+        python -m pip install --user --pre --upgrade 'scikit-learn==1.4.0rc1'
+        python -m pip install --user --upgrade pytest pytest-cov codecov 
+    - name: Install 'skada' package
+      run: |
+        python -m pip install --user -e .
+    # Run Tests
+    - name: Run Tests without torch
+      run: pytest skada/ --verbose --cov=skada skada/ --cov-report term
+
