@@ -4,11 +4,13 @@
 #
 # License: BSD 3-Clause
 
+from collections import defaultdict 
+
 from typing import Callable, Optional, Union
 
 from joblib import Memory
 from sklearn.base import BaseEstimator
-from sklearn.pipeline import Pipeline, _name_estimators
+from sklearn.pipeline import Pipeline
 
 from .base import BaseSelector, PerDomain, Shared
 
@@ -122,3 +124,42 @@ def _wrap_with_selectors(
         (name, _wrap_with_selector(estimator, default_selector))
         for (name, estimator) in steps
     ]
+
+
+def _name_estimators(estimators):
+    """Generate names for estimators."""
+    # From scikit-learn: https://github.com/scikit-learn/scikit-learn
+    # Author: Edouard Duchesnay
+    #         Gael Varoquaux
+    #         Virgile Fritsch
+    #         Alexandre Gramfort
+    #         Lars Buitinck
+    # License: BSD
+    names = []
+
+    for estimator in estimators:
+        if isinstance(estimator, str):
+            name = estimator
+        elif isinstance(estimator, BaseSelector):
+            name = type(estimator.base_estimator).__name__.lower()
+            if isinstance(estimator, PerDomain):
+                name = 'perdomain_' + name
+        else:
+            name = type(estimator).__name__.lower()
+        names.append(name)
+    
+    namecount = defaultdict(int)
+    for est, name in zip(estimators, names):
+        namecount[name] += 1
+
+    for k, v in list(namecount.items()):
+        if v == 1:
+            del namecount[k]
+
+    for i in reversed(range(len(estimators))):
+        name = names[i]
+        if name in namecount:
+            names[i] += "-%d" % namecount[name]
+            namecount[name] -= 1
+
+    return list(zip(names, estimators))
