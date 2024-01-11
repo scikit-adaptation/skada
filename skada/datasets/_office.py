@@ -152,23 +152,23 @@ def fetch_office31_surf(
         for reproducible output across multiple function calls.
 
     return_X_y : bool, default=False
-        If True, returns `(data, target)` instead of a :class:`~sklearn.utils.Bunch`
-        object. See below for more information about the `data` and `target` object.
+        If True, returns `(X, y)` instead of a :class:`~sklearn.utils.Bunch`
+        object. See below for more information about the `X` and `y` object.
 
     Returns
     -------
     data : :class:`~sklearn.utils.Bunch`
         Dictionary-like object, with the following attributes.
 
-        data: ndarray, shape (n_samples, 800)
+        X: ndarray, shape (n_samples, 800)
             Each row corresponds to a single quantized SURF BoW histogram.
-        target : ndarray, shape (n_samples,)
+        y : ndarray, shape (n_samples,)
             Labels associated to each image.
         target_names : list
             List of label names for inverse encoding of labels.
 
-    (data, target) : tuple if `return_X_y=True`
-        Tuple with the `data` and `target` objects described above.
+    (X, y) : tuple if `return_X_y=True`
+        Tuple with the `X` and `y` objects described above.
     """
     return _fetch_office31(
         _SURF_LOADER,
@@ -287,23 +287,23 @@ def fetch_office31_decaf(
         for reproducible output across multiple function calls.
 
     return_X_y : bool, default=False
-        If True, returns `(data, target)` instead of a :class:`~sklearn.utils.Bunch`
-        object. See below for more information about the `data` and `target` object.
+        If True, returns `(X, y)` instead of a :class:`~sklearn.utils.Bunch`
+        object. See below for more information about the `X` and `y` object.
 
     Returns
     -------
     data : :class:`~sklearn.utils.Bunch`
         Dictionary-like object, with the following attributes.
 
-        data: ndarray, shape (n_samples, 1000)
+        X: ndarray, shape (n_samples, 1000)
             Each row corresponds to a single decaf vector.
-        target : ndarray, shape (n_samples,)
+        y : ndarray, shape (n_samples,)
             Labels associated to each image.
         target_names : list
             List of label names for inverse encoding of labels.
 
-    (data, target) : tuple if `return_X_y=True`
-        Tuple with the `data` and `target` objects described above.
+    (X, y) : tuple if `return_X_y=True`
+        Tuple with the `X` and `y` objects described above.
     """
     return _fetch_office31(
         _DECAF_LOADER,
@@ -425,7 +425,7 @@ def _fetch_office31(
         shuffle=shuffle,
         random_state=random_state
     )
-    return (dataset.data, dataset.target) if return_X_y else dataset
+    return (dataset.X, dataset.y) if return_X_y else dataset
 
 
 def _download_office31(remote_spec: RemoteFileMetadata, download_dir, extract_dir):
@@ -470,4 +470,7 @@ def _load_office31(
             data.append(content.astype(loader_spec.dtype))
     files['data'] = np.vstack(data)
     files['target'] = files['target'][np.array(indices)]
+
+    files['X'] = files.pop('data')
+    files['y'] = files.pop('target')
     return files
