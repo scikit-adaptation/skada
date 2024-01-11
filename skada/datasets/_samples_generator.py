@@ -79,6 +79,10 @@ def _generate_data_2d_classif(n_samples, rng, label='binary'):
         y = np.zeros(n1)
         for i in range(4):
             y = np.concatenate((y, (i + 1) * np.ones(n2)), 0)
+    elif label == 'regression':
+        # create label y with gaussian distribution
+        normal_rv = multivariate_normal(mu1, Sigma1)
+        y = normal_rv.pdf(x)
     return x, y.astype(int)
 
 
