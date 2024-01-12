@@ -17,7 +17,7 @@ from sklearn.covariance import (
     shrunk_covariance,
 )
 from sklearn.utils import check_array, check_consistent_length
-
+from sklearn.utils.multiclass import type_of_target
 
 _logger = logging.getLogger('skada')
 _logger.setLevel(logging.DEBUG)
@@ -40,7 +40,7 @@ def _estimate_covariance(X, shrinkage):
 def check_X_y_domain(
     X,
     y,
-    sample_domain,
+    sample_domain = None,
     allow_source: bool = True,
     allow_multi_source: bool = True,
     allow_target: bool = True,
@@ -48,7 +48,7 @@ def check_X_y_domain(
     return_indices: bool = False,
     # xxx(okachaiev): most likely this needs to be removed as it doesn't fit new API
     return_joint: bool = False,
-    allow_auto_sample_domain: bool = False,
+    allow_auto_sample_domain: bool = True,
     allow_nd: bool = False,
 ):
     """Input validation for DA estimator.
@@ -59,7 +59,11 @@ def check_X_y_domain(
     X = check_array(X, input_name='X', allow_nd=allow_nd)
     y = check_array(y, force_all_finite=True, ensure_2d=False, input_name='y')
     check_consistent_length(X, y)
-    if sample_domain is None and allow_auto_sample_domain:
+    if sample_domain is None and not allow_auto_sample_domain:
+        raise ValueError("Either 'sample_domain' or 'allow_auto_sample_domain' "
+                         "should be set")
+    elif sample_domain is None and allow_auto_sample_domain:
+        _check_y_masking(y)
         sample_domain = np.ones_like(y)
         # labels masked with -1 are recognized as targets,
         # the rest is treated as a source
@@ -245,3 +249,29 @@ def source_target_split(X, y, sample_domain=None,
             return X_s, y_s, domain_s, X_t, y_t, domain_t
         else:
             return X_s, y_s, X_t, y_t
+
+
+def _check_y_masking(y):
+    """Check that labels are properly masked
+    ie. labels are either -1 or >= 0
+
+
+    Parameters
+    ----------
+    y : array-like of shape (n_samples,)
+        Labels for the data
+    """
+
+    y_type = type_of_target(y) #Check if the target is a classification or regression target.
+
+    if y_type == 'continuous':
+        if not np.any(np.isnan(y)):
+            raise ValueError("For a regression task, "
+                             "masked labels should be NaN")
+    elif y_type == 'binary' or y_type == 'multiclass':
+        if not np.any(y < -1):
+            raise ValueError("For a classification task, "
+                             "masked labels should be -1")
+    else:
+        raise ValueError("Uncompatible label type: %r" % y_type)
+    
