@@ -81,7 +81,7 @@ def _generate_data_2d_classif(n_samples, rng, label='binary'):
             y = np.concatenate((y, (i + 1) * np.ones(n2)), 0)
     else:
         raise ValueError(f"Invalid label value: {label}. The label should either be "
-                 "'binary' or 'multiclass'")
+                         "'binary' or 'multiclass'")
     return x, y.astype(int)
 
 
@@ -130,7 +130,7 @@ def _generate_data_2d_classif_subspace(n_samples, rng, label='binary'):
             y = np.concatenate((y, (i + 1) * np.ones(n2)), 0)
     else:
         raise ValueError(f"Invalid label value: {label}. The label should either be "
-                 "'binary' or 'multiclass'")
+                         "'binary' or 'multiclass'")
 
     return x, y.astype(int)
 
@@ -465,8 +465,8 @@ def make_shifted_datasets(
 
     else:
         raise ValueError(f"Invalid shift value: {shift}. The shift should either be "
-                         "'covariate_shift', 'target_shift', 'concept_drift' or 'subspace'")
-
+                         "'covariate_shift', 'target_shift', 'concept_drift' "
+                         "or 'subspace'")
 
     if isinstance(noise, numbers.Real):
         X_source += rng.normal(scale=noise, size=X_source.shape)
