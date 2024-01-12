@@ -322,7 +322,7 @@ class DomainAwareDataset:
         body.append(f"Total size: {sum(len(tup[0]) for tup in self.domains_)}")
         output = "\n".join([head] + body)
         return output
-    
+
     def _get_domain_representation(self, max_domains=5, max_length=50):
         domain_names = list(self.domain_names_.keys())
 

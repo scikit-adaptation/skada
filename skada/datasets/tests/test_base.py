@@ -37,6 +37,7 @@ def test_dataset_train_label_masking():
     assert sample_domain.shape == (3,)
     assert np.all(y > 0)
 
+
 def test_dataset_repr():
     dataset = DomainAwareDataset()
     dataset.add_domain(np.array([1., 2.]), np.array([1, 2]), 's1')
@@ -46,15 +47,17 @@ def test_dataset_repr():
 
     assert str(dataset) == "DomainAwareDataset(domains=['s1', 's2', 't1', 't2'])"
     assert repr(dataset) == (
-    "DomainAwareDataset(domains=['s1', 's2', 't1', 't2'])\n"
-    "Number of domains: 4\nTotal size: 11"
-    )
+        "DomainAwareDataset(domains=['s1', 's2', 't1', 't2'])\n"
+        "Number of domains: 4\nTotal size: 11"
+        )
 
     dataset.add_domain(np.array([10., 20., 30.]), np.array([10, 20, 30]), 's3')
     dataset.add_domain(np.array([10., 20., 30.]), np.array([10, 20, 30]), 't3')
 
-    assert str(dataset) == "DomainAwareDataset(domains=['s1', 's2', 't1', 't2', 's3', ...])"
+    assert str(dataset) == (
+        "DomainAwareDataset(domains=['s1', 's2', 't1', 't2', 's3', ...])"
+        )
     assert repr(dataset) == (
-    "DomainAwareDataset(domains=['s1', 's2', 't1', 't2', 's3', ...])\n"
-    "Number of domains: 6\nTotal size: 17"
-    )
+        "DomainAwareDataset(domains=['s1', 's2', 't1', 't2', 's3', ...])\n"
+        "Number of domains: 6\nTotal size: 17"
+        )
