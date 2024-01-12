@@ -40,7 +40,7 @@ def _estimate_covariance(X, shrinkage):
 def check_X_y_domain(
     X,
     y,
-    sample_domain = None,
+    sample_domain=None,
     allow_source: bool = True,
     allow_multi_source: bool = True,
     allow_target: bool = True,
@@ -269,7 +269,7 @@ def _check_y_masking(y):
         Labels for the data
     """
 
-    # We need to check for this case first because 
+    # We need to check for this case first because
     # type_of_target() doesnt handle nan values
     if np.any(np.isnan(y)):
         if y.ndim != 1:
@@ -278,11 +278,12 @@ def _check_y_masking(y):
         else:
             return 'continuous'
 
-    y_type = type_of_target(y) #Check if the target is a classification or regression target.
+    # Check if the target is a classification or regression target.
+    y_type = type_of_target(y)
 
     if y_type == 'continuous':
-            raise ValueError("For a regression task, "
-                             "masked labels should be NaN")
+        raise ValueError("For a regression task, "
+                         "masked labels should be NaN")
     elif y_type == 'binary' or y_type == 'multiclass':
         if np.any(y < -1) or not np.any(y == -1):
             raise ValueError("For a classification task, "
@@ -291,4 +292,3 @@ def _check_y_masking(y):
             return 'classification'
     else:
         raise ValueError("Uncompatible label type: %r" % y_type)
-    

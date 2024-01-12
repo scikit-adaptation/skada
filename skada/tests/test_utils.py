@@ -5,11 +5,11 @@
 import pytest
 
 import numpy as np
-from numpy.testing import assert_almost_equal
 from skada.datasets import (
     make_dataset_from_moons_distribution
 )
 from skada._utils import check_X_y_domain, check_X_domain, _check_y_masking
+
 
 def test_check_y_masking_classification():
     y_properly_masked = np.array([-1, 1, 2, -1, 2, 1, 1])
@@ -39,7 +39,7 @@ def test_check_y_masking_regression():
 
 def test_check_2d_y_masking():
     y_wrong_dim = np.array([[-1, 2], [1, 2], [1, 2]])
-    
+
     with pytest.raises(ValueError):
         _check_y_masking(y_wrong_dim)
 
@@ -54,11 +54,11 @@ def test_check_X_y_domain_exceptions():
         return_X_y=True,
     )
 
-     # Test that no ValueError is raised
-    check_X_y_domain(X, y, sample_domain = sample_domain)
+    # Test that no ValueError is raised
+    check_X_y_domain(X, y, sample_domain=sample_domain)
 
     with pytest.raises(ValueError):
-        check_X_y_domain(X, y, sample_domain = None, allow_auto_sample_domain = False)
+        check_X_y_domain(X, y, sample_domain=None, allow_auto_sample_domain=False)
 
 
 def test_check_X_domain_exceptions():
@@ -71,8 +71,8 @@ def test_check_X_domain_exceptions():
         return_X_y=True,
     )
 
-     # Test that no ValueError is raised
-    check_X_domain(X, sample_domain = sample_domain)
+    # Test that no ValueError is raised
+    check_X_domain(X, sample_domain=sample_domain)
 
     with pytest.raises(ValueError):
-        check_X_domain(X, sample_domain = None, allow_auto_sample_domain = False)
+        check_X_domain(X, sample_domain=None, allow_auto_sample_domain=False)
