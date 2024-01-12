@@ -208,3 +208,28 @@ def test_make_variable_frequency_dataset():
     assert X_target.shape == (3 * 5, 1, 3000), "X target shape mismatch"
     assert y_target.shape == (3 * 5,), "y target shape mismatch"
     assert np.unique(y_target).shape == (3,), "Unexpected number of cluster"
+
+
+def test_invalid_shift_value():
+    invalid_shift = "invalid_shift_value"
+
+    with pytest.raises(ValueError):
+        make_shifted_datasets(
+            n_samples_source=10,
+            n_samples_target=10,
+            shift=invalid_shift,
+            noise=None,
+            label="binary",
+        )
+
+
+def test_invalid_label_value():
+    invalid_label = "invalid_label_value"
+
+    with pytest.raises(ValueError):
+        make_shifted_datasets(
+            n_samples_source=10,
+            n_samples_target=10,
+            noise=None,
+            label=invalid_label,
+        )
