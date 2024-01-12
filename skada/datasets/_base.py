@@ -161,10 +161,10 @@ class DomainAwareDataset:
         data : :class:`~sklearn.utils.Bunch`
             Dictionary-like object, with the following attributes.
 
-            data: ndarray
+            X: ndarray
                 Samples from all sources and all targets given.
-            target : ndarray
-                Target labels from all sources and all targets.
+            y : ndarray
+                Labels from all sources and all targets.
             sample_domain : ndarray
                 The integer label for domain the sample was taken from.
                 By convention, source domains have non-negative labels,
@@ -228,12 +228,12 @@ class DomainAwareDataset:
             domain_labels[domain_name] = -1 * domain_id
 
         # xxx(okachaiev): so far this only works if source and target has the same size
-        data = np.concatenate(Xs)
-        target = np.concatenate(ys)
+        Xs = np.concatenate(Xs)
+        ys = np.concatenate(ys)
         sample_domain = np.concatenate(sample_domains)
-        return (data, target, sample_domain) if return_X_y else Bunch(
-            data=data,
-            target=target,
+        return (Xs, ys, sample_domain) if return_X_y else Bunch(
+            X=Xs,
+            y=ys,
             sample_domain=sample_domain,
             domain_names=domain_labels,
         )
@@ -292,10 +292,10 @@ class DomainAwareDataset:
         data : :class:`~sklearn.utils.Bunch`
             Dictionary-like object, with the following attributes.
 
-            data: np.ndarray
+            X: ndarray
                 Samples from all sources and all targets given.
-            target : np.ndarray
-                Target labels from all sources and all targets.
+            y : ndarray
+                Labels from all sources and all targets.
             sample_domain : np.ndarray
                 The integer label for domain the sample was taken from.
                 By convention, source domains have non-negative labels,
