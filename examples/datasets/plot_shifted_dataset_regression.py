@@ -23,11 +23,6 @@ from skada import source_target_split
 
 # %% Helper function
 
-def change_scale(L, a=0, b=1):
-    u = max(L)
-    l = min(L)
-    ul = u-l
-    return (L-l)*((b-a)/ul)+a
 
 
 def plot_shifted_dataset(shift, random_state=42):
@@ -50,14 +45,23 @@ def plot_shifted_dataset(shift, random_state=42):
 
     X_source, y_source, X_target, y_target = source_target_split(X, y, sample_domain)
 
+    # we create the colors:
+    b = 10
+    a = 0 
+    u = max(max(y_source), max(y_target))
+    l = min(min(y_source), min(y_target))
+    ul = u-l
+    c_source=(y_source-l)*((b-a)/ul)+a
+    c_target=(y_target-l)*((b-a)/ul)+a
+
+
     fig, (ax1, ax2) = plt.subplots(1, 2, sharex="row", sharey="row", figsize=(8, 4))
     fig.suptitle(shift.replace("_", " ").title(), fontsize=14)
     plt.subplots_adjust(bottom=0.15)
     ax1.scatter(
         X_source[:, 0],
         X_source[:, 1],
-        c=y_source,
-        cmap="tab10",
+        c=c_source,
         vmax=10,
         alpha=0.5,
     )
@@ -66,18 +70,9 @@ def plot_shifted_dataset(shift, random_state=42):
     ax1.set_ylabel("Feature 2")
 
     ax2.scatter(
-        X_source[:, 0],
-        X_source[:, 1],
-        c=y_source,
-        cmap="tab10",
-        vmax=10,
-        alpha=0.1,
-    )
-    ax2.scatter(
         X_target[:, 0],
         X_target[:, 1],
-        c=y_target,
-        cmap="tab10",
+        c=c_target,
         vmax=10,
         alpha=0.5,
     )
