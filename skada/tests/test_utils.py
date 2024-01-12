@@ -9,7 +9,7 @@ from numpy.testing import assert_almost_equal
 from skada.datasets import (
     make_dataset_from_moons_distribution
 )
-from skada._utils import check_X_y_domain, _check_y_masking
+from skada._utils import check_X_y_domain, check_X_domain, _check_y_masking
 
 def test_check_y_masking_classification():
     y_properly_masked = np.array([-1, 1, 2, -1, 2, 1, 1])
@@ -59,3 +59,20 @@ def test_check_X_y_domain_exceptions():
 
     with pytest.raises(ValueError):
         check_X_y_domain(X, y, sample_domain = None, allow_auto_sample_domain = False)
+
+
+def test_check_X_domain_exceptions():
+    X, y, sample_domain = make_dataset_from_moons_distribution(
+        pos_source=0.1,
+        pos_target=0.9,
+        n_samples_source=50,
+        n_samples_target=20,
+        random_state=0,
+        return_X_y=True,
+    )
+
+     # Test that no ValueError is raised
+    check_X_domain(X, sample_domain = sample_domain)
+
+    with pytest.raises(ValueError):
+        check_X_domain(X, sample_domain = None, allow_auto_sample_domain = False)

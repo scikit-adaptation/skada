@@ -121,13 +121,17 @@ def check_X_domain(
     return_indices: bool = False,
     # xxx(okachaiev): most likely this needs to be removed as it doesn't fit new API
     return_joint: bool = True,
-    allow_auto_sample_domain: bool = False,
+    allow_auto_sample_domain: bool = True,
 ):
     X = check_array(X, input_name='X')
-    if sample_domain is None and allow_auto_sample_domain:
+    if sample_domain is None and not allow_auto_sample_domain:
+        raise ValueError("Either 'sample_domain' or 'allow_auto_sample_domain' "
+                         "should be set")
+    elif sample_domain is None and allow_auto_sample_domain:
         # default target domain when sample_domain is not given
         # xxx(okachaiev): I guess this should be -inf instead of a number
-        sample_domain = -2*np.ones(X.shape[0], dtype=np.int32)
+        # The idea is that with no labels we always assume target domain (-1)
+        sample_domain = -1*np.ones(X.shape[0], dtype=np.int32)
     else:
         sample_domain = check_array(
             sample_domain,
