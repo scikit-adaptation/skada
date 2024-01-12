@@ -63,11 +63,14 @@ def check_X_y_domain(
         raise ValueError("Either 'sample_domain' or 'allow_auto_sample_domain' "
                          "should be set")
     elif sample_domain is None and allow_auto_sample_domain:
-        _check_y_masking(y)
+        y_type = _check_y_masking(y)
         sample_domain = np.ones_like(y)
         # labels masked with -1 are recognized as targets,
         # the rest is treated as a source
-        sample_domain[y == -1] = -2
+        if y_type == 'classification':
+            sample_domain[y == -1] = -2
+        else:
+            sample_domain[np.isnan(y)] = -2
     else:
         sample_domain = check_array(
             sample_domain,
@@ -262,16 +265,26 @@ def _check_y_masking(y):
         Labels for the data
     """
 
+    # We need to check for this case first because 
+    # type_of_target() doesnt handle nan values
+    if np.any(np.isnan(y)):
+        if y.ndim != 1:
+            raise ValueError("For a regression task, "
+                             "more than 1D labels are not supported")
+        else:
+            return 'continuous'
+
     y_type = type_of_target(y) #Check if the target is a classification or regression target.
 
     if y_type == 'continuous':
-        if not np.any(np.isnan(y)):
             raise ValueError("For a regression task, "
                              "masked labels should be NaN")
     elif y_type == 'binary' or y_type == 'multiclass':
-        if not np.any(y < -1):
+        if np.any(y < -1) or not np.any(y == -1):
             raise ValueError("For a classification task, "
                              "masked labels should be -1")
+        else:
+            return 'classification'
     else:
         raise ValueError("Uncompatible label type: %r" % y_type)
     
