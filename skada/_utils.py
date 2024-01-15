@@ -22,6 +22,8 @@ from sklearn.utils.multiclass import type_of_target
 _logger = logging.getLogger('skada')
 _logger.setLevel(logging.DEBUG)
 
+_DEFAULT_TARGET_DOMAIN_LABEL = -2
+
 
 def _estimate_covariance(X, shrinkage):
     if shrinkage is None:
@@ -51,9 +53,57 @@ def check_X_y_domain(
     allow_auto_sample_domain: bool = True,
     allow_nd: bool = False,
 ):
-    """Input validation for DA estimator.
+    """
+    Input validation for domain adaptation (DA) estimator.
     If we work in single-source and single target mode, return source and target
     separately to avoid additional scan for 'sample_domain' array.
+
+    Parameters:
+    ----------
+    X : array-like of shape (n_samples, n_features)
+        Input features
+    y : array-like of shape (n_samples,)
+        Target variable
+    sample_domain : array-like or None, optional (default=None)
+        Array specifying the domain labels for each sample.
+    allow_source : bool, optional (default=True)
+        Allow the presence of source domains.
+    allow_multi_source : bool, optional (default=True)
+        Allow multiple source domains.
+    allow_target : bool, optional (default=True)
+        Allow the presence of target domains.
+    allow_multi_target : bool, optional (default=True)
+        Allow multiple target domains.
+    return_indices : bool, optional (default=False)
+        If True, return only the source indices.
+    return_joint : bool, optional (default=False)
+        If True, return X, y, and sample_domain without separation.
+    allow_auto_sample_domain : bool, optional (default=True)
+        Allow automatic generation of sample_domain if not provided.
+    allow_nd : bool, optional (default=False)
+        Allow X and y to be N-dimensional arrays.
+
+    Returns:
+    ----------
+    If return_indices is True :
+        source_idx : array
+            Boolean array indicating source indices.
+    If return_joint is False :
+        X_source : array
+            Input features for source domains.
+        y_source : array
+            Target variable for source domains.
+        X_target : array
+            Input features for target domains.
+        y_target : array
+            Target variable for target domains.
+    If return_joint is True :
+        X : array
+            Input features
+        y : array
+            Target variable
+        sample_domain : array
+            Array specifying the domain labels for each sample.
     """
 
     X = check_array(X, input_name='X', allow_nd=allow_nd)
@@ -65,12 +115,13 @@ def check_X_y_domain(
     elif sample_domain is None and allow_auto_sample_domain:
         y_type = _check_y_masking(y)
         sample_domain = np.ones_like(y)
-        # labels masked with -1 are recognized as targets,
+        # labels masked with -1 (for classification) are recognized as targets,
+        # labels masked with nan (for regression) are recognized as targets,
         # the rest is treated as a source
         if y_type == 'classification':
-            sample_domain[y == -1] = -2
+            sample_domain[y == -1] = _DEFAULT_TARGET_DOMAIN_LABEL
         else:
-            sample_domain[np.isnan(y)] = -2
+            sample_domain[np.isnan(y)] = _DEFAULT_TARGET_DOMAIN_LABEL
     else:
         sample_domain = check_array(
             sample_domain,
@@ -123,6 +174,50 @@ def check_X_domain(
     return_joint: bool = True,
     allow_auto_sample_domain: bool = True,
 ):
+    """
+    Input validation for domain adaptation (DA) estimator.
+    If we work in single-source and single target mode, return source and target
+    separately to avoid additional scan for 'sample_domain' array.
+
+    Parameters:
+    ----------
+    X : array-like of shape (n_samples, n_features)
+        Input features.
+    sample_domain : array-like of shape (n_samples,)
+        Domain labels for each sample.
+    allow_domains : set of int, optional (default=None)
+        Set of allowed domain labels. If provided, only these domain labels are allowed.
+    allow_source : bool, optional (default=True)
+        Allow the presence of source domains.
+    allow_multi_source : bool, optional (default=True)
+        Allow multiple source domains.
+    allow_target : bool, optional (default=True)
+        Allow the presence of target domains.
+    allow_multi_target : bool, optional (default=True)
+        Allow multiple target domains.
+    return_indices : bool, optional (default=False)
+        If True, return only the source indices.
+    return_joint : bool, optional (default=True)
+        If True, return X and sample_domain without separation.
+    allow_auto_sample_domain : bool, optional (default=True)
+        Allow automatic generation of sample_domain if not provided.
+
+    Returns:
+    ----------
+    If return_indices is True:
+        source_idx : array
+            Boolean array indicating source indices.
+    If return_joint is False:
+        X_source : array
+            Input features for source domains.
+        X_target : array
+            Input features for target domains.
+    If return_joint is True:
+        X : array
+            Combined input features for source and target domains.
+        sample_domain : array
+            Combined domain labels for source and target domains.
+    """
     X = check_array(X, input_name='X')
     if sample_domain is None and not allow_auto_sample_domain:
         raise ValueError("Either 'sample_domain' or 'allow_auto_sample_domain' "

@@ -76,3 +76,154 @@ def test_check_X_domain_exceptions():
 
     with pytest.raises(ValueError):
         check_X_domain(X, sample_domain=None, allow_auto_sample_domain=False)
+
+
+def test_check_X_y_allow_exceptions():
+    X, y, sample_domain = make_dataset_from_moons_distribution(
+        pos_source=0.1,
+        pos_target=0.9,
+        n_samples_source=50,
+        n_samples_target=20,
+        random_state=0,
+        return_X_y=True,
+    )
+
+    # Generate a random_sample_domain of size len(y)
+    # with random integers between -5 and 5 (excluding 0)
+    random_sample_domain = np.random.choice(
+        np.concatenate((np.arange(-5, 0), np.arange(1, 6))), size=len(y)
+    )
+    allow_source = False
+    allow_target = False
+    allow_multi_source = False
+    allow_multi_target = False
+
+    positive_numbers = random_sample_domain[random_sample_domain > 0]
+    negative_numbers = random_sample_domain[random_sample_domain < 0]
+    # Count unique positive numbers
+    n_sources = len(np.unique(positive_numbers))
+    n_targets = len(np.unique(negative_numbers))
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            f"Number of sources provided is {n_sources} "
+            f"and 'allow_source' is set to {allow_source}"
+        )
+    ):
+        check_X_y_domain(
+            X, y, sample_domain=random_sample_domain,
+            allow_auto_sample_domain=False, allow_source=allow_source
+        )
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            f"Number of targets provided is {n_targets} "
+            f"and 'allow_target' is set to {allow_target}"
+            )
+    ):
+        check_X_y_domain(
+            X, y, sample_domain=random_sample_domain,
+            allow_auto_sample_domain=False, allow_target=allow_target
+        )
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            f"Number of sources provided is {n_sources} "
+            f"and 'allow_multi_source' is set to {allow_multi_source}"
+        )
+    ):
+        check_X_y_domain(
+            X, y, sample_domain=random_sample_domain,
+            allow_auto_sample_domain=False, allow_multi_source=allow_multi_source
+        )
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            f"Number of targets provided is {n_targets} "
+            f"and 'allow_multi_target' is set to {allow_multi_target}"
+        )
+    ):
+        check_X_y_domain(
+            X, y, sample_domain=random_sample_domain,
+            allow_auto_sample_domain=False, allow_multi_target=allow_multi_target
+        )
+
+
+def test_check_X_allow_exceptions():
+    X, y, sample_domain = make_dataset_from_moons_distribution(
+        pos_source=0.1,
+        pos_target=0.9,
+        n_samples_source=50,
+        n_samples_target=20,
+        random_state=0,
+        return_X_y=True,
+    )
+
+    # Generate a random_sample_domain of size len(y)
+    # with random integers between -5 and 5 (excluding 0)
+    random_sample_domain = np.random.choice(
+        np.concatenate((np.arange(-5, 0), np.arange(1, 6))), size=len(y)
+    )
+    allow_source = False
+    allow_target = False
+    allow_multi_source = False
+    allow_multi_target = False
+
+    positive_numbers = random_sample_domain[random_sample_domain > 0]
+    negative_numbers = random_sample_domain[random_sample_domain < 0]
+
+    # Count unique positive numbers
+    n_sources = len(np.unique(positive_numbers))
+    n_targets = len(np.unique(negative_numbers))
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            f"Number of sources provided is {n_sources} "
+            f"and 'allow_source' is set to {allow_source}"
+        )
+    ):
+        check_X_domain(
+            X, sample_domain=random_sample_domain,
+            allow_auto_sample_domain=False, allow_source=allow_source
+        )
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            f"Number of targets provided is {n_targets} "
+            f"and 'allow_target' is set to {allow_target}"
+            )
+    ):
+        check_X_domain(
+            X, sample_domain=random_sample_domain,
+            allow_auto_sample_domain=False, allow_target=allow_target
+        )
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            f"Number of sources provided is {n_sources} "
+            f"and 'allow_multi_source' is set to {allow_multi_source}"
+        )
+    ):
+        check_X_domain(
+            X, sample_domain=random_sample_domain,
+            allow_auto_sample_domain=False, allow_multi_source=allow_multi_source
+        )
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            f"Number of targets provided is {n_targets} "
+            f"and 'allow_multi_target' is set to {allow_multi_target}"
+        )
+    ):
+        check_X_domain(
+            X, sample_domain=random_sample_domain,
+            allow_auto_sample_domain=False, allow_multi_target=allow_multi_target
+        )
