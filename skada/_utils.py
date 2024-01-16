@@ -22,7 +22,16 @@ from sklearn.utils.multiclass import type_of_target
 _logger = logging.getLogger('skada')
 _logger.setLevel(logging.DEBUG)
 
+# Default label for datasets with source and target domains
 _DEFAULT_TARGET_DOMAIN_LABEL = -2
+_DEFAULT_SOURCE_DOMAIN_LABEL = 1
+
+# Default label for datasets without source domain
+_DEFAULT_TARGET_DOMAIN_ONLY_LABEL = -1
+
+# Default label for datasets with masked target labels
+_DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL = -1
+_DEFAULT_MASKED_TARGET_REGRESSION_LABEL = np.nan
 
 
 def _estimate_covariance(X, shrinkage):
@@ -114,14 +123,15 @@ def check_X_y_domain(
                          "should be set")
     elif sample_domain is None and allow_auto_sample_domain:
         y_type = _check_y_masking(y)
-        sample_domain = np.ones_like(y)
+        sample_domain = _DEFAULT_SOURCE_DOMAIN_LABEL*np.ones_like(y)
         # labels masked with -1 (for classification) are recognized as targets,
         # labels masked with nan (for regression) are recognized as targets,
         # the rest is treated as a source
         if y_type == 'classification':
-            sample_domain[y == -1] = _DEFAULT_TARGET_DOMAIN_LABEL
+            mask = (y == _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL)
         else:
-            sample_domain[np.isnan(y)] = _DEFAULT_TARGET_DOMAIN_LABEL
+            mask = (np.isnan(y))
+        sample_domain[mask] = _DEFAULT_TARGET_DOMAIN_LABEL
     else:
         sample_domain = check_array(
             sample_domain,
@@ -225,8 +235,11 @@ def check_X_domain(
     elif sample_domain is None and allow_auto_sample_domain:
         # default target domain when sample_domain is not given
         # xxx(okachaiev): I guess this should be -inf instead of a number
-        # The idea is that with no labels we always assume target domain (-1)
-        sample_domain = -1*np.ones(X.shape[0], dtype=np.int32)
+        # The idea is that with no labels we always assume
+        # target domain (_DEFAULT_TARGET_DOMAIN_ONLY_LABEL)
+        sample_domain = (
+            _DEFAULT_TARGET_DOMAIN_ONLY_LABEL * np.ones(X.shape[0], dtype=np.int32)
+        )
     else:
         sample_domain = check_array(
             sample_domain,
@@ -280,8 +293,12 @@ def _merge_source_target(X_source, X_target, sample_domain) -> np.ndarray:
     return output
 
 
-def source_target_split(X, y, sample_domain=None,
-                        sample_weight=None, return_domain=False):
+def source_target_split(X,
+                        y,
+                        sample_domain=None,
+                        sample_weight=None,
+                        allow_auto_sample_domain=True,
+                        return_domain=False):
     r""" Split data into source and target domains
 
     Parameters
@@ -296,6 +313,8 @@ def source_target_split(X, y, sample_domain=None,
         all samples are treated as source domains except those with y==-1.
     sample_weight : array-like of shape (n_samples,), default=None
         Sample weights
+    allow_auto_sample_domain : bool, optional (default=True)
+        Allow automatic generation of sample_domain if not provided.
     return_domain : bool, default=False
         Whether to return domain labels
 
@@ -320,11 +339,20 @@ def source_target_split(X, y, sample_domain=None,
 
     """
 
-    if sample_domain is None:
-        sample_domain = np.ones_like(y)
-        # labels masked with -1 are recognized as targets,
+    if sample_domain is None and not allow_auto_sample_domain:
+        raise ValueError("Either 'sample_domain' or 'allow_auto_sample_domain' "
+                         "should be set")
+    elif sample_domain is None and allow_auto_sample_domain:
+        y_type = _check_y_masking(y)
+        sample_domain = _DEFAULT_SOURCE_DOMAIN_LABEL*np.ones_like(y)
+        # labels masked with -1 (for classification) are recognized as targets,
+        # labels masked with nan (for regression) are recognized as targets,
         # the rest is treated as a source
-        sample_domain[y == -1] = -1
+        if y_type == 'classification':
+            mask = (y == _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL)
+        else:
+            mask = (np.isnan(y))
+        sample_domain[mask] = _DEFAULT_TARGET_DOMAIN_LABEL
 
     X_s = X[sample_domain >= 0]
     y_s = y[sample_domain >= 0]
@@ -378,11 +406,14 @@ def _check_y_masking(y):
 
     if y_type == 'continuous':
         raise ValueError("For a regression task, "
-                         "masked labels should be NaN")
+                         "masked labels should be, "
+                         f"{_DEFAULT_MASKED_TARGET_REGRESSION_LABEL}")
     elif y_type == 'binary' or y_type == 'multiclass':
-        if np.any(y < -1) or not np.any(y == -1):
+        if (np.any(y < _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL) or
+                not np.any(y == _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL)):
             raise ValueError("For a classification task, "
-                             "masked labels should be -1")
+                             "masked labels should be, "
+                             f"{_DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL}")
         else:
             return 'classification'
     else:

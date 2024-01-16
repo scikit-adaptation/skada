@@ -8,7 +8,11 @@ import numpy as np
 from skada.datasets import (
     make_dataset_from_moons_distribution
 )
-from skada._utils import check_X_y_domain, check_X_domain, _check_y_masking
+
+from skada._utils import check_X_y_domain
+from skada._utils import check_X_domain
+from skada._utils import source_target_split
+from skada._utils import _check_y_masking
 
 
 def test_check_y_masking_classification():
@@ -76,6 +80,23 @@ def test_check_X_domain_exceptions():
 
     with pytest.raises(ValueError):
         check_X_domain(X, sample_domain=None, allow_auto_sample_domain=False)
+
+
+def test_source_target_split():
+    X, y, sample_domain = make_dataset_from_moons_distribution(
+        pos_source=0.1,
+        pos_target=0.9,
+        n_samples_source=50,
+        n_samples_target=20,
+        random_state=0,
+        return_X_y=True,
+    )
+
+    # Test that no ValueError is raised
+    source_target_split(X, y, sample_domain=sample_domain)
+
+    with pytest.raises(ValueError):
+        source_target_split(X, y, sample_domain=None, allow_auto_sample_domain=False)
 
 
 def test_check_X_y_allow_exceptions():
