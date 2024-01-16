@@ -14,7 +14,7 @@ from skada._utils import check_X_y_domain, check_X_domain, _check_y_masking
 def test_check_y_masking_classification():
     y_properly_masked = np.array([-1, 1, 2, -1, 2, 1, 1])
     y_wrongfuly_masked_1 = np.array([-1, -2, 2, -1, 2, 1, 1])
-    y_wrongfuly_masked_2 = np.array([1, 2, 2, 1, 2, 1, 1])
+    y_not_masked = np.array([1, 2, 2, 1, 2, 1, 1])
 
     # Test that no ValueError is raised
     _check_y_masking(y_properly_masked)
@@ -23,18 +23,18 @@ def test_check_y_masking_classification():
         _check_y_masking(y_wrongfuly_masked_1)
 
     with pytest.raises(ValueError):
-        _check_y_masking(y_wrongfuly_masked_2)
+        _check_y_masking(y_not_masked)
 
 
 def test_check_y_masking_regression():
     y_properly_masked = np.array([np.nan, 1, 2.5, -1, np.nan, 0, -1.5])
-    y_wrongfuly_masked = np.array([-1, -2, 2.5, -1, 2, 0, 1])
+    y_not_masked = np.array([-1, -2, 2.5, -1, 2, 0, 1])
 
     # Test that no ValueError is raised
     _check_y_masking(y_properly_masked)
 
     with pytest.raises(ValueError):
-        _check_y_masking(y_wrongfuly_masked)
+        _check_y_masking(y_not_masked)
 
 
 def test_check_2d_y_masking():
