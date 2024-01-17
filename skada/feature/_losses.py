@@ -41,10 +41,10 @@ def deepcoral_loss(cov, cov_target):
 
 
 def deepjdot_loss(
-    embedd,
-    embedd_target,
-    y,
-    y_target,
+    y_pred_s,
+    y_pred_t,
+    features_s,
+    features_t,
     reg_d,
     reg_cl,
     sample_weights=None,
@@ -91,28 +91,28 @@ def deepjdot_loss(
             15th European Conference on Computer Vision,
             September 2018. Springer.
     """
-    dist = torch.cdist(embedd, embedd_target, p=2) ** 2
+    dist = torch.cdist(features_s, features_t, p=2) ** 2
 
-    y_target_matrix = y_target.repeat(len(y_target), 1, 1).permute(1, 2, 0)
+    y_target_matrix = y_pred_t.repeat(len(y_pred_t), 1, 1).permute(1, 2, 0)
 
     if criterion is None:
         criterion = torch.nn.CrossEntropyLoss()
 
-    loss_target = criterion(y_target_matrix, y.repeat(len(y), 1)).T
+    loss_target = criterion(y_target_matrix, y_pred_s.repeat(len(y), 1)).T
     M = reg_d * dist + reg_cl * loss_target
 
     # Compute the loss
     if sample_weights is None:
         sample_weights = torch.full(
-            (len(embedd),),
-            1.0 / len(embedd),
-            device=embedd.device
+            (len(features_s),),
+            1.0 / len(features_s),
+            device=features_s.device
         )
     if target_sample_weights is None:
         target_sample_weights = torch.full(
-            (len(embedd_target),),
-            1.0 / len(embedd_target),
-            device=embedd_target.device
+            (len(features_t),),
+            1.0 / len(features_t),
+            device=features_t.device
         )
     loss = ot.emd2(sample_weights, target_sample_weights, M)
 
