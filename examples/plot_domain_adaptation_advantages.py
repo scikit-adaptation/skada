@@ -11,38 +11,43 @@ and demonstrate how to enhance it using Domain Adaptation techniques.
 # Step 1: Import Necessary Libraries
 # ----------------------------------
 
-import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
-from sklearn.model_selection import ShuffleSplit, cross_validate
 
 from skada import make_da_pipeline
 from skada import SubspaceAlignmentAdapter
-from skada.datasets import DomainAwareDataset, fetch_diabetes_dataset
+from skada.datasets import fetch_diabetes_dataset
 
 # %%
 # Step 2: Loading an example Dataset
 # ----------------------------------
 #
-# skada comes with a few standard datasets, like the office31 and the diabetes for classification.
+# skada comes with a few standard datasets,
+# like the office31 and the diabetes for classification.
 #
-# In the following we will use the diabetes dataset. To load it, we use the :func:`~skada.datasets.fetch_diabetes_dataset` function.
+# In the following we will use the diabetes dataset.
+# To load it, we use the :func:`~skada.datasets.fetch_diabetes_dataset` function.
 
 
 # Load the diabetes dataset
 domain_dataset = fetch_diabetes_dataset(True)
 
 # %%
-# This dataset contains 6 domains: Caucasian, African American, Hispanic, Asian, Other, and Unknown.
-# It also has 1 binary target label: whether the patient was readmitted to the hospital within 30 days.
+# This dataset contains 6 domains: Caucasian, African American,
+# Hispanic, Asian, Other, and Unknown.
+# It also has 1 binary target label: whether the patient was readmitted
+# to the hospital within 30 days or not.
 
 # %%
 # Step 3: Train a classifier without Domain Adaptation techniques
 # ---------------------------------------------------------------
 
 
-X_train, y_train, sample_domain = domain_dataset.pack_train(as_sources=['Caucasian', 'Hispanic', 'Asian'], as_targets=['AfricanAmerican'])
+X_train, y_train, sample_domain = domain_dataset.pack_train(
+    as_sources=['Caucasian', 'Hispanic', 'Asian'],
+    as_targets=['AfricanAmerican']
+    )
 
 pipe = make_da_pipeline(
     StandardScaler(),
@@ -62,7 +67,10 @@ print(f"Score on target domain without adaptation techniques: {test_score}")
 # Step 4: Train a classifier with a Domain Adaptation technique
 # -------------------------------------------------------------
 
-X_train, y_train, sample_domain = domain_dataset.pack_train(as_sources=['Caucasian', 'Hispanic', 'Asian'], as_targets=['AfricanAmerican'])
+X_train, y_train, sample_domain = domain_dataset.pack_train(
+    as_sources=['Caucasian', 'Hispanic', 'Asian'],
+    as_targets=['AfricanAmerican']
+    )
 
 pipe = make_da_pipeline(
     StandardScaler(),
@@ -83,10 +91,12 @@ print(f"Score on target domain with adaptation techniques: {test_score}")
 # Conclusion
 # ----------
 #
-# This tutorial highlighted the decline in classifier performance when applied to a different domain.
-# By employing Domain Adaptation techniques such as :func:`~skada.ReweightDensityAdapter`,
+# This tutorial highlighted the decline in classifier performance
+# when applied to a different domain.
+# By employing Domain Adaptation techniques such as
+# :func:`~skada.ReweightDensityAdapter`,
 # we demonstrated how to enhance the classifier's performance.
 # Remember to carefully choose and experiment with adaptation techniques based on
 # the characteristics of your specific problem.
 #
-# Feel free to explore and adapt these techniques for your datasets and classifier types.
+# Feel free to explore and adapt these techniques for your datasets and classifier.
