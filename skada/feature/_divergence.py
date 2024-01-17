@@ -3,21 +3,23 @@
 #
 # License: BSD 3-Clause
 import torch
-from skorch import NeuralNetClassifier
 from skada.feature.base import (
-    DomainAwareModule,
     DomainAwareCriterion,
     DomainBalancedDataLoader,
+    DomainAwareNet,
+    BaseDACriterion
 )
 from . import deepcoral_loss
 
 
-class DeepCoralLoss(torch.nn.Module):
+class DeepCoralLoss(BaseDACriterion):
     def __init__(self, reg=1):
         super(DeepCoralLoss, self).__init__()
         self.reg = reg
 
-    def forward(self, yt, features_s, features_t):
+    def forward(
+        self, y_pred_t, y_pred_domain_s, y_pred_domain_t, features_s, features_t
+    ):
         """Compute the domain adaptation loss"""
         cov_s = torch.cov(features_s)
         cov_t = torch.cov(features_t)
@@ -25,16 +27,14 @@ class DeepCoralLoss(torch.nn.Module):
         return loss
 
 
-def DeepCoral(module, reg=1):
-    net = NeuralNetClassifier(
-        DomainAwareModule(module, "dropout"),
-        max_epochs=10,
-        lr=0.1,
+def DeepCoral(module, layer_name, reg=1, **kwargs):
+    net = DomainAwareNet(
+        module,
+        layer_name,
         iterator_train=DomainBalancedDataLoader,
-        iterator_train__batch_size=8,
-        train_split=None,
         criterion=DomainAwareCriterion(
             torch.nn.CrossEntropyLoss(), DeepCoralLoss(reg=reg)
         ),
+        **kwargs
     )
     return net

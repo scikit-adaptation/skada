@@ -1,32 +1,25 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
-#         Remi Flamary <remi.flamary@polytechnique.edu>
 #
 # License: BSD 3-Clause
 from torch import nn
 
-from skorch.utils import to_tensor
+from skada.feature.base import (
+    DomainAwareCriterion,
+    DomainBalancedDataLoader,
+    DomainAwareNet,
+    BaseDACriterion,
+)
 
 from . import deepjdot_loss
-from .base import BaseDANetwork
 
 
-class DeepJDOT(BaseDANetwork):
+class DeepJDOTLoss(BaseDACriterion):
     """Loss DeepJDOT.
 
     See [1]_.
 
     Parameters
     ----------
-    module : torch module (class or instance)
-        A PyTorch :class:`~torch.nn.Module`. In general, the
-        uninstantiated class should be passed, although instantiated
-        modules will also work.
-    criterion : torch criterion (class)
-        The uninitialized criterion (loss) used to optimize the
-        module.
-    layer_names : list of tuples
-        The names of the module's layers whose outputs are
-        collected during the training.
     reg_d : float, default=1
         Distance term regularization parameter.
     reg_cl : float, default=1
@@ -34,8 +27,6 @@ class DeepJDOT(BaseDANetwork):
     target_criterion : torch criterion (class)
         The uninitialized criterion (loss) used to compute the
         DeepJDOT loss. The criterion should support reduction='none'.
-    **kwargs : dict
-        Keyword arguments passed to the skorch Model class.
 
     References
     ----------
@@ -46,60 +37,49 @@ class DeepJDOT(BaseDANetwork):
             15th European Conference on Computer Vision,
             September 2018. Springer.
     """
-
-    def __init__(
-        self,
-        module,
-        criterion,
-        layer_names,
-        reg_d=1,
-        reg_cl=1,
-        target_criterion=nn.CrossEntropyLoss,
-        **kwargs
-    ):
-        super().__init__(
-            module, criterion, layer_names, **kwargs
-        )
+    def __init__(self, reg_d=1, reg_cl=1, target_criterion=None):
+        super(DeepJDOTLoss, self).__init__()
         self.reg_d = reg_d
         self.reg_cl = reg_cl
-        self.target_criterion = target_criterion
+        self.criterion_ = target_criterion
 
-    def initialize_criterion(self):
-        """Initializes the criterion.
-
-        If the criterion is already initialized and no parameter was changed, it
-        will be left as is.
-
-        """
-        kwargs = self.get_params_for('target_criterion')
-        kwargs['reduction'] = 'none'
-        target_criterion = self.initialized_instance(self.target_criterion,  kwargs)
-        self.target_criterion_ = target_criterion
-        return super().initialize_criterion()
-
-    def _get_loss_da(
+    def forward(
         self,
-        y_pred,
-        y_true,
-        embedd,
-        embedd_target,
-        X=None,
-        y_pred_target=None,
-        training=True
+        y_pred_s,
+        y_pred_t,
+        y_pred_domain_s,
+        y_pred_domain_t,
+        features_s,
+        features_t,
     ):
         """Compute the domain adaptation loss"""
-        y_true = to_tensor(y_true, device=self.device)
-        loss_deepjdot = 0
-        for i in range(len(embedd)):
-            loss_deepjdot += deepjdot_loss(
-                embedd[i],
-                embedd_target[i],
-                y_true,
-                y_pred_target,
-                self.reg_d,
-                self.reg_cl,
-                criterion=self.target_criterion_,
-            )
-        loss_classif = self.criterion_(y_pred, y_true)
+        loss = deepjdot_loss(
+            y_pred_s,
+            y_pred_t,
+            features_s,
+            features_t,
+            self.reg_d,
+            self.reg_cl,
+            criterion=self.target_criterion_,
+        )
+        return loss
 
-        return loss_classif + loss_deepjdot, loss_classif, loss_deepjdot
+
+def DeepJDOT(
+    module,
+    layer_name,
+    reg_d=1,
+    reg_cl=1,
+    target_criterion=nn.CrossEntropyLoss,
+    **kwargs
+):
+    net = DomainAwareNet(
+        module,
+        layer_name,
+        iterator_train=DomainBalancedDataLoader,
+        criterion=DomainAwareCriterion(
+            nn.CrossEntropyLoss(), DeepJDOTLoss(reg_d, reg_cl, target_criterion)
+        ),
+        **kwargs
+    )
+    return net
