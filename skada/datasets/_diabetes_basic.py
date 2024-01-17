@@ -3,7 +3,7 @@ import requests
 from zipfile import ZipFile
 import pandas as pd
 
-from ._base import DomainAwareDataset
+from ._base import DomainAwareDataset, get_data_home
 
 
 def download_dataset(url, dest_folder):
@@ -65,34 +65,34 @@ def preprocess_dataset(admission_type_df, discharge_disposition_df, admission_so
     """
     
     # We dont need these id columns
-    diabetic_data_df.drop(['encounter_id', 'patient_nbr'], inplace=True, axis=1)
+    diabetic_data_df = diabetic_data_df.drop(['encounter_id', 'patient_nbr'], axis=1)
                           
     # Not enough non-null values in these columns
-    diabetic_data_df.drop(['max_glu_serum', 'A1Cresult'], inplace=True, axis=1)
+    diabetic_data_df = diabetic_data_df.drop(['max_glu_serum', 'A1Cresult'], axis=1)
 
     # Converted to binary (readmit vs. no readmit).
     # The readmitted column is the target variable.
-    diabetic_data_df['readmitted'] = diabetic_data_df['readmitted'].apply(lambda x: 0 if x == 'NO' else 1)
+    diabetic_data_df.loc[:, 'readmitted'] = diabetic_data_df['readmitted'].apply(lambda x: 0 if x == 'NO' else 1)
 
     # Drop rows with 'Unknown/Invalid' value (only 3 rows)
     diabetic_data_df = diabetic_data_df.loc[diabetic_data_df['gender'] != 'Unknown/Invalid']
 
     # Convert 'gender' to binary
-    diabetic_data_df['gender'] = diabetic_data_df['gender'].map({'Female': 0, 'Male': 1})
+    diabetic_data_df.loc[:, 'gender'] = diabetic_data_df['gender'].map({'Female': 0, 'Male': 1})
 
     # Drop weight column (97% missing values)
-    diabetic_data_df.drop(['weight'], axis=1, inplace=True)
+    diabetic_data_df = diabetic_data_df.drop(['weight'], axis=1)
 
     # Drop medical_specialty column (49% missing values)
-    diabetic_data_df.drop(['medical_specialty'], axis=1, inplace=True)
+    diabetic_data_df = diabetic_data_df.drop(['medical_specialty'], axis=1)
 
     # Drop payer_code column (40% missing values)
-    diabetic_data_df.drop(['payer_code'], axis=1, inplace=True)
+    diabetic_data_df = diabetic_data_df.drop(['payer_code'], axis=1)
 
     # Drop columns diag_1, diag_2, diag_3 (too many categories)
     # + Some are integers, some are floats, some are strings
     # TODO: Clean all these to be integers
-    diabetic_data_df.drop(['diag_1', 'diag_2', 'diag_3'], axis=1, inplace=True)
+    diabetic_data_df = diabetic_data_df.drop(['diag_1', 'diag_2', 'diag_3'], axis=1)
 
     # Define a mapping for each age range to its midpoint
     age_mapping = {
@@ -109,7 +109,7 @@ def preprocess_dataset(admission_type_df, discharge_disposition_df, admission_so
     }
 
     # Map the 'age' column using the defined mapping
-    diabetic_data_df['age'] = diabetic_data_df['age'].map(age_mapping)
+    diabetic_data_df.loc[:, 'age'] = diabetic_data_df['age'].map(age_mapping)
     
 
     columns_to_binary = [
@@ -138,7 +138,7 @@ def generate_domain_aware_dataset(diabetic_data_df):
     for domain_name in diabetic_data_df['race'].unique():
         race_df = race_dfs[domain_name]
 
-        race_df.drop(['race'], axis=1, inplace=True)
+        race_df = race_df.drop(['race'], axis=1)
 
         X = race_df.iloc[:, race_df.columns != 'readmitted'].values
         y = race_df['readmitted'].values
@@ -153,7 +153,8 @@ def fetch_diabetes_dataset(only_domain_aware=False):
     dataset_url = "https://archive.ics.uci.edu/static/public/296/diabetes+130-us+hospitals+for+years+1999-2008.zip"
 
     # Destination folder for the dataset
-    destination_folder = "diabetes_dataset"
+    data_home = get_data_home(None)
+    destination_folder = os.path.join(data_home, "diabetes_dataset")
 
     # Download the dataset
     download_dataset(dataset_url, destination_folder)
