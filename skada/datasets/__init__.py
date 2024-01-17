@@ -28,6 +28,10 @@ from ._samples_generator import (
     make_variable_frequency_dataset,
 )
 
+from ._diabetes_basic import (
+    fetch_diabetes_dataset
+)
+
 __all__ = [
     'DomainAwareDataset',
     'Office31CategoriesPreset',
@@ -42,4 +46,5 @@ __all__ = [
     'make_dataset_from_moons_distribution',
     'make_variable_frequency_dataset',
     'select_domain',
+    'fetch_diabetes_dataset'
 ]
