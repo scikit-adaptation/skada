@@ -314,10 +314,31 @@ class DomainAwareDataset:
         )
 
     def __str__(self) -> str:
-        return f"DomainAwareDataset(domains={list(self.domain_names_.keys())})"
+        return f"DomainAwareDataset(domains={self._get_domain_representation()})"
 
     def __repr__(self) -> str:
-        return self.__str__()
+        head = self.__str__()
+        body = [f"Number of domains: {len(self.domains_)}"]
+        body.append(f"Total size: {sum(len(tup[0]) for tup in self.domains_)}")
+        output = "\n".join([head] + body)
+        return output
+
+    def _get_domain_representation(self, max_domains=5, max_length=50):
+        domain_names = list(self.domain_names_.keys())
+
+        if len(domain_names) <= max_domains:
+            # If the number of domains is small, include all names
+            domain_str = str(domain_names)
+        else:
+            # If the number of domains is large, truncate the list and add ellipsis
+            truncated_domains = domain_names[:max_domains]
+            domain_str = str(truncated_domains)[:-1] + ', ...]'
+
+        # Truncate the string representation if it exceeds max_length
+        if len(domain_str) > max_length:
+            domain_str = domain_str[:max_length - 3] + '...]'
+
+        return domain_str
 
 
 # xxx(okachaiev): putting `domain_names` first argument
