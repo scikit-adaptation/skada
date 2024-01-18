@@ -9,7 +9,11 @@ from skada.datasets import (
     make_dataset_from_moons_distribution
 )
 
-from skada.utils import check_X_y_domain, check_X_domain
+from skada.utils import (
+    check_X_y_domain, check_X_domain,
+    extract_source_indices, split_source_target_X_y,
+    split_source_target_X
+)
 from skada._utils import source_target_split
 from skada._utils import _check_y_masking
 
@@ -247,3 +251,58 @@ def test_check_X_allow_exceptions():
             X, sample_domain=random_sample_domain,
             allow_auto_sample_domain=False, allow_multi_target=allow_multi_target
         )
+
+def test_extract_source_indices():
+    n_samples_source = 50
+    n_samples_target = 20
+    X, y, sample_domain = make_dataset_from_moons_distribution(
+        pos_source=0.1,
+        pos_target=0.9,
+        n_samples_source=n_samples_source,
+        n_samples_target=n_samples_target,
+        random_state=0,
+        return_X_y=True,
+    )
+    source_idx = extract_source_indices(sample_domain)
+
+    assert len(source_idx) == (len(sample_domain)), "source_idx shape mismatch"
+    assert np.sum(source_idx) == 2 * n_samples_source, "source_idx sum mismatch"
+    assert np.sum(~source_idx) == 2 * n_samples_target, "target_idx sum mismatch"
+
+
+def test_split_source_target_X_y():
+    n_samples_source = 50
+    n_samples_target = 20
+    X, y, sample_domain = make_dataset_from_moons_distribution(
+        pos_source=0.1,
+        pos_target=0.9,
+        n_samples_source=n_samples_source,
+        n_samples_target=n_samples_target,
+        random_state=0,
+        return_X_y=True,
+    )
+    X_source, y_source, X_target, y_target = split_source_target_X_y(
+        X, y, sample_domain
+    )
+
+    assert len(X_source) == 2 * n_samples_source, "X_source shape mismatch"
+    assert len(y_source) == 2 * n_samples_source, "y_source shape mismatch"
+    assert len(X_target) == 2 * n_samples_target, "X_target shape mismatch"
+    assert len(y_target) == 2 * n_samples_target, "y_target shape mismatch"
+
+
+def split_source_target_X():
+    n_samples_source = 50
+    n_samples_target = 20
+    X, y, sample_domain = make_dataset_from_moons_distribution(
+        pos_source=0.1,
+        pos_target=0.9,
+        n_samples_source=n_samples_source,
+        n_samples_target=n_samples_target,
+        random_state=0,
+        return_X_y=True,
+    )
+    X_source, X_target = split_source_target_X(X, sample_domain)
+
+    assert len(X_source) == 2 * n_samples_source, "X_source shape mismatch"
+    assert len(X_target) == 2 * n_samples_target, "X_target shape mismatch"
