@@ -10,9 +10,13 @@ import numpy as np
 from ot import da
 
 from .base import BaseAdapter, clone
-from ._utils import (
+from .utils import (
     check_X_domain,
     check_X_y_domain,
+    split_source_target_X_y,
+    split_source_target_X
+)
+from ._utils import (
     _estimate_covariance,
     _merge_source_target,
 )
@@ -45,14 +49,8 @@ class BaseOTMappingAdapter(BaseAdapter):
         self : object
             Returns self.
         """
-        X, y, X_target, y_target = check_X_y_domain(
-            X,
-            y,
-            sample_domain,
-            allow_multi_source=True,
-            allow_multi_target=True,
-            return_joint=False,
-        )
+        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        X, y, X_target, y_target = split_source_target_X_y(X, y, sample_domain)
         transport = self._create_transport_estimator()
         self.ot_transport_ = clone(transport)
         self.ot_transport_.fit(Xs=X, ys=y, Xt=X_target, yt=y_target)
@@ -80,13 +78,13 @@ class BaseOTMappingAdapter(BaseAdapter):
             The weights of the samples.
         """
         # xxx(okachaiev): implement auto-infer for sample_domain
-        X_source, X_target = check_X_domain(
+        X, sample_domain = check_X_domain(
             X,
             sample_domain,
             allow_multi_source=True,
-            allow_multi_target=True,
-            return_joint=False,
+            allow_multi_target=True
         )
+        X_source, X_target = split_source_target_X(X, sample_domain)
         # in case of prediction we would get only target samples here,
         # thus there's no need to perform any transformations
         if X_source.shape[0] > 0:
@@ -604,13 +602,14 @@ class CORALAdapter(BaseAdapter):
         self : object
             Returns self.
         """
-        X_source, X_target = check_X_domain(
+        X, sample_domain = check_X_domain(
             X,
             sample_domain,
             allow_multi_source=True,
-            allow_multi_target=True,
-            return_joint=False,
+            allow_multi_target=True
         )
+        X_source, X_target = split_source_target_X(X, sample_domain)
+
         cov_source_ = _estimate_covariance(X_source, shrinkage=self.reg)
         cov_target_ = _estimate_covariance(X_target, shrinkage=self.reg)
         self.cov_source_inv_sqrt_ = _invsqrtm(cov_source_)
@@ -638,13 +637,14 @@ class CORALAdapter(BaseAdapter):
         weights : None
             No weights are returned here.
         """
-        X_source, X_target = check_X_domain(
+        X, sample_domain = check_X_domain(
             X,
             sample_domain,
             allow_multi_source=True,
-            allow_multi_target=True,
-            return_joint=False,
+            allow_multi_target=True
         )
+        X_source, X_target = split_source_target_X(X, sample_domain)
+
         X_source_adapt = np.dot(X_source, self.cov_source_inv_sqrt_)
         X_source_adapt = np.dot(X_source_adapt, self.cov_target_sqrt_)
         X_adapt = _merge_source_target(X_source_adapt, X_target, sample_domain)
