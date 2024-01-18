@@ -86,7 +86,9 @@ def make_da_pipeline(
     
     names = [step[0] if isinstance(step, tuple) else None for step in steps]
     estimators = [step[1] if isinstance(step, tuple) else step for step in steps]
-    steps = _wrap_with_selectors(_name_estimators(estimators), default_selector)
+
+    wrapped_estimators = _wrap_with_selectors(estimators, default_selector)
+    steps = _name_estimators(wrapped_estimators)
     steps[-1][1]._mark_as_final()
     named_steps = [
         (auto_name, step) if user_name is None else (user_name, step)
@@ -117,12 +119,12 @@ def _wrap_with_selector(
 
 
 def _wrap_with_selectors(
-    steps: [(str, BaseEstimator)],
+    estimators: [BaseEstimator],
     default_selector: Union[str, Callable[[BaseEstimator], BaseSelector]]
-) -> [(str, BaseEstimator)]:
+) -> [BaseEstimator]:
     return [
-        (name, _wrap_with_selector(estimator, default_selector))
-        for (name, estimator) in steps
+        (_wrap_with_selector(estimator, default_selector))
+        for estimator in estimators
     ]
 
 
@@ -138,9 +140,7 @@ def _name_estimators(estimators):
     names = []
 
     for estimator in estimators:
-        if isinstance(estimator, str):
-            name = estimator
-        elif isinstance(estimator, BaseSelector):
+        if isinstance(estimator, BaseSelector):
             name = type(estimator.base_estimator).__name__.lower()
             if isinstance(estimator, PerDomain):
                 name = 'perdomain_' + name

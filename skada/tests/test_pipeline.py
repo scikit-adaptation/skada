@@ -101,10 +101,13 @@ def test_default_selector_ignored_for_selector():
         LogisticRegression(),
         default_selector='per_domain',
     )
-    _, estimator = pipe.steps[0]
+    name, estimator = pipe.steps[0]
     assert isinstance(estimator, Shared)
-    _, estimator = pipe.steps[1]
+    assert name == 'subspacealignmentadapter'
+
+    name, estimator = pipe.steps[1]
     assert isinstance(estimator, PerDomain)
+    assert name == 'perdomain_logisticregression'
 
 
 def test_pipeline_step_parameters(da_dataset):
@@ -133,6 +136,3 @@ def test_named_estimator():
     assert 'pca-2' in pipe.named_steps
     assert 'logisticregression' in pipe.named_steps
 
-    estimators = ['pca', 'logisticregression']
-    name_estimators = _name_estimators(estimators)
-    assert list(zip(estimators, estimators)) == name_estimators
