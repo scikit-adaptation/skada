@@ -170,7 +170,12 @@ def test_make_variable_frequency_dataset():
         noise=None,
         random_state=None
     )
-    X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+    X, y, sample_domain = check_X_y_domain(
+        X,
+        y,
+        sample_domain,
+        allow_nd=True
+    )
     X_source, y_source, X_target, y_target = split_source_target_X_y(X, y, sample_domain)
 
     assert X_source.shape == (3 * 10, 1, 3000), "X source shape mismatch"
