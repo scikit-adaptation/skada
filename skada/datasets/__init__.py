@@ -28,8 +28,8 @@ from ._samples_generator import (
     make_variable_frequency_dataset,
 )
 
-from ._diabetes_basic import (
-    fetch_diabetes_dataset
+from ._diabetes import (
+    fetch_diabetes
 )
 
 __all__ = [
@@ -46,5 +46,5 @@ __all__ = [
     'make_dataset_from_moons_distribution',
     'make_variable_frequency_dataset',
     'select_domain',
-    'fetch_diabetes_dataset'
+    'fetch_diabetes'
 ]

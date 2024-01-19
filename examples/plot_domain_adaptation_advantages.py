@@ -17,7 +17,7 @@ from sklearn.decomposition import PCA
 
 from skada import make_da_pipeline
 from skada import SubspaceAlignmentAdapter
-from skada.datasets import fetch_diabetes_dataset
+from skada.datasets import fetch_diabetes
 
 # %%
 # Step 2: Loading an example Dataset
@@ -31,7 +31,7 @@ from skada.datasets import fetch_diabetes_dataset
 
 
 # Load the diabetes dataset
-domain_dataset = fetch_diabetes_dataset(True)
+domain_dataset = fetch_diabetes()
 
 # %%
 # This dataset contains 6 domains: Caucasian, African American,
@@ -51,7 +51,6 @@ X_train, y_train, sample_domain = domain_dataset.pack_train(
 
 pipe = make_da_pipeline(
     StandardScaler(),
-    PCA(n_components=4),
     LogisticRegression(),
 )
 
@@ -74,8 +73,7 @@ X_train, y_train, sample_domain = domain_dataset.pack_train(
 
 pipe = make_da_pipeline(
     StandardScaler(),
-    PCA(n_components=4),
-    SubspaceAlignmentAdapter(),
+    SubspaceAlignmentAdapter(random_state = 42),
     LogisticRegression(),
 )
 
@@ -94,7 +92,7 @@ print(f"Score on target domain with adaptation techniques: {test_score}")
 # This tutorial highlighted the decline in classifier performance
 # when applied to a different domain.
 # By employing Domain Adaptation techniques such as
-# :func:`~skada.ReweightDensityAdapter`,
+# :func:`~skada.SubspaceAlignmentAdapter`,
 # we demonstrated how to enhance the classifier's performance.
 # Remember to carefully choose and experiment with adaptation techniques based on
 # the characteristics of your specific problem.
