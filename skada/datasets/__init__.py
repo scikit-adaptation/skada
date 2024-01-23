@@ -32,6 +32,10 @@ from ._diabetes import (
     fetch_diabetes
 )
 
+from ._nhanes_lead import (
+    fetch_nhanes_lead
+)
+
 __all__ = [
     'DomainAwareDataset',
     'Office31CategoriesPreset',
@@ -46,5 +50,6 @@ __all__ = [
     'make_dataset_from_moons_distribution',
     'make_variable_frequency_dataset',
     'select_domain',
-    'fetch_diabetes'
+    'fetch_diabetes',
+    'fetch_nhanes_lead'
 ]
