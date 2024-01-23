@@ -17,27 +17,31 @@ from sklearn.decomposition import PCA
 
 from skada import make_da_pipeline
 from skada import SubspaceAlignmentAdapter
-from skada.datasets import fetch_diabetes
+from skada.datasets import fetch_nhanes_lead
 
 # %%
 # Step 2: Loading an example Dataset
 # ----------------------------------
 #
 # skada comes with a few standard datasets,
-# like the office31 and the diabetes for classification.
+# like the office31 and the nhanes_lead for classification.
 #
-# In the following we will use the diabetes dataset.
-# To load it, we use the :func:`~skada.datasets.fetch_diabetes_dataset` function.
+# In the following we will use the nhanes lead dataset.
+# To load it, we use the :func:`~skada.datasets.fetch_nhanes_lead_dataset` function.
 
 
-# Load the diabetes dataset
-domain_dataset = fetch_diabetes()
+# Load the nhanes_lead dataset
+domain_dataset = fetch_nhanes_lead()
 
 # %%
-# This dataset contains 6 domains: Caucasian, African American,
-# Hispanic, Asian, Other, and Unknown.
-# It also has 1 binary target label: whether the patient was readmitted
-# to the hospital within 30 days or not.
+# This dataset contains 2 domains: above_PIR and below_PIR.
+# Individuals with PIR (poverty-income ration) of at 
+# least 1.3 are in the above_PIR domain,
+# while persons with PIR ≤ 1.3 are in the below_PIR domain.
+#
+# It also has 1 binary target label: whether the patient has
+# a blood lead level (BLL) above CDC Blood Level Reference Value
+# of 3.5 µg/dL of blood.
 
 # %%
 # Step 3: Train a classifier without Domain Adaptation techniques
@@ -45,8 +49,8 @@ domain_dataset = fetch_diabetes()
 
 
 X_train, y_train, sample_domain = domain_dataset.pack_train(
-    as_sources=['Caucasian', 'Hispanic', 'Asian'],
-    as_targets=['AfricanAmerican']
+    as_sources=['above_PIR'],
+    as_targets=['below_PIR']
     )
 
 pipe = make_da_pipeline(
@@ -56,7 +60,7 @@ pipe = make_da_pipeline(
 
 pipe.fit(X_train, y_train, sample_domain=sample_domain)
 
-X_test, y_test, sample_domain = domain_dataset.pack_test(as_targets=['AfricanAmerican'])
+X_test, y_test, sample_domain = domain_dataset.pack_test(as_targets=['below_PIR'])
 test_score = pipe.score(X_test, y_test, sample_domain=sample_domain)
 
 print(f"Score on target domain without adaptation techniques: {test_score}")
@@ -67,8 +71,8 @@ print(f"Score on target domain without adaptation techniques: {test_score}")
 # -------------------------------------------------------------
 
 X_train, y_train, sample_domain = domain_dataset.pack_train(
-    as_sources=['Caucasian', 'Hispanic', 'Asian'],
-    as_targets=['AfricanAmerican']
+    as_sources=['above_PIR'],
+    as_targets=['below_PIR']
     )
 
 pipe = make_da_pipeline(
@@ -79,7 +83,7 @@ pipe = make_da_pipeline(
 
 pipe.fit(X_train, y_train, sample_domain=sample_domain)
 
-X_test, y_test, sample_domain = domain_dataset.pack_test(as_targets=['AfricanAmerican'])
+X_test, y_test, sample_domain = domain_dataset.pack_test(as_targets=['below_PIR'])
 test_score = pipe.score(X_test, y_test, sample_domain=sample_domain)
 
 print(f"Score on target domain with adaptation techniques: {test_score}")
