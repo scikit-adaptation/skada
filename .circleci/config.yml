@@ -46,7 +46,6 @@ jobs:
             command: |
               python -m pip install --user --upgrade --progress-bar off pip
               python -m pip install --user --progress-bar off -r requirements.txt
-              python -m pip install --user --pre --extra-index https://pypi.anaconda.org/scientific-python-nightly-wheels/simple 'scikit-learn==1.4.dev0'
               python -m pip install --user --upgrade --progress-bar off -r docs/requirements.txt     
               python -m pip install --user --upgrade --progress-bar off .
           # python -m pip install --user --upgrade --progress-bar off ipython "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" memory_profiler
