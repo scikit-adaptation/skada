@@ -13,7 +13,7 @@ and demonstrate how to enhance it using Domain Adaptation techniques.
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
+from sklearn.pipeline import Pipeline
 
 from skada import make_da_pipeline
 from skada import SubspaceAlignmentAdapter
@@ -35,7 +35,7 @@ domain_dataset = fetch_nhanes_lead()
 
 # %%
 # This dataset contains 2 domains: above_PIR and below_PIR.
-# Individuals with PIR (poverty-income ration) of at 
+# Individuals with PIR (poverty-income ration) of at
 # least 1.3 are in the above_PIR domain,
 # while persons with PIR ≤ 1.3 are in the below_PIR domain.
 #
@@ -47,46 +47,59 @@ domain_dataset = fetch_nhanes_lead()
 # Step 3: Train a classifier without Domain Adaptation techniques
 # ---------------------------------------------------------------
 
-
-X_train, y_train, sample_domain = domain_dataset.pack_train(
+X, y, sample_domain = domain_dataset.pack_train(
     as_sources=['above_PIR'],
-    as_targets=['below_PIR']
-    )
-
-pipe = make_da_pipeline(
-    StandardScaler(),
-    LogisticRegression(),
+    as_targets=None
 )
 
-pipe.fit(X_train, y_train, sample_domain=sample_domain)
+pipe = Pipeline([
+    ('scaler', StandardScaler()),
+    ('classifier', LogisticRegression())
+])
 
-X_test, y_test, sample_domain = domain_dataset.pack_test(as_targets=['below_PIR'])
-test_score = pipe.score(X_test, y_test, sample_domain=sample_domain)
+pipe.fit(X, y)
+
+X_target, y_target, sample_domain_target = domain_dataset.pack_test(
+    as_targets=['below_PIR']
+    )
+test_score = pipe.score(X_target, y_target)
 
 print(f"Score on target domain without adaptation techniques: {test_score}")
 
+# %%
+# This score is the baseline of the classifier's performance
+# with the classifier trained on the source domain and tested on the target domain.
+#
+# Now that we have the baseline of the classifier's performance,
+# let's see how we can enhance it using Domain Adaptation techniques.
 
 # %%
 # Step 4: Train a classifier with a Domain Adaptation technique
 # -------------------------------------------------------------
 
-X_train, y_train, sample_domain = domain_dataset.pack_train(
+X, y, sample_domain = domain_dataset.pack_train(
     as_sources=['above_PIR'],
     as_targets=['below_PIR']
     )
 
 pipe = make_da_pipeline(
     StandardScaler(),
-    SubspaceAlignmentAdapter(random_state = 42),
+    SubspaceAlignmentAdapter(),
     LogisticRegression(),
 )
 
-pipe.fit(X_train, y_train, sample_domain=sample_domain)
+pipe.fit(X, y, sample_domain=sample_domain)
 
-X_test, y_test, sample_domain = domain_dataset.pack_test(as_targets=['below_PIR'])
-test_score = pipe.score(X_test, y_test, sample_domain=sample_domain)
+X_target, y_target, sample_domain_target = domain_dataset.pack_test(
+    as_targets=['below_PIR']
+    )
+test_score = pipe.score(X_target, y_target)
 
 print(f"Score on target domain with adaptation techniques: {test_score}")
+
+# %%
+# We can see that the classifier's performance is enhanced
+# when using Domain Adaptation techniques.
 
 
 # %%
