@@ -4,7 +4,7 @@
 #
 # License: BSD 3-Clause
 
-from collections import defaultdict 
+from collections import defaultdict
 
 from typing import Callable, Optional, Union
 
@@ -83,7 +83,7 @@ def make_da_pipeline(
     # xxx(okachaiev): unwrap from the selector when passed explicitly
     if not steps:
         raise TypeError("Missing 1 required positional argument: 'steps'")
-    
+
     names = [step[0] if isinstance(step, tuple) else None for step in steps]
     estimators = [step[1] if isinstance(step, tuple) else step for step in steps]
 
@@ -140,14 +140,11 @@ def _name_estimators(estimators):
     names = []
 
     for estimator in estimators:
-        if isinstance(estimator, BaseSelector):
-            name = type(estimator.base_estimator).__name__.lower()
-            if isinstance(estimator, PerDomain):
-                name = 'perdomain_' + name
-        else:
-            name = type(estimator).__name__.lower()
+        name = type(estimator.base_estimator).__name__.lower()
+        if isinstance(estimator, PerDomain):
+            name = 'perdomain_' + name
         names.append(name)
-    
+
     namecount = defaultdict(int)
     for est, name in zip(estimators, names):
         namecount[name] += 1

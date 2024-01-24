@@ -12,7 +12,6 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 
 from skada import SubspaceAlignmentAdapter, PerDomain, Shared, make_da_pipeline
-from skada._pipeline import _name_estimators
 
 import pytest
 
@@ -136,3 +135,7 @@ def test_named_estimator():
     assert 'pca-2' in pipe.named_steps
     assert 'logisticregression' in pipe.named_steps
 
+
+def test_empty_pipeline():
+    with pytest.raises(TypeError):
+        make_da_pipeline()
