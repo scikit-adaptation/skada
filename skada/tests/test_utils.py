@@ -291,7 +291,7 @@ def test_split_source_target_X_y():
     assert len(y_target) == 2 * n_samples_target, "y_target shape mismatch"
 
 
-def split_source_target_X():
+def test_split_source_target_X():
     n_samples_source = 50
     n_samples_target = 20
     X, y, sample_domain = make_dataset_from_moons_distribution(
