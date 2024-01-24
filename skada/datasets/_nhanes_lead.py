@@ -44,7 +44,7 @@ _NHANES_LEAD_LOADER = FileLoaderSpec(
     extract_root=False,
     remote=RemoteFileMetadata(
         filename="nhanes_lead.csv",
-        url="""https://raw.githubusercontent.com/YanisLalou/skada_datasets/main/nhanes_lead.csv""",  # noqa: E501
+        url="""https://figshare.com/ndownloader/files/44212007""",  # noqa: E501
         checksum="59ed30edaa30cf730e6e4ab14f90bceec22d85c4b403953e1297afdb40d670e8",
     )
 )
