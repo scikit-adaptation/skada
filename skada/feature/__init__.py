@@ -15,17 +15,20 @@ except ImportError as e:
     raise e
 
 from ._losses import dan_loss, deepcoral_loss, deepjdot_loss
-from ._divergence import DeepCORAL, DAN
-from ._optimal_transport import DeepJDOT
-from ._adversarial import DANN, CDAN
+from ._divergence import DeepCoral, DeepCoralLoss
+# from ._optimal_transport import DeepJDOT
+# from ._adversarial import DANN, CDAN
+from ._modules import ToyModule, ToyCNN
 
 __all__ = [
     'dan_loss',
     'deepcoral_loss',
     'deepjdot_loss',
-    'DeepCORAL',
+    'DeepCoralLoss',
+    'DeepCoral',
     'DeepJDOT',
     'DANN',
     'CDAN',
-    'DAN',
+    'ToyModule',
+    'ToyCNN',
 ]

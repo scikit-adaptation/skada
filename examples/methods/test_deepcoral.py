@@ -19,7 +19,6 @@ X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
 
 # %%
 # create skorch model
-
 net = DeepCoral(ToyModule(), reg=1)
 
 # %%

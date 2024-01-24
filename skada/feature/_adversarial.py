@@ -104,6 +104,7 @@ def DANN(module, layer_name, reg=1, **kwargs):
     return net
 
 
+
 class CDANLoss(BaseDACriterion):
     """Conditional Domain Adversarial Networks (CDAN) loss.
 
@@ -177,27 +178,27 @@ class CDANLoss(BaseDACriterion):
                 [features_t, y_pred_t]
             )
 
-            # Compute the output of the domain classifier
-            output_domain = self.domain_classifier_.forward(
-               multilinear_map, self.reg
-            ).flatten()
-            output_domain_target = self.domain_classifier_.forward(
-                multilinear_map_target, self.reg
-            ).flatten()
+        # Compute the output of the domain classifier
+        output_domain = self.domain_classifier_.forward(
+            multilinear_map, self.reg
+        ).flatten()
+        output_domain_target = self.domain_classifier_.forward(
+            multilinear_map_target, self.reg
+        ).flatten()
 
-            # create domain label
-            domain_label = torch.zeros(
-                (features_s.size()[0]), device=self.device, dtype=dtype
-            )
-            domain_label_target = torch.ones(
-                (features_t.size()[0]), device=self.device, dtype=dtype
-            )
+        # create domain label
+        domain_label = torch.zeros(
+            (features_s.size()[0]), device=self.device, dtype=dtype
+        )
+        domain_label_target = torch.ones(
+            (features_t.size()[0]), device=self.device, dtype=dtype
+        )
 
-            # update classification function
-            loss = (
-                self.domain_criterion_(output_domain, domain_label) +
-                self.domain_criterion_(output_domain_target, domain_label_target)
-            )
+        # update classification function
+        loss = (
+            self.domain_criterion_(output_domain, domain_label) +
+            self.domain_criterion_(output_domain_target, domain_label_target)
+        )
         return self.reg * loss
 
 
