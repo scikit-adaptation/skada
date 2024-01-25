@@ -17,7 +17,7 @@ from sklearn.pipeline import Pipeline
 
 from skada import make_da_pipeline
 from skada import SubspaceAlignmentAdapter
-from skada.datasets import fetch_nhanes_lead
+from skada.datasets import fetch_domain_aware_nhanes_lead
 
 # %%
 # Step 2: Loading an example Dataset
@@ -27,11 +27,11 @@ from skada.datasets import fetch_nhanes_lead
 # like the office31 and the nhanes_lead for classification.
 #
 # In the following we will use the nhanes lead dataset.
-# To load it, we use the :func:`~skada.datasets.fetch_nhanes_lead_dataset` function.
+# To load it, we use the :func:`~skada.datasets.fetch_domain_aware_nhanes_lead` function.
 
 
 # Load the nhanes_lead dataset
-domain_dataset = fetch_nhanes_lead()
+domain_dataset = fetch_domain_aware_nhanes_lead()
 
 # %%
 # This dataset contains 2 domains: above_PIR and below_PIR.
