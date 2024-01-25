@@ -15,7 +15,7 @@ from skada.datasets import (
     make_shifted_datasets,
     make_variable_frequency_dataset
 )
-from skada.utils import check_X_y_domain, split_source_target_X_y
+from skada.utils import check_X_y_domain, source_target_split
 
 
 def test_make_dataset_from_moons_distribution():
@@ -28,7 +28,9 @@ def test_make_dataset_from_moons_distribution():
         return_X_y=True,
     )
     X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
-    X_source, y_source, X_target, y_target = split_source_target_X_y(X, y, sample_domain)
+    X_source, X_target, y_source, y_target = source_target_split(
+        X, y, sample_domain=sample_domain
+    )
 
     assert X_source.shape == (2 * 50, 2), "X source shape mismatch"
     assert y_source.shape == (2 * 50,), "y source shape mismatch"
@@ -50,7 +52,9 @@ def test_make_dataset_from_multi_moons_distribution():
         return_X_y=True,
     )
     X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
-    X_source, y_source, X_target, y_target = split_source_target_X_y(X, y, sample_domain)
+    X_source, X_target, y_source, y_target = source_target_split(
+        X, y, sample_domain=sample_domain
+    )
 
     assert X_source.shape == (3 * 2 * 50, 2), "X source shape mismatch"
     assert y_source.shape == (3 * 2 * 50,), "y source shape mismatch"
@@ -82,7 +86,9 @@ def test_make_shifted_blobs():
         random_state=None,
     )
     X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
-    X_source, y_source, X_target, y_target = split_source_target_X_y(X, y, sample_domain)
+    X_source, X_target, y_source, y_target = source_target_split(
+        X, y, sample_domain=sample_domain
+    )
 
     assert X_source.shape == (50, 2), "X source shape mismatch"
     assert y_source.shape == (50,), "y source shape mismatch"
@@ -106,7 +112,9 @@ def test_make_shifted_datasets(shift):
         label="binary",
     )
     X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
-    X_source, y_source, X_target, y_target = split_source_target_X_y(X, y, sample_domain)
+    X_source, X_target, y_source, y_target = source_target_split(
+        X, y, sample_domain=sample_domain
+    )
 
     assert X_source.shape == (10 * 8, 2), "X source shape mismatch"
     assert y_source.shape == (10 * 8,), "y source shape mismatch"
@@ -130,7 +138,9 @@ def test_make_multi_source_shifted_datasets(shift):
         label="multiclass",
     )
     X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
-    X_source, y_source, X_target, y_target = split_source_target_X_y(X, y, sample_domain)
+    X_source, X_target, y_source, y_target = source_target_split(
+        X, y, sample_domain=sample_domain
+    )
 
     assert X_source.shape == (10 * 8, 2), "X source shape mismatch"
     assert y_source.shape == (10 * 8,), "y source shape mismatch"
@@ -149,7 +159,9 @@ def test_make_subspace_datasets():
         label="binary",
     )
     X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
-    X_source, y_source, X_target, y_target = split_source_target_X_y(X, y, sample_domain)
+    X_source, X_target, y_source, y_target = source_target_split(
+        X, y, sample_domain=sample_domain
+    )
 
     assert X_source.shape == (10 * 4, 2), "X source shape mismatch"
     assert y_source.shape == (10 * 4,), "y source shape mismatch"
@@ -176,7 +188,9 @@ def test_make_variable_frequency_dataset():
         sample_domain,
         allow_nd=True
     )
-    X_source, y_source, X_target, y_target = split_source_target_X_y(X, y, sample_domain)
+    X_source, X_target, y_source, y_target = source_target_split(
+        X, y, sample_domain=sample_domain
+    )
 
     assert X_source.shape == (3 * 10, 1, 3000), "X source shape mismatch"
     assert y_source.shape == (3 * 10,), "y source shape mismatch"

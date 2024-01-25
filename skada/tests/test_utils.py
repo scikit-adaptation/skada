@@ -11,10 +11,9 @@ from skada.datasets import (
 
 from skada.utils import (
     check_X_y_domain, check_X_domain,
-    extract_source_indices, split_source_target_X_y,
-    split_source_target_X
+    extract_source_indices
 )
-from skada._utils import source_target_split
+from skada.utils import source_target_split
 from skada._utils import _check_y_masking
 
 
@@ -86,20 +85,40 @@ def test_check_X_domain_exceptions():
 
 
 def test_source_target_split():
+    n_samples_source = 50
+    n_samples_target = 20
     X, y, sample_domain = make_dataset_from_moons_distribution(
         pos_source=0.1,
         pos_target=0.9,
-        n_samples_source=50,
-        n_samples_target=20,
+        n_samples_source=n_samples_source,
+        n_samples_target=n_samples_target,
         random_state=0,
         return_X_y=True,
     )
 
     # Test that no ValueError is raised
-    source_target_split(X, y, sample_domain=sample_domain)
+    _, _ = source_target_split(X, sample_domain=sample_domain)
 
-    with pytest.raises(ValueError):
-        source_target_split(X, y, sample_domain=None, allow_auto_sample_domain=False)
+    X_source, X_target, y_source, y_target = source_target_split(
+        X, y, sample_domain=sample_domain
+    )
+
+    print(X.shape)
+    print(y.shape)
+
+    print(X_source.shape)
+    print(X_target.shape)
+    print(y_source.shape)
+    print(y_target.shape)
+
+
+    assert X_source.shape == (2 * n_samples_source, 2), "X_source shape mismatch"
+    assert y_source.shape == (2 * n_samples_source, ), "y_source shape mismatch"
+    assert X_target.shape == (2 * n_samples_target, 2), "X_target shape mismatch"
+    assert y_target.shape == (2 * n_samples_target, ), "y_target shape mismatch"
+
+    with pytest.raises(IndexError):
+        source_target_split(X, y[:-2], sample_domain=sample_domain)
 
 
 def test_check_X_y_allow_exceptions():
@@ -268,41 +287,3 @@ def test_extract_source_indices():
     assert len(source_idx) == (len(sample_domain)), "source_idx shape mismatch"
     assert np.sum(source_idx) == 2 * n_samples_source, "source_idx sum mismatch"
     assert np.sum(~source_idx) == 2 * n_samples_target, "target_idx sum mismatch"
-
-
-def test_split_source_target_X_y():
-    n_samples_source = 50
-    n_samples_target = 20
-    X, y, sample_domain = make_dataset_from_moons_distribution(
-        pos_source=0.1,
-        pos_target=0.9,
-        n_samples_source=n_samples_source,
-        n_samples_target=n_samples_target,
-        random_state=0,
-        return_X_y=True,
-    )
-    X_source, y_source, X_target, y_target = split_source_target_X_y(
-        X, y, sample_domain
-    )
-
-    assert len(X_source) == 2 * n_samples_source, "X_source shape mismatch"
-    assert len(y_source) == 2 * n_samples_source, "y_source shape mismatch"
-    assert len(X_target) == 2 * n_samples_target, "X_target shape mismatch"
-    assert len(y_target) == 2 * n_samples_target, "y_target shape mismatch"
-
-
-def test_split_source_target_X():
-    n_samples_source = 50
-    n_samples_target = 20
-    X, y, sample_domain = make_dataset_from_moons_distribution(
-        pos_source=0.1,
-        pos_target=0.9,
-        n_samples_source=n_samples_source,
-        n_samples_target=n_samples_target,
-        random_state=0,
-        return_X_y=True,
-    )
-    X_source, X_target = split_source_target_X(X, sample_domain)
-
-    assert len(X_source) == 2 * n_samples_source, "X_source shape mismatch"
-    assert len(X_target) == 2 * n_samples_target, "X_target shape mismatch"

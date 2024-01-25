@@ -5,6 +5,7 @@
 from typing import Optional, Set
 
 import numpy as np
+from itertools import chain
 
 from sklearn.utils import check_array, check_consistent_length
 
@@ -216,49 +217,31 @@ def extract_source_indices(sample_domain):
     return source_idx
 
 
-def split_source_target_X_y(X, y, sample_domain):
-    """Split the data into source and target.
+def source_target_split(
+    *arrays,
+    sample_domain):
+    r""" Split data into source and target domains
 
-    Parameters:
+    Parameters
     ----------
-    X : array-like of shape (n_samples, n_features)
-        Input features
-    y : array-like of shape (n_samples,)
-        Target variable
-    sample_domain : array-like of shape (n_samples,)
-        Array specifying the domain labels for each sample.
-
-    Returns:
-    ----------
-    X_source : array
-        Input features for source domains.
-    y_source : array
-        Target variable for source domains.
-    X_target : array
-        Input features for target domains.
-    y_target : array
-        Target variable for target domains.
-    """
-    source_idx = extract_source_indices(sample_domain)
-    return X[source_idx], y[source_idx], X[~source_idx], y[~source_idx]
-
-
-def split_source_target_X(X, sample_domain):
-    """Split the data into source and target.
-
-    Parameters:
-    ----------
-    X : array-like of shape (n_samples, n_features)
+    *arrays : sequence of array-like of identical shape (n_samples, n_features)
         Input features
     sample_domain : array-like of shape (n_samples,)
         Array specifying the domain labels for each sample.
 
-    Returns:
-    ----------
-    X_source : array
-        Input features for source domains.
-    X_target : array
-        Input features for target domains.
+    Returns
+    -------
+    splits : list, length=2 * len(arrays)
+        List containing source-target split of inputs.
     """
+
+    if len(arrays) == 0:
+        raise ValueError("At least one array required as input")
+    
+    check_consistent_length(arrays)
+
     source_idx = extract_source_indices(sample_domain)
-    return X[source_idx], X[~source_idx]
+
+    return list(chain.from_iterable(
+        (a[source_idx], a[~source_idx]) for a in arrays
+    ))

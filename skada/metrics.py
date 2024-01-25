@@ -17,7 +17,7 @@ from sklearn.utils import check_random_state
 from sklearn.utils.extmath import softmax
 from sklearn.utils.metadata_routing import _MetadataRequester, get_routing_for_object
 
-from .utils import check_X_y_domain, extract_source_indices, split_source_target_X_y
+from .utils import check_X_y_domain, extract_source_indices, source_target_split
 
 
 # xxx(okachaiev): maybe it would be easier to reuse _BaseScorer?
@@ -169,7 +169,9 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
             )
 
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
-        X_source, y_source, X_target, _ = split_source_target_X_y(X, y, sample_domain)
+        X_source, X_target, y_source, _ = source_target_split(
+            X, y, sample_domain=sample_domain
+        ) 
         self._fit(X_source, X_target)
         ws = self.weight_estimator_source_.score_samples(X_source)
         wt = self.weight_estimator_target_.score_samples(X_source)

@@ -13,8 +13,7 @@ from .base import BaseAdapter, clone
 from .utils import (
     check_X_domain,
     check_X_y_domain,
-    split_source_target_X_y,
-    split_source_target_X
+    source_target_split
 )
 from ._utils import (
     _estimate_covariance,
@@ -50,7 +49,9 @@ class BaseOTMappingAdapter(BaseAdapter):
             Returns self.
         """
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
-        X, y, X_target, y_target = split_source_target_X_y(X, y, sample_domain)
+        X, X_target, y, y_target = source_target_split(
+            X, y, sample_domain=sample_domain
+        )
         transport = self._create_transport_estimator()
         self.ot_transport_ = clone(transport)
         self.ot_transport_.fit(Xs=X, ys=y, Xt=X_target, yt=y_target)
@@ -84,7 +85,7 @@ class BaseOTMappingAdapter(BaseAdapter):
             allow_multi_source=True,
             allow_multi_target=True
         )
-        X_source, X_target = split_source_target_X(X, sample_domain)
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
         # in case of prediction we would get only target samples here,
         # thus there's no need to perform any transformations
         if X_source.shape[0] > 0:
@@ -608,7 +609,7 @@ class CORALAdapter(BaseAdapter):
             allow_multi_source=True,
             allow_multi_target=True
         )
-        X_source, X_target = split_source_target_X(X, sample_domain)
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
 
         cov_source_ = _estimate_covariance(X_source, shrinkage=self.reg)
         cov_target_ = _estimate_covariance(X_target, shrinkage=self.reg)
@@ -643,7 +644,7 @@ class CORALAdapter(BaseAdapter):
             allow_multi_source=True,
             allow_multi_target=True
         )
-        X_source, X_target = split_source_target_X(X, sample_domain)
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
 
         X_source_adapt = np.dot(X_source, self.cov_source_inv_sqrt_)
         X_source_adapt = np.dot(X_source_adapt, self.cov_target_sqrt_)

@@ -44,7 +44,9 @@ X, y, sample_domain = make_shifted_datasets(
 )
 
 
-X_source, y_source, X_target, y_target = source_target_split(X, y, sample_domain)
+X_source, X_target, y_source, y_target = source_target_split(
+    X, y, sample_domain=sample_domain
+)
 
 
 n_tot_source = X_source.shape[0]

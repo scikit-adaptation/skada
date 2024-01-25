@@ -12,7 +12,7 @@ from sklearn.utils import check_random_state
 from sklearn.svm import SVC
 
 from .base import BaseAdapter
-from .utils import check_X_domain, split_source_target_X
+from .utils import check_X_domain, source_target_split
 from ._utils import _merge_source_target
 from ._pipeline import make_da_pipeline
 
@@ -86,7 +86,7 @@ class SubspaceAlignmentAdapter(BaseAdapter):
             allow_multi_source=True,
             allow_multi_target=True,
         )
-        X_source, X_target = split_source_target_X(X, sample_domain)
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
 
         if X_source.shape[0]:
             X_source = np.dot(self.pca_source_.transform(X_source), self.M_)
@@ -119,7 +119,7 @@ class SubspaceAlignmentAdapter(BaseAdapter):
             allow_multi_source=True,
             allow_multi_target=True,
         )
-        X_source, X_target = split_source_target_X(X, sample_domain)
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
 
         if self.n_components is None:
             n_components = min(min(X_source.shape), min(X_target.shape))
@@ -254,7 +254,7 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
             allow_multi_source=True,
             allow_multi_target=True,
         )
-        self.X_source_, self.X_target_ = split_source_target_X(X, sample_domain)
+        self.X_source_, self.X_target_ = source_target_split(X, sample_domain=sample_domain)
 
         Kss = pairwise_kernels(self.X_source_, metric=self.kernel)
         Ktt = pairwise_kernels(self.X_target_, metric=self.kernel)
@@ -315,7 +315,7 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
             allow_multi_source=True,
             allow_multi_target=True,
         )
-        X_source, X_target = split_source_target_X(X, sample_domain)
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
 
         if np.array_equal(X_source, self.X_source_) and np.array_equal(
             X_target, self.X_target_

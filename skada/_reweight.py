@@ -16,7 +16,7 @@ from sklearn.utils import check_random_state
 from sklearn.utils.validation import check_is_fitted
 
 from .base import AdaptationOutput, BaseAdapter, clone
-from .utils import check_X_domain, split_source_target_X, extract_source_indices
+from .utils import check_X_domain, source_target_split, extract_source_indices
 from ._utils import _estimate_covariance
 from ._pipeline import make_da_pipeline
 
@@ -67,7 +67,7 @@ class ReweightDensityAdapter(BaseAdapter):
             X,
             sample_domain
         )
-        X_source, X_target = split_source_target_X(X, sample_domain)
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
 
         self.weight_estimator_source_ = clone(self.weight_estimator)
         self.weight_estimator_target_ = clone(self.weight_estimator)
@@ -204,7 +204,7 @@ class GaussianReweightDensityAdapter(BaseAdapter):
             X,
             sample_domain
         )
-        X_source, X_target = split_source_target_X(X, sample_domain)
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
 
         self.mean_source_ = X_source.mean(axis=0)
         self.cov_source_ = _estimate_covariance(X_source, shrinkage=self.reg)
@@ -518,7 +518,7 @@ class KLIEPAdapter(BaseAdapter):
             allow_multi_source=True,
             allow_multi_target=True
         )
-        X_source, X_target = split_source_target_X(X, sample_domain)
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
 
         if isinstance(self.gamma, list):
             self.best_gamma_ = self._likelihood_cross_validation(
