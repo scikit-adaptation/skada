@@ -41,7 +41,7 @@ def plot_shifted_dataset(shift, random_state=42):
         random_state=random_state,
     )
 
-    X_source, y_source, X_target, y_target = source_target_split(
+    X_source, X_target, y_source, y_target = source_target_split(
         X, y, sample_domain=sample_domain
     )
 
