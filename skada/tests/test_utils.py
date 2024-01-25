@@ -103,15 +103,6 @@ def test_source_target_split():
         X, y, sample_domain=sample_domain
     )
 
-    print(X.shape)
-    print(y.shape)
-
-    print(X_source.shape)
-    print(X_target.shape)
-    print(y_source.shape)
-    print(y_target.shape)
-
-
     assert X_source.shape == (2 * n_samples_source, 2), "X_source shape mismatch"
     assert y_source.shape == (2 * n_samples_source, ), "y_source shape mismatch"
     assert X_target.shape == (2 * n_samples_target, 2), "X_target shape mismatch"
@@ -240,7 +231,7 @@ def test_check_X_allow_exceptions():
         match=(
             f"Number of targets provided is {n_targets} "
             f"and 'allow_target' is set to {allow_target}"
-            )
+        )
     ):
         check_X_domain(
             X, sample_domain=random_sample_domain,
@@ -270,6 +261,7 @@ def test_check_X_allow_exceptions():
             X, sample_domain=random_sample_domain,
             allow_auto_sample_domain=False, allow_multi_target=allow_multi_target
         )
+
 
 def test_extract_source_indices():
     n_samples_source = 50

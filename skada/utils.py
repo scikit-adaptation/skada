@@ -24,7 +24,6 @@ def check_X_y_domain(
     allow_multi_source: bool = True,
     allow_target: bool = True,
     allow_multi_target: bool = True,
-    # xxx(okachaiev): most likely this needs to be removed as it doesn't fit new API
     allow_auto_sample_domain: bool = True,
     allow_nd: bool = False,
 ):
@@ -116,7 +115,6 @@ def check_X_domain(
     allow_multi_source: bool = True,
     allow_target: bool = True,
     allow_multi_target: bool = True,
-    # xxx(okachaiev): most likely this needs to be removed as it doesn't fit new API
     allow_auto_sample_domain: bool = True,
 ):
     """
@@ -146,7 +144,7 @@ def check_X_domain(
     Returns:
     ----------
     X : array
-        Combined input features for source and target domains.
+        Input features.
     sample_domain : array
         Combined domain labels for source and target domains.
     """
@@ -157,7 +155,6 @@ def check_X_domain(
                          "should be set")
     elif sample_domain is None and allow_auto_sample_domain:
         # default target domain when sample_domain is not given
-        # xxx(okachaiev): I guess this should be -inf instead of a number
         # The idea is that with no labels we always assume
         # target domain (_DEFAULT_TARGET_DOMAIN_ONLY_LABEL)
         sample_domain = (
@@ -219,7 +216,8 @@ def extract_source_indices(sample_domain):
 
 def source_target_split(
     *arrays,
-    sample_domain):
+    sample_domain
+):
     r""" Split data into source and target domains
 
     Parameters
@@ -237,7 +235,7 @@ def source_target_split(
 
     if len(arrays) == 0:
         raise ValueError("At least one array required as input")
-    
+
     check_consistent_length(arrays)
 
     source_idx = extract_source_indices(sample_domain)
