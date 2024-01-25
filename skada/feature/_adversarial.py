@@ -10,7 +10,7 @@ from skada.feature.base import (
     DomainAwareCriterion,
     DomainBalancedDataLoader,
     DomainAwareNet,
-    BaseDACriterion,
+    BaseDALoss,
 )
 
 from .utils import check_generator
@@ -104,8 +104,7 @@ def DANN(module, layer_name, reg=1, **kwargs):
     return net
 
 
-
-class CDANLoss(BaseDACriterion):
+class CDANLoss(BaseDALoss):
     """Conditional Domain Adversarial Networks (CDAN) loss.
 
     From [1]_.

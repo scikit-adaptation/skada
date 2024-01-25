@@ -7,12 +7,12 @@ from skada.feature.base import (
     DomainAwareCriterion,
     DomainBalancedDataLoader,
     DomainAwareNet,
-    BaseDACriterion
+    BaseDALoss
 )
 from . import deepcoral_loss
 
 
-class DeepCoralLoss(BaseDACriterion):
+class DeepCoralLoss(BaseDALoss):
     def __init__(self, reg=1):
         super(DeepCoralLoss, self).__init__()
         self.reg = reg

@@ -7,13 +7,13 @@ from skada.feature.base import (
     DomainAwareCriterion,
     DomainBalancedDataLoader,
     DomainAwareNet,
-    BaseDACriterion,
+    BaseDALoss,
 )
 
 from . import deepjdot_loss
 
 
-class DeepJDOTLoss(BaseDACriterion):
+class DeepJDOTLoss(BaseDALoss):
     """Loss DeepJDOT.
 
     See [1]_.

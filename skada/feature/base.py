@@ -53,11 +53,11 @@ class DomainAwareCriterion(torch.nn.Module):
         )
 
 
-class BaseDACriterion(torch.nn.Module):
+class BaseDALoss(torch.nn.Module):
     def __init__(
         self,
     ):
-        super(BaseDACriterion, self).__init__()
+        super(BaseDALoss, self).__init__()
 
     @abstractmethod
     def forward(
