@@ -28,7 +28,7 @@ X, y, sample_domain = make_dataset_from_moons_distribution(
     random_state=RANDOM_SEED
 )
 
-X_source, y_source, X_target, y_target = source_target_split(
+X_source, X_target, y_source, y_target = source_target_split(
     X, y, sample_domain=sample_domain
 )
 
