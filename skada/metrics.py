@@ -170,8 +170,10 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
 
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
         X_source, X_target, y_source, _ = source_target_split(
-            X, y, sample_domain=sample_domain
-        ) 
+            X,
+            y,
+            sample_domain=sample_domain
+        )
         self._fit(X_source, X_target)
         ws = self.weight_estimator_source_.score_samples(X_source)
         wt = self.weight_estimator_target_.score_samples(X_source)
@@ -333,10 +335,10 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         self._sign = 1 if greater_is_better else -1
 
     def _no_reduc_log_loss(self, y, y_pred):
-         return np.array(
-             [
-                 log_loss(y[i : i + 1], y_pred[i : i + 1], labels=np.unique(y))
-                 for i in range(len(y))
+        return np.array(
+            [
+                log_loss(y[i : i + 1], y_pred[i : i + 1], labels=np.unique(y))
+                for i in range(len(y))
              ]
          )
 
@@ -362,12 +364,12 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         features_train = estimator.get_features(X_train)
         features_val = estimator.get_features(X_val)
         features_target = estimator.get_features(X[~source_idx])
-        
+
         self._fit_adapt(features_train, features_target)
         N, N_target = len(features_train), len(features_target)
         predictions = self.domain_classifier_.predict_proba(features_val)
         weights = N / N_target * predictions[:, :1] / predictions[:, 1:]
-        
+
         y_pred = estimator.predict_proba(X_val, sample_domain=sample_domain_val)
         error = self._loss_func(y_val, y_pred)
         assert weights.shape[0] == error.shape[0]
