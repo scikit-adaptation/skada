@@ -161,10 +161,10 @@ class DomainAwareDataset:
         data : :class:`~sklearn.utils.Bunch`
             Dictionary-like object, with the following attributes.
 
-            X: ndarray
+            data: ndarray
                 Samples from all sources and all targets given.
-            y : ndarray
-                Labels from all sources and all targets.
+            target : ndarray
+                Target labels from all sources and all targets.
             sample_domain : ndarray
                 The integer label for domain the sample was taken from.
                 By convention, source domains have non-negative labels,
@@ -194,7 +194,7 @@ class DomainAwareDataset:
             # xxx(okachaiev): this is horribly inefficient, re-write when API is fixed
             Xs.append(X)
             ys.append(y)
-            sample_domains.append(np.ones_like(y).astype(int)*domain_id)
+            sample_domains.append(np.ones_like(y)*domain_id)
             domain_labels[domain_name] = domain_id
         # xxx(okachaiev): code duplication, re-write when API is fixed
         dtype = None
@@ -224,16 +224,16 @@ class DomainAwareDataset:
             # xxx(okachaiev): this is horribly inefficient, rewrite when API is fixed
             Xs.append(X)
             ys.append(y)
-            sample_domains.append(-1 * domain_id * np.ones_like(y).astype(int))
+            sample_domains.append(-1 * domain_id * np.ones_like(y))
             domain_labels[domain_name] = -1 * domain_id
 
         # xxx(okachaiev): so far this only works if source and target has the same size
-        Xs = np.concatenate(Xs)
-        ys = np.concatenate(ys)
+        data = np.concatenate(Xs)
+        target = np.concatenate(ys)
         sample_domain = np.concatenate(sample_domains)
-        return (Xs, ys, sample_domain) if return_X_y else Bunch(
-            X=Xs,
-            y=ys,
+        return (data, target, sample_domain) if return_X_y else Bunch(
+            data=data,
+            target=target,
             sample_domain=sample_domain,
             domain_names=domain_labels,
         )
@@ -292,10 +292,10 @@ class DomainAwareDataset:
         data : :class:`~sklearn.utils.Bunch`
             Dictionary-like object, with the following attributes.
 
-            X: ndarray
+            data: np.ndarray
                 Samples from all sources and all targets given.
-            y : ndarray
-                Labels from all sources and all targets.
+            target : np.ndarray
+                Target labels from all sources and all targets.
             sample_domain : np.ndarray
                 The integer label for domain the sample was taken from.
                 By convention, source domains have non-negative labels,
@@ -314,31 +314,10 @@ class DomainAwareDataset:
         )
 
     def __str__(self) -> str:
-        return f"DomainAwareDataset(domains={self._get_domain_representation()})"
+        return f"DomainAwareDataset(domains={list(self.domain_names_.keys())})"
 
     def __repr__(self) -> str:
-        head = self.__str__()
-        body = [f"Number of domains: {len(self.domains_)}"]
-        body.append(f"Total size: {sum(len(tup[0]) for tup in self.domains_)}")
-        output = "\n".join([head] + body)
-        return output
-
-    def _get_domain_representation(self, max_domains=5, max_length=50):
-        domain_names = list(self.domain_names_.keys())
-
-        if len(domain_names) <= max_domains:
-            # If the number of domains is small, include all names
-            domain_str = str(domain_names)
-        else:
-            # If the number of domains is large, truncate the list and add ellipsis
-            truncated_domains = domain_names[:max_domains]
-            domain_str = str(truncated_domains)[:-1] + ', ...]'
-
-        # Truncate the string representation if it exceeds max_length
-        if len(domain_str) > max_length:
-            domain_str = domain_str[:max_length - 3] + '...]'
-
-        return domain_str
+        return self.__str__()
 
 
 # xxx(okachaiev): putting `domain_names` first argument
