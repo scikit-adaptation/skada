@@ -161,10 +161,10 @@ class DomainAwareDataset:
         data : :class:`~sklearn.utils.Bunch`
             Dictionary-like object, with the following attributes.
 
-            data: ndarray
+            X: ndarray
                 Samples from all sources and all targets given.
-            target : ndarray
-                Target labels from all sources and all targets.
+            y : ndarray
+                Labels from all sources and all targets.
             sample_domain : ndarray
                 The integer label for domain the sample was taken from.
                 By convention, source domains have non-negative labels,
@@ -228,12 +228,12 @@ class DomainAwareDataset:
             domain_labels[domain_name] = -1 * domain_id
 
         # xxx(okachaiev): so far this only works if source and target has the same size
-        data = np.concatenate(Xs)
-        target = np.concatenate(ys)
+        Xs = np.concatenate(Xs)
+        ys = np.concatenate(ys)
         sample_domain = np.concatenate(sample_domains)
-        return (data, target, sample_domain) if return_X_y else Bunch(
-            data=data,
-            target=target,
+        return (Xs, ys, sample_domain) if return_X_y else Bunch(
+            X=Xs,
+            y=ys,
             sample_domain=sample_domain,
             domain_names=domain_labels,
         )
@@ -292,10 +292,10 @@ class DomainAwareDataset:
         data : :class:`~sklearn.utils.Bunch`
             Dictionary-like object, with the following attributes.
 
-            data: np.ndarray
+            X: ndarray
                 Samples from all sources and all targets given.
-            target : np.ndarray
-                Target labels from all sources and all targets.
+            y : ndarray
+                Labels from all sources and all targets.
             sample_domain : np.ndarray
                 The integer label for domain the sample was taken from.
                 By convention, source domains have non-negative labels,
@@ -314,10 +314,31 @@ class DomainAwareDataset:
         )
 
     def __str__(self) -> str:
-        return f"DomainAwareDataset(domains={list(self.domain_names_.keys())})"
+        return f"DomainAwareDataset(domains={self._get_domain_representation()})"
 
     def __repr__(self) -> str:
-        return self.__str__()
+        head = self.__str__()
+        body = [f"Number of domains: {len(self.domains_)}"]
+        body.append(f"Total size: {sum(len(tup[0]) for tup in self.domains_)}")
+        output = "\n".join([head] + body)
+        return output
+
+    def _get_domain_representation(self, max_domains=5, max_length=50):
+        domain_names = list(self.domain_names_.keys())
+
+        if len(domain_names) <= max_domains:
+            # If the number of domains is small, include all names
+            domain_str = str(domain_names)
+        else:
+            # If the number of domains is large, truncate the list and add ellipsis
+            truncated_domains = domain_names[:max_domains]
+            domain_str = str(truncated_domains)[:-1] + ', ...]'
+
+        # Truncate the string representation if it exceeds max_length
+        if len(domain_str) > max_length:
+            domain_str = domain_str[:max_length - 3] + '...]'
+
+        return domain_str
 
 
 # xxx(okachaiev): putting `domain_names` first argument

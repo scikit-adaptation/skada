@@ -100,10 +100,13 @@ def test_default_selector_ignored_for_selector():
         LogisticRegression(),
         default_selector='per_domain',
     )
-    _, estimator = pipe.steps[0]
+    name, estimator = pipe.steps[0]
     assert isinstance(estimator, Shared)
-    _, estimator = pipe.steps[1]
+    assert name == 'subspacealignmentadapter'
+
+    name, estimator = pipe.steps[1]
     assert isinstance(estimator, PerDomain)
+    assert name == 'perdomain_logisticregression'
 
 
 def test_pipeline_step_parameters(da_dataset):
@@ -120,8 +123,19 @@ def test_pipeline_step_parameters(da_dataset):
 
 def test_named_estimator():
     pipe = make_da_pipeline(
+        (PerDomain(StandardScaler())),
         ('adapter', SubspaceAlignmentAdapter(n_components=2)),
+        PCA(n_components=4),
+        PCA(n_components=2),
         LogisticRegression(),
     )
     assert 'adapter' in pipe.named_steps
+    assert 'perdomain_standardscaler' in pipe.named_steps
+    assert 'pca-1' in pipe.named_steps
+    assert 'pca-2' in pipe.named_steps
     assert 'logisticregression' in pipe.named_steps
+
+
+def test_empty_pipeline():
+    with pytest.raises(TypeError):
+        make_da_pipeline()

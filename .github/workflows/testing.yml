@@ -14,7 +14,7 @@ on:
       - '**'
 
 jobs:
-  Install-Test-skada:
+  Test-minimal:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -38,19 +38,61 @@ jobs:
       with:
         python-version: "3.10"
     - run: which python
-    - name: Install 'skada' package
+    - name: Install dependencies
       run: |
         python -m pip install --user --upgrade --progress-bar off pip
         python -m pip install --user -r requirements.txt
-        python -m pip install --user --pre --extra-index https://pypi.anaconda.org/scientific-python-nightly-wheels/simple 'scikit-learn==1.4.dev0'
-        python -m pip install --user --upgrade pytest pytest-cov codecov
+        python -m pip install --user --upgrade pytest pytest-cov codecov 
+    - name: Install 'skada' package
+      run: |
         python -m pip install --user -e .
     # Run Tests
     - name: Run Tests without torch
-      run: pytest skada/ --ignore=skada/feature
-    # - name: Install GPU stuffs for CI
-    #   run: conda install pytorch cpuonly -y -c pytorch
-    # - name: Install Skorch for CI
-    #   run: conda install -c conda-forge skorch==0.13.0
-    # - name: Run Tests with torch # See https://stackoverflow.com/a/59959080/1469195 for the cov-report logic
-    #   run: pytest --cov=skada skada/ --cov-report term --cov-report xml:coverage.xml
+      run: pytest skada/ --verbose --cov=skada skada/ --cov-report term  --ignore=skada/feature
+    # Codecov 
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v3
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+
+  Test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+
+    # Install skada
+    - name: Checking Out Repository
+      uses: actions/checkout@v2
+    # Cache 'skada' datasets
+    - name: Create/Restore Skada Data Cache
+      id: cache-skada_datasets
+      uses: actions/cache@v2
+      with:
+        path: ~/skada_datasets
+        key: ${{ runner.os }}-v3
+    # Install Python & Packages
+    - uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+    - run: which python
+    - name: Install dependencies
+      run: |
+        python -m pip install --user --upgrade --progress-bar off pip
+        python -m pip install --user -r requirements_full.txt
+        python -m pip install --user --upgrade pytest pytest-cov codecov 
+    - name: Install 'skada' package
+      run: |
+        python -m pip install --user -e .
+    # Run Tests
+    - name: Run Tests without torch
+      run: pytest skada/ --verbose --cov=skada skada/ --cov-report term
+    # Codecov 
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v3
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
