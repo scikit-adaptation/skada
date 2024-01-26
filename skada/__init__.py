@@ -39,7 +39,7 @@ from ._subspace import (
     TransferComponentAnalysis,
 )
 from ._pipeline import make_da_pipeline
-from ._utils import source_target_split
+from .utils import source_target_split
 
 
 # make sure that the usage of the library is not possible

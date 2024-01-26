@@ -17,7 +17,7 @@ from sklearn.utils import check_random_state
 from sklearn.utils.extmath import softmax
 from sklearn.utils.metadata_routing import _MetadataRequester, get_routing_for_object
 
-from ._utils import check_X_y_domain
+from .utils import check_X_y_domain, extract_source_indices, source_target_split
 
 
 # xxx(okachaiev): maybe it would be easier to reuse _BaseScorer?
@@ -74,7 +74,10 @@ class SupervisedScorer(_BaseDomainAwareScorer):
         **params
     ):
         scorer = check_scoring(estimator, self.scoring)
-        source_idx = check_X_y_domain(X, y, sample_domain, return_indices=True)
+
+        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        source_idx = extract_source_indices(sample_domain)
+
         return self._sign * scorer(
             estimator,
             X[~source_idx],
@@ -165,8 +168,10 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
                 f"The estimator {estimator!r} does not."
             )
 
-        X_source, y_source, X_target, _ = check_X_y_domain(
-            X, y, sample_domain, return_joint=False)
+        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        X_source, X_target, y_source, _ = source_target_split(
+            X, y, sample_domain=sample_domain
+        ) 
         self._fit(X_source, X_target)
         ws = self.weight_estimator_source_.score_samples(X_source)
         wt = self.weight_estimator_target_.score_samples(X_source)
@@ -213,7 +218,8 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
                 f"The estimator {estimator!r} does not."
             )
 
-        source_idx = check_X_y_domain(X, y, sample_domain, return_indices=True)
+        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        source_idx = extract_source_indices(sample_domain)
         proba = estimator.predict_proba(
             X[~source_idx],
             sample_domain=sample_domain[~source_idx],
@@ -265,7 +271,8 @@ class SoftNeighborhoodDensity(_BaseDomainAwareScorer):
                 f"The estimator {estimator!r} does not."
             )
 
-        source_idx = check_X_y_domain(X, y, sample_domain, return_indices=True)
+        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        source_idx = extract_source_indices(sample_domain)
         proba = estimator.predict_proba(
             X[~source_idx],
             sample_domain=sample_domain[~source_idx],
@@ -326,12 +333,12 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         self._sign = 1 if greater_is_better else -1
 
     def _no_reduc_log_loss(self, y, y_pred):
-        return np.array(
-            [
-                log_loss(y[i : i + 1], y_pred[i : i + 1], labels=np.unique(y))
-                for i in range(len(y))
-            ]
-        )
+         return np.array(
+             [
+                 log_loss(y[i : i + 1], y_pred[i : i + 1], labels=np.unique(y))
+                 for i in range(len(y))
+             ]
+         )
 
     def _fit_adapt(self, features, features_target):
         domain_classifier = self.domain_classifier
@@ -345,7 +352,8 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         return self
 
     def _score(self, estimator, X, y, sample_domain=None, **kwargs):
-        source_idx = check_X_y_domain(X, y, sample_domain, return_indices=True)
+        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        source_idx = extract_source_indices(sample_domain)
         rng = check_random_state(self.random_state)
         X_train, X_val, _, y_val, _, sample_domain_val = train_test_split(
             X[source_idx], y[source_idx], sample_domain[source_idx],
@@ -354,12 +362,12 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         features_train = estimator.get_features(X_train)
         features_val = estimator.get_features(X_val)
         features_target = estimator.get_features(X[~source_idx])
-
+        
         self._fit_adapt(features_train, features_target)
         N, N_target = len(features_train), len(features_target)
         predictions = self.domain_classifier_.predict_proba(features_val)
         weights = N / N_target * predictions[:, :1] / predictions[:, 1:]
-
+        
         y_pred = estimator.predict_proba(X_val, sample_domain=sample_domain_val)
         error = self._loss_func(y_val, y_pred)
         assert weights.shape[0] == error.shape[0]
