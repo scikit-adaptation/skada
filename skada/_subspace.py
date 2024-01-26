@@ -254,7 +254,10 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
             allow_multi_source=True,
             allow_multi_target=True,
         )
-        self.X_source_, self.X_target_ = source_target_split(X, sample_domain=sample_domain)
+        self.X_source_, self.X_target_ = source_target_split(
+            X,
+            sample_domain=sample_domain
+        )
 
         Kss = pairwise_kernels(self.X_source_, metric=self.kernel)
         Ktt = pairwise_kernels(self.X_target_, metric=self.kernel)
