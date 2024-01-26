@@ -341,6 +341,9 @@ def generate_dataset(
             X = np.array([list(entry.values()) for entry in cutoff_data_X])
             y = np.array([int(row[target_key]) for row in cutoff_data])
 
+            X = X.astype(int)
+            y = y.astype(int)
+
             if shuffle:
                 shuffle_X_y(X, y, random_state)
 
@@ -353,6 +356,9 @@ def generate_dataset(
 
         X = np.array([list(entry.values()) for entry in cutoff_data_X])
         y = np.array([int(row[target_key]) for row in nhanes_lead_data])
+
+        X = X.astype(int)
+        y = y.astype(int)
 
         if shuffle:
             shuffle_X_y(X, y, random_state)
