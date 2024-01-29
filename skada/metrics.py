@@ -209,7 +209,7 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
             ICLR, 2018.
     """
 
-    def __init__(self, greater_is_better=False):
+    def __init__(self, greater_is_better=True):
         super().__init__()
         self._sign = 1 if greater_is_better else -1
 
@@ -235,8 +235,8 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
             )
         else:
             log_proba = np.log(proba + 1e-7)
-        entropy = np.sum(-proba * log_proba, axis=1)
-        return -self._sign * np.mean(entropy)
+        entropy = -np.sum(proba * log_proba, axis=1)
+        return self._sign * np.mean(entropy)
 
 
 class SoftNeighborhoodDensity(_BaseDomainAwareScorer):
