@@ -12,7 +12,8 @@ from sklearn.utils import check_random_state
 from sklearn.svm import SVC
 
 from .base import BaseAdapter
-from ._utils import check_X_domain, _merge_source_target
+from .utils import check_X_domain, source_target_split
+from ._utils import _merge_source_target
 from ._pipeline import make_da_pipeline
 
 
@@ -79,13 +80,14 @@ class SubspaceAlignmentAdapter(BaseAdapter):
         weights : None
             No weights are returned here.
         """
-        X_source, X_target = check_X_domain(
+        X, sample_domain = check_X_domain(
             X,
             sample_domain,
             allow_multi_source=True,
             allow_multi_target=True,
-            return_joint=False,
         )
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+
         if X_source.shape[0]:
             X_source = np.dot(self.pca_source_.transform(X_source), self.M_)
         if X_target.shape[0]:
@@ -111,13 +113,14 @@ class SubspaceAlignmentAdapter(BaseAdapter):
         self : object
             Returns self.
         """
-        X_source, X_target = check_X_domain(
+        X, sample_domain = check_X_domain(
             X,
             sample_domain,
             allow_multi_source=True,
             allow_multi_target=True,
-            return_joint=False,
         )
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+
         if self.n_components is None:
             n_components = min(min(X_source.shape), min(X_target.shape))
         else:
@@ -245,12 +248,15 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
         self : object
             Returns self.
         """
-        self.X_source_, self.X_target_ = check_X_domain(
+        X, sample_domain = check_X_domain(
             X,
             sample_domain,
             allow_multi_source=True,
             allow_multi_target=True,
-            return_joint=False,
+        )
+        self.X_source_, self.X_target_ = source_target_split(
+            X,
+            sample_domain=sample_domain
         )
 
         Kss = pairwise_kernels(self.X_source_, metric=self.kernel)
@@ -306,13 +312,14 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
         weights : None
             No weights are returned here.
         """
-        X_source, X_target = check_X_domain(
+        X, sample_domain = check_X_domain(
             X,
             sample_domain,
             allow_multi_source=True,
             allow_multi_target=True,
-            return_joint=False,
         )
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+
         if np.array_equal(X_source, self.X_source_) and np.array_equal(
             X_target, self.X_target_
         ):

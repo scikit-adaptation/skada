@@ -117,7 +117,7 @@ for ds_cnt, ds in enumerate(datasets):
     # preprocess dataset, split into training and test part
     X, y, sample_domain = ds
 
-    Xs, ys, Xt, yt = source_target_split(X, y, sample_domain=sample_domain)
+    Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 
     x_min, x_max = X[:, 0].min() - 0.5, X[:, 0].max() + 0.5
     y_min, y_max = X[:, 1].min() - 0.5, X[:, 1].max() + 0.5
