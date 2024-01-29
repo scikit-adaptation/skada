@@ -17,7 +17,7 @@ from sklearn.utils.validation import check_is_fitted
 
 # xxx(okachaiev): this should be `skada.utils.check_X_y_domain`
 # rather than `skada._utils.check_X_y_domain`
-from ._utils import check_X_domain
+from .utils import check_X_domain
 
 
 def _estimator_has(attr):
