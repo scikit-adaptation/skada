@@ -87,7 +87,7 @@ class BaseAdapter(BaseEstimator):
         X,
         y=None,
         sample_domain=None,
-        allow_source=False,
+        allow_source=True,
         **params
     ) -> Union[np.ndarray, AdaptationOutput]:
         check_is_fitted(self)
