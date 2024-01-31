@@ -14,6 +14,11 @@ from sklearn.utils.metadata_routing import get_routing_for_object
 from sklearn.utils.metaestimators import available_if
 from sklearn.utils.validation import check_is_fitted
 
+from skada._utils import (
+    _DEFAULT_SOURCE_DOMAIN_LABEL, _DEFAULT_TARGET_DOMAIN_LABEL,
+    _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
+    )
+from skada._utils import _check_y_masking
 
 # xxx(okachaiev): this should be `skada.utils.check_X_y_domain`
 # rather than `skada._utils.check_X_y_domain`
@@ -224,10 +229,13 @@ class BaseSelector(BaseEstimator):
         # in case the estimator is marked as final in the pipeline,
         # the selector is responsible for removing masked labels
         # from the targets
-        if y.dtype in (np.float32, np.float64):
-            unmasked_idx = ~np.isfinite(y)
+        print(type(y))
+        y_type = _check_y_masking(y)
+        if y_type == 'classification':
+            unmasked_idx = (y != _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL)
         else:
-            unmasked_idx = (y != -1)
+            unmasked_idx = ~np.isfinite(y)
+
         X = X[unmasked_idx]
         y = y[unmasked_idx]
         routed_params = {
@@ -250,7 +258,10 @@ class Shared(BaseSelector):
         if 'sample_domain' in params:
             domains = set(np.unique(params['sample_domain']))
         else:
-            domains = set([1, -2])  # default source and target labels
+            domains = set([
+                _DEFAULT_SOURCE_DOMAIN_LABEL,
+                _DEFAULT_TARGET_DOMAIN_LABEL
+            ])  # default source and target labels
         # xxx(okachaiev): this code is awkward, and it's duplicated everywhere
         routing = get_routing_for_object(self.base_estimator)
         routed_params = routing.fit._route_params(params=params)
