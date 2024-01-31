@@ -46,7 +46,7 @@ class DANNLoss(nn.Module):
 
     def forward(
         self,
-        y_pred_s,
+        y_s,
         y_pred_t,
         y_pred_domain_s,
         y_pred_domain_t,
@@ -138,7 +138,7 @@ class CDANLoss(BaseDALoss):
 
     def forward(
         self,
-        y_pred_s,
+        y_s,
         y_pred_t,
         y_pred_domain_s,
         y_pred_domain_t,
@@ -147,7 +147,7 @@ class CDANLoss(BaseDALoss):
     ):
         """Compute the domain adaptation loss"""
         dtype = torch.float32
-        n_classes = y_pred_s.shape[1]
+        n_classes = y_s.shape[1]
         n_features = features_s.shape[1]
         if n_features * n_classes > self.max_features:
             random_layer = _RandomLayer(
@@ -161,10 +161,10 @@ class CDANLoss(BaseDALoss):
         # Compute the input for the domain classifier
         if random_layer is None:
             multilinear_map = torch.bmm(
-                y_pred_s.unsqueeze(2), features_s.unsqueeze(1)
+                y_s.unsqueeze(2), features_s.unsqueeze(1)
             )
             multilinear_map_target = torch.bmm(
-                y_pred_s.unsqueeze(2), features_t.unsqueeze(1)
+                y_s.unsqueeze(2), features_t.unsqueeze(1)
             )
 
             multilinear_map = multilinear_map.view(-1, n_features * n_classes)
@@ -172,7 +172,7 @@ class CDANLoss(BaseDALoss):
                     -1, n_features * n_classes)
 
         else:
-            multilinear_map = random_layer.forward([features_s, y_pred_s])
+            multilinear_map = random_layer.forward([features_s, y_s])
             multilinear_map_target = random_layer.forward(
                 [features_t, y_pred_t]
             )

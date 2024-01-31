@@ -7,7 +7,7 @@ from skada.feature.base import (
     DomainAwareCriterion,
     DomainBalancedDataLoader,
     DomainAwareNet,
-    BaseDALoss
+    BaseDALoss,
 )
 from . import deepcoral_loss
 
@@ -18,7 +18,13 @@ class DeepCoralLoss(BaseDALoss):
         self.reg = reg
 
     def forward(
-        self, y_pred_t, y_pred_domain_s, y_pred_domain_t, features_s, features_t
+        self,
+        y_s,
+        y_pred_t,
+        y_pred_domain_s,
+        y_pred_domain_t,
+        features_s,
+        features_t,
     ):
         """Compute the domain adaptation loss"""
         cov_s = torch.cov(features_s)

@@ -51,7 +51,12 @@ class DomainAwareCriterion(torch.nn.Module):
 
         # predict
         return self.criterion(y_pred_s, y_true[sample_domain > 0]) + self.dacriterion(
-            y_pred_s, y_pred_t, y_pred_domain_s, y_pred_domain_t, features_s, features_t
+            y_true[sample_domain > 0],
+            y_pred_t,
+            y_pred_domain_s,
+            y_pred_domain_t,
+            features_s,
+            features_t,
         )
 
 
@@ -64,7 +69,7 @@ class BaseDALoss(torch.nn.Module):
     @abstractmethod
     def forward(
         self,
-        y_pred_s,
+        y_s,
         y_pred_t,
         y_pred_domain_s,
         y_pred_domain_t,
@@ -236,12 +241,7 @@ class DomainAwareNet(NeuralNetClassifier):
     """
 
     def __init__(
-        self,
-        module,
-        layer_name,
-        domain_classifier=None,
-        iterator_train=None,
-        **kwargs
+        self, module, layer_name, domain_classifier=None, iterator_train=None, **kwargs
     ):
         # TODO val is not working
         # if train_split is None:

@@ -38,7 +38,7 @@ def deepcoral_loss(cov, cov_target):
 
 
 def deepjdot_loss(
-    y_pred_s,
+    y_s,
     y_pred_t,
     features_s,
     features_t,
@@ -56,7 +56,7 @@ def deepjdot_loss(
         embeddings of the source data used to perform the distance matrix.
     embedd_target : tensor
         embeddings of the target data used to perform the distance matrix.
-    y_pred_s : tensor
+    y_s : tensor
         labels of the source data used to perform the distance matrix.
     y_pred_t : tensor
         labels of the target data used to perform the distance matrix.
@@ -97,9 +97,9 @@ def deepjdot_loss(
     y_target_matrix = y_pred_t.repeat(len(y_pred_t), 1, 1).permute(1, 2, 0)
 
     if criterion is None:
-        criterion = torch.nn.CrossEntropyLoss()
+        criterion = torch.nn.CrossEntropyLoss(reduction="none")
 
-    loss_target = criterion(y_target_matrix, y_pred_s.repeat(len(y_pred_s), 1)).T
+    loss_target = criterion(y_target_matrix, y_s.repeat(len(y_s), 1)).T
     M = reg_d * dist + reg_cl * loss_target
 
     # Compute the loss

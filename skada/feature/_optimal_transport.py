@@ -45,7 +45,7 @@ class DeepJDOTLoss(BaseDALoss):
 
     def forward(
         self,
-        y_pred_s,
+        y_s,
         y_pred_t,
         y_pred_domain_s,
         y_pred_domain_t,
@@ -54,13 +54,13 @@ class DeepJDOTLoss(BaseDALoss):
     ):
         """Compute the domain adaptation loss"""
         loss = deepjdot_loss(
-            y_pred_s,
+            y_s,
             y_pred_t,
             features_s,
             features_t,
             self.reg_d,
             self.reg_cl,
-            criterion=self.target_criterion_,
+            criterion=self.criterion_,
         )
         return loss
 
@@ -70,7 +70,7 @@ def DeepJDOT(
     layer_name,
     reg_d=1,
     reg_cl=1,
-    target_criterion=nn.CrossEntropyLoss,
+    target_criterion=None,
     **kwargs
 ):
     net = DomainAwareNet(
