@@ -235,8 +235,8 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
             )
         else:
             log_proba = np.log(proba + 1e-7)
-        entropy = -np.sum(proba * log_proba, axis=1)
-        return self._sign * np.mean(entropy)
+        entropy_by_sample = -proba * log_proba
+        return self._sign * np.mean(entropy_by_sample)
 
 
 class SoftNeighborhoodDensity(_BaseDomainAwareScorer):
