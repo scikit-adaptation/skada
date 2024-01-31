@@ -9,7 +9,6 @@ from abc import abstractmethod
 import torch
 from torch.utils.data import DataLoader, Sampler
 from skorch import NeuralNetClassifier
-
 from .utils import _register_forwards_hook
 
 
@@ -43,6 +42,9 @@ class DomainAwareCriterion(torch.nn.Module):
         if y_pred_domain is not None:
             y_pred_domain_s = y_pred_domain[sample_domain > 0]
             y_pred_domain_t = y_pred_domain[sample_domain < 0]
+        else:
+            y_pred_domain_s = None
+            y_pred_domain_t = None
 
         features_s = features[sample_domain > 0]
         features_t = features[sample_domain < 0]
@@ -151,7 +153,7 @@ class DomainBalancedDataLoader(DataLoader):
         sampler = DomainBalancedSampler(dataset)
         super().__init__(
             dataset,
-            batch_size,
+            2 * batch_size,
             shuffle,
             sampler,
             batch_sampler,
@@ -191,26 +193,29 @@ class DomainAwareModule(torch.nn.Module):
 
     def forward(self, X, sample_domain):
         # choose source or target domain
-        X_s = X[sample_domain > 0]
-        X_t = X[sample_domain < 0]
-        # predict
-        y_pred_s = self.module_(X_s)
-        features_s = self.intermediate_layers[self.layer_name]
-        y_pred_t = self.module_(X_t)
-        features_t = self.intermediate_layers[self.layer_name]
+        if torch.sum(sample_domain > 0) != 0:  # if source+target -> training
+            X_s = X[sample_domain > 0]
+            X_t = X[sample_domain < 0]
+            # predict
+            y_pred_s = self.module_(X_s)
+            features_s = self.intermediate_layers[self.layer_name]
+            y_pred_t = self.module_(X_t)
+            features_t = self.intermediate_layers[self.layer_name]
 
-        if self.domain_classifier_ is not None:
-            y_pred_domain_s = self.domain_classifier_(features_s)
-            y_pred_domain_t = self.domain_classifier_(features_t)
-            y_pred_domain = torch.cat((y_pred_domain_s, y_pred_domain_t), dim=0)
-        else:
-            y_pred_domain = None
-        return (
-            torch.cat((y_pred_s, y_pred_t), dim=0),  # predictions
-            y_pred_domain,  # domain predictions
-            torch.cat((features_s, features_t), dim=0),  # features
-            sample_domain,  # domains
-        )
+            if self.domain_classifier_ is not None:
+                y_pred_domain_s = self.domain_classifier_(features_s)
+                y_pred_domain_t = self.domain_classifier_(features_t)
+                y_pred_domain = torch.cat((y_pred_domain_s, y_pred_domain_t), dim=0)
+            else:
+                y_pred_domain = None
+            return (
+                torch.cat((y_pred_s, y_pred_t), dim=0),  # predictions
+                y_pred_domain,  # domain predictions
+                torch.cat((features_s, features_t), dim=0),  # features
+                sample_domain,  # domains
+            )
+        else:  # if only target -> testing
+            return self.module_(X)
 
 
 class DomainAwareNet(NeuralNetClassifier):
@@ -230,9 +235,29 @@ class DomainAwareNet(NeuralNetClassifier):
         Keyword arguments passed to the skorch NeuralNetClassifier class.
     """
 
-    def __init__(self, module, layer_name, domain_classifier=None, **kwargs):
+    def __init__(
+        self,
+        module,
+        layer_name,
+        domain_classifier=None,
+        iterator_train=None,
+        **kwargs
+    ):
+        # TODO val is not working
+        # if train_split is None:
+        #     iterator_valid = None
+        # else:
+        #     iterator_valid = (
+        #         DomainBalancedDataLoader if iterator_valid is None else iterator_valid
+        #     )
+        iterator_train = (
+            DomainBalancedDataLoader if iterator_train is None else iterator_train
+        )
+
         super().__init__(
-            DomainAwareModule(module, layer_name, domain_classifier), **kwargs
+            DomainAwareModule(module, layer_name, domain_classifier),
+            iterator_train=iterator_train,
+            **kwargs
         )
 
     def fit(self, X, y, sample_domain=None, **fit_params):
