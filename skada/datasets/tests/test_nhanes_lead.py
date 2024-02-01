@@ -17,18 +17,26 @@ RANDOM_NUMBER = random.random()
 
 
 def test_fetch_nhanes_lead():
-    domain_dataset = fetch_domain_aware_nhanes_lead()
-    assert isinstance(domain_dataset, DomainAwareDataset)
+    domain_aware_dataset = fetch_domain_aware_nhanes_lead()
+    assert isinstance(domain_aware_dataset, DomainAwareDataset)
 
-    domain_dataset = fetch_nhanes_lead(return_X_y=False)
-    assert isinstance(domain_dataset, Bunch)
+    dataset = fetch_nhanes_lead(return_X_y=False)
+    assert isinstance(dataset, Bunch)
 
-    domain_dataset = fetch_nhanes_lead(return_X_y=True)
+    dataset = fetch_nhanes_lead(return_X_y=True)
     assert (
-        isinstance(domain_dataset, Tuple) and
-        isinstance(domain_dataset[0], np.ndarray) and
-        isinstance(domain_dataset[1], np.ndarray)
+        isinstance(dataset, Tuple) and
+        isinstance(dataset[0], np.ndarray) and
+        isinstance(dataset[1], np.ndarray)
     )
+
+    with pytest.raises(OSError):
+        fetch_nhanes_lead(data_home=str(RANDOM_NUMBER),
+                          download_if_missing=False)
+
+    with pytest.raises(OSError):
+        fetch_domain_aware_nhanes_lead(data_home=str(RANDOM_NUMBER),
+                                       download_if_missing=False)
 
 
 def test_fetch_nhanes_wrong_url():
@@ -82,3 +90,9 @@ def test_shuffle_nhanes_dataset():
     domain_dataset_shuffle = fetch_domain_aware_nhanes_lead(shuffle=True)
 
     assert ~np.array_equal(domain_dataset.domains_, domain_dataset_shuffle.domains_)
+
+    dataset = fetch_nhanes_lead(return_X_y=False)
+    dataset_shuffle = fetch_nhanes_lead(return_X_y=False, shuffle=True)
+
+    assert ~np.array_equal(dataset.X, dataset_shuffle.X)
+    assert ~np.array_equal(dataset.y, dataset_shuffle.y)
