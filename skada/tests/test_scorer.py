@@ -116,4 +116,4 @@ def test_scorer_with_log_proba():
     )['test_score']
     assert scores.shape[0] == 3, "evaluate 3 splits"
     assert np.all(~np.isnan(scores)), "all scores are computed"
-    assert np.all(scores >= 0), "all scores are positive"
+    assert np.all(scores <= 0), "all scores are negative"

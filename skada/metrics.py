@@ -204,7 +204,7 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
     reduction: str, default='mean'
         Specifies the reduction to apply to the entropy values.
         Must be one of ['none', 'mean', 'sum'].
-        If 'none', the entropy values for each sample are returned.
+        If 'none', the entropy values for each sample are returned ([1]_ method).
         If 'mean', the mean of the entropy values is returned.
         If 'sum', the sum of the entropy values is returned.
 
