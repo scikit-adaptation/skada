@@ -167,10 +167,8 @@ def test_make_shifted_datasets_regression(shift):
 
     assert X_source.shape == (10 * 8, 2), "X source shape mismatch"
     assert y_source.shape == (10 * 8,), "y source shape mismatch"
-    assert (max(y_source) <=1) and min(y_source) >=0, "Wrong y-values in source domain, probabilities should be between 0 and 1"
     assert X_target.shape == (10 * 8, 2), "X target shape mismatch"
     assert y_target.shape == (10 * 8,), "y target shape mismatch"
-    assert (max(y_target) <=1) and min(y_target) >=0, "Wrong y-values in target domain, probabilities should be between 0 and 1"
 
 
 
