@@ -73,10 +73,6 @@ def _check_y_masking(y):
 
     if y_type == 'continuous':
         if np.any(np.isnan(y)):
-            if y.ndim != 1:
-                raise ValueError("For a regression task, "
-                                "more than 1D labels are not supported")
-            else:
                 return y_type
         else:
             raise ValueError("For a regression task, "
@@ -113,7 +109,11 @@ def _find_y_type(y):
     # We need to check for this case first because
     # type_of_target() doesnt handle nan values
     if np.any(np.isnan(y)):
-        return 'continuous'
+        if y.ndim != 1:
+            raise ValueError("For a regression task, "
+                            "more than 1D labels are not supported")
+        else:
+            return 'continuous'
 
     # Check if the target is a classification or regression target.
     y_type = type_of_target(y)
@@ -123,4 +123,6 @@ def _find_y_type(y):
     elif y_type == 'binary' or y_type == 'multiclass':
         return 'classification'
     else:
+        # Here y_type is 'multilabel-indicator', 'continuous-multioutput',
+        # 'multiclass-multioutput' or 'unknown'
         raise ValueError("Uncompatible label type: %r" % y_type)

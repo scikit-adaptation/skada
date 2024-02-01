@@ -232,8 +232,11 @@ class BaseSelector(BaseEstimator):
         y_type = _find_y_type(y)
         if y_type == 'classification':
             unmasked_idx = (y != _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL)
-        else:
+        elif y_type == 'continuous':
             unmasked_idx = ~np.isfinite(y)
+        else:
+            # This should be impossible to reach
+            raise ValueError("Uncompatible label type: %r" % y_type)
 
         X = X[unmasked_idx]
         y = y[unmasked_idx]
