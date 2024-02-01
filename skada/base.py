@@ -18,7 +18,7 @@ from skada._utils import (
     _DEFAULT_SOURCE_DOMAIN_LABEL, _DEFAULT_TARGET_DOMAIN_LABEL,
     _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
     )
-from skada._utils import _check_y_masking
+from skada._utils import _find_y_type
 
 # xxx(okachaiev): this should be `skada.utils.check_X_y_domain`
 # rather than `skada._utils.check_X_y_domain`
@@ -229,8 +229,7 @@ class BaseSelector(BaseEstimator):
         # in case the estimator is marked as final in the pipeline,
         # the selector is responsible for removing masked labels
         # from the targets
-        print(type(y))
-        y_type = _check_y_masking(y)
+        y_type = _find_y_type(y)
         if y_type == 'classification':
             unmasked_idx = (y != _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL)
         else:

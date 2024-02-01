@@ -68,30 +68,59 @@ def _check_y_masking(y):
     y : array-like of shape (n_samples,)
         Labels for the data
     """
-
-    # We need to check for this case first because
-    # type_of_target() doesnt handle nan values
-    if np.any(np.isnan(y)):
-        if y.ndim != 1:
-            raise ValueError("For a regression task, "
-                             "more than 1D labels are not supported")
-        else:
-            return 'continuous'
-
-    # Check if the target is a classification or regression target.
-    y_type = type_of_target(y)
+    # Find the type of the labels, continuous or classification
+    y_type = _find_y_type(y)
 
     if y_type == 'continuous':
-        raise ValueError("For a regression task, "
-                         "masked labels should be, "
-                         f"{_DEFAULT_MASKED_TARGET_REGRESSION_LABEL}")
-    elif y_type == 'binary' or y_type == 'multiclass':
+        if np.any(np.isnan(y)):
+            if y.ndim != 1:
+                raise ValueError("For a regression task, "
+                                "more than 1D labels are not supported")
+            else:
+                return y_type
+        else:
+            raise ValueError("For a regression task, "
+                            "masked labels should be, "
+                            f"{_DEFAULT_MASKED_TARGET_REGRESSION_LABEL}")
+    elif y_type == 'classification':
         if (np.any(y < _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL) or
                 not np.any(y == _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL)):
             raise ValueError("For a classification task, "
                              "masked labels should be, "
                              f"{_DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL}")
         else:
-            return 'classification'
+            return y_type
+    else:
+        raise ValueError("Uncompatible label type: %r" % y_type)
+
+
+def _find_y_type(y):
+    """
+    Find the type of the labels. They can either be continuous or
+    classification.
+
+    Parameters
+    ----------
+    y : array-like of shape (n_samples,)
+        Labels for the data
+    
+    Returns
+    -------
+    y_type : str
+        Type of labels between 'continuous' and 'classification'
+    """
+
+    # We need to check for this case first because
+    # type_of_target() doesnt handle nan values
+    if np.any(np.isnan(y)):
+        return 'continuous'
+
+    # Check if the target is a classification or regression target.
+    y_type = type_of_target(y)
+
+    if y_type == 'continuous':
+        return 'continuous'
+    elif y_type == 'binary' or y_type == 'multiclass':
+        return 'classification'
     else:
         raise ValueError("Uncompatible label type: %r" % y_type)
