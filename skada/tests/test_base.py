@@ -103,7 +103,7 @@ def test_base_selector_remove_masked_continuous():
     X_output, y_output, routed_params = selector._remove_masked(
         X, y, selector.get_params()
     )
-    print(y)
+
     assert X_output.shape[0] != X.shape[0], "X output shape mismatch"
     assert y_output.shape[0] != y.shape[0], "y output shape mismatch"
     assert X_output.shape[0] == y_output.shape[0]

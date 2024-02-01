@@ -87,7 +87,7 @@ def _check_y_masking(y):
         else:
             return y_type
     else:
-        raise ValueError("Uncompatible label type: %r" % y_type)
+        raise ValueError(f"Uncompatible label type: {y_type}")
 
 
 def _find_y_type(y):
@@ -125,4 +125,4 @@ def _find_y_type(y):
     else:
         # Here y_type is 'multilabel-indicator', 'continuous-multioutput',
         # 'multiclass-multioutput' or 'unknown'
-        raise ValueError("Uncompatible label type: %r" % y_type)
+        raise ValueError(f"Uncompatible label type: {y_type}")
