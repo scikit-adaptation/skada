@@ -44,8 +44,6 @@ def plot_shifted_dataset(shift, random_state=42):
     )
     X_source, X_target, y_source, y_target = source_target_split(X, y, sample_domain=sample_domain)
 
-    print(y.shape, y_source.shape, y_target.shape, sample_domain.shape)
-    print()
     fig, (ax1, ax2) = plt.subplots(1, 2, sharex="row", sharey="row", figsize=(8, 4))
     fig.suptitle(shift.replace("_", " ").title(), fontsize=14)
     plt.subplots_adjust(bottom=0.15)
@@ -72,7 +70,7 @@ def plot_shifted_dataset(shift, random_state=42):
     ax2.set_ylabel("Feature 2")
 
     fig.subplots_adjust(right=0.8)
-    cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+    cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.80])
     cb = fig.colorbar(s, cax=cbar_ax)
     cb.set_label("y-value*10")
 
