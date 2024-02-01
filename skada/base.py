@@ -223,9 +223,14 @@ class BaseSelector(BaseEstimator):
         """Internal API for removing masked samples before passing them
         to the final estimator. Only applicable for the final estimator
         within the Pipeline.
+        Exception: if the final estimator has a transform method, we don't
+        need to do anything.
         """
-        if not self._is_final:
+        # If the estimator is not final, we don't need to do anything
+        # If the estimator has a transform method, we don't need to do anything
+        if not self._is_final or hasattr(self, 'transform'):
             return X, y, routed_params
+
         # in case the estimator is marked as final in the pipeline,
         # the selector is responsible for removing masked labels
         # from the targets
@@ -242,7 +247,9 @@ class BaseSelector(BaseEstimator):
         y = y[unmasked_idx]
         routed_params = {
             # this is somewhat crude way to test is `v` is indexable
-            k: v[unmasked_idx] if hasattr(v, "__len__") else v
+            k: v[unmasked_idx] if (
+                hasattr(v, "__len__") and len(v) > len(unmasked_idx)
+                ) else v
             for k, v
             in routed_params.items()
         }

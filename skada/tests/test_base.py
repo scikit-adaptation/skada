@@ -2,8 +2,7 @@
 #
 # License: BSD 3-Clause
 
-from sklearn.decomposition import PCA
-
+from sklearn.linear_model import LogisticRegression
 from skada import SubspaceAlignmentAdapter, make_da_pipeline
 from skada.datasets import (
     make_shifted_datasets
@@ -23,11 +22,11 @@ def test_base_selector_remove_masked():
     )
 
     pipe = make_da_pipeline(
-        PCA(n_components=2),
-        SubspaceAlignmentAdapter(n_components=2)
+        LogisticRegression(),
     )
 
-    selector = pipe['subspacealignmentadapter']
+    selector = pipe['logisticregression']
+    print(selector.get_params())
     X_output, y_output, routed_params = selector._remove_masked(
         X, y, selector.get_params()
     )
@@ -45,3 +44,31 @@ def test_base_selector_remove_masked():
     assert X_output.shape[0] != 2 * n_samples * 8, "X output shape mismatch"
     assert y_output.shape[0] != 2 * n_samples * 8, "y output shape mismatch"
     assert X_output.shape[0] == y_output.shape[0]
+
+
+def test_base_selector_remove_masked_transform():
+    # Test the remove masked method if the selector
+    # has or has not a transform method
+
+    n_samples = 10
+    X, y, sample_domain = make_shifted_datasets(
+        n_samples_source=n_samples,
+        n_samples_target=n_samples,
+        shift='concept_drift',
+        noise=0.1,
+        random_state=42,
+    )
+
+    pipe = make_da_pipeline(
+        SubspaceAlignmentAdapter()
+    )
+
+    # Test that no ValueError is raised
+    pipe.fit(X=X, y=y, sample_domain=sample_domain)
+
+    pipe = make_da_pipeline(
+        LogisticRegression()
+    )
+
+    # Test that no ValueError is raised
+    pipe.fit(X=X, y=y, sample_domain=sample_domain)
