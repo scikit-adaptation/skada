@@ -151,8 +151,6 @@ class GaussianReweightDensityAdapter(BaseAdapter):
 
     Parameters
     ----------
-    base_estimator: sklearn estimator
-        estimator used for fitting and prediction
     reg : 'auto' or float, default="auto"
         The regularization parameter of the covariance estimator.
         Possible values:
@@ -395,7 +393,8 @@ class DiscriminatorReweightDensityAdapter(BaseAdapter):
 
 
 def DiscriminatorReweightDensity(
-    base_estimator=None, domain_classifier=None
+    base_estimator=None,
+    domain_classifier=None
 ):
     """Discriminator re-weighting pipeline adapter and estimator.
 
