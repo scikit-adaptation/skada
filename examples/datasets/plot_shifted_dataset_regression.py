@@ -49,15 +49,13 @@ def plot_shifted_dataset(shift, random_state=42):
     fig, (ax1, ax2) = plt.subplots(1, 2, sharex="row", sharey="row", figsize=(8, 4))
     fig.suptitle(shift.replace("_", " ").title(), fontsize=14)
     plt.subplots_adjust(bottom=0.15)
-    s = ax1.scatter(
+    ax1.scatter(
         X_source[:, 0],
         X_source[:, 1],
         c=y_source*10,
         vmax=1,
         alpha=0.5,
     )
-    cb=fig.colorbar(s)
-    cb.set_label("y-value*10")
     ax1.set_title("Source data")
     ax1.set_xlabel("Feature 1")
     ax1.set_ylabel("Feature 2")
@@ -69,11 +67,14 @@ def plot_shifted_dataset(shift, random_state=42):
         vmax=1,
         alpha=0.5,
     )
-    cb=fig.colorbar(s)
-    cb.set_label("y-value*10")
     ax2.set_title("Target data")
     ax2.set_xlabel("Feature 1")
     ax2.set_ylabel("Feature 2")
+
+    fig.subplots_adjust(right=0.8)
+    cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+    cb = fig.colorbar(s, cax=cbar_ax)
+    cb.set_label("y-value*10")
 
     plt.show()
 
