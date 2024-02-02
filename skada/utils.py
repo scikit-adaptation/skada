@@ -285,7 +285,7 @@ def source_target_merge(
 
     elif X_source.shape[0] > 0:
         output = np.zeros_like(
-            X_source, dtype=X_target.dtype
+            X_source, dtype=X_source.dtype
         )
         output[sample_domain >= 0] = X_source
 
