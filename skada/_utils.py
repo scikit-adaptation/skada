@@ -86,8 +86,6 @@ def _check_y_masking(y):
                              f"{_DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL}")
         else:
             return y_type
-    else:
-        raise ValueError(f"Uncompatible label type: {y_type}")
 
 
 def _find_y_type(y):
