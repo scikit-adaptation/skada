@@ -248,6 +248,7 @@ def source_target_split(
 
 
 def source_target_merge(
+<<<<<<< HEAD
         *arrays,
         sample_domain : Optional[np.ndarray] = None
 ) -> np.ndarray:
@@ -430,11 +431,27 @@ def _merge_arrays(
     arrays : sequence of array-like of identical number of samples
         (n_samples, n_features). The number of arrays must be even
         since we consider duos of source-target arrays each time.
+=======
+        X_source,
+        X_target,
+        sample_domain
+    ) -> np.ndarray:
+    """
+    Merge source and target domain data based on sample domain labels.
+
+    Parameters
+    ----------
+    X_source : array-like of shape (n_samples_source, n_features)
+        Input features for the source domain.
+    X_target : array-like of shape (n_samples_target, n_features)
+        Input features for the target domain.
+>>>>>>> f6ccd58 (source_target_merge accepts now N dimenstion array + name change + test cases)
     sample_domain : array-like of shape (n_samples,)
         Array specifying the domain labels for each sample.
 
     Returns
     -------
+<<<<<<< HEAD
     merges : list, length=len(arrays)/2
         List containing merged data based on the sample domain labels.
     sample_domain : array-like of shape (n_samples,)
@@ -466,3 +483,27 @@ def _merge_arrays(
         merges.append(output)
 
     return (*merges, sample_domain)
+=======
+    merged_data : np.ndarray
+        Merged data based on the sample domain labels.
+    """
+    n_samples = X_source.shape[0] + X_target.shape[0]
+    assert n_samples > 0
+
+    check_consistent_length(
+        np.concatenate((X_source, X_target)), sample_domain
+    )
+
+    if X_source.shape[0] > 0:
+        output = np.zeros_like(
+            np.concatenate((X_source, X_target)), dtype=X_source.dtype
+        )
+
+        output[sample_domain >= 0] = X_source
+    else:
+        output = np.zeros_like(
+            np.concatenate((X_source, X_target)), dtype=X_target.dtype
+        )
+    output[sample_domain < 0] = X_target
+    return output
+>>>>>>> f6ccd58 (source_target_merge accepts now N dimenstion array + name change + test cases)
