@@ -5,7 +5,6 @@
 import pytest
 
 import numpy as np
-from examples.methods.plot_optimal_transport_da import X_source
 from skada.datasets import (
     make_dataset_from_moons_distribution
 )
