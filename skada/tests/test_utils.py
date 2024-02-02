@@ -5,6 +5,7 @@
 import pytest
 
 import numpy as np
+from examples.methods.plot_optimal_transport_da import X_source
 from skada.datasets import (
     make_dataset_from_moons_distribution
 )
@@ -13,7 +14,7 @@ from skada.utils import (
     check_X_y_domain, check_X_domain,
     extract_source_indices
 )
-from skada.utils import source_target_split
+from skada.utils import source_target_split, source_target_merge
 from skada._utils import _check_y_masking
 
 
@@ -279,3 +280,36 @@ def test_extract_source_indices():
     assert len(source_idx) == (len(sample_domain)), "source_idx shape mismatch"
     assert np.sum(source_idx) == 2 * n_samples_source, "source_idx sum mismatch"
     assert np.sum(~source_idx) == 2 * n_samples_target, "target_idx sum mismatch"
+
+
+def test_source_target_merge():
+    n_samples_source = 50
+    n_samples_target = 20
+    X, y, sample_domain = make_dataset_from_moons_distribution(
+        pos_source=0.1,
+        pos_target=0.9,
+        n_samples_source=n_samples_source,
+        n_samples_target=n_samples_target,
+        random_state=0,
+        return_X_y=True,
+    )
+
+    X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+    y_source, y_target = source_target_split(y, sample_domain=sample_domain)
+
+
+    # Test that no Error is raised for a 2D array
+    target_samples =  source_target_merge(X_source, X_target, sample_domain)
+    assert target_samples.shape[0] == X_source.shape[0] + X_target.shape[0]
+
+    # Test that no Error is raised for a 1D array
+    target_labels = source_target_merge(y_source, y_target, sample_domain)
+    assert target_labels.shape[0] == y_source.shape[0] + y_target.shape[0]
+
+    # Test with empty samples
+    with pytest.raises(AssertionError):
+        _ = source_target_merge(np.array([]), np.array([]), np.array([]))
+
+    # Test consistent length
+    with pytest.raises(ValueError):
+        _ = source_target_merge(X_source[0], X_target[1], sample_domain)
