@@ -5,6 +5,12 @@
 import pytest
 
 import numpy as np
+<<<<<<< HEAD
+=======
+from skada.datasets import (
+    make_dataset_from_moons_distribution
+)
+>>>>>>> f069d7e (wrong import)
 
 from skada.datasets import make_dataset_from_moons_distribution
 from skada.utils import (
