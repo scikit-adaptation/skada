@@ -152,7 +152,7 @@ def test_make_multi_source_shifted_datasets(shift):
 
 @pytest.mark.parametrize(
     "shift",
-    ["covariate_shift", "target_shift", "concept_drift"],
+    ["covariate_shift", "target_shift", "concept_drift", "subspace"],
 )
 def test_make_shifted_datasets_regression(shift):
     X, y, sample_domain = make_shifted_datasets(
