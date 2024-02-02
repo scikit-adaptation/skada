@@ -681,3 +681,159 @@ def KLIEP(
         ),
         base_estimator,
     )
+
+
+class TarSAdapter(BaseAdapter):
+    """Target Shift (TarS) adapter.
+
+    The idea of TarS is to find an importance estimate \beta(y) such that
+    the Maximum Mean Discrepancy (MMD) divergence between the source input density
+    p_source(x) to its estimate p_target(x) is minimized under the assumption
+    of equal conditional distributions p(x|y) for both source and target domains.
+
+    See Section 3 of [4]_ for details.
+
+    Parameters
+    ----------
+    gamma : float or array like
+        Parameters for the kernels.
+    tol : float, default=1e-6
+        Tolerance for the stopping criterion in the optimization.
+    max_iter : int, default=1000
+        Number of maximum iteration before stopping the optimization.
+    random_state : int, RandomState instance or None, default=None
+        Determines random number generation for dataset creation. Pass an int
+        for reproducible output across multiple function calls.
+
+    Attributes
+    ----------
+    `best_gamma_` : float
+        The best gamma parameter for the RBF kernel chosen with the likelihood
+        cross validation if several parameters are given as input.
+    `alpha_` : float
+        Solution of the optimization problem.
+    `centers_` : list
+        List of the target data taken as centers for the kernels.
+
+    References
+    ----------
+    .. [4] Kun Zhang et. al. Domain Adaptation under Target and Conditional Shift
+           In ICML, 2013.
+    """
+
+    def __init__(
+        self,
+        gamma,  # XXX use the auto/scale mode as done with sklearn SVC
+        tol=1e-6,
+        max_iter=1000,
+        random_state=None,
+    ):
+        super().__init__()
+        self.gamma = gamma
+        self.tol = tol
+        self.max_iter = max_iter
+        self.random_state = random_state
+
+    def fit(self, X, y, sample_domain=None, **kwargs):
+        """Fit adaptation parameters.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
+        X, sample_domain = check_X_domain(
+            X,
+            sample_domain,
+            allow_multi_source=True,
+            allow_multi_target=True
+        )
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+
+        m = X_source.shape[0]
+        n = X_target.shape[0]
+
+        # check y is discrete or continuous
+        discrete =  np.issubdtype(array.dtype, np.integer):
+
+        # compute A
+        L = pairwise_kernels(y, metric="rbf", gamma=self.gamma)  # XXX check if y is discrete
+        K = pairwise_kernels(X_source, metric="rbf", gamma=gamma)
+        _lambda = 1e-8
+        gamma = L @ np.linalg.inv(L + _lambda * np.eye(m))
+        A = gamma @ K @ gamma.T
+
+        # compute R
+        if discrete:
+            classes = np.unique(y)
+            R = np.zeros((X_target.shape[0], len(classes)))
+            for i, c in enumerate(classes):
+                R[:, i] = (y == c).astype(int)
+        else:
+            lambda_beta = 1e-8
+            R = L @ np.linalg.inv(L + lambda_beta * np.eye(m))
+    
+        # compute M
+        K_cross = pairwise_kernels(X_target, X_source, metric="rbf", gamma=gamma)
+        M = np.ones((1, n)) @ K_cross @ gamma.T
+
+        # solve the optimization problem
+        B_beta = 10
+        eps = B_beta / (4 * np.sqrt(m))
+        ...
+
+        self.alpha_, self.centers_ = self._weights_optimization(
+            self.gamma, X_source, X_target
+        )
+        return self
+
+    def adapt(self, X, y=None, sample_domain=None, **kwargs):
+        """Predict adaptation (weights, sample or labels).
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        X_t : array-like, shape (n_samples, n_components)
+            The data (same as X).
+        y_t : array-like, shape (n_samples,)
+            The labels (same as y).
+        weights : array-like, shape (n_samples,)
+            The weights of the samples.
+        """
+        X, sample_domain = check_X_domain(
+            X,
+            sample_domain
+        )
+        source_idx = extract_source_indices(sample_domain)
+
+        if source_idx.sum() > 0:
+            source_idx, = np.where(source_idx)
+            A = pairwise_kernels(
+                X[source_idx],
+                self.centers_,
+                metric="rbf",
+                gamma=self.best_gamma_
+            )
+            source_weights = A @ self.alpha_
+            weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
+            weights[source_idx] = source_weights
+        else:
+            weights = None
+        return AdaptationOutput(X=X, sample_weights=weights)
