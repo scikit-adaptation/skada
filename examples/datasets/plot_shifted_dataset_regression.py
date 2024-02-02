@@ -28,8 +28,8 @@ from skada import source_target_split
 def plot_shifted_dataset(shift, random_state=42):
     """Plot source and shifted target data for a given type of shift.
 
-    The possible shifts are 'covariate_shift', 'target_shift' or
-    'concept_drift'.
+    The possible shifts are 'covariate_shift', 'target_shift',
+    'concept_drift' or 'subspace'.
 
     We use here the same random seed for multiple calls to
     ensure same distributions.
@@ -82,7 +82,8 @@ def plot_shifted_dataset(shift, random_state=42):
 for shift in [
     "covariate_shift",
     "target_shift",
-    "concept_drift"
+    "concept_drift",
+    "subspace"
 ]:
     plot_shifted_dataset(shift)
 

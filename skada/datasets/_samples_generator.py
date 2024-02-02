@@ -140,13 +140,16 @@ def _generate_data_2d_classif_subspace(n_samples, rng, label='binary'):
             y = np.concatenate((y, (i + 1) * np.ones(n2)), 0)
             y = y.astype(int)
     elif label == 'regression':
+        #When using the label regressio we use different values for sigma and mu, to have more interesting plots
+        Sigma1 = np.array([[1, 0], [0, 1]])
+        mu1 = np.array([0, 0])
+
         # create label y with gaussian distribution
         normal_rv = multivariate_normal(mu1, Sigma1)
         y = normal_rv.pdf(x)
     else:
         raise ValueError(f"Invalid label value: {label}. The label should either be "
                          "'binary', 'multiclass' or 'regression'")
-
     return x, y
 
 
@@ -471,10 +474,10 @@ def make_shifted_datasets(
 
     elif shift == "subspace":
         X_source, y_source = _generate_data_2d_classif_subspace(
-            n_samples_source, rng, "binary"
+            n_samples_source, rng, label
         )
         X_target, y_target = _generate_data_2d_classif_subspace(
-            n_samples_target, rng, "binary"
+            n_samples_target, rng, label
         )
         X_target *= -1
 
