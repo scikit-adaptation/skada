@@ -136,8 +136,11 @@ def _generate_data_2d_classif_subspace(n_samples, rng, label='binary'):
         y = y.astype(int)
     elif label == 'multiclass':
         y = np.zeros(n1)
-        for i in range(4):
-            y = np.concatenate((y, (i + 1) * np.ones(n2)), 0)
+        k = 4
+        if n1%k != 0:
+            ValueError(f"Invalid value: {n_samples}. This value multiplied by 2 should either a multiple from {k}")
+        for i in range(k):
+            y = np.concatenate((y, (i + 1) * np.ones(n1//k)), 0)
             y = y.astype(int)
     elif label == 'regression':
         #When using the label regressio we use different values for sigma and mu, to have more interesting plots
