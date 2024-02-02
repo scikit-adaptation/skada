@@ -138,7 +138,7 @@ def _generate_data_2d_classif_subspace(n_samples, rng, label='binary'):
         y = np.zeros(n1)
         k = 4
         if n1%k != 0:
-            ValueError(f"Invalid value: {n_samples}. This value multiplied by 2 should either a multiple from {k}")
+            ValueError(f"Invalid value: {n_samples}. This value multiplied by 2 should be a multiple from {k}")
         for i in range(k):
             y = np.concatenate((y, (i + 1) * np.ones(n1//k)), 0)
             y = y.astype(int)
