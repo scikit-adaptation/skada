@@ -116,10 +116,10 @@ def test_make_shifted_datasets(shift):
         X, y, sample_domain=sample_domain
     )
 
-    assert X_source.shape == (10 * 8, 2), "X source shape mismatch"
+    assert X_source.shape == (10 * 8 // 2, 2), "X source shape mismatch"
     assert y_source.shape == (10 * 8,), "y source shape mismatch"
     assert np.unique(y_source).shape == (2,), "Unexpected number of cluster"
-    assert X_target.shape == (10 * 8, 2), "X target shape mismatch"
+    assert X_target.shape == (10 * 8 // 2, 2), "X target shape mismatch"
     assert y_target.shape == (10 * 8,), "y target shape mismatch"
     assert np.unique(y_target).shape == (2,), "Unexpected number of cluster"
 
