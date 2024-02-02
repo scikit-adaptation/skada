@@ -249,7 +249,7 @@ def source_target_merge(
         X_source,
         X_target,
         sample_domain
-    ) -> np.ndarray:
+) -> np.ndarray:
     """
     Merge source and target domain data based on sample domain labels.
 
@@ -270,19 +270,29 @@ def source_target_merge(
     n_samples = X_source.shape[0] + X_target.shape[0]
     assert n_samples > 0
 
-    check_consistent_length(
-        np.concatenate((X_source, X_target)), sample_domain
-    )
+    if n_samples != sample_domain.shape[0]:
+        raise ValueError(
+            "Inconsistent number of samples in 'X_source', 'X_target' and "
+            "'sample_domain' arrays"
+        )
 
-    if X_source.shape[0] > 0:
+    if X_source.shape[0] > 0 and X_target.shape[0] > 0:
         output = np.zeros_like(
             np.concatenate((X_source, X_target)), dtype=X_source.dtype
         )
-
         output[sample_domain >= 0] = X_source
-    else:
+        output[sample_domain < 0] = X_target
+
+    elif X_source.shape[0] > 0:
         output = np.zeros_like(
-            np.concatenate((X_source, X_target)), dtype=X_target.dtype
+            X_source, dtype=X_target.dtype
         )
-    output[sample_domain < 0] = X_target
+        output[sample_domain >= 0] = X_source
+
+    elif X_target.shape[0] > 0:
+        output = np.zeros_like(
+            X_target, dtype=X_target.dtype
+        )
+        output[sample_domain < 0] = X_target
+
     return output

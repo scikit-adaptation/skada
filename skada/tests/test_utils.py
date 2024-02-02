@@ -296,9 +296,8 @@ def test_source_target_merge():
     X_source, X_target = source_target_split(X, sample_domain=sample_domain)
     y_source, y_target = source_target_split(y, sample_domain=sample_domain)
 
-
     # Test that no Error is raised for a 2D array
-    target_samples =  source_target_merge(X_source, X_target, sample_domain)
+    target_samples = source_target_merge(X_source, X_target, sample_domain)
     assert target_samples.shape[0] == X_source.shape[0] + X_target.shape[0]
 
     # Test that no Error is raised for a 1D array
@@ -308,6 +307,10 @@ def test_source_target_merge():
     # Test with empty samples
     with pytest.raises(AssertionError):
         _ = source_target_merge(np.array([]), np.array([]), np.array([]))
+
+    # Test that no Error with one empty sample
+    _ = source_target_merge(X_source, np.array([]), np.array([1]*X_source.shape[0]))
+    _ = source_target_merge(np.array([]), X_target, np.array([-1]*X_target.shape[0]))
 
     # Test consistent length
     with pytest.raises(ValueError):
