@@ -41,7 +41,7 @@ model.score(X_test, y_test)
 With domain adaptation it's a bit more complicated as we have multiple `(X, y)` pairs originating from different domains. A core theme of the new API is an explicit labeling of domains per each sample: all methods (like `fit`, `predict`, `score`, `adapt` and others) takes additional argument `sample_domain`. Each domain is assigned with an integer label. When passing into processing, source domains are marked with positive labels and target as negatives. A bunch of helpers are available to make work with domain labeling simple and straightforward. Common use case looks like
 
 ```python
-model = DomainAwareEstimator(CORALAdapter(n_components=5), LogisticRegression())
+model = DomainAwareEstimator(CORALAdapter(), LogisticRegression())
 model.fit(X_train, y_train, sample_domain=sample_domain_train)
 model.score(X_test, y_test, sample_domain=sample_domain_test)
 ```
@@ -89,7 +89,7 @@ Working with an estimator with a new API would look like the following:
 office31 = fetch_office31_surf_all()
 X_train, y_train, sample_domain = office31.pack_train(as_sources=['amazon', 'dslr'], as_targets=['webcam'])
 
-estimator = make_da_pipeline(CORALAdapter(n_components=5, random_state=0),LogisticRegression())
+estimator = make_da_pipeline(CORALAdapter(),LogisticRegression())
 estimator.fit(X_train, y_train, sample_domain=sample_domain)
 
 # predict and score on target domain
@@ -136,7 +136,7 @@ You can create a domain aware estimator as the pipeline that combines together a
 from skada import make_da_pipeline
 
 estimator = make_da_pipeline(
-    CORALAdapter(n_components=5, random_state=0),
+    CORALAdapter(),
     LogisticRegression()
 )
 estimator.fit(X_train, y_train, sample_domain=sample_domain)
@@ -150,7 +150,7 @@ Feel free to stack more transformers as necessary:
 estimator = make_da_pipeline(
     StandardScaler(),
     PCA(),
-    CORALAdapter(n_components=5, random_state=0),
+    CORALAdapter(),
     LogisticRegression()
 )
 estimator.fit(X_train, y_train, sample_domain=sample_domain)
@@ -227,7 +227,6 @@ pipe = make_da_pipeline(
     SubspaceAlignmentAdapter(n_components=2),
     LogisticRegression(),
 )
-pipe.fit(X, y, sample_domain=sample_domain)
 n_splits = 4
 cv = SourceTargetShuffleSplit(n_splits=n_splits, test_size=0.3, random_state=0)
 scores = cross_validate(
@@ -250,7 +249,6 @@ pipe = make_da_pipeline(
     SubspaceAlignmentAdapter(n_components=2),
     LogisticRegression(),
 )
-pipe.fit(X, y, sample_domain=sample_domain)
 cv = LeaveOneDomainOut(max_n_splits=max_n_splits, test_size=0.3, random_state=0)
 scores = cross_validate(
     pipe,
