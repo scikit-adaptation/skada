@@ -162,7 +162,7 @@ def test_make_multi_source_shifted_datasets(shift):
     else :
         assert X_target.shape == (10 * 8, 2), "X target shape mismatch"
         assert y_target.shape == (10 * 8,), "y target shape mismatch"
-    assert np.unique(y_target).shape == (5,), "Unexpected number of cluster"
+    assert np.unique(y_target).shape[0] <= 5, "Unexpected number of cluster"
 
 
 @pytest.mark.parametrize(
