@@ -17,6 +17,7 @@ from sklearn.covariance import (
 )
 from sklearn.utils.multiclass import type_of_target
 
+
 _logger = logging.getLogger('skada')
 _logger.setLevel(logging.DEBUG)
 
@@ -93,7 +94,7 @@ def _find_y_type(y):
     """
 
     # We need to check for this case first because
-    # type_of_target() doesnt handle nan values
+    # type_of_target() doesn't handle nan values
     if np.any(np.isnan(y)):
         if y.ndim != 1:
             raise ValueError("For a regression task, "
