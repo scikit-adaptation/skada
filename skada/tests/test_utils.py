@@ -5,17 +5,15 @@
 import pytest
 
 import numpy as np
-from skada.datasets import (
-    make_dataset_from_moons_distribution
-)
 
+from skada.datasets import make_dataset_from_moons_distribution
 from skada.utils import (
-    check_X_y_domain, check_X_domain,
-    extract_source_indices
+    check_X_domain,
+    check_X_y_domain,
+    extract_source_indices,
+    source_target_split
 )
-from skada.utils import source_target_split
 from skada._utils import _check_y_masking
-from skada._utils import _DEFAULT_MASKED_TARGET_REGRESSION_LABEL
 
 
 def test_check_y_masking_classification():
