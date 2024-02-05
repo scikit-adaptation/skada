@@ -41,7 +41,7 @@ model.score(X_test, y_test)
 With domain adaptation it's a bit more complicated as we have multiple `(X, y)` pairs originating from different domains. A core theme of the new API is an explicit labeling of domains per each sample: all methods (like `fit`, `predict`, `score`, `adapt` and others) takes additional argument `sample_domain`. Each domain is assigned with an integer label. When passing into processing, source domains are marked with positive labels and target as negatives. A bunch of helpers are available to make work with domain labeling simple and straightforward. Common use case looks like
 
 ```python
-model = DomainAwareEstimator(TCLAdapter(n_components=5), LogisticRegression())
+model = DomainAwareEstimator(CORALAdapter(), LogisticRegression())
 model.fit(X_train, y_train, sample_domain=sample_domain_train)
 model.score(X_test, y_test, sample_domain=sample_domain_test)
 ```
@@ -54,7 +54,7 @@ New `skada.datasets.DomainAwareDataset` class to act as a container for all doma
 
 ```python
 datasets = DomainAwareDataset()
-datasets.add_domain(X_subj1, y_subj2, domain_name="subj_1")
+datasets.add_domain(X_subj1, y_subj1, domain_name="subj_1")
 datasets.add_domain(X_subj3, y_subj3, domain_name="subj_3")
 datasets.add_domain(X_subj12, y_subj12, domain_name="subj_12")
 X, y, sample_domain = datasets.pack(as_sources=['subj_12', 'subj_1'], as_targets=['subj_3'])
@@ -73,27 +73,27 @@ Method `pack` also accepts optional `return_X_y` argument (defaults to `True`). 
 >>> office31 = fetch_all_office31_surf()
 >>> data = office31.pack(as_sources=['amazon', 'dslr'], as_targets=['webcam'], return_X_y=False)
 >>> data.keys()
-dict_keys(['data', 'target', 'sample_domain', 'domain_names'])
+dict_keys(['X', 'y', 'sample_domain', 'domain_names'])
 ```
 
 This is mostly to cover use cases where you need access to `'domain_names'` labels. Domain labels are assigned following the convention that source gets non-negative integer (1,2,..) and target always gets negative (-1,-2,...). Labels are assigned in the order that datasets are provided, should make it easier to "reconstruct" labels even working with tuple output (without access to `Bunch` object). Absolute value of the label is always static for a given domain name, for example if "amazon" domain gets index 2 it will be included in `sample_domain` as 2 when included as source and -2 when included as target. Such convention is required to avoid fluctuations of domain labels (otherwise multi-estimator API won't be possible).
 
 Considering different scenarios, the dataset provides the following helpers:
 
-* `pack_for_train` masks labels for domains designated for being used as targets
-* `pack_for_test` packs requested targets
+* `pack_train` masks labels for domains designated for being used as targets
+* `pack_test` packs requested targets
 
 Working with an estimator with a new API would look like the following:
 
 ```python
 office31 = fetch_office31_surf_all()
-X_train, y_train, sample_domain = office31.pack_for_train(as_sources=['amazon', 'dslr'], as_targets=['webcam'])
+X_train, y_train, sample_domain = office31.pack_train(as_sources=['amazon', 'dslr'], as_targets=['webcam'])
 
-estimator = make_da_pipeline(TCLAdapter(n_components=5, random_state=0),LogisticRegression())
+estimator = make_da_pipeline(CORALAdapter(),LogisticRegression())
 estimator.fit(X_train, y_train, sample_domain=sample_domain)
 
 # predict and score on target domain
-X_test, y_test, sample_domain = office31.pack_for_test(as_targets=['webcam'])
+X_test, y_test, sample_domain = office31.pack_test(as_targets=['webcam'])
 webcam_idx = office31.select_domain(sample_domain, 'webcam')
 y_target = estimator.predict(X_test,[webcam_idx], sample_domain=sample_domain[webcam_idx])
 score = estimator.score(X_test[webcam_idx], y=y_test[webcam_idx], sample_domain=sample_domain[webcam_idx])
@@ -136,7 +136,7 @@ You can create a domain aware estimator as the pipeline that combines together a
 from skada import make_da_pipeline
 
 estimator = make_da_pipeline(
-    TCLAdapter(n_components=5, random_state=0),
+    CORALAdapter(),
     LogisticRegression()
 )
 estimator.fit(X_train, y_train, sample_domain=sample_domain)
@@ -150,7 +150,7 @@ Feel free to stack more transformers as necessary:
 estimator = make_da_pipeline(
     StandardScaler(),
     PCA(),
-    TCLAdapter(n_components=5, random_state=0),
+    CORALAdapter(),
     LogisticRegression()
 )
 estimator.fit(X_train, y_train, sample_domain=sample_domain)
@@ -166,7 +166,7 @@ Even though, as of now, we don't have any adapters that would be reasonable to s
 
 ```python
 estimator = make_da_pipeline(
-    OTMappingAdapter(reg=0.1),
+    OTMappingAdapter(),
     PerDomain(LogisticRegression())
 )
 estimator.fit(X_train, y_train, sample_domain)
@@ -195,7 +195,7 @@ See API usage examples in `skada/tests/test_scorer.py`.
 The `SupervisedScorer` is a unique scorer that necessitates special consideration. Since it requires access to target labels, which are masked during the dataset packing process for training, this scorer mandates an additional key to be passed within the `params`. The usage is as follows:
 
 ```python
-X, y, sample_domain = da_dataset.pack_for_train(as_sources=['s'], as_targets=['t'])
+X, y, sample_domain = da_dataset.pack_train(as_sources=['s'], as_targets=['t'])
 estimator = make_da_pipeline(
     ReweightDensityAdapter(),
     LogisticRegression().set_score_request(sample_weight=True),
@@ -222,12 +222,11 @@ The library includes a range of splitters designed specifically for domain adapt
 `skada.model_selection.SourceTargetShuffleSplit`: This splitter functions similarly to the standard `ShuffleSplit` but takes into account the distinct separation between source and target domains. It follows the standard API structure:
 
 ```python
-X, y, sample_domain = da_dataset.pack_for_train(as_sources=['s', 's2'], as_targets=['t', 't2'])
+X, y, sample_domain = da_dataset.pack_train(as_sources=['s', 's2'], as_targets=['t', 't2'])
 pipe = make_da_pipeline(
     SubspaceAlignmentAdapter(n_components=2),
     LogisticRegression(),
 )
-pipe.fit(X, y, sample_domain=sample_domain)
 n_splits = 4
 cv = SourceTargetShuffleSplit(n_splits=n_splits, test_size=0.3, random_state=0)
 scores = cross_validate(
@@ -242,15 +241,14 @@ scores = cross_validate(
 
 `skada.model_selection.LeaveOneDomainOut` is a cross-validator that, in each iteration, randomly selects a single domain to serve as the target. After this selection, the train/test split is performed using the `ShuffleSplit` algorithm. The `max_n_splits` parameter limits the number of splits; in its absence, each domain is used as a target exactly once.
 
-This splitter requires the dataset to be specially prepared so that each domain is represented as both a source and a target simultaneously. This preparation can be achieved using the `pack_flatten` method. An example is provided below for clarity:
+This splitter requires the dataset to be specially prepared so that each domain is represented as both a source and a target simultaneously. This preparation can be achieved using the `pack_lodo` method. An example is provided below for clarity:
 
 ```python
-X, y, sample_domain = da_dataset.pack_flatten()
+X, y, sample_domain = da_dataset.pack_lodo()
 pipe = make_da_pipeline(
     SubspaceAlignmentAdapter(n_components=2),
     LogisticRegression(),
 )
-pipe.fit(X, y, sample_domain=sample_domain)
 cv = LeaveOneDomainOut(max_n_splits=max_n_splits, test_size=0.3, random_state=0)
 scores = cross_validate(
     pipe,

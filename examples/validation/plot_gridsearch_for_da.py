@@ -31,8 +31,8 @@ dataset = make_shifted_datasets(
     random_state=42,
     return_dataset=True
 )
-X, y, sample_domain = dataset.pack_for_train(as_sources=['s'], as_targets=['t'])
-X_target, y_target, _ = dataset.pack_for_test(as_targets=['t'])
+X, y, sample_domain = dataset.pack_train(as_sources=['s'], as_targets=['t'])
+X_target, y_target, _ = dataset.pack_test(as_targets=['t'])
 
 # %%
 # Run grid search

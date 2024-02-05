@@ -18,7 +18,7 @@ import pytest
 
 def test_pipeline(da_dataset):
     # single source, single target, target labels are masked
-    X, y, sample_domain = da_dataset.pack_for_train(as_sources=['s'], as_targets=['t'])
+    X, y, sample_domain = da_dataset.pack_train(as_sources=['s'], as_targets=['t'])
     # by default, each estimator in the pipeline is wrapped into `Shared` selector
     pipe = make_da_pipeline(
         StandardScaler(),
@@ -34,7 +34,7 @@ def test_pipeline(da_dataset):
     with pytest.raises(ValueError):
         pipe.score(X, y, sample_domain=sample_domain)
     # target only, no label masking
-    X_target, y_target, sample_domain = da_dataset.pack_for_test(as_targets=['t'])
+    X_target, y_target, sample_domain = da_dataset.pack_test(as_targets=['t'])
     y_pred = pipe.predict(X_target, sample_domain=sample_domain)
     assert np.mean(y_pred == y_target) > 0.9
     # automatically derives as a single target domain when sample_domain is `None`
@@ -100,10 +100,13 @@ def test_default_selector_ignored_for_selector():
         LogisticRegression(),
         default_selector='per_domain',
     )
-    _, estimator = pipe.steps[0]
+    name, estimator = pipe.steps[0]
     assert isinstance(estimator, Shared)
-    _, estimator = pipe.steps[1]
+    assert name == 'subspacealignmentadapter'
+
+    name, estimator = pipe.steps[1]
     assert isinstance(estimator, PerDomain)
+    assert name == 'perdomain_logisticregression'
 
 
 def test_pipeline_step_parameters(da_dataset):
@@ -116,3 +119,23 @@ def test_pipeline_step_parameters(da_dataset):
     pipe.set_params(subspacealignmentadapter__n_components=5)
     with pytest.raises(ValueError):
         pipe.set_params(subspacealignmentadapter__reg=2.)
+
+
+def test_named_estimator():
+    pipe = make_da_pipeline(
+        (PerDomain(StandardScaler())),
+        ('adapter', SubspaceAlignmentAdapter(n_components=2)),
+        PCA(n_components=4),
+        PCA(n_components=2),
+        LogisticRegression(),
+    )
+    assert 'adapter' in pipe.named_steps
+    assert 'perdomain_standardscaler' in pipe.named_steps
+    assert 'pca-1' in pipe.named_steps
+    assert 'pca-2' in pipe.named_steps
+    assert 'logisticregression' in pipe.named_steps
+
+
+def test_empty_pipeline():
+    with pytest.raises(TypeError):
+        make_da_pipeline()

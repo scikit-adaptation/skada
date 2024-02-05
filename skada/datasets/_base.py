@@ -25,6 +25,11 @@ DomainDataType = Union[
     Tuple[np.ndarray, ],
 ]
 
+PackedDatasetType = Union[
+    Bunch,
+    Tuple[np.ndarray, np.ndarray, np.ndarray]
+]
+
 
 def get_data_home(data_home: Union[str, os.PathLike, None]) -> str:
     """Return the path of the `skada` data folder.
@@ -130,9 +135,10 @@ class DomainAwareDataset:
         return_X_y: bool = True,
         train: bool = False,
         mask: Union[None, int, float] = None,
-    ) -> Union[Bunch, Tuple[np.ndarray, np.ndarray, np.ndarray]]:
-        """Takes all domain datasets and packs them into a single
-        domain-aware representation compatible with DA estimators.
+    ) -> PackedDatasetType:
+        """Aggregates datasets from all domains into a unified domain-aware
+        representation, ensuring compatibility with domain adaptation (DA)
+        estimators.
 
         Parameters
         ----------
@@ -155,11 +161,11 @@ class DomainAwareDataset:
         data : :class:`~sklearn.utils.Bunch`
             Dictionary-like object, with the following attributes.
 
-            data: ndarray
+            X: ndarray
                 Samples from all sources and all targets given.
-            target : ndarray
-                Target labels from all sources and all targets.
-            sample_domain : ndarray)
+            y : ndarray
+                Labels from all sources and all targets.
+            sample_domain : ndarray
                 The integer label for domain the sample was taken from.
                 By convention, source domains have non-negative labels,
                 and target domain label is always < 0.
@@ -191,11 +197,14 @@ class DomainAwareDataset:
             sample_domains.append(np.ones_like(y)*domain_id)
             domain_labels[domain_name] = domain_id
         # xxx(okachaiev): code duplication, re-write when API is fixed
+        dtype = None
         for domain_name in as_targets:
             domain_id = self.domain_names_[domain_name]
             target = self.get_domain(domain_name)
             if len(target) == 1:
                 X, = target
+                # xxx(okachaiev): for what it's worth, we should likely to
+                # move the decision about dtype to the very end of the list
                 y = -np.ones(X.shape[0], dtype=np.int32)
             elif len(target) == 2:
                 X, y = target
@@ -203,15 +212,15 @@ class DomainAwareDataset:
                 raise ValueError("Invalid definition for domain data")
             if train:
                 if mask is not None:
-                    y = np.array([mask] * X.shape[0])
-                elif y.dtype == np.int32:
-                    y = -np.ones(X.shape[0], dtype=np.int32)
+                    y = np.array([mask] * X.shape[0], dtype=dtype)
+                elif y.dtype in (np.int32, np.int64):
+                    y = -np.ones(X.shape[0], dtype=y.dtype)
                     # make sure that the mask is reused on the next iteration
-                    mask = -1
-                elif y.dtype == np.float32:
-                    y = np.array([np.nan] * X.shape[0])
+                    mask, dtype = -1, y.dtype
+                elif y.dtype in (np.float32, np.float64):
+                    y = np.array([np.nan] * X.shape[0], dtype=y.dtype)
                     # make sure that the  mask is reused on the next iteration
-                    mask = np.nan
+                    mask, dtype = np.nan, y.dtype
             # xxx(okachaiev): this is horribly inefficient, rewrite when API is fixed
             Xs.append(X)
             ys.append(y)
@@ -219,24 +228,24 @@ class DomainAwareDataset:
             domain_labels[domain_name] = -1 * domain_id
 
         # xxx(okachaiev): so far this only works if source and target has the same size
-        data = np.concatenate(Xs)
-        target = np.concatenate(ys)
+        Xs = np.concatenate(Xs)
+        ys = np.concatenate(ys)
         sample_domain = np.concatenate(sample_domains)
-        return (data, target, sample_domain) if return_X_y else Bunch(
-            data=data,
-            target=target,
+        return (Xs, ys, sample_domain) if return_X_y else Bunch(
+            X=Xs,
+            y=ys,
             sample_domain=sample_domain,
             domain_names=domain_labels,
         )
 
-    def pack_for_train(
+    def pack_train(
         self,
         as_sources: List[str],
         as_targets: List[str],
         return_X_y: bool = True,
         mask: Union[None, int, float] = None,
-    ):
-        """Same as pack.
+    ) -> PackedDatasetType:
+        """Same as `pack`.
 
         Masks labels for target domains with -1 so they are not available
         at training time.
@@ -249,11 +258,11 @@ class DomainAwareDataset:
             mask=mask,
         )
 
-    def pack_for_test(
+    def pack_test(
         self,
         as_targets: List[str],
         return_X_y: bool = True,
-    ):
+    ) -> PackedDatasetType:
         return self.pack(
             as_sources=[],
             as_targets=as_targets,
@@ -261,13 +270,75 @@ class DomainAwareDataset:
             train=False,
         )
 
-    def pack_flatten(self, return_X_y: bool = True):
+    def pack_lodo(self, return_X_y: bool = True) -> PackedDatasetType:
+        """Packages all domains in a format compatible with the Leave-One-Domain-Out
+        cross-validator (refer to :class:`~skada.model_selection.LeaveOneDomainOut` for
+        more details). To enable the splitter's dynamic assignment of source and target
+        domains, data from each domain is included in the output twice — once as a
+        source and once as a target.
+
+        Exercise caution when using this output for purposes other than its intended
+        use, as this could lead to incorrect results and data leakage.
+
+        Parameters
+        ----------
+        return_X_y : bool, default=True
+            When set to True, returns a tuple (X, y, sample_domain). Otherwise
+            returns :class:`~sklearn.utils.Bunch` object with the structure
+            described below.
+
+        Returns
+        -------
+        data : :class:`~sklearn.utils.Bunch`
+            Dictionary-like object, with the following attributes.
+
+            X: ndarray
+                Samples from all sources and all targets given.
+            y : ndarray
+                Labels from all sources and all targets.
+            sample_domain : np.ndarray
+                The integer label for domain the sample was taken from.
+                By convention, source domains have non-negative labels,
+                and target domain label is always < 0.
+            domain_names : dict
+                The names of domains and associated domain labels.
+
+        (X, y, sample_domain) : tuple if `return_X_y=True`
+            Tuple of (data, target, sample_domain), see the description above.
+        """
         return self.pack(
             as_sources=list(self.domain_names_.keys()),
             as_targets=list(self.domain_names_.keys()),
             return_X_y=return_X_y,
             train=True,
         )
+
+    def __str__(self) -> str:
+        return f"DomainAwareDataset(domains={self._get_domain_representation()})"
+
+    def __repr__(self) -> str:
+        head = self.__str__()
+        body = [f"Number of domains: {len(self.domains_)}"]
+        body.append(f"Total size: {sum(len(tup[0]) for tup in self.domains_)}")
+        output = "\n".join([head] + body)
+        return output
+
+    def _get_domain_representation(self, max_domains=5, max_length=50):
+        domain_names = list(self.domain_names_.keys())
+
+        if len(domain_names) <= max_domains:
+            # If the number of domains is small, include all names
+            domain_str = str(domain_names)
+        else:
+            # If the number of domains is large, truncate the list and add ellipsis
+            truncated_domains = domain_names[:max_domains]
+            domain_str = str(truncated_domains)[:-1] + ', ...]'
+
+        # Truncate the string representation if it exceeds max_length
+        if len(domain_str) > max_length:
+            domain_str = domain_str[:max_length - 3] + '...]'
+
+        return domain_str
 
 
 # xxx(okachaiev): putting `domain_names` first argument
