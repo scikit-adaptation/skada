@@ -76,6 +76,15 @@ class BaseAdapter(BaseEstimator):
         pass
 
     def fit_transform(self, X, y=None, sample_domain=None, **params):
+        """
+        Fit to data, then transform it.
+        In this case, the fitting and the transformation are performed on
+        the target and source domains by default (allow_source=True).
+
+        It should be used only for fitting the estimator, and not for
+        generating the adaptation output.
+        For the latter, use the `transform` method.
+        """
         self.fit(X, y=y, sample_domain=sample_domain, **params)
         # assume 'fit_transform' is called to fit the estimator,
         # thus we allow for the source domain to be adapted
