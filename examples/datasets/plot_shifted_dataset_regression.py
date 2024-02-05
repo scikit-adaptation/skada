@@ -23,8 +23,6 @@ from skada import source_target_split
 
 # %% Helper function
 
-
-
 def plot_shifted_dataset(shift, random_state=42):
     """Plot source and shifted target data for a given type of shift.
 
@@ -42,7 +40,8 @@ def plot_shifted_dataset(shift, random_state=42):
         label="regression",
         random_state=random_state,
     )
-    X_source, X_target, y_source, y_target = source_target_split(X, y, sample_domain=sample_domain)
+    X_source, X_target, y_source, y_target = source_target_split(
+        X, y, sample_domain=sample_domain)
 
     fig, (ax1, ax2) = plt.subplots(1, 2, sharex="row", sharey="row", figsize=(8, 4))
     fig.suptitle(shift.replace("_", " ").title(), fontsize=14)
@@ -86,4 +85,3 @@ for shift in [
     "subspace"
 ]:
     plot_shifted_dataset(shift)
-
