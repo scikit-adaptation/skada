@@ -15,6 +15,7 @@ from skada.utils import (
 )
 from skada.utils import source_target_split, source_target_merge
 from skada._utils import _check_y_masking
+from skada._utils import _DEFAULT_MASKED_TARGET_REGRESSION_LABEL
 
 
 def test_check_y_masking_classification():
@@ -44,10 +45,14 @@ def test_check_y_masking_regression():
 
 
 def test_check_2d_y_masking():
-    y_wrong_dim = np.array([[-1, 2], [1, 2], [1, 2]])
+    y_wrong_dim_not_masked = np.array([[-1, 2], [1, 2], [1, 2]])
+    y_wrong_dim_properly_masked = np.array([[-1, 2], [1, 2], [np.nan, np.nan]])
 
     with pytest.raises(ValueError):
-        _check_y_masking(y_wrong_dim)
+        _check_y_masking(y_wrong_dim_not_masked)
+
+    with pytest.raises(ValueError):
+        _check_y_masking(y_wrong_dim_properly_masked)
 
 
 def test_check_X_y_domain_exceptions():
