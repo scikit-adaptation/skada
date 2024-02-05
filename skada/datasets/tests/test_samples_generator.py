@@ -178,7 +178,8 @@ def test_make_shifted_datasets_regression(shift):
         label="regression",
     )
     X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
-    X_source, X_target, y_source, y_target = source_target_split(X, y, sample_domain=sample_domain)
+    X_source, X_target, y_source, y_target = source_target_split(
+                X, y, sample_domain=sample_domain)
 
     if shift == "subspace":
         assert X_source.shape == (10 * 8 // 2, 2), "X source shape mismatch"
@@ -192,9 +193,6 @@ def test_make_shifted_datasets_regression(shift):
     else:
         assert X_target.shape == (10 * 8, 2), "X target shape mismatch"
         assert y_target.shape == (10 * 8,), "y target shape mismatch"
-    
-
-
 
 
 def test_make_subspace_datasets():
