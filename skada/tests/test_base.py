@@ -8,14 +8,14 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.datasets import make_regression
 
 from skada import SubspaceAlignmentAdapter, make_da_pipeline
-from skada.datasets import (
-    make_shifted_datasets
-)
+from skada.datasets import make_shifted_datasets
 from skada.utils import extract_source_indices
 from skada._utils import (
     _DEFAULT_SOURCE_DOMAIN_LABEL,
     _DEFAULT_TARGET_DOMAIN_LABEL
 )
+
+import pytest
 
 
 def test_base_selector_remove_masked():
@@ -52,9 +52,11 @@ def test_base_selector_remove_masked():
     assert X_output.shape[0] == y_output.shape[0]
 
 
-def test_base_selector_remove_masked_transform():
+@pytest.mark.parametrize('step', [SubspaceAlignmentAdapter(), LogisticRegression()])
+def test_base_selector_remove_masked_transform(step):
     # Test the remove masked method if the selector
     # has or has not a transform method
+    # xxx(okachaiev): I'm not sure that the code actually tests that
 
     n_samples = 10
     X, y, sample_domain = make_shifted_datasets(
@@ -65,18 +67,8 @@ def test_base_selector_remove_masked_transform():
         random_state=42,
     )
 
-    pipe = make_da_pipeline(
-        SubspaceAlignmentAdapter()
-    )
-
-    # Test that no ValueError is raised
-    pipe.fit(X=X, y=y, sample_domain=sample_domain)
-
-    pipe = make_da_pipeline(
-        LogisticRegression()
-    )
-
-    # Test that no ValueError is raised
+    pipe = make_da_pipeline(step)
+    # no ValueError is raised
     pipe.fit(X=X, y=y, sample_domain=sample_domain)
 
 
