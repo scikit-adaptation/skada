@@ -93,7 +93,8 @@ def test_base_selector_remove_masked_continuous():
     y[~source_idx] = _DEFAULT_MASKED_TARGET_REGRESSION_LABEL
     X_output, y_output, _ = selector._remove_masked(X, y, {})
 
-    assert X_output.shape[0] == X.shape[0] - np.sum(source_idx), "X output shape mismatch"
+    n_target_samples = X.shape[0] - np.sum(source_idx)
+    assert X_output.shape[0] == n_target_samples, "X output shape mismatch"
     assert X_output.shape[0] == y_output.shape[0]
 
 
