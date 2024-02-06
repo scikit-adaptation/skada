@@ -423,7 +423,7 @@ def _merge_arrays(
     arrays,
     sample_domain
 ):
-    """ Merge source and target domain data based on sample domain labels.
+    """Merge source and target domain data based on sample domain labels.
 
     Parameters
     ----------
