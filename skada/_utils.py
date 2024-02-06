@@ -61,11 +61,11 @@ def _check_y_masking(y):
 
     if y_type == 'continuous':
         if np.any(np.isnan(y)):
-                return y_type
+            return y_type
         else:
             raise ValueError("For a regression task, "
-                            "masked labels should be, "
-                            f"{_DEFAULT_MASKED_TARGET_REGRESSION_LABEL}")
+                             "masked labels should be, "
+                             f"{_DEFAULT_MASKED_TARGET_REGRESSION_LABEL}")
     elif y_type == 'classification':
         if (np.any(y < _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL) or
                 not np.any(y == _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL)):
@@ -85,7 +85,7 @@ def _find_y_type(y):
     ----------
     y : array-like of shape (n_samples,)
         Labels for the data
-    
+
     Returns
     -------
     y_type : str
@@ -97,7 +97,7 @@ def _find_y_type(y):
     if np.any(np.isnan(y)):
         if y.ndim != 1:
             raise ValueError("For a regression task, "
-                            "more than 1D labels are not supported")
+                             "more than 1D labels are not supported")
         else:
             return 'continuous'
 

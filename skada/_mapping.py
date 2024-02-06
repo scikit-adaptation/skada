@@ -90,7 +90,9 @@ class BaseOTMappingAdapter(BaseAdapter):
         # thus there's no need to perform any transformations
         if X_source.shape[0] > 0:
             X_source = self.ot_transport_.transform(Xs=X_source)
-        X_adapt = source_target_merge(X_source, X_target, sample_domain)
+        X_adapt, _ = source_target_merge(
+            X_source, X_target, sample_domain=sample_domain
+        )
         return X_adapt
 
     @abstractmethod
@@ -648,7 +650,9 @@ class CORALAdapter(BaseAdapter):
 
         X_source_adapt = np.dot(X_source, self.cov_source_inv_sqrt_)
         X_source_adapt = np.dot(X_source_adapt, self.cov_target_sqrt_)
-        X_adapt = source_target_merge(X_source_adapt, X_target, sample_domain)
+        X_adapt, _ = source_target_merge(
+            X_source_adapt, X_target, sample_domain=sample_domain
+        )
         return X_adapt
 
 

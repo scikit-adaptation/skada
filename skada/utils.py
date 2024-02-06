@@ -8,11 +8,13 @@ import numpy as np
 from itertools import chain
 
 from sklearn.utils import check_array, check_consistent_length
+from sklearn.utils.multiclass import type_of_target
 
 from skada._utils import _check_y_masking
 from skada._utils import (
     _DEFAULT_SOURCE_DOMAIN_LABEL, _DEFAULT_TARGET_DOMAIN_LABEL,
-    _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL, _DEFAULT_TARGET_DOMAIN_ONLY_LABEL
+    _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL, _DEFAULT_TARGET_DOMAIN_ONLY_LABEL,
+    _DEFAULT_MASKED_TARGET_REGRESSION_LABEL
 )
 
 
@@ -246,53 +248,221 @@ def source_target_split(
 
 
 def source_target_merge(
-        X_source,
-        X_target,
-        sample_domain
+        *arrays,
+        sample_domain : Optional[np.ndarray] = None
 ) -> np.ndarray:
-    """
-    Merge source and target domain data based on sample domain labels.
+    f""" Merge source and target domain data based on sample domain labels.
 
     Parameters
     ----------
-    X_source : array-like of shape (n_samples_source, n_features)
-        Input features for the source domain.
-    X_target : array-like of shape (n_samples_target, n_features)
-        Input features for the target domain.
+    *arrays : sequence of array-like of identical number of samples
+        (n_samples, n_features). The number of arrays must be even
+        since we consider duos of source-target arrays each time.
+        Each duo should have at least one non-empty array.
+        In each duo the first array is considered as the source and
+        the second as the target. If one of the array is None or empty,
+        it's value will be inferred from the other array and the sample_domain
+        (depending on the type of the arrays, they'll have a value of
+        {_DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL} or
+        {_DEFAULT_MASKED_TARGET_REGRESSION_LABEL}).
+    sample_domain : array-like of shape (n_samples,)
+        Array specifying the domain labels for each sample. If None or empty
+        the domain labels will be inferred from the the *arrays, being a
+        default source and target domain (depending on the type of the arrays,
+        they'll have a value of {_DEFAULT_SOURCE_DOMAIN_LABEL}
+        or {_DEFAULT_TARGET_DOMAIN_LABEL}).
+
+    Returns
+    -------
+    merges : list, length=len(arrays)/2
+        List containing merged data based on the sample domain labels.
+    sample_domain : array-like of shape (n_samples,)
+        Array specifying the domain labels for each sample.
+
+    Examples
+    --------
+    >>> X_source = np.array([[1, 2], [3, 4], [5, 6]])
+    >>> X_target = np.array([[7, 8], [9, 10]])
+    >>> sample_domain = np.array([0, 0, 1, 1])
+    >>> X, _ = source_target_merge(X_source, X_target, sample_domain = sample_domain)
+    >>> X
+    np.array([[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]])
+
+    >>> X_source = np.array([[1, 2], [3, 4], [5, 6]])
+    >>> X_target = np.array([[7, 8], [9, 10]])
+    >>> y_source = np.array([0, 1, 1])
+    >>> y_target = None
+    >>> sample_domain = np.array([0, 0, 1, 1])
+    >>> X, y, _ = source_target_merge(
+        X_source,
+        X_target,
+        y_source,
+        y_target,
+        sample_domain = sample_domain
+        )
+    >>> X
+    np.array([[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]])
+
+    >>> y
+    np.array([0,
+        1,
+        1,
+    {_DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL},
+    {_DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL}
+    ])
+    """
+
+    arrays = list(arrays)   # Convert to list to be able to modify it
+
+    if len(arrays) < 2:
+        raise ValueError("At least two array required as input")
+
+    if len(arrays) % 2 != 0:
+        raise ValueError("Even number of arrays required as input")
+
+    if (sample_domain is None or sample_domain.shape[0] == 0):
+        if sum(np.size(arr) for arr in arrays) == 0:
+            raise ValueError(
+                "Arrays and sample_domain cannot be empty at the same time"
+            )
+
+    if any((
+        (arrays[i] is None or arrays[i].shape[0] == 0) and
+        (arrays[i + 1] is None or arrays[i + 1].shape[0] == 0)
+        for i in range(0, len(arrays), 2)
+    )):
+        raise ValueError("Only one array can be None or empty in each duo")
+
+    # If sample_domain is None, we need to infer it from the target array
+    if sample_domain is None or sample_domain.shape[0] == 0:
+        # We need to infer the domain from the target array
+
+        # By assuming that the first array is the source and the second the target
+        index_something_source = 0
+        index_something_target = 1
+        sample_domain = np.concatenate((
+            _DEFAULT_SOURCE_DOMAIN_LABEL*np.ones(
+                arrays[index_something_source].shape[0]
+            ),
+            _DEFAULT_TARGET_DOMAIN_LABEL*np.ones(
+                arrays[index_something_target].shape[0]
+            )
+        ))
+
+    # To test afterward if the number of samples in source-target arrays
+    # and the number infered in the sample_domain are consistent
+    source_indices = extract_source_indices(sample_domain)
+    source_samples = np.count_nonzero(source_indices)
+    target_samples = np.count_nonzero(~source_indices)
+
+    # We replace None arrays by empty arrays
+    for i in range(0, len(arrays)):
+        if arrays[i] is None:
+            arrays[i] = np.array([])
+
+    for i in range(0, len(arrays), 2):
+        if (np.size(arrays[i]) == 0 and np.size(arrays[i+1]) == 0):
+            # No duo should be empty
+            raise ValueError("At least one array in each duo should be non empty")
+
+        # Check consistent dim of arrays
+        if (np.size(arrays[i]) != 0 and np.size(arrays[i+1]) != 0):
+            if arrays[i].shape[1:] != arrays[i+1].shape[1:]:
+                raise ValueError(
+                    "Inconsistent number of features in '*arrays'"
+                )
+
+        # If one of the array is empty, we need to infer its values
+        index_is_empty = None  # Index of the array that was None
+        if np.size(arrays[i]) == 0:
+            index_is_empty = i
+
+        if np.size(arrays[i+1]) == 0:
+            index_is_empty = i+1
+
+        if index_is_empty is not None:
+            # We need to infer the value of the empty array in the duo
+            duo_index = i+1 if index_is_empty == i else i
+
+            y_type = type_of_target(arrays[duo_index])
+            if y_type == 'binary' or y_type == 'multiclass':
+                arrays[index_is_empty] = (
+                    _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL *
+                    np.ones(
+                        (sample_domain.shape[0] - arrays[duo_index].shape[0],) +
+                        arrays[duo_index].shape[1:]
+                    )
+                )
+            else:
+                arrays[index_is_empty] = (
+                    _DEFAULT_MASKED_TARGET_REGRESSION_LABEL *
+                    np.ones(
+                        (sample_domain.shape[0] - arrays[duo_index].shape[0],) +
+                        arrays[duo_index].shape[1:]
+                    )
+                )
+
+        ##################################
+
+        # Check consistent number of samples in source-target arrays
+        # and the number infered in the sample_domain
+        if (sample_domain is not None) and (sample_domain.shape[0] != 0):
+            if (
+                (arrays[i].shape[0] != source_samples) or
+                (arrays[i+1].shape[0] != target_samples)
+            ):
+                raise ValueError(
+                    "Inconsistent number of samples in source-target arrays "
+                    "and the number infered in the sample_domain"
+                )
+
+    return _merge_arrays(arrays, sample_domain=sample_domain)
+
+
+def _merge_arrays(
+    arrays,
+    sample_domain
+):
+    """ Merge source and target domain data based on sample domain labels.
+
+    Parameters
+    ----------
+    arrays : sequence of array-like of identical number of samples
+        (n_samples, n_features). The number of arrays must be even
+        since we consider duos of source-target arrays each time.
     sample_domain : array-like of shape (n_samples,)
         Array specifying the domain labels for each sample.
 
     Returns
     -------
-    merged_data : np.ndarray
-        Merged data based on the sample domain labels.
+    merges : list, length=len(arrays)/2
+        List containing merged data based on the sample domain labels.
+    sample_domain : array-like of shape (n_samples,)
+        Array specifying the domain labels for each sample.
     """
-    n_samples = X_source.shape[0] + X_target.shape[0]
-    assert n_samples > 0
 
-    if n_samples != sample_domain.shape[0]:
-        raise ValueError(
-            "Inconsistent number of samples in 'X_source', 'X_target' and "
-            "'sample_domain' arrays"
-        )
+    merges = []
 
-    if X_source.shape[0] > 0 and X_target.shape[0] > 0:
-        output = np.zeros_like(
-            np.concatenate((X_source, X_target)), dtype=X_source.dtype
-        )
-        output[sample_domain >= 0] = X_source
-        output[sample_domain < 0] = X_target
+    for i in range(0, len(arrays), 2):
+        if arrays[i].shape[0] > 0 and arrays[i+1].shape[0] > 0:
+            output = np.zeros_like(
+                np.concatenate((arrays[i], arrays[i+1])), dtype=arrays[i].dtype
+            )
+            output[sample_domain >= 0] = arrays[i]
+            output[sample_domain < 0] = arrays[i+1]
 
-    elif X_source.shape[0] > 0:
-        output = np.zeros_like(
-            X_source, dtype=X_source.dtype
-        )
-        output[sample_domain >= 0] = X_source
+        elif arrays[i].shape[0] > 0:
+            output = np.zeros_like(
+                arrays[i], dtype=arrays[i].dtype
+            )
+            output[sample_domain >= 0] = arrays[i]
 
-    elif X_target.shape[0] > 0:
-        output = np.zeros_like(
-            X_target, dtype=X_target.dtype
-        )
-        output[sample_domain < 0] = X_target
+        else:
+            output = np.zeros_like(
+                arrays[i+1], dtype=arrays[i+1].dtype
+            )
+            output[sample_domain < 0] = arrays[i+1]
 
-    return output
+        merges.append(output)
+
+    return (*merges, sample_domain)

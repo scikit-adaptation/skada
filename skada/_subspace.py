@@ -93,7 +93,9 @@ class SubspaceAlignmentAdapter(BaseAdapter):
         if X_target.shape[0]:
             X_target = np.dot(self.pca_target_.transform(X_target), self.M_)
         # xxx(okachaiev): this could be done through a more high-level API
-        X_adapt = source_target_merge(X_source, X_target, sample_domain)
+        X_adapt, _ = source_target_merge(
+            X_source, X_target, sample_domain=sample_domain
+        )
         return X_adapt
 
     def fit(self, X, y=None, sample_domain=None, **kwargs):
