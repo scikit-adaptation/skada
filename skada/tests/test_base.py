@@ -1,4 +1,5 @@
 # Author: Yanis Lalou <yanis.lalou@polytechnique.edu>
+#         Oleksii Kachaiev <kachayev@gmail.com>
 #
 # License: BSD 3-Clause
 
@@ -11,8 +12,10 @@ from skada import SubspaceAlignmentAdapter, make_da_pipeline
 from skada.datasets import make_shifted_datasets
 from skada.utils import extract_source_indices
 from skada._utils import (
+    _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
+    _DEFAULT_MASKED_TARGET_REGRESSION_LABEL,
     _DEFAULT_SOURCE_DOMAIN_LABEL,
-    _DEFAULT_TARGET_DOMAIN_LABEL
+    _DEFAULT_TARGET_DOMAIN_LABEL,
 )
 
 import pytest
@@ -33,6 +36,7 @@ def test_base_selector_remove_masked():
     )
 
     selector = pipe['logisticregression']
+    # xxx(okachaiev): those are wrong params, we need routing there
     X_output, y_output, routed_params = selector._remove_masked(
         X, y, selector.get_params()
     )
@@ -41,8 +45,8 @@ def test_base_selector_remove_masked():
     assert y_output.shape[0] == 2 * n_samples * 8, "y output shape mismatch"
 
     source_idx = extract_source_indices(sample_domain)
-    y[~source_idx] = -1  # We mask the target labels
-
+    # mask target labels
+    y[~source_idx] = _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
     X_output, y_output, routed_params = selector._remove_masked(
         X, y, selector.get_params()
     )
@@ -73,7 +77,7 @@ def test_base_selector_remove_masked_transform(step):
 
 
 def test_base_selector_remove_masked_continuous():
-    # Same as test_base_selector_remove_masked but with continuous labels
+    # Same as `test_base_selector_remove_masked` but with continuous labels
     n_samples = 10
     X, y = make_regression(
         n_samples=n_samples,
@@ -88,10 +92,13 @@ def test_base_selector_remove_masked_continuous():
 
     selector = pipe['logisticregression']
 
-    # We attribute a random source/target label to each sample
-    source_idx = np.random.choice([False, True], size=len(y))
-    y[~source_idx] = -1  # We mask the target labels
+    # randomly designate each sample as source (True) or target (False)
+    rng = np.random.default_rng(42)
+    source_idx = rng.choice([False, True], size=n_samples)
+    # mask target labels
+    y[~source_idx] = _DEFAULT_MASKED_TARGET_REGRESSION_LABEL
 
+    # xxx(okachaiev): those are wrong params, we need routing there
     X_output, y_output, routed_params = selector._remove_masked(
         X, y, selector.get_params()
     )
