@@ -39,7 +39,7 @@ def test_base_selector_remove_masked():
     X_output, y_output, _ = selector._remove_masked(X, y, {})
 
     assert X_output.shape[0] == 2 * n_samples * 8, "X output shape mismatch"
-    assert y_output.shape[0] == 2 * n_samples * 8, "y output shape mismatch"
+    assert X_output.shape[0] == y_output.shape[0]
 
     source_idx = extract_source_indices(sample_domain)
     # mask target labels
@@ -47,7 +47,6 @@ def test_base_selector_remove_masked():
     X_output, y_output, _ = selector._remove_masked(X, y, {})
 
     assert X_output.shape[0] == n_samples * 8, "X output shape mismatch"
-    assert y_output.shape[0] == n_samples * 8, "y output shape mismatch"
     assert X_output.shape[0] == y_output.shape[0]
 
 
@@ -95,7 +94,6 @@ def test_base_selector_remove_masked_continuous():
     X_output, y_output, _ = selector._remove_masked(X, y, {})
 
     assert X_output.shape[0] == X.shape[0] - np.sum(source_idx), "X output shape mismatch"
-    assert y_output.shape[0] == y.shape[0] - np.sum(source_idx), "y output shape mismatch"
     assert X_output.shape[0] == y_output.shape[0]
 
 
