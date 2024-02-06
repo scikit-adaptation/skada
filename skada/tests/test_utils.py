@@ -10,14 +10,13 @@ from skada.datasets import (
     make_dataset_from_moons_distribution
 )
 
-from skada.datasets import make_dataset_from_moons_distribution
 from skada.utils import (
     check_X_y_domain, check_X_domain,
     extract_source_indices,
     source_target_split,
     source_target_merge
+
 )
-from skada.utils import source_target_split
 from skada._utils import _check_y_masking
 
 
