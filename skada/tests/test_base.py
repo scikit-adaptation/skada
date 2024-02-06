@@ -36,10 +36,7 @@ def test_base_selector_remove_masked():
     )
 
     selector = pipe['logisticregression']
-    # xxx(okachaiev): those are wrong params, we need routing there
-    X_output, y_output, routed_params = selector._remove_masked(
-        X, y, selector.get_params()
-    )
+    X_output, y_output, _ = selector._remove_masked(X, y, {})
 
     assert X_output.shape[0] == 2 * n_samples * 8, "X output shape mismatch"
     assert y_output.shape[0] == 2 * n_samples * 8, "y output shape mismatch"
@@ -47,9 +44,7 @@ def test_base_selector_remove_masked():
     source_idx = extract_source_indices(sample_domain)
     # mask target labels
     y[~source_idx] = _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
-    X_output, y_output, routed_params = selector._remove_masked(
-        X, y, selector.get_params()
-    )
+    X_output, y_output, _ = selector._remove_masked(X, y, {})
 
     assert X_output.shape[0] != 2 * n_samples * 8, "X output shape mismatch"
     assert y_output.shape[0] != 2 * n_samples * 8, "y output shape mismatch"
@@ -97,11 +92,7 @@ def test_base_selector_remove_masked_continuous():
     source_idx = rng.choice([False, True], size=n_samples)
     # mask target labels
     y[~source_idx] = _DEFAULT_MASKED_TARGET_REGRESSION_LABEL
-
-    # xxx(okachaiev): those are wrong params, we need routing there
-    X_output, y_output, routed_params = selector._remove_masked(
-        X, y, selector.get_params()
-    )
+    X_output, y_output, _ = selector._remove_masked(X, y, {})
 
     assert X_output.shape[0] != X.shape[0], "X output shape mismatch"
     assert y_output.shape[0] != y.shape[0], "y output shape mismatch"
