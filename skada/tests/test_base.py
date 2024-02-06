@@ -46,8 +46,8 @@ def test_base_selector_remove_masked():
     y[~source_idx] = _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
     X_output, y_output, _ = selector._remove_masked(X, y, {})
 
-    assert X_output.shape[0] != 2 * n_samples * 8, "X output shape mismatch"
-    assert y_output.shape[0] != 2 * n_samples * 8, "y output shape mismatch"
+    assert X_output.shape[0] == n_samples * 8, "X output shape mismatch"
+    assert y_output.shape[0] == n_samples * 8, "y output shape mismatch"
     assert X_output.shape[0] == y_output.shape[0]
 
 
@@ -94,8 +94,8 @@ def test_base_selector_remove_masked_continuous():
     y[~source_idx] = _DEFAULT_MASKED_TARGET_REGRESSION_LABEL
     X_output, y_output, _ = selector._remove_masked(X, y, {})
 
-    assert X_output.shape[0] != X.shape[0], "X output shape mismatch"
-    assert y_output.shape[0] != y.shape[0], "y output shape mismatch"
+    assert X_output.shape[0] == X.shape[0] - np.sum(source_idx), "X output shape mismatch"
+    assert y_output.shape[0] == y.shape[0] - np.sum(source_idx), "y output shape mismatch"
     assert X_output.shape[0] == y_output.shape[0]
 
 
