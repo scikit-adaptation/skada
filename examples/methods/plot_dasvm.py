@@ -31,8 +31,8 @@ ylim = (-2, 4.2)
 figure, axis = plt.subplots(1, 2)
 
 X, y, sample_domain = make_shifted_datasets(
-    n_samples_source=12,
-    n_samples_target=10,
+    n_samples_source=20,
+    n_samples_target=15,
     shift="covariate_shift",
     noise=None,
     label="binary",
