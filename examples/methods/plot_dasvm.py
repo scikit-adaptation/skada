@@ -1,3 +1,15 @@
+"""
+    dasvm
+==========================================
+
+This example illustrates the dsvm method from [1].
+
+.. [1]  Domain Adaptation Problems: A DASVM Classification
+        Technique and a Circular Validation Strategy
+        Lorenzo Bruzzone, Fellow, IEEE, and Mattia Marconcini, Member, IEEE
+
+"""
+
 # Author: Ruben Bueno <ruben.bueno@polytechnique.edu>
 # dasvm implementation
 
@@ -17,8 +29,8 @@ ylim = (-2, 4.2)
 figure, axis = plt.subplots(1, 2)
 
 X, y, sample_domain = make_shifted_datasets(
-    n_samples_source=60,
-    n_samples_target=40,
+    n_samples_source=12,
+    n_samples_target=10,
     shift="covariate_shift",
     noise=None,
     label="binary",

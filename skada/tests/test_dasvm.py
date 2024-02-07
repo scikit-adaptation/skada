@@ -6,6 +6,9 @@ from skada.utils import check_X_y_domain, source_target_split
 
 
 def test_dasvm_estimator():
+    """
+    Tests for the dasvm method
+    """
     X, y, sample_domain = make_shifted_datasets(
         n_samples_source=12,
         n_samples_target=10,
