@@ -1,7 +1,6 @@
 import numpy as np
 from sklearn.pipeline import make_pipeline
 import matplotlib.pyplot as plt
-import math
 
 from skada.datasets import make_shifted_datasets
 from skada._dasvm import BaseDasvmAdapter

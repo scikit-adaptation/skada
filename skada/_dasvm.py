@@ -166,7 +166,10 @@ class BaseDasvmAdapter(BaseAdapter, BaseSelector):
         """
         I was thinking of returning Xt and \hat{y}t
         """
-        pass
+        _, Xt, _, _ = source_target_split(
+            X, y, sample_domain=sample_domain
+        )
+        return Xt, self.base_estimator_.predict(Xt)
 
 
 
