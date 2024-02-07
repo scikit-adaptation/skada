@@ -1,7 +1,7 @@
 # Author: Ruben Bueno <ruben.bueno@polytechnique.edu>
 
 from skada.datasets import make_shifted_datasets
-from skada._dasvm import BaseDasvmAdapter
+from skada._dasvm import DASVMEstimatorthis 
 from skada.utils import check_X_y_domain, source_target_split
 from skada._pipeline import make_da_pipeline
 
@@ -28,7 +28,7 @@ def test_dasvm_estimator(label, n, m):
     Xs, Xt, ys, yt = source_target_split(
         X, y, sample_domain=sample_domain)
 
-    clf_dsvm = BaseDasvmAdapter(k=5).fit(X, y, sample_domain=sample_domain)
+    clf_dsvm = DASVMEstimatorthis (k=5).fit(X, y, sample_domain=sample_domain)
 
     assert clf_dsvm.get_estimator().n_features_in_ == 2, (
         "Obtained estimator take the wrong number of features"
@@ -50,7 +50,7 @@ def test_dasvm_estimator(label, n, m):
             "when using `decision_function` method"
             )
 
-    # The `BaseDasvmAdapter` should be usable with `make_da_pipeline`
+    # The `DASVMEstimatorthis ` should be usable with `make_da_pipeline`
     clf_dsvm = make_da_pipeline(
-        StandardScaler(), BaseDasvmAdapter(k=5)).fit(
+        StandardScaler(), DASVMEstimatorthis (k=5)).fit(
         X, y, sample_domain=sample_domain)

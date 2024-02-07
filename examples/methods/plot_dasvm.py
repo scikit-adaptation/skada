@@ -20,10 +20,15 @@ from skada.datasets import make_shifted_datasets
 from skada._dasvm import BaseDasvmAdapter
 from skada.utils import check_X_y_domain, source_target_split
 from skada._pipeline import make_da_pipeline
+from sklearn.linear_model import LogisticRegression
 
 from sklearn.svm import SVC
 from sklearn.preprocessing import StandardScaler
 
+
+# base_estimator can be any classifier equipped with decision function:
+# LogisticRegression(random_state=0), SVC(gamma='auto'), etc...
+base_estimator = LogisticRegression(random_state=0)
 
 xlim = (-2.2, 4.2)
 ylim = (-2, 4.2)
@@ -68,3 +73,4 @@ for i in [0, -1]:
     axis[i].set_ylim(ylim)
 figure.colorbar(a[-1])
 plt.show()
+

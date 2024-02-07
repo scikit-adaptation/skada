@@ -29,6 +29,9 @@ class BaseDasvmAdapter(BaseAdapter):
         self.k = k
 
     def _find_points_next_step(self, I_list, d, c):
+        """
+        This function allow us to find the next points to add/discard
+        """
         I = np.array([], dtype=int)
         # We should take k points for each of the c classes,
         # depending on the values of d
@@ -147,8 +150,8 @@ class BaseDasvmAdapter(BaseAdapter):
             if c == 2:
                 decisions_ta = np.array([-decisions_ta, decisions_ta]).T
 
-            # We want to take values that are unsure, meaning we want those that have
-            # values the closest that we can to c-1
+            # We want to take values the estimator is unsure about, meaning that we
+            # want those that have values the closest that we can to c-1
             # (to 0 when label='binary', or 4 when is its 'multiclass')
             decisions_ta = -np.abs(decisions_ta-c-1)
 
@@ -168,7 +171,7 @@ class BaseDasvmAdapter(BaseAdapter):
 
         self.base_estimator_ = Estimators[-1]
 
-        # t could be interesting to return multiple estimators,
+        # it could be interesting to return multiple estimators,
         # or the list Ia and Id (this making them being an object attribute)
         return self
 
