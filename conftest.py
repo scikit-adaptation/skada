@@ -30,6 +30,7 @@ def tmp_da_dataset():
     )
 
 
+
 @pytest.fixture(scope='session')
 def da_dataset() -> DomainAwareDataset:
     centers = np.array([[0, 0], [1, 1]])

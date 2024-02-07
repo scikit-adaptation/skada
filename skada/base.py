@@ -118,6 +118,7 @@ class BaseAdapter(BaseEstimator):
             **params
         )
 
+
 class DAEstimator(BaseEstimator):
     """ Generic DA estimator class
 
@@ -130,12 +131,11 @@ class DAEstimator(BaseEstimator):
     def fit(self, X, y=None, sample_domain=None, *, sample_weight=None):
         """Fit adaptation parameters"""
         pass
-    
+
     @abstractmethod
-    def predict(self, X, sample_domain=None,*, sample_weight=None):
+    def predict(self, X, sample_domain=None, *, sample_weight=None):
         """Predict using the model"""
         pass
-        
 
     def fit_predict(self, X, y=None, sample_domain=None, **params):
         """
