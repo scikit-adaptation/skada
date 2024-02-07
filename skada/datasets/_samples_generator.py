@@ -25,7 +25,9 @@ def _generate_unif_circle(n_samples, rng):
     return x
 
 
-def _generate_data_2d_classif(n_samples, rng, label='binary'):
+def _generate_data_2d_classif(
+        n_samples, rng, mu_regression=np.array([0, 0]),
+        sigma_regression=np.array([[1, 0], [0, 1]]), label='binary'):
     """Generate 2d classification data.
 
     Parameters
@@ -39,6 +41,10 @@ def _generate_data_2d_classif(n_samples, rng, label='binary'):
         If 'binary, return binary class
         If 'multiclass', return multiclass
         if 'regression', return regression's y-values
+    mu_regression : np.array, default=np.array([0, 0])
+        Will only be used if label=='regression'
+    sigma_regression : np.array, default=np.array([[1, 0], [0, 1]])
+        Will only be used if label=='regression'
     """
     n2 = n_samples
     n1 = n2 * 4
@@ -85,7 +91,7 @@ def _generate_data_2d_classif(n_samples, rng, label='binary'):
             y = y.astype(int)
     elif label == 'regression':
         # create label y with gaussian distribution
-        normal_rv = multivariate_normal(mu1, Sigma1)
+        normal_rv = multivariate_normal(mu_regression, sigma_regression)
         y = normal_rv.pdf(x)
     else:
         raise ValueError(f"Invalid label value: {label}. The label should either be "
@@ -93,7 +99,9 @@ def _generate_data_2d_classif(n_samples, rng, label='binary'):
     return x, y
 
 
-def _generate_data_2d_classif_subspace(n_samples, rng, label='binary'):
+def _generate_data_2d_classif_subspace(
+        n_samples, rng, mu_regression=np.array([0, 0]),
+        sigma_regression=np.array([[1, 0], [0, 1]]), label='binary'):
     """Generate 2d classification data.
 
     Parameters
@@ -107,6 +115,10 @@ def _generate_data_2d_classif_subspace(n_samples, rng, label='binary'):
         If 'binary, return binary class
         If 'multiclass', return multiclass
         if 'regression', return regression's y-values
+    mu_regression : np.array, default=np.array([0, 0])
+        Will only be used if label=='regression'
+    sigma_regression : np.array, default=np.array([[1, 0], [0, 1]])
+        Will only be used if label=='regression'
     """
     n2 = n_samples
     n1 = n2 * 2
@@ -150,7 +162,7 @@ def _generate_data_2d_classif_subspace(n_samples, rng, label='binary'):
         mu1 = np.array([0, 0])
 
         # create label y with gaussian distribution
-        normal_rv = multivariate_normal(mu1, Sigma1)
+        normal_rv = multivariate_normal(mu_regression, sigma_regression)
         y = normal_rv.pdf(x)
     else:
         raise ValueError(f"Invalid label value: {label}. The label should either be "
@@ -351,6 +363,8 @@ def make_shifted_datasets(
     mean=1,
     sigma=0.7,
     gamma=2,
+    mu_regression=np.array([0, 0]),
+    sigma_regression=np.array([[1, 0], [0, 1]]),
     center=((0, 2)),
     random_state=None,
     return_X_y=True,
@@ -385,6 +399,10 @@ def make_shifted_datasets(
         value of the translation in the concept drift.
     sigma : float, default=0.7
         multiplicative value of the concept drift.
+    mu_regression : np.array, default=np.array([0, 0])
+        Will only be used if label=='regression'
+    sigma_regression : np.array, default=np.array([[1, 0], [0, 1]])
+        Will only be used if label=='regression'
     gamma :  float, default=2
         Parameter of the RBF kernel.
     center : array-like of shape (1, 2), default=((0, 2))
