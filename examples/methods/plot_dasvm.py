@@ -17,7 +17,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from skada.datasets import make_shifted_datasets
-from skada._dasvm import BaseDasvmAdapter
+from skada._dasvm import DASVMEstimator
 from skada.utils import check_X_y_domain, source_target_split
 from skada._pipeline import make_da_pipeline
 from sklearn.linear_model import LogisticRegression
@@ -57,7 +57,7 @@ axis[1].set_xlim(xlim)
 axis[1].set_ylim(ylim)
 
 E = make_da_pipeline(
-    StandardScaler(), BaseDasvmAdapter(k=5)).fit(X, y, sample_domain=sample_domain)
+    StandardScaler(), DASVMEstimator(k=5)).fit(X, y, sample_domain=sample_domain)
 
 
 figure, axis = plt.subplots(1, 2)
@@ -73,4 +73,3 @@ for i in [0, -1]:
     axis[i].set_ylim(ylim)
 figure.colorbar(a[-1])
 plt.show()
-

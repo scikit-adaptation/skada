@@ -12,7 +12,7 @@ from skada.utils import check_X_y_domain, source_target_split
 from sklearn.svm import SVC
 
 
-class BaseDasvmAdapter(BaseAdapter):
+class DASVMEstimator(BaseAdapter):
     """Base class for all DA estimators implemented using OT mapping.
 
     Each implementation has to provide `_create_transport_estimator` callback
