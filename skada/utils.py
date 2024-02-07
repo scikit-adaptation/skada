@@ -4,6 +4,8 @@
 
 from typing import Optional, Set
 
+import warnings
+
 import numpy as np
 from itertools import chain
 
@@ -338,6 +340,9 @@ def source_target_merge(
     # If sample_domain is None, we need to infer it from the target array
     if sample_domain is None or sample_domain.shape[0] == 0:
         # We need to infer the domain from the target array
+        warnings.warn(
+            "sample_domain is None or empty, it will be inferred from the arrays"
+        )
 
         # By assuming that the first array is the source and the second the target
         index_something_source = 0
