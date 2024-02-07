@@ -29,6 +29,7 @@ def tmp_da_dataset():
         X[sample_domain < 0], y[sample_domain < 0],
     )
 
+
 @pytest.fixture(scope='session')
 def da_reg_dataset():
     X, y, sample_domain = make_shifted_datasets(

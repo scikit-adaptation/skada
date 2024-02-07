@@ -4,7 +4,7 @@
 
 
 import numpy as np
-from sklearn.base import BaseEstimator, clone
+from sklearn.base import clone
 from .base import DAEstimator
 from .utils import source_target_split
 import ot
@@ -55,17 +55,18 @@ def solve_jdot_regression(Xs, ys, Xt, base_estimator, alpha=0.5,
 
     nt = Xt.shape[0]
 
-    M = Mf
-
     lst_loss_ot = []
     lst_loss_tgt_labels = []
+    y_pred = 0
+    Ml = 0
 
     for i in range(n_iter_max):
 
         if i > 0:
             # update the cost matrix
-            M = (1 - alpha) * Mf + alpha * \
-                 ot.dist(y_pred.reshape(-1, 1), ys.reshape(-1, 1))
+            M = (1 - alpha) * Mf + alpha * Ml
+        else:
+            M = Mf
 
         # sole OT problem
         sol = ot.solve(M)
@@ -125,8 +126,11 @@ class JDOTRegressor(DAEstimator):
 
         Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 
-        self.estimator, self.lst_loss_ot, self.lst_loss_tgt_labels, self.sol = solve_jdot_regression(
-            Xs, ys, Xt, self.base_estimator, alpha=self.alpha, n_iter_max=self.n_iter_max, tol=self.tol, verbose=self.verbose, **self.kwargs)
+        res = solve_jdot_regression(Xs, ys, Xt, self.base_estimator,
+                                    alpha=self.alpha, n_iter_max=self.n_iter_max,
+                                    tol=self.tol, verbose=self.verbose, **self.kwargs)
+
+        self.estimator, self.lst_loss_ot, self.lst_loss_tgt_labels, self.sol = res
 
     def predict(self, X, sample_domain=None, *, sample_weight=None):
         """Predict using the model"""
