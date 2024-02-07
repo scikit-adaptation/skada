@@ -317,8 +317,7 @@ def test_source_target_merge():
 
     # Test with empty samples
     with pytest.raises(ValueError,
-                       match="Arrays and sample_domain cannot be "
-                       "empty at the same time"
+                       match="Only one array can be None or empty in each duo"
                        ):
         _ = source_target_merge(np.array([]), np.array([]), sample_domain=np.array([]))
 
