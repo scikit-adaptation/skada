@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from skada.datasets import DomainAwareDataset, make_shifted_blobs
+from skada.datasets import DomainAwareDataset, make_shifted_blobs, make_shifted_datasets
 
 
 # xxx(okachaiev): old API has to be gone when re-writing is done
@@ -29,6 +29,17 @@ def tmp_da_dataset():
         X[sample_domain < 0], y[sample_domain < 0],
     )
 
+@pytest.fixture(scope='session')
+def da_reg_dataset():
+    X, y, sample_domain = make_shifted_datasets(
+        n_samples_source=20,
+        n_samples_target=20,
+        shift="concept_drift",
+        noise=0.3,
+        label="regression",
+        random_state=42,
+    )
+    return X, y, sample_domain
 
 
 @pytest.fixture(scope='session')

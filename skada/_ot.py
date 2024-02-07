@@ -78,7 +78,8 @@ def solve_jdot_regression(Xs, ys, Xt, base_estimator, alpha=0.5,
         yth = nt * ys.dot(T)
 
         # fit the estimator
-        y_pred = estimator.fit_predict(Xt, yth, **kwargs)
+        estimator.fit(Xt, yth, **kwargs)
+        y_pred = estimator.predict(Xt)
 
         Ml = ot.dist(y_pred.reshape(-1, 1), ys.reshape(-1, 1))
 
@@ -122,11 +123,11 @@ class JDOTRegressor(DAEstimator):
     def fit(self, X, y=None, sample_domain=None, *, sample_weight=None):
         """Fit adaptation parameters"""
 
-        Xs, ys, Xt, yt = source_target_split(X, y, sample_domain)
+        Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 
         self.estimator, self.lst_loss_ot, self.lst_loss_tgt_labels, self.sol = solve_jdot_regression(
             Xs, ys, Xt, self.base_estimator, alpha=self.alpha, n_iter_max=self.n_iter_max, tol=self.tol, verbose=self.verbose, **self.kwargs)
 
     def predict(self, X, sample_domain=None, *, sample_weight=None):
         """Predict using the model"""
-        return self.estimator.predict(X, sample_weight=sample_weight)
+        return self.estimator.predict(X)
