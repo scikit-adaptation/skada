@@ -118,6 +118,44 @@ class BaseAdapter(BaseEstimator):
             **params
         )
 
+class DAEstimator(BaseEstimator):
+    """ Generic DA estimator class
+
+    """
+
+    __metadata_request__fit = {'sample_domain': True}
+    __metadata_request__transform = {'sample_domain': True, 'allow_source': True}
+
+    @abstractmethod
+    def fit(self, X, y=None, sample_domain=None, *, sample_weight=None):
+        """Fit adaptation parameters"""
+        pass
+    
+    @abstractmethod
+    def predict(self, X, sample_domain=None,*, sample_weight=None):
+        """Predict using the model"""
+        pass
+        
+
+    def fit_predict(self, X, y=None, sample_domain=None, **params):
+        """
+        Fit to data, then predict on it.
+        In this case, the fitting and the transformation are performed on
+        the target and source domains by default (allow_source=True).
+
+        It should be used only for fitting the estimator, and not for
+        generating the adaptation output.
+        For the latter, use the `transform` method.
+        """
+        self.fit(X, y=y, sample_domain=sample_domain, **params)
+        # assume 'fit_transform' is called to fit the estimator,
+        # thus we allow for the source domain to be adapted
+        return self.predict(
+            X,
+            sample_domain=sample_domain,
+            allow_source=True,
+            **params)
+
 
 class BaseSelector(BaseEstimator):
 
