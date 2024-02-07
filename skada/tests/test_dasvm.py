@@ -1,15 +1,11 @@
-# Author: Theo Gnassounou <theo.gnassounou@inria.fr>
-#         Remi Flamary <remi.flamary@polytechnique.edu>
-#         Oleksii Kachaiev <kachayev@gmail.com>
-#
-# License: BSD 3-Clause
+# Author: Ruben Bueno <ruben.bueno@polytechnique.edu>
 
 from skada.datasets import make_shifted_datasets
 from skada._dasvm import BaseDasvmAdapter
 from skada.utils import check_X_y_domain, source_target_split
 
 
-def test_mapping_estimator():
+def test_dasvm_estimator():
     X, y, sample_domain = make_shifted_datasets(
         n_samples_source=12,
         n_samples_target=10,

@@ -1,3 +1,6 @@
+# Author: Ruben Bueno <ruben.bueno@polytechnique.edu>
+# dasvm implementation
+
 import numpy as np
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler

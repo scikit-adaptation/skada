@@ -1,3 +1,6 @@
+# Author: Ruben Bueno <ruben.bueno@polytechnique.edu>
+# dasvm implementation
+
 import numpy as np
 import matplotlib.pyplot as plt
 
