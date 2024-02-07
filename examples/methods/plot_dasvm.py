@@ -19,8 +19,10 @@ import matplotlib.pyplot as plt
 from skada.datasets import make_shifted_datasets
 from skada._dasvm import BaseDasvmAdapter
 from skada.utils import check_X_y_domain, source_target_split
+from skada._pipeline import make_da_pipeline
 
 from sklearn.svm import SVC
+from sklearn.preprocessing import StandardScaler
 
 
 xlim = (-2.2, 4.2)
@@ -49,13 +51,14 @@ axis[1].scatter(Xt[:, 0], Xt[:, 1], c=yt)
 axis[1].set_xlim(xlim)
 axis[1].set_ylim(ylim)
 
-E = BaseDasvmAdapter(k=5).fit(X, y, sample_domain)
+E = make_da_pipeline(
+    StandardScaler(), BaseDasvmAdapter(k=5)).fit(X, y, sample_domain=sample_domain)
 
 
 figure, axis = plt.subplots(1, 2)
 a = []
 for i in [0, -1]:
-    e = (SVC(gamma='auto').fit(Xs, ys) if i == 0 else E.get_estimator())
+    e = (SVC(gamma='auto').fit(Xs, ys) if i == 0 else E)
     x_points = np.linspace(xlim[0], xlim[1], 200)
     y_points = np.linspace(ylim[0], ylim[1], 200)
     # Plotting a red hyperplane

@@ -6,13 +6,13 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 import math
 
-from skada.base import BaseEstimator, BaseAdapter, BaseSelector
+from skada.base import BaseEstimator, BaseAdapter
 from skada.utils import check_X_y_domain, source_target_split
 
 from sklearn.svm import SVC
 
 
-class BaseDasvmAdapter(BaseAdapter, BaseSelector):
+class BaseDasvmAdapter(BaseAdapter):
     """Base class for all DA estimators implemented using OT mapping.
 
     Each implementation has to provide `_create_transport_estimator` callback
@@ -23,7 +23,8 @@ class BaseDasvmAdapter(BaseAdapter, BaseSelector):
             k=3, Stop=1_000, **kwargs
             ):
 
-        BaseSelector.__init__(self, base_estimator, **kwargs)
+        super().__init__()
+        self.base_estimator = base_estimator
         self.Stop = Stop
         self.k = k
 
@@ -188,9 +189,15 @@ class BaseDasvmAdapter(BaseAdapter, BaseSelector):
         """
         return self.base_estimator_
 
-    def _route_to_estimator(self, method_name, X, y=None, **params) -> np.ndarray:
+    def predict(self, X):
+        """ return predicted value by the fitted estimator for `X`
+        `predict` method from the estimator we fitted
         """
-        def predict(self, X, **params):
-            return self._route_to_estimator('predict', X, **params)
+        return self.base_estimator_.predict(X)
+
+    def decision_function(self, X):
+        """ return values of the decision function of the
+                fitted estimator for `X`
+        `decision_function` method from the estimator we fitted
         """
-        pass
+        return self.base_estimator_.decision_function(X)
