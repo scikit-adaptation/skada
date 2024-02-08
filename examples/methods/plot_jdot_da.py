@@ -90,7 +90,7 @@ plt.axis(ax)
 # -------------------------
 
 
-jdot = JDOTRegressor(base_estimator=KernelRidge(kernel='rbf', alpha=0.5),alpha=0.01)
+jdot = JDOTRegressor(base_estimator=KernelRidge(kernel='rbf', alpha=0.5), alpha=0.01)
 
 jdot.fit(X, y, sample_domain=sample_domain)
 

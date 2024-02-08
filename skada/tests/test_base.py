@@ -144,6 +144,7 @@ def test_base_selector_domains():
             set(np.unique(sample_domain))
             )
 
+
 def test_BaseAdapter():
 
     X = np.random.rand(10, 2)
@@ -155,6 +156,7 @@ def test_BaseAdapter():
     cls.something_ = 1
     cls.transform(X=X, y=None, sample_domain=None)
     cls.fit_transform(X=X, y=None, sample_domain=None)
+
 
 def test_DAEstimator():
 
