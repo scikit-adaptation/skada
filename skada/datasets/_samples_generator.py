@@ -461,7 +461,7 @@ def make_shifted_datasets(
     if shift == "covariate_shift":
         n_samples_target_temp = n_samples_target * 100
         X_target, y_target = _generate_data_2d_classif(
-            n_samples_source, rng, mu_regression,
+            n_samples_target_temp, rng, mu_regression,
             sigma_regression, regression_scaling_constant, label)
 
         w = np.exp(-gamma * np.sum((X_target - np.array(center)) ** 2, 1))
@@ -475,7 +475,7 @@ def make_shifted_datasets(
     elif shift == "target_shift":
         n_samples_target_temp = n_samples_target * 3
         X_target, y_target = _generate_data_2d_classif(
-            n_samples_source, rng, mu_regression,
+            n_samples_target_temp, rng, mu_regression,
             sigma_regression, regression_scaling_constant, label)
 
         n_samples1 = int(8 * n_samples_target * ratio)
@@ -499,7 +499,7 @@ def make_shifted_datasets(
 
     elif shift == "concept_drift":
         X_target, y_target = _generate_data_2d_classif(
-            n_samples_source, rng, mu_regression,
+            n_samples_target, rng, mu_regression,
             sigma_regression, regression_scaling_constant, label)
         X_target = X_target * sigma + mean
 
@@ -508,7 +508,7 @@ def make_shifted_datasets(
             n_samples_source, rng, mu_regression,
             sigma_regression, regression_scaling_constant, label)
         X_target, y_target = _generate_data_2d_classif_subspace(
-            n_samples_source, rng, mu_regression,
+            n_samples_target, rng, mu_regression,
             sigma_regression, regression_scaling_constant, label)
         X_target *= -1
 
