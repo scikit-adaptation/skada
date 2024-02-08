@@ -52,6 +52,7 @@ def plot_shifted_dataset(shift, random_state=42):
         c=y_source,
         vmax=max(y),
         alpha=0.5,
+        cmap="autumn"
     )
     ax1.set_title("Source data")
     ax1.set_xlabel("Feature 1")
@@ -63,6 +64,7 @@ def plot_shifted_dataset(shift, random_state=42):
         c=y_target,
         vmax=1,
         alpha=0.5,
+        cmap="autumn"
     )
     ax2.set_title("Target data")
     ax2.set_xlabel("Feature 1")
