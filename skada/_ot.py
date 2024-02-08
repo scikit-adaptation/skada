@@ -130,8 +130,8 @@ class JDOTRegressor(DAEstimator):
                                     alpha=self.alpha, n_iter_max=self.n_iter_max,
                                     tol=self.tol, verbose=self.verbose, **self.kwargs)
 
-        self.estimator, self.lst_loss_ot, self.lst_loss_tgt_labels, self.sol = res
+        self.estimator_, self.lst_loss_ot_, self.lst_loss_tgt_labels_, self.sol_ = res
 
     def predict(self, X, sample_domain=None, *, sample_weight=None):
         """Predict using the model"""
-        return self.estimator.predict(X)
+        return self.estimator_.predict(X)

@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from sklearn.metrics import mean_squared_error
-from sklearn.svm import SVR
+from sklearn.kernel_ridge import KernelRidge
 
 from skada import JDOTRegressor
 from skada.datasets import make_shifted_datasets
@@ -54,7 +54,7 @@ plt.axis(ax)
 # --------------------
 
 
-clf = SVR(kernel='rbf', C=1)
+clf = KernelRidge(kernel='rbf', alpha=0.5)
 clf.fit(Xs, ys)
 
 # Compute accuracy on source and target
@@ -90,7 +90,7 @@ plt.axis(ax)
 # -------------------------
 
 
-jdot = JDOTRegressor(base_estimator=SVR(kernel='rbf', C=1))
+jdot = JDOTRegressor(base_estimator=KernelRidge(kernel='rbf', alpha=0.5),alpha=0.01)
 
 jdot.fit(X, y, sample_domain=sample_domain)
 

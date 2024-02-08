@@ -153,7 +153,6 @@ class DAEstimator(BaseEstimator):
         return self.predict(
             X,
             sample_domain=sample_domain,
-            allow_source=True,
             **params)
 
 

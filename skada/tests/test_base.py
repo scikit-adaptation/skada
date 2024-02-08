@@ -16,6 +16,7 @@ from skada._utils import (
     _DEFAULT_SOURCE_DOMAIN_LABEL,
     _DEFAULT_TARGET_DOMAIN_LABEL
 )
+from skada.base import BaseAdapter, DAEstimator
 
 
 def test_base_selector_remove_masked():
@@ -142,3 +143,27 @@ def test_base_selector_domains():
     assert (pipe['logisticregression'].domains_ ==
             set(np.unique(sample_domain))
             )
+
+def test_BaseAdapter():
+
+    X = np.random.rand(10, 2)
+
+    cls = BaseAdapter()
+
+    cls.fit(X=X, y=None, sample_domain=None)
+    # set one attribute to shohat something fitted
+    cls.something_ = 1
+    cls.transform(X=X, y=None, sample_domain=None)
+    cls.fit_transform(X=X, y=None, sample_domain=None)
+
+def test_DAEstimator():
+
+    X = np.random.rand(10, 2)
+
+    cls = DAEstimator()
+
+    cls.fit(X=X, y=None, sample_domain=None)
+    # set one attribute to shohat something fitted
+    cls.something_ = 1
+    cls.predict(X=X, sample_domain=None)
+    cls.fit_predict(X=X, y=None, sample_domain=None)
