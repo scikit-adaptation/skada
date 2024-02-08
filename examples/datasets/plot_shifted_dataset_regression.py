@@ -49,8 +49,8 @@ def plot_shifted_dataset(shift, random_state=42):
     ax1.scatter(
         X_source[:, 0],
         X_source[:, 1],
-        c=y_source*10,
-        vmax=1,
+        c=y_source,
+        vmax=max(y),
         alpha=0.5,
     )
     ax1.set_title("Source data")
@@ -60,7 +60,7 @@ def plot_shifted_dataset(shift, random_state=42):
     s = ax2.scatter(
         X_target[:, 0],
         X_target[:, 1],
-        c=y_target*10,
+        c=y_target,
         vmax=1,
         alpha=0.5,
     )
@@ -71,7 +71,7 @@ def plot_shifted_dataset(shift, random_state=42):
     fig.subplots_adjust(right=0.8)
     cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.80])
     cb = fig.colorbar(s, cax=cbar_ax)
-    cb.set_label("y-value*10")
+    cb.set_label("y-value")
 
     plt.show()
 
