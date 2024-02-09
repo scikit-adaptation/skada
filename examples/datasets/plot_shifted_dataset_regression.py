@@ -62,7 +62,7 @@ def plot_shifted_dataset(shift, random_state=42):
         X_target[:, 0],
         X_target[:, 1],
         c=y_target,
-        vmax=1,
+        vmax=max(y),
         alpha=0.5,
         cmap="autumn"
     )
