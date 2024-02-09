@@ -12,7 +12,7 @@ from itertools import chain
 from sklearn.utils import check_array, check_consistent_length
 from sklearn.utils.multiclass import type_of_target
 
-from skada._utils import _check_y_masking
+from skada._utils import _check_y_masking, _find_y_type
 from skada._utils import (
     _DEFAULT_SOURCE_DOMAIN_LABEL, _DEFAULT_TARGET_DOMAIN_LABEL,
     _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL, _DEFAULT_TARGET_DOMAIN_ONLY_LABEL,
