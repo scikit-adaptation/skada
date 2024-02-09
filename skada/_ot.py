@@ -58,8 +58,7 @@ def solve_jdot_regression(Xs, ys, Xt, base_estimator, alpha=0.5,
     lst_loss_ot = []
     lst_loss_tgt_labels = []
     y_pred = 0
-    Ml = 0
-    ot.dist(ys.reshape(-1, 1), np.zeros((nt, 1)))
+    Ml = ot.dist(ys.reshape(-1, 1), np.zeros((nt, 1)))
 
     for i in range(n_iter_max):
 
