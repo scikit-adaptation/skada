@@ -59,6 +59,7 @@ def solve_jdot_regression(Xs, ys, Xt, base_estimator, alpha=0.5,
     lst_loss_tgt_labels = []
     y_pred = 0
     Ml = 0
+    ot.dist(ys.reshape(-1, 1), np.zeros((nt, 1)))
 
     for i in range(n_iter_max):
 
@@ -66,13 +67,17 @@ def solve_jdot_regression(Xs, ys, Xt, base_estimator, alpha=0.5,
             # update the cost matrix
             M = (1 - alpha) * Mf + alpha * Ml
         else:
-            M = Mf
+            M = (1 - alpha) * Mf
 
         # sole OT problem
         sol = ot.solve(M)
 
         T = sol.plan
         loss_ot = sol.value
+
+        if i == 0:
+            loss_ot += alpha * np.sum(Ml * T)
+
         lst_loss_ot.append(loss_ot)
 
         # compute the transported labels
