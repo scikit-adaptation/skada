@@ -117,8 +117,7 @@ def solve_jdot_regression(Xs, ys, Xt, base_estimator, alpha=0.5,
 
         # update the cost matrix
         if i == n_iter_max - 1:
-            if log:
-                warnings.warn('Maximum number of iterations reached.')
+            warnings.warn('Maximum number of iterations reached.')
 
     return estimator, lst_loss_ot, lst_loss_tgt_labels, sol
 
