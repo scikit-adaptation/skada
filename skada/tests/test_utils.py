@@ -399,3 +399,13 @@ def test_source_target_merge():
 
     # Test 1 None in 2 duo arrays
     _ = source_target_merge(X_source, None, y_source, None, sample_domain=sample_domain)
+
+    # Test inconsistent number of features
+    with pytest.raises(ValueError,
+                       match="Inconsistent number of features in source-target arrays"
+                       ):
+        _ = source_target_merge(
+            X_source[:, :-1],
+            X_target,
+            sample_domain=sample_domain
+        )

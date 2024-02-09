@@ -338,7 +338,7 @@ def source_target_merge(
         if (np.size(arrays[i]) != 0 and np.size(arrays[i+1]) != 0):
             if arrays[i].shape[1:] != arrays[i+1].shape[1:]:
                 raise ValueError(
-                    "Inconsistent number of features in '*arrays'"
+                    "Inconsistent number of features in source-target arrays"
                 )
 
     # ################ Check sample_domain #################
