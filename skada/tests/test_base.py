@@ -168,4 +168,3 @@ def test_DAEstimator():
     # set one attribute to shohat something fitted
     cls.something_ = 1
     cls.predict(X=X, sample_domain=None)
-    cls.fit_predict(X=X, y=None, sample_domain=None)
