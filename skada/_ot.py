@@ -12,7 +12,7 @@ import warnings
 
 
 def solve_jdot_regression(Xs, ys, Xt, base_estimator, alpha=0.5,
-                          n_iter_max=100, tol=1e-5, verbose=False, log=False, **kwargs):
+                          n_iter_max=100, tol=1e-5, verbose=False, **kwargs):
     """Solve the joint distribution optimal transport regression problem
 
     Parameters
@@ -25,15 +25,20 @@ def solve_jdot_regression(Xs, ys, Xt, base_estimator, alpha=0.5,
 
     Xt : array-like of shape (m_samples, n_features)
         Target domain samples.
-
     base_estimator : object
         The base estimator to be used for the regression task. This estimator
         should solve a least squares regression problem (regularized or not)
         to correspond to JDOT theoretical regression problem but other
-        approaches can be used with the risk that the fxed point might not converge.
-
+        approaches can be used with the risk that the fixed point might not converge.
     alpha : float, default=0.5
         The trade-off parameter between the feature and label loss in OT metric
+    n_iter_max: int
+        Max number of JDOT alternat optimization iterations.
+    tol: float>0
+        Tolerance for loss variations (OT and mse) stopping iterations.
+    verbose: bool
+        Print loss along iterations if True.as_integer_ratio
+
 
     Returns
     -------
@@ -45,6 +50,13 @@ def solve_jdot_regression(Xs, ys, Xt, base_estimator, alpha=0.5,
         The list of target labels losses at each iteration.
     sol : object
         The solution of the OT problem.
+
+    References
+    ----------
+    [1] N. Courty, R. Flamary, A. Habrard, A. Rakotomamonjy, Joint Distribution
+        Optimal Transportation for Domain Adaptation, Neural Information Processing
+        Systems (NIPS), 2017.
+
     """
 
     estimator = clone(base_estimator)
@@ -113,6 +125,39 @@ def solve_jdot_regression(Xs, ys, Xt, base_estimator, alpha=0.5,
 
 class JDOTRegressor(DAEstimator):
     """Joint Distribution Optimal Transport Regressor
+
+    Parameters
+    ----------
+    base_estimator : object
+        The base estimator to be used for the regression task. This estimator
+        should solve a least squares regression problem (regularized or not)
+        to correspond to JDOT theoretical regression problem but other
+        approaches can be used with the risk that the fixed point might not converge.
+    alpha : float, default=0.5
+        The trade-off parameter between the feature and label loss in OT metric
+    n_iter_max: int
+        Max number of JDOT alternat optimization iterations.
+    tol: float>0
+        Tolerance for loss variations (OT and mse) stopping iterations.
+    verbose: bool
+        Print loss along iterations if True.as_integer_ratio
+
+    Attributes
+    ----------
+    estimator_ : object
+        The fitted estimator.
+    lst_loss_ot_ : list
+        The list of OT losses at each iteration.
+    lst_loss_tgt_labels_ : list
+        The list of target labels losses at each iteration.
+    sol_ : object
+        The solution of the OT problem.
+
+    References
+    ----------
+    [1] N. Courty, R. Flamary, A. Habrard, A. Rakotomamonjy, Joint Distribution
+        Optimal Transportation for Domain Adaptation, Neural Information
+        Processing Systems (NIPS), 2017.
 
     """
 
