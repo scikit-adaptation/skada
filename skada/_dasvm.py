@@ -13,10 +13,8 @@ from sklearn.svm import SVC
 
 
 class DASVMEstimator(BaseAdapter):
-    """Base class for all DA estimators implemented using OT mapping.
-
-    Each implementation has to provide `_create_transport_estimator` callback
-    to create OT object using parameters saved in the constructor.
+    """
+    Simple dasvm estimator
     """
     def __init__(
             self, base_estimator: BaseEstimator = SVC(gamma='auto'),

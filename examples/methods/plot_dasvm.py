@@ -28,7 +28,7 @@ from sklearn.preprocessing import StandardScaler
 
 # base_estimator can be any classifier equipped with decision function:
 # LogisticRegression(random_state=0), SVC(gamma='auto'), etc...
-base_estimator = LogisticRegression(random_state=0)
+base_estimator = SVC(gamma='auto')
 
 xlim = (-2.2, 4.2)
 ylim = (-2, 4.2)
