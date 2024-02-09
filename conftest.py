@@ -34,7 +34,7 @@ def tmp_da_dataset():
 def da_reg_dataset():
     X, y, sample_domain = make_shifted_datasets(
         n_samples_source=20,
-        n_samples_target=20,
+        n_samples_target=21,
         shift="concept_drift",
         noise=0.3,
         label="regression",

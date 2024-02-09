@@ -76,16 +76,16 @@ def solve_jdot_regression(Xs, ys, Xt, base_estimator, alpha=0.5,
         lst_loss_ot.append(loss_ot)
 
         # compute the transported labels
-        yth = nt * ys.dot(T)
+        yth = nt * ys.T.dot(T)
 
         # fit the estimator
         estimator.fit(Xt, yth, **kwargs)
         y_pred = estimator.predict(Xt)
 
-        Ml = ot.dist(y_pred.reshape(-1, 1), ys.reshape(-1, 1))
+        Ml = ot.dist(ys.reshape(-1, 1), y_pred.reshape(-1, 1))
 
         # compute the loss
-        loss_tgt_labels = np.mean((ys - y_pred)**2)
+        loss_tgt_labels = np.mean((yth - y_pred)**2)
         lst_loss_tgt_labels.append(loss_tgt_labels)
 
         if verbose:
