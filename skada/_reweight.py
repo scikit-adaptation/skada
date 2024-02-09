@@ -16,7 +16,8 @@ from sklearn.utils import check_random_state
 from sklearn.utils.validation import check_is_fitted
 
 from .base import AdaptationOutput, BaseAdapter, clone
-from ._utils import _estimate_covariance, check_X_domain
+from .utils import check_X_domain, source_target_split, extract_source_indices
+from ._utils import _estimate_covariance
 from ._pipeline import make_da_pipeline
 
 
@@ -62,11 +63,12 @@ class ReweightDensityAdapter(BaseAdapter):
             Returns self.
         """
         # xxx(okachaiev): that's the reason we need a way to cache this call
-        X_source, X_target = check_X_domain(
+        X, sample_domain = check_X_domain(
             X,
-            sample_domain,
-            return_joint=False,
+            sample_domain
         )
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+
         self.weight_estimator_source_ = clone(self.weight_estimator)
         self.weight_estimator_target_ = clone(self.weight_estimator)
         self.weight_estimator_source_.fit(X_source)
@@ -94,11 +96,12 @@ class ReweightDensityAdapter(BaseAdapter):
         weights : array-like, shape (n_samples,)
             The weights of the samples.
         """
-        source_idx = check_X_domain(
+        X, sample_domain = check_X_domain(
             X,
-            sample_domain,
-            return_indices=True,
+            sample_domain
         )
+        source_idx = extract_source_indices(sample_domain)
+
         # xxx(okachaiev): move this to API
         if source_idx.sum() > 0:
             source_idx, = np.where(source_idx)
@@ -148,8 +151,6 @@ class GaussianReweightDensityAdapter(BaseAdapter):
 
     Parameters
     ----------
-    base_estimator: sklearn estimator
-        estimator used for fitting and prediction
     reg : 'auto' or float, default="auto"
         The regularization parameter of the covariance estimator.
         Possible values:
@@ -197,11 +198,12 @@ class GaussianReweightDensityAdapter(BaseAdapter):
         self : object
             Returns self.
         """
-        X_source, X_target = check_X_domain(
+        X, sample_domain = check_X_domain(
             X,
-            sample_domain,
-            return_joint=False
+            sample_domain
         )
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+
         self.mean_source_ = X_source.mean(axis=0)
         self.cov_source_ = _estimate_covariance(X_source, shrinkage=self.reg)
         self.mean_target_ = X_target.mean(axis=0)
@@ -230,11 +232,12 @@ class GaussianReweightDensityAdapter(BaseAdapter):
             The weights of the samples.
         """
         check_is_fitted(self)
-        source_idx = check_X_domain(
+        X, sample_domain = check_X_domain(
             X,
-            sample_domain,
-            return_indices=True,
+            sample_domain
         )
+        source_idx = extract_source_indices(sample_domain)
+
         # xxx(okachaiev): move this to API
         if source_idx.sum() > 0:
             source_idx, = np.where(source_idx)
@@ -337,11 +340,12 @@ class DiscriminatorReweightDensityAdapter(BaseAdapter):
         self : object
             Returns self.
         """
-        source_idx = check_X_domain(
+        X, sample_domain = check_X_domain(
             X,
-            sample_domain,
-            return_indices=True
+            sample_domain
         )
+        source_idx = extract_source_indices(sample_domain)
+
         source_idx, = np.where(source_idx)
         self.domain_classifier_ = clone(self.domain_classifier)
         y_domain = np.ones(X.shape[0], dtype=np.int32)
@@ -371,11 +375,12 @@ class DiscriminatorReweightDensityAdapter(BaseAdapter):
             The weights of the samples.
         """
         check_is_fitted(self)
-        source_idx = check_X_domain(
+        X, sample_domain = check_X_domain(
             X,
-            sample_domain,
-            return_indices=True,
+            sample_domain
         )
+        source_idx = extract_source_indices(sample_domain)
+
         # xxx(okachaiev): move this to API
         if source_idx.sum() > 0:
             source_idx, = np.where(source_idx)
@@ -388,7 +393,8 @@ class DiscriminatorReweightDensityAdapter(BaseAdapter):
 
 
 def DiscriminatorReweightDensity(
-    base_estimator=None, domain_classifier=None
+    base_estimator=None,
+    domain_classifier=None
 ):
     """Discriminator re-weighting pipeline adapter and estimator.
 
@@ -505,13 +511,14 @@ class KLIEPAdapter(BaseAdapter):
         self : object
             Returns self.
         """
-        X_source, X_target = check_X_domain(
+        X, sample_domain = check_X_domain(
             X,
             sample_domain,
             allow_multi_source=True,
-            allow_multi_target=True,
-            return_joint=False,
+            allow_multi_target=True
         )
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+
         if isinstance(self.gamma, list):
             self.best_gamma_ = self._likelihood_cross_validation(
                 self.gamma, X_source, X_target
@@ -599,11 +606,12 @@ class KLIEPAdapter(BaseAdapter):
         weights : array-like, shape (n_samples,)
             The weights of the samples.
         """
-        source_idx = check_X_domain(
+        X, sample_domain = check_X_domain(
             X,
-            sample_domain,
-            return_indices=True,
+            sample_domain
         )
+        source_idx = extract_source_indices(sample_domain)
+
         if source_idx.sum() > 0:
             source_idx, = np.where(source_idx)
             A = pairwise_kernels(

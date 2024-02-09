@@ -28,7 +28,9 @@ X, y, sample_domain = make_dataset_from_moons_distribution(
     random_state=RANDOM_SEED
 )
 
-X_source, y_source, X_target, y_target = source_target_split(X, y, sample_domain)
+X_source, X_target, y_source, y_target = source_target_split(
+    X, y, sample_domain=sample_domain
+)
 
 fig, (ax1, ax2) = plt.subplots(1, 2, sharex="row", sharey="row", figsize=(8, 4))
 fig.suptitle('One source and one target', fontsize=14)
@@ -75,8 +77,8 @@ X, y, sample_domain = make_dataset_from_moons_distribution(
     random_state=RANDOM_SEED
 )
 
-X_source, y_source, domain_source, X_target, y_target, domain_target = (
-    source_target_split(X, y, sample_domain, return_domain=True)
+X_source, X_target, y_source, y_target, domain_source, domain_target = (
+    source_target_split(X, y, sample_domain, sample_domain=sample_domain)
 )
 fig, (ax1, ax2) = plt.subplots(1, 2, sharex="row", sharey="row", figsize=(8, 4))
 fig.suptitle('Multi-source and Multi-target', fontsize=14)
