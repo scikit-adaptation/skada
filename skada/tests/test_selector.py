@@ -14,8 +14,6 @@ from skada.utils import extract_source_indices
 from skada._utils import (
     _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
     _DEFAULT_MASKED_TARGET_REGRESSION_LABEL,
-    _DEFAULT_SOURCE_DOMAIN_LABEL,
-    _DEFAULT_TARGET_DOMAIN_LABEL,
 )
 
 import pytest
