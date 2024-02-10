@@ -14,15 +14,8 @@ from sklearn.utils.metadata_routing import get_routing_for_object
 from sklearn.utils.metaestimators import available_if
 from sklearn.utils.validation import check_is_fitted
 
-from skada._utils import (
-    _DEFAULT_SOURCE_DOMAIN_LABEL, _DEFAULT_TARGET_DOMAIN_LABEL,
-    _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
-    )
-from skada._utils import _find_y_type
-
-# xxx(okachaiev): this should be `skada.utils.check_X_y_domain`
-# rather than `skada._utils.check_X_y_domain`
-from .utils import check_X_domain
+from skada.utils import check_X_domain
+from skada._utils import _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL, _find_y_type
 
 
 def _estimator_has(attr):
@@ -68,12 +61,10 @@ class BaseAdapter(BaseEstimator):
         """Transform samples, labels, and weights into the space in which
         the estimator is trained.
         """
-        pass
 
     @abstractmethod
     def fit(self, X, y=None, sample_domain=None, *, sample_weight=None):
         """Fit adaptation parameters"""
-        pass
 
     def fit_transform(self, X, y=None, sample_domain=None, **params):
         """
@@ -150,7 +141,6 @@ class BaseSelector(BaseEstimator):
         The set of available estimators and access to them has to be provided
         by specific implementations.
         """
-        pass
 
     def get_params(self, deep=True):
         """Get parameters for this estimator.
@@ -196,7 +186,9 @@ class BaseSelector(BaseEstimator):
 
     @abstractmethod
     def _route_to_estimator(self, method_name, X, y=None, **params) -> np.ndarray:
-        pass
+        """Abstract method for calling method of a base estimator based on
+        the input and the routing logic associated with domain labels.
+        """
 
     @available_if(_estimator_has('transform'))
     def transform(self, X, **params):
@@ -266,17 +258,10 @@ class Shared(BaseSelector):
 
     def get_estimator(self) -> BaseEstimator:
         """Provides access to the fitted estimator."""
+        check_is_fitted(self)
         return self.base_estimator_
 
     def fit(self, X, y, **params):
-        # xxx(okachaiev): this should be done in the utils helper
-        if 'sample_domain' in params:
-            domains = set(np.unique(params['sample_domain']))
-        else:
-            domains = set([
-                _DEFAULT_SOURCE_DOMAIN_LABEL,
-                _DEFAULT_TARGET_DOMAIN_LABEL
-            ])  # default source and target labels
         # xxx(okachaiev): this code is awkward, and it's duplicated everywhere
         routing = get_routing_for_object(self.base_estimator)
         routed_params = routing.fit._route_params(params=params)
@@ -290,7 +275,6 @@ class Shared(BaseSelector):
         estimator = clone(self.base_estimator)
         estimator.fit(X, y, **routed_params)
         self.base_estimator_ = estimator
-        self.domains_ = domains
         self.routing_ = get_routing_for_object(estimator)
         return self
 
@@ -328,6 +312,7 @@ class PerDomain(BaseSelector):
 
     def get_estimator(self, domain_label: int) -> BaseEstimator:
         """Provides access to the fitted estimator based on the domain label."""
+        check_is_fitted(self)
         return self.estimators_[domain_label]
 
     def fit(self, X, y, **params):
