@@ -50,10 +50,6 @@ def test_base_selector_remove_masked():
 
 @pytest.mark.parametrize('step', [SubspaceAlignmentAdapter(), LogisticRegression()])
 def test_base_selector_remove_masked_transform(step):
-    # Test the remove masked method if the selector
-    # has or has not a transform method
-    # xxx(okachaiev): I'm not sure that the code actually tests that
-
     n_samples = 10
     X, y, sample_domain = make_shifted_datasets(
         n_samples_source=n_samples,

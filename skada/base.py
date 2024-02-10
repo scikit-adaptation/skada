@@ -14,8 +14,8 @@ from sklearn.utils.metadata_routing import get_routing_for_object
 from sklearn.utils.metaestimators import available_if
 from sklearn.utils.validation import check_is_fitted
 
-from .utils import check_X_domain
-from ._utils import _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL, _find_y_type
+from skada.utils import check_X_domain
+from skada._utils import _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL, _find_y_type
 
 
 def _estimator_has(attr):
