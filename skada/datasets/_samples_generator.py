@@ -10,6 +10,7 @@ import numpy as np
 
 from scipy import signal
 from scipy.fftpack import rfft, irfft
+from scipy.stats import multivariate_normal
 
 from sklearn.datasets import make_blobs
 
@@ -37,6 +38,7 @@ def _generate_data_2d_classif(n_samples, rng, label='binary'):
     label : tuple, default='binary'
         If 'binary, return binary class
         If 'multiclass', return multiclass
+        if 'regression', return regression's y-values
     """
     n2 = n_samples
     n1 = n2 * 4
@@ -75,14 +77,20 @@ def _generate_data_2d_classif(n_samples, rng, label='binary'):
     # make labels
     if label == 'binary':
         y = np.concatenate((np.zeros(n1), np.ones(4 * n2)), 0)
+        y = y.astype(int)
     elif label == 'multiclass':
         y = np.zeros(n1)
         for i in range(4):
             y = np.concatenate((y, (i + 1) * np.ones(n2)), 0)
+            y = y.astype(int)
+    elif label == 'regression':
+        # create label y with gaussian distribution
+        normal_rv = multivariate_normal(mu1, Sigma1)
+        y = normal_rv.pdf(x)
     else:
         raise ValueError(f"Invalid label value: {label}. The label should either be "
-                         "'binary' or 'multiclass'")
-    return x, y.astype(int)
+                         "'binary', 'multiclass' or 'regression'")
+    return x, y
 
 
 def _generate_data_2d_classif_subspace(n_samples, rng, label='binary'):
@@ -98,6 +106,7 @@ def _generate_data_2d_classif_subspace(n_samples, rng, label='binary'):
     label : tuple, default='binary'
         If 'binary, return binary class
         If 'multiclass', return multiclass
+        if 'regression', return regression's y-values
     """
     n2 = n_samples
     n1 = n2 * 2
@@ -124,15 +133,29 @@ def _generate_data_2d_classif_subspace(n_samples, rng, label='binary'):
     # make labels
     if label == 'binary':
         y = np.concatenate((np.zeros(n1), np.ones(2 * n2)), 0)
+        y = y.astype(int)
     elif label == 'multiclass':
         y = np.zeros(n1)
-        for i in range(4):
-            y = np.concatenate((y, (i + 1) * np.ones(n2)), 0)
+        k = 4
+        if n1 % k != 0:
+            raise ValueError(f"Invalid value: {n_samples}. This value "
+                             "multiplied by 2 should be a multiple from {k}")
+        for i in range(k):
+            y = np.concatenate((y, (i + 1) * np.ones(n1//k)), 0)
+            y = y.astype(int)
+    elif label == 'regression':
+        # When using the label regressio we use different values for sigma and mu,
+        # to have more interesting plots
+        Sigma1 = np.array([[1, 0], [0, 1]])
+        mu1 = np.array([0, 0])
+
+        # create label y with gaussian distribution
+        normal_rv = multivariate_normal(mu1, Sigma1)
+        y = normal_rv.pdf(x)
     else:
         raise ValueError(f"Invalid label value: {label}. The label should either be "
-                         "'binary' or 'multiclass'")
-
-    return x, y.astype(int)
+                         "'binary', 'multiclass' or 'regression'")
+    return x, y
 
 
 def _generate_data_from_moons(n_samples, index, rng):
@@ -456,10 +479,10 @@ def make_shifted_datasets(
 
     elif shift == "subspace":
         X_source, y_source = _generate_data_2d_classif_subspace(
-            n_samples_source, rng, "binary"
+            n_samples_source, rng, label
         )
         X_target, y_target = _generate_data_2d_classif_subspace(
-            n_samples_target, rng, "binary"
+            n_samples_target, rng, label
         )
         X_target *= -1
 
