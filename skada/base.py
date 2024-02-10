@@ -239,7 +239,7 @@ class BaseSelector(BaseEstimator):
         if y_type == 'classification':
             unmasked_idx = (y != _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL)
         elif y_type == 'continuous':
-            unmasked_idx = ~np.isfinite(y)
+            unmasked_idx = np.isfinite(y)
 
         X = X[unmasked_idx]
         y = y[unmasked_idx]
