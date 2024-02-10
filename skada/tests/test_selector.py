@@ -19,6 +19,29 @@ from skada._utils import (
 import pytest
 
 
+def test_base_selector_estimator_fetcher():
+    n_samples = 10
+    X, y, sample_domain = make_shifted_datasets(
+        n_samples_source=n_samples,
+        n_samples_target=n_samples,
+        shift='concept_drift',
+        noise=0.1,
+        random_state=42,
+    )
+
+    lr = LogisticRegression()
+    pipe = make_da_pipeline(lr)
+    selector = pipe[0]
+
+    # before fitting, raises
+    with pytest.raises(ValueError):
+        selector.get_estimator()
+
+    # after fitting, gives fitted estimator
+    pipe.fit(X, y, sample_domain=sample_domain)
+    assert isinstance(selector.get_estimator(), LogisticRegression)
+
+
 def test_base_selector_remove_masked():
     n_samples = 10
     X, y, sample_domain = make_shifted_datasets(

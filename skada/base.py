@@ -61,12 +61,10 @@ class BaseAdapter(BaseEstimator):
         """Transform samples, labels, and weights into the space in which
         the estimator is trained.
         """
-        pass
 
     @abstractmethod
     def fit(self, X, y=None, sample_domain=None, *, sample_weight=None):
         """Fit adaptation parameters"""
-        pass
 
     def fit_transform(self, X, y=None, sample_domain=None, **params):
         """
@@ -143,7 +141,6 @@ class BaseSelector(BaseEstimator):
         The set of available estimators and access to them has to be provided
         by specific implementations.
         """
-        pass
 
     def get_params(self, deep=True):
         """Get parameters for this estimator.
@@ -189,7 +186,9 @@ class BaseSelector(BaseEstimator):
 
     @abstractmethod
     def _route_to_estimator(self, method_name, X, y=None, **params) -> np.ndarray:
-        pass
+        """Abstract method for calling method of a base estimator based on
+        the input and the routing logic associated with domain labels.
+        """
 
     @available_if(_estimator_has('transform'))
     def transform(self, X, **params):
@@ -259,6 +258,7 @@ class Shared(BaseSelector):
 
     def get_estimator(self) -> BaseEstimator:
         """Provides access to the fitted estimator."""
+        check_is_fitted(self)
         return self.base_estimator_
 
     def fit(self, X, y, **params):
@@ -312,6 +312,7 @@ class PerDomain(BaseSelector):
 
     def get_estimator(self, domain_label: int) -> BaseEstimator:
         """Provides access to the fitted estimator based on the domain label."""
+        check_is_fitted(self)
         return self.estimators_[domain_label]
 
     def fit(self, X, y, **params):
