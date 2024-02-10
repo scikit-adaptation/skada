@@ -269,14 +269,6 @@ class Shared(BaseSelector):
         return self.base_estimator_
 
     def fit(self, X, y, **params):
-        # xxx(okachaiev): this should be done in the utils helper
-        if 'sample_domain' in params:
-            domains = set(np.unique(params['sample_domain']))
-        else:
-            domains = set([
-                _DEFAULT_SOURCE_DOMAIN_LABEL,
-                _DEFAULT_TARGET_DOMAIN_LABEL
-            ])  # default source and target labels
         # xxx(okachaiev): this code is awkward, and it's duplicated everywhere
         routing = get_routing_for_object(self.base_estimator)
         routed_params = routing.fit._route_params(params=params)
@@ -290,7 +282,6 @@ class Shared(BaseSelector):
         estimator = clone(self.base_estimator)
         estimator.fit(X, y, **routed_params)
         self.base_estimator_ = estimator
-        self.domains_ = domains
         self.routing_ = get_routing_for_object(estimator)
         return self
 

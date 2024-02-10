@@ -96,38 +96,3 @@ def test_base_selector_remove_masked_continuous():
     n_target_samples = X.shape[0] - np.sum(source_idx)
     assert X_output.shape[0] == n_target_samples, "X output shape mismatch"
     assert X_output.shape[0] == y_output.shape[0]
-
-
-def test_base_selector_domains():
-    n_samples = 10
-    X, y, sample_domain = make_shifted_datasets(
-        n_samples_source=n_samples,
-        n_samples_target=n_samples,
-        shift='concept_drift',
-        noise=0.1,
-        random_state=42,
-    )
-
-    pipe = make_da_pipeline(
-        LogisticRegression(),
-    )
-
-    pipe.fit(X, y)
-
-    assert (pipe['logisticregression'].domains_ ==
-            set([
-                _DEFAULT_SOURCE_DOMAIN_LABEL,
-                _DEFAULT_TARGET_DOMAIN_LABEL
-            ])
-            )
-
-    # Create a new pipe to test with the sample_domain argument
-    pipe = make_da_pipeline(
-        LogisticRegression(),
-    )
-
-    pipe.fit(X, y, sample_domain=sample_domain)
-
-    assert (pipe['logisticregression'].domains_ ==
-            set(np.unique(sample_domain))
-            )
