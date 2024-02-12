@@ -80,7 +80,7 @@ __all__ = [
     "TransferComponentAnalysisAdapter",
     "TransferComponentAnalysis",
 
-    "DASVMEstimator"
+    "DASVMEstimator",
 
     "make_da_pipeline",
 
