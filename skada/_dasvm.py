@@ -28,38 +28,27 @@ class DASVMEstimator(BaseAdapter):
         self.Stop = Stop
         self.k = k
 
-    def _find_points_next_step(self, I_list, d, c):
+    def _find_points_next_step(self, I_list, d):
         """
         This function allow us to find the next points to add/discard
         """
-        I = np.array([], dtype=int)
         # We should take k points for each of the c classes,
         # depending on the values of d
-        for j in range(min(self.k, math.ceil(d.shape[0]/c))):
-            mask = np.ones(d.shape[0], dtype=bool)
-            mask[I] = False
-            I_ = np.unique(np.argmax(d[mask], axis=0))
+        for j in range(min(self.k, math.ceil(sum(~I_list)/self.c))):
+            I = np.unique(np.argmax(d[~I_list], axis=0))
             # We need to get all those indices to be take into account
             # the fact that the some previous points weren't in the list
+            for l in range(len(I_list)):
+                if I_list[l]:
+                    I[I >= l] += 1
+
+            # We finally only need to change the list
             for l in I:
-                I_[I_ >= l] += 1
-            I = np.concatenate((I, I_))
-            I = np.sort(I)
-            # we sort I as it is an assumption for I
-            # to be sorted for the previous algorithm
+                if I_list[l]:
+                    raise ValueError(f"problem here: {l}")
+                I_list[l] = True
 
-        # Again we need to get all those indices to be take into account the
-        # fact that the some previous points weren't in the list
-        for l in range(len(I_list)):
-            if I_list[l]:
-                I[I >= l] += 1
-
-        for l in I:
-            if I_list[l]:
-                raise ValueError(f"problem here: {l}")
-            I_list[l] = True
-
-        # it is an inplace method, but it is more understandable when
+        # it is an inplace method, but it is more understandable when 
         # returning the list
         return I_list
 
@@ -69,6 +58,15 @@ class DASVMEstimator(BaseAdapter):
         X = np.concatenate((Xs[mask], Xt[Index_target_added]))
         y = np.concatenate((ys[mask], new_estimator.predict(Xt[Index_target_added])))
         return X, y
+
+    def get_decision(self, new_estimator, X, I_list):
+        # We look at the points that have either not been discarded or not been added
+        decisions = np.ones(X.shape[0])
+        if sum(~I_list)>0:
+            decisions[~I_list] = new_estimator.predict(X[~I_list])
+            if self.c == 2:
+                decisions = np.array([-decisions, decisions]).T
+        return decisions
 
     def fit(self, X, y=None, sample_domain=None):
         """Fit adaptation parameters.
@@ -94,7 +92,7 @@ class DASVMEstimator(BaseAdapter):
 
         n = Xs.shape[0]
         m = Xt.shape[0]
-        c = np.unique(ys).shape[0]  # number of classes
+        self.c = np.unique(ys).shape[0]  # number of classes
 
         # This is the list of the indices from the
         # points from Xs that have been discarded
@@ -113,23 +111,23 @@ class DASVMEstimator(BaseAdapter):
         # the labaled data that we discard and the semi-labeled points that we will add
 
         # look at those that have not been discarded
-        decisions_s = new_estimator.decision_function(X[~Index_source_deleted])
-        if c == 2:
+        decisions_s = new_estimator.decision_function(Xs)
+        if self.c == 2:
             decisions_s = np.array([-decisions_s, decisions_s]).T
         # look at those that haven't been added
-        decisions_ta = new_estimator.decision_function(Xt[~Index_target_added])
-        if c == 2:
+        decisions_ta = new_estimator.decision_function(Xt)
+        if self.c == 2:
             decisions_ta = np.array([-decisions_ta, decisions_ta]).T
 
         # We want to take values that are unsure, meaning we want those that have
         # values the closest that we can to c-1 (to 0 when label='binary')
-        decisions_ta = -np.abs(decisions_ta-c-1)
+        decisions_ta = -np.abs(decisions_ta-self.c-1)
 
 
         # doing the selection on the labeled data
-        Index_source_deleted = self._find_points_next_step(Index_source_deleted, decisions_s, c)
+        Index_source_deleted = self._find_points_next_step(Index_source_deleted, decisions_s)
         # doing the selection on the semi-labeled data
-        Index_target_added = self._find_points_next_step(Index_target_added, decisions_ta, c)
+        Index_target_added = self._find_points_next_step(Index_target_added, decisions_ta)
 
         i = 0
         while (sum(Index_target_added) < m or sum(Index_source_deleted) < n) and i < self.Stop:
@@ -150,27 +148,19 @@ class DASVMEstimator(BaseAdapter):
                         Index_target_added[j] = False
 
             # look at those that have not been discarded
-            X_ = Xs[~Index_source_deleted]
-            decisions_s = (
-                new_estimator.decision_function(X_) if X_.shape[0] else X_)
-            if c == 2:
-                decisions_s = np.array([-decisions_s, decisions_s]).T
+            decisions_s = self.get_decision(new_estimator, Xs, Index_source_deleted)
             # look at those that haven't been added
-            X_ = Xt[~Index_target_added]
-            decisions_ta = (
-                new_estimator.decision_function(X_) if X_.shape[0] else X_)
-            if c == 2:
-                decisions_ta = np.array([-decisions_ta, decisions_ta]).T
+            decisions_ta = self.get_decision(new_estimator, Xt, Index_target_added)
 
             # We want to take values the estimator is unsure about, meaning that we
             # want those that have values the closest that we can to c-1
             # (to 0 when label='binary', or 4 when is its 'multiclass')
-            decisions_ta = -np.abs(decisions_ta-c-1)
+            decisions_ta = -np.abs(decisions_ta-self.c-1)
 
             # doing the selection on the labeled data
-            self._find_points_next_step(Index_source_deleted, decisions_s, c)
+            self._find_points_next_step(Index_source_deleted, decisions_s)
             # doing the selection on the semi-labeled data
-            self._find_points_next_step(Index_target_added, decisions_ta, c)
+            self._find_points_next_step(Index_target_added, decisions_ta)
 
         old_estimator = new_estimator
         # On last fit only on semi-labeled data
