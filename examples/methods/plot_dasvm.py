@@ -55,7 +55,9 @@ axis[1].scatter(Xt[:, 0], Xt[:, 1], c=yt)
 axis[1].set_xlim(xlim)
 axis[1].set_ylim(ylim)
 
-E = DASVMEstimator(base_estimator=clone(base_estimator), k=3).fit(X, y, sample_domain=sample_domain)
+E = DASVMEstimator(
+    base_estimator=clone(base_estimator), k=3).fit(
+    X, y, sample_domain=sample_domain)
 
 
 figure, axis = plt.subplots(1, 2)

@@ -4,17 +4,21 @@
 import numpy as np
 import math
 
-from skada.base import BaseEstimator, BaseAdapter
+from skada.base import BaseEstimator
 from skada.utils import check_X_y_domain, source_target_split
 from sklearn.base import clone
 
 from sklearn.svm import SVC
 
 
-class DASVMEstimator(BaseAdapter):
+class DASVMEstimator(BaseEstimator):
     """
     Simple dasvm estimator
     """
+
+    __metadata_request__fit = {'sample_domain': True}
+    __metadata_request__transform = {'sample_domain': True, 'allow_source': True}
+
     def __init__(
             self, base_estimator=None,
             k=3, Stop=1_000, **kwargs
@@ -181,15 +185,6 @@ class DASVMEstimator(BaseAdapter):
         # or the list Index_target_added and Index_source_deleted (this making
         # them being an object attribute)
         return self
-
-    def adapt(self, X, y=None, sample_domain=None):
-        """
-        I was thinking of returning Xt and \\hat{y}t
-        """
-        _, Xt, _, _ = source_target_split(
-            X, y, sample_domain=sample_domain
-        )
-        return Xt, self.base_estimator_.predict(Xt)
 
     def get_estimator(self, *params) -> BaseEstimator:
         """Returns estimator associated with `params`.

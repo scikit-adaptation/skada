@@ -34,14 +34,6 @@ def test_dasvm_estimator(label, n, m):
     assert clf_dsvm.get_estimator().n_features_in_ == 2, (
         "Obtained estimator take the wrong number of features"
         )
-    Xt_, yt_ = clf_dsvm.adapt(X, y, sample_domain)
-    assert Xt_.shape == Xt.shape, (
-        "Wrong shape of the target features when using `adapt` method"
-        )
-    assert yt_.shape == yt.shape, (
-        "Wrong shape of the target y-values (labels) when using `adapt` method"
-        )
-
     assert clf_dsvm.predict(X).shape == y.shape, (
             "Wrong shape of the predicted y-values (labels) when using `predict` method"
             )

@@ -44,6 +44,7 @@ API and modules
    ClassRegularizerOTMapping
    LinearOTMapping
    CORAL
+   DASVMEstimator
    make_da_pipeline
 
 
