@@ -21,7 +21,7 @@ class DASVMEstimator(BaseAdapter):
             ):
 
         super().__init__()
-        if base_estimator == None:
+        if base_estimator is None:
             self.base_estimator = SVC(gamma='auto')
         else:
             self.base_estimator = base_estimator
@@ -48,11 +48,13 @@ class DASVMEstimator(BaseAdapter):
                     raise ValueError(f"problem here: {l}")
                 I_list[l] = True
 
-        # it is an inplace method, but it is more understandable when 
+        # it is an inplace method, but it is more understandable when
         # returning the list
         return I_list
 
-    def _get_X_y(self, new_estimator, Index_target_added, Index_source_deleted, Xs, Xt, ys):
+    def _get_X_y(
+            self, new_estimator, Index_target_added, Index_source_deleted, Xs, Xt, ys
+            ):
         mask = np.ones(Xs.shape[0], dtype=bool)
         mask[Index_source_deleted] = False
         X = np.concatenate((Xs[mask], Xt[Index_target_added]))
@@ -62,7 +64,7 @@ class DASVMEstimator(BaseAdapter):
     def get_decision(self, new_estimator, X, I_list):
         # We look at the points that have either not been discarded or not been added
         decisions = np.ones(X.shape[0])
-        if sum(~I_list)>0:
+        if sum(~I_list) > 0:
             decisions[~I_list] = new_estimator.predict(X[~I_list])
             if self.c == 2:
                 decisions = np.array([-decisions, decisions]).T
@@ -123,17 +125,21 @@ class DASVMEstimator(BaseAdapter):
         # values the closest that we can to c-1 (to 0 when label='binary')
         decisions_ta = -np.abs(decisions_ta-self.c-1)
 
-
         # doing the selection on the labeled data
-        Index_source_deleted = self._find_points_next_step(Index_source_deleted, decisions_s)
+        Index_source_deleted = self._find_points_next_step(
+            Index_source_deleted, decisions_s)
         # doing the selection on the semi-labeled data
-        Index_target_added = self._find_points_next_step(Index_target_added, decisions_ta)
+        Index_target_added = self._find_points_next_step(
+            Index_target_added, decisions_ta)
 
         i = 0
-        while (sum(Index_target_added) < m or sum(Index_source_deleted) < n) and i < self.Stop:
+        while (
+                sum(Index_target_added) < m or sum(Index_source_deleted) < n
+                ) and i < self.Stop:
             i += 1
             old_estimator = new_estimator
-            X, y = self._get_X_y(new_estimator, Index_target_added, Index_source_deleted, Xs, Xt, ys)
+            X, y = self._get_X_y(
+                new_estimator, Index_target_added, Index_source_deleted, Xs, Xt, ys)
 
             new_estimator = clone(self.base_estimator)
             new_estimator.fit(X, y)
@@ -172,7 +178,8 @@ class DASVMEstimator(BaseAdapter):
         self.base_estimator_ = new_estimator
 
         # it could be interesting to return multiple estimators,
-        # or the list Index_target_added and Index_source_deleted (this making them being an object attribute)
+        # or the list Index_target_added and Index_source_deleted (this making
+        # them being an object attribute)
         return self
 
     def adapt(self, X, y=None, sample_domain=None):
