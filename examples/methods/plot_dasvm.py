@@ -63,7 +63,7 @@ E = make_da_pipeline(StandardScaler(), DASVMEstimator(k=5)).fit(
 figure, axis = plt.subplots(1, 2)
 a = []
 for i in [0, -1]:
-    e = (SVC(gamma='auto').fit(Xs, ys) if i == 0 else E)
+    e = (base_estimator.fit(Xs, ys) if i == 0 else E)
     x_points = np.linspace(xlim[0], xlim[1], 200)
     y_points = np.linspace(ylim[0], ylim[1], 200)
     # Plotting a red hyperplane
