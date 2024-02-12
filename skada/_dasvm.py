@@ -60,6 +60,13 @@ class DASVMEstimator(BaseAdapter):
                 raise ValueError(f"problem here: {l}")
             I_list[-1][l] = True
 
+    def _get_X_y(self, Index_target_added, Index_source_deleted, Xs, Xt, ys):
+        mask = np.ones(Xs.shape[0], dtype=bool)
+        mask[Index_source_deleted[-1]] = False
+        X = np.concatenate((Xs[mask], Xt[Index_target_added[-1]]))
+        y = np.concatenate((ys[mask], self.Estimators[-1].predict(Xt[Index_target_added[-1]])))
+        return X, y
+
     def fit(self, X, y=None, sample_domain=None):
         """Fit adaptation parameters.
 
@@ -88,26 +95,26 @@ class DASVMEstimator(BaseAdapter):
 
         # This is the list of the indices from the
         # points from Xs that have been discarded
-        Id = [np.array([False]*n)]
+        Index_source_deleted = [np.array([False]*n)]
         # This is the list of the indices from the
         # points from Xt that have been added
-        Ia = [np.array([False]*m)]
+        SVC(gamma='auto') = [np.array([False]*m)]
 
         # In the first step, the SVC is fitted on the source
         X = Xs
         y = ys
-        self.Estimators = [self.base_estimator]
-        self.Estimators[-1].fit(X, y)
+        new_estimator = self.base_estimator
+        new_estimator.fit(X, y)
 
         # We need to look at the decision function to select
         # the labaled data that we discard and the semi-labeled points that we will add
 
         # look at those that have not been discarded
-        decisions_s = self.Estimators[-1].decision_function(X[~Id[-1]])
+        decisions_s = new_estimator.decision_function(X[~Index_source_deleted[-1]])
         if c == 2:
             decisions_s = np.array([-decisions_s, decisions_s]).T
         # look at those that haven't been added
-        decisions_ta = self.Estimators[-1].decision_function(Xt[~Ia[-1]])
+        decisions_ta = new_estimator.decision_function(Xt[~Index_target_added[-1]])
         if c == 2:
             decisions_ta = np.array([-decisions_ta, decisions_ta]).T
 
@@ -116,37 +123,38 @@ class DASVMEstimator(BaseAdapter):
         decisions_ta = -np.abs(decisions_ta-c-1)
 
         # doing the selection on the labeled data
-        self._find_points_next_step(Id, decisions_s, c)
+        self._find_points_next_step(Index_source_deleted, decisions_s, c)
         # doing the selection on the semi-labeled data
-        self._find_points_next_step(Ia, decisions_ta, c)
+        self._find_points_next_step(Index_target_added, decisions_ta, c)
 
         i = 0
-        while (sum(Ia[-1]) < m or sum(Id[-1]) < n) and i < self.Stop:
+        while (sum(Index_target_added[-1]) < m or sum(Index_source_deleted[-1]) < n) and i < self.Stop:
             i += 1
-            X, y = self._get_X_y(Ia, Id, Xs, Xt, ys)
+            old_estimator = new_estimator
+            X, y = self._get_X_y(Index_target_added, Index_source_deleted, Xs, Xt, ys)
 
-            self.Estimators.append(clone(self.base_estimator))
-            self.Estimators[-1].fit(X, y)
+            new_estimator = clone(self.base_estimator)
+            new_estimator.fit(X, y)
 
-            for j in range(len(Ia[-1])):
-                if Ia[-1][j]:
+            for j in range(len(Index_target_added[-1])):
+                if Index_target_added[-1][j]:
                     x = Xt[j]
-                    if self.Estimators[-1].predict(
-                            [x]) != self.Estimators[-2].predict([x]):
-                        if not Ia[-1][j]:
+                    if new_estimator.predict(
+                            [x]) != old_estimator.predict([x]):
+                        if not Index_target_added[-1][j]:
                             raise ValueError("There is a problem here...")
-                        Ia[-1][j] = False
+                        Index_target_added[-1][j] = False
 
             # look at those that have not been discarded
-            X_ = Xs[~Id[-1]]
+            X_ = Xs[~Index_source_deleted[-1]]
             decisions_s = (
-                self.Estimators[-1].decision_function(X_) if X_.shape[0] else X_)
+                new_estimator.decision_function(X_) if X_.shape[0] else X_)
             if c == 2:
                 decisions_s = np.array([-decisions_s, decisions_s]).T
             # look at those that haven't been added
-            X_ = Xt[~Ia[-1]]
+            X_ = Xt[~Index_target_added[-1]]
             decisions_ta = (
-                self.Estimators[-1].decision_function(X_) if X_.shape[0] else X_)
+                new_estimator.decision_function(X_) if X_.shape[0] else X_)
             if c == 2:
                 decisions_ta = np.array([-decisions_ta, decisions_ta]).T
 
@@ -156,28 +164,22 @@ class DASVMEstimator(BaseAdapter):
             decisions_ta = -np.abs(decisions_ta-c-1)
 
             # doing the selection on the labeled data
-            self._find_points_next_step(Id, decisions_s, c)
+            self._find_points_next_step(Index_source_deleted, decisions_s, c)
             # doing the selection on the semi-labeled data
-            self._find_points_next_step(Ia, decisions_ta, c)
+            self._find_points_next_step(Index_target_added, decisions_ta, c)
 
+        old_estimator = new_estimator
         # On last fit only on semi-labeled data
-        X, y = self._get_X_y(Ia, Id, Xs, Xt, ys)
+        X, y = self._get_X_y(Index_target_added, Index_source_deleted, Xs, Xt, ys)
 
-        self.Estimators.append(self.base_estimator)
-        self.Estimators[-1].fit(X, y)
+        new_estimator = clone(self.base_estimator)
+        new_estimator.fit(X, y)
 
-        self.base_estimator_ = self.Estimators[-1]
+        self.base_estimator_ = new_estimator
 
         # it could be interesting to return multiple estimators,
-        # or the list Ia and Id (this making them being an object attribute)
+        # or the list Index_target_added and Index_source_deleted (this making them being an object attribute)
         return self
-
-    def _get_X_y(self, Ia, Id, Xs, Xt, ys):
-        mask = np.ones(Xs.shape[0], dtype=bool)
-        mask[Id[-1]] = False
-        X = np.concatenate((Xs[mask], Xt[Ia[-1]]))
-        y = np.concatenate((ys[mask], self.Estimators[-1].predict(Xt[Ia[-1]])))
-        return X, y
 
     def adapt(self, X, y=None, sample_domain=None):
         """
