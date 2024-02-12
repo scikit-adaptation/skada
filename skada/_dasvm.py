@@ -6,6 +6,7 @@ import math
 
 from skada.base import BaseEstimator, BaseAdapter
 from skada.utils import check_X_y_domain, source_target_split
+from sklearn.base import clone
 
 from sklearn.svm import SVC
 
@@ -92,18 +93,18 @@ class DASVMEstimator(BaseAdapter):
         # In the first step, the SVC is fitted on the source
         X = Xs
         y = ys
-        Estimators = [self.base_estimator]
-        Estimators[-1].fit(X, y)
+        self.Estimators = [self.base_estimator]
+        self.Estimators[-1].fit(X, y)
 
-        # We need to look at the decision function for to select
+        # We need to look at the decision function to select
         # the labaled data that we discard and the semi-labeled points that we will add
 
         # look at those that have not been discarded
-        decisions_s = Estimators[-1].decision_function(X[~Id[-1]])
+        decisions_s = self.Estimators[-1].decision_function(X[~Id[-1]])
         if c == 2:
             decisions_s = np.array([-decisions_s, decisions_s]).T
         # look at those that haven't been added
-        decisions_ta = Estimators[-1].decision_function(Xt[~Ia[-1]])
+        decisions_ta = self.Estimators[-1].decision_function(Xt[~Ia[-1]])
         if c == 2:
             decisions_ta = np.array([-decisions_ta, decisions_ta]).T
 
@@ -119,30 +120,30 @@ class DASVMEstimator(BaseAdapter):
         i = 0
         while (sum(Ia[-1]) < m or sum(Id[-1]) < n) and i < self.Stop:
             i += 1
-            mask = np.ones(Xs.shape[0], dtype=bool)
-            mask[Id[-1]] = False
-            X = np.concatenate((Xs[mask], Xt[Ia[-1]]))
-            y = np.concatenate((ys[mask], Estimators[-1].predict(Xt[Ia[-1]])))
+            X, y = self._get_X_y(Ia, Id, Xs, Xt, ys)
 
-            Estimators.append(self.base_estimator)
-            Estimators[-1].fit(X, y)
+            self.Estimators.append(clone(self.base_estimator))
+            self.Estimators[-1].fit(X, y)
 
             for j in range(len(Ia[-1])):
                 if Ia[-1][j]:
                     x = Xt[j]
-                    if Estimators[-1].predict([x]) != Estimators[-2].predict([x]):
+                    if self.Estimators[-1].predict(
+                            [x]) != self.Estimators[-2].predict([x]):
                         if not Ia[-1][j]:
                             raise ValueError("There is a problem here...")
                         Ia[-1][j] = False
 
             # look at those that have not been discarded
             X_ = Xs[~Id[-1]]
-            decisions_s = (Estimators[-1].decision_function(X_) if X_.shape[0] else X_)
+            decisions_s = (
+                self.Estimators[-1].decision_function(X_) if X_.shape[0] else X_)
             if c == 2:
                 decisions_s = np.array([-decisions_s, decisions_s]).T
             # look at those that haven't been added
             X_ = Xt[~Ia[-1]]
-            decisions_ta = (Estimators[-1].decision_function(X_) if X_.shape[0] else X_)
+            decisions_ta = (
+                self.Estimators[-1].decision_function(X_) if X_.shape[0] else X_)
             if c == 2:
                 decisions_ta = np.array([-decisions_ta, decisions_ta]).T
 
@@ -156,22 +157,24 @@ class DASVMEstimator(BaseAdapter):
             # doing the selection on the semi-labeled data
             self._find_points_next_step(Ia, decisions_ta, c)
 
-        # On last fit only on semi-labeled data is looked at
-        mask = np.ones(Xs.shape[0], dtype=bool)
-        mask[Id[-1]] = False
-        X = np.concatenate((Xs[mask], Xt[Ia[-1]]))
-        y = np.concatenate((ys[mask], Estimators[-1].predict(Xt[Ia[-1]])))
+        # On last fit only on semi-labeled data
+        X, y = self._get_X_y(Ia, Id, Xs, Xt, ys)
 
-        Estimators.append(self.base_estimator)
-        Estimators[-1].fit(X, y)
+        self.Estimators.append(self.base_estimator)
+        self.Estimators[-1].fit(X, y)
 
-        self.Estimators = Estimators
-
-        self.base_estimator_ = Estimators[-1]
+        self.base_estimator_ = self.Estimators[-1]
 
         # it could be interesting to return multiple estimators,
         # or the list Ia and Id (this making them being an object attribute)
         return self
+
+    def _get_X_y(self, Ia, Id, Xs, Xt, ys):
+        mask = np.ones(Xs.shape[0], dtype=bool)
+        mask[Id[-1]] = False
+        X = np.concatenate((Xs[mask], Xt[Ia[-1]]))
+        y = np.concatenate((ys[mask], self.Estimators[-1].predict(Xt[Ia[-1]])))
+        return X, y
 
     def adapt(self, X, y=None, sample_domain=None):
         """
