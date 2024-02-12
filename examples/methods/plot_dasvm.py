@@ -20,7 +20,7 @@ from skada.datasets import make_shifted_datasets
 from skada._dasvm import DASVMEstimator
 from skada.utils import check_X_y_domain, source_target_split
 from skada._pipeline import make_da_pipeline
-from sklearn.linear_model import LogisticRegression
+# from sklearn.linear_model import LogisticRegression
 
 from sklearn.svm import SVC
 from sklearn.preprocessing import StandardScaler
@@ -56,8 +56,8 @@ axis[1].scatter(Xt[:, 0], Xt[:, 1], c=yt)
 axis[1].set_xlim(xlim)
 axis[1].set_ylim(ylim)
 
-E = make_da_pipeline(
-    StandardScaler(), DASVMEstimator(k=5)).fit(X, y, sample_domain=sample_domain)
+E = make_da_pipeline(StandardScaler(), DASVMEstimator(k=5)).fit(
+    X, y, sample_domain=sample_domain)
 
 
 figure, axis = plt.subplots(1, 2)

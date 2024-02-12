@@ -2,8 +2,6 @@
 # dasvm implementation
 
 import numpy as np
-from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import StandardScaler
 import math
 
 from skada.base import BaseEstimator, BaseAdapter
@@ -94,7 +92,7 @@ class DASVMEstimator(BaseAdapter):
         # In the first step, the SVC is fitted on the source
         X = Xs
         y = ys
-        Estimators = [make_pipeline(StandardScaler(), self.base_estimator)]
+        Estimators = [self.base_estimator]
         Estimators[-1].fit(X, y)
 
         # We need to look at the decision function for to select
@@ -126,7 +124,7 @@ class DASVMEstimator(BaseAdapter):
             X = np.concatenate((Xs[mask], Xt[Ia[-1]]))
             y = np.concatenate((ys[mask], Estimators[-1].predict(Xt[Ia[-1]])))
 
-            Estimators.append(make_pipeline(StandardScaler(), self.base_estimator))
+            Estimators.append(self.base_estimator)
             Estimators[-1].fit(X, y)
 
             for j in range(len(Ia[-1])):
@@ -164,8 +162,10 @@ class DASVMEstimator(BaseAdapter):
         X = np.concatenate((Xs[mask], Xt[Ia[-1]]))
         y = np.concatenate((ys[mask], Estimators[-1].predict(Xt[Ia[-1]])))
 
-        Estimators.append(make_pipeline(StandardScaler(), SVC(gamma='auto')))
+        Estimators.append(self.base_estimator)
         Estimators[-1].fit(X, y)
+
+        self.Estimators = Estimators
 
         self.base_estimator_ = Estimators[-1]
 
