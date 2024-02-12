@@ -16,12 +16,15 @@ class DASVMEstimator(BaseAdapter):
     Simple dasvm estimator
     """
     def __init__(
-            self, base_estimator: BaseEstimator = SVC(gamma='auto'),
+            self, base_estimator=None,
             k=3, Stop=1_000, **kwargs
             ):
 
         super().__init__()
-        self.base_estimator = base_estimator
+        if base_estimator = None:
+            self.base_estimator = SVC(gamma='auto')
+        else:
+            self.base_estimator = base_estimator
         self.Stop = Stop
         self.k = k
 
