@@ -1,5 +1,5 @@
 """
-    dasvm
+    plot for the dasvm estimator
 ==========================================
 
 This example illustrates the dsvm method from [1].
