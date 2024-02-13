@@ -356,11 +356,11 @@ class RandomShuffleDomainAwareSplit(BaseDomainAwareShuffleSplit):
     >>> y = np.ones((10, 1))
     >>> sample_domain = np.array([1, -2, 1, -2, 1, -2, 1, -2, 1, -2])
     >>> rsdas = RandomShuffleDomainAwareSplit(
-            n_splits=3,
-            random_state=0,
-            test_size=0.1,
-            under_sampling=0.8
-        )
+    ...     n_splits=3,
+    ...     random_state=0,
+    ...     test_size=0.1,
+    ...     under_sampling=0.8
+    ...     )
     >>> for train_index, test_index in rsdas.split(X, y, sample_domain):
     ...     print("TRAIN:", train_index, "TEST:", test_index)
     TRAIN: [0 2 6 5 3 9] TEST: [4 1]
