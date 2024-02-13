@@ -15,9 +15,6 @@ import pytest
     [("binary", 7, 5), ("binary", 6, 6), ("binary", 5, 7), ("multiclass", 7, 5)],
 )
 def test_dasvm_estimator(label, n, m):
-    """
-    Tests for the dasvm method
-    """
     X, y, sample_domain = make_shifted_datasets(
         n_samples_source=n,
         n_samples_target=m,

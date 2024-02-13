@@ -23,18 +23,7 @@ from sklearn.svm import SVC
 
 
 class DASVMEstimator(BaseEstimator):
-    """
-    Simple dasvm estimator
-    """
-
-    __metadata_request__fit = {'sample_domain': True}
-    __metadata_request__transform = {'sample_domain': True, 'allow_source': True}
-
-    def __init__(
-            self, base_estimator=None,
-            k=3, Stop=1_000, **kwargs
-            ):
-        """Fit adaptation parameters.
+    """ DASVM Estimator:
 
         Parameters
         ----------
@@ -49,6 +38,13 @@ class DASVMEstimator(BaseEstimator):
             The maximal number of iteration of the algorithm when using `fit`
         """
 
+    __metadata_request__fit = {'sample_domain': True}
+    __metadata_request__transform = {'sample_domain': True, 'allow_source': True}
+
+    def __init__(
+            self, base_estimator=None,
+            k=3, Stop=1_000, **kwargs
+            ):
         super().__init__()
         if base_estimator is None:
             self.base_estimator = SVC(gamma='auto')
@@ -89,7 +85,7 @@ class DASVMEstimator(BaseEstimator):
             Xt[index_target_added])))
         return X, y
 
-    def get_decision(self, new_estimator, X, indices_list):
+    def _get_decision(self, new_estimator, X, indices_list):
         # We look at the points that have either not been discarded or not been added
         # We are assuming that the `decision_function` from the base_estimator is:
         # giving c values between -1 and c-1, not having the same
@@ -196,9 +192,9 @@ class DASVMEstimator(BaseEstimator):
                         index_target_added[j] = False
 
             # look at those that have not been discarded
-            decisions_source = self.get_decision(new_estimator, Xs, index_source_deleted)
+            decisions_source = self._get_decision(new_estimator, Xs, index_source_deleted)
             # look at those that haven't been added
-            decisions_target = self.get_decision(new_estimator, Xt, index_target_added)
+            decisions_target = self._get_decision(new_estimator, Xt, index_target_added)
 
             # We want to take values the estimator is unsure about, meaning that we
             # want those that have values the closest that we can to c-1
