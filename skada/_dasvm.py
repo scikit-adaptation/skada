@@ -155,24 +155,24 @@ class DASVMEstimator(BaseEstimator):
         # the labaled data that we discard and the semi-labeled points that we will add
 
         # look at those that have not been discarded
-        decisions_s = new_estimator.decision_function(Xs)
+        decisions_source = new_estimator.decision_function(Xs)
         if self.n_class == 2:
-            decisions_s = np.array([-decisions_s, decisions_s]).T
+            decisions_source = np.array([-decisions_source, decisions_source]).T
         # look at those that haven't been added
-        decisions_ta = new_estimator.decision_function(Xt)
+        decisions_target = new_estimator.decision_function(Xt)
         if self.n_class == 2:
-            decisions_ta = np.array([-decisions_ta, decisions_ta]).T
+            decisions_target = np.array([-decisions_target, decisions_target]).T
 
         # We want to take values that are unsure, meaning we want those that have
         # values the closest that we can to c-1 (to 0 when label='binary')
-        decisions_ta = -np.abs(decisions_ta-self.n_class-1)
+        decisions_target = -np.abs(decisions_target-self.n_class-1)
 
         # doing the selection on the labeled data
         self._find_points_next_step(
-            index_source_deleted, decisions_s)
+            index_source_deleted, decisions_source)
         # doing the selection on the semi-labeled data
         self._find_points_next_step(
-            index_target_added, decisions_ta)
+            index_target_added, decisions_target)
 
         i = 0
         for i in range(1, self.Stop):
@@ -196,19 +196,19 @@ class DASVMEstimator(BaseEstimator):
                         index_target_added[j] = False
 
             # look at those that have not been discarded
-            decisions_s = self.get_decision(new_estimator, Xs, index_source_deleted)
+            decisions_source = self.get_decision(new_estimator, Xs, index_source_deleted)
             # look at those that haven't been added
-            decisions_ta = self.get_decision(new_estimator, Xt, index_target_added)
+            decisions_target = self.get_decision(new_estimator, Xt, index_target_added)
 
             # We want to take values the estimator is unsure about, meaning that we
             # want those that have values the closest that we can to c-1
             # (to 0 when label='binary', or 4 when is its 'multiclass')
-            decisions_ta = -np.abs(decisions_ta-self.n_class-1)
+            decisions_target = -np.abs(decisions_target-self.n_class-1)
 
             # doing the selection on the labeled data
-            self._find_points_next_step(index_source_deleted, decisions_s)
+            self._find_points_next_step(index_source_deleted, decisions_source)
             # doing the selection on the semi-labeled data
-            self._find_points_next_step(index_target_added, decisions_ta)
+            self._find_points_next_step(index_target_added, decisions_target)
 
         old_estimator = new_estimator
         # On last fit only on semi-labeled data
