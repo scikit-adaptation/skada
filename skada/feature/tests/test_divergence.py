@@ -3,9 +3,6 @@
 # License: BSD 3-Clause
 
 import numpy as np
-import torch
-
-import pytest
 
 from skada.feature import DeepCoral
 from skada.feature._modules import ToyModule
