@@ -180,8 +180,7 @@ class DASVMEstimator(BaseEstimator):
                     x = Xt[j]
                     if new_estimator.predict(
                             [x]) != old_estimator.predict([x]):
-                        if not Index_target_added[j]:
-                            raise ValueError("There is a problem here...")
+                        # Index_target_added[j] should be True
                         Index_target_added[j] = False
 
             # look at those that have not been discarded
