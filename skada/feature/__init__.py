@@ -16,9 +16,9 @@ except ImportError as e:
 
 from ._losses import dan_loss, deepcoral_loss, deepjdot_loss
 from ._divergence import DeepCoral, DeepCoralLoss
-# from ._optimal_transport import DeepJDOT
-# from ._adversarial import DANN, CDAN
-from ._modules import ToyModule, ToyCNN
+from ._optimal_transport import DeepJDOT
+from ._adversarial import DANN, CDAN
+from ._modules import ToyModule, ToyCNN, DomainClassifier
 
 __all__ = [
     'dan_loss',
@@ -31,4 +31,5 @@ __all__ = [
     'CDAN',
     'ToyModule',
     'ToyCNN',
+    'DomainClassifier',
 ]
