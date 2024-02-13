@@ -13,11 +13,11 @@ from .base import BaseAdapter, clone
 from .utils import (
     check_X_domain,
     check_X_y_domain,
-    source_target_split,
-    source_target_merge
+    source_target_split
 )
 from ._utils import (
-    _estimate_covariance
+    _estimate_covariance,
+    _merge_source_target,
 )
 
 from ._pipeline import make_da_pipeline
@@ -90,7 +90,7 @@ class BaseOTMappingAdapter(BaseAdapter):
         # thus there's no need to perform any transformations
         if X_source.shape[0] > 0:
             X_source = self.ot_transport_.transform(Xs=X_source)
-        X_adapt = source_target_merge(X_source, X_target, sample_domain)
+        X_adapt = _merge_source_target(X_source, X_target, sample_domain)
         return X_adapt
 
     @abstractmethod
@@ -648,7 +648,7 @@ class CORALAdapter(BaseAdapter):
 
         X_source_adapt = np.dot(X_source, self.cov_source_inv_sqrt_)
         X_source_adapt = np.dot(X_source_adapt, self.cov_target_sqrt_)
-        X_adapt = source_target_merge(X_source_adapt, X_target, sample_domain)
+        X_adapt = _merge_source_target(X_source_adapt, X_target, sample_domain)
         return X_adapt
 
 
