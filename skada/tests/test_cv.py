@@ -1,6 +1,7 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Remi Flamary <remi.flamary@polytechnique.edu>
 #         Oleksii Kachaiev <kachayev@gmail.com>
+#         Yanis Lalou <yanis.lalou@polytechnique.edu>
 #
 # License: BSD 3-Clause
 
@@ -16,7 +17,11 @@ from sklearn.model_selection import (
 
 from skada import SubspaceAlignmentAdapter, make_da_pipeline
 from skada.metrics import PredictionEntropyScorer
-from skada.model_selection import LeaveOneDomainOut, SourceTargetShuffleSplit
+from skada.model_selection import (
+    LeaveOneDomainOut,
+    SourceTargetShuffleSplit,
+    RandomShuffleDomainAwareSplit
+)
 
 import pytest
 
@@ -93,6 +98,34 @@ def test_leave_one_domain_out(da_dataset, max_n_splits, n_splits):
     )
     pipe.fit(X, y, sample_domain=sample_domain)
     cv = LeaveOneDomainOut(max_n_splits=max_n_splits, test_size=0.3, random_state=0)
+    scores = cross_validate(
+        pipe,
+        X,
+        y,
+        cv=cv,
+        params={'sample_domain': sample_domain},
+        scoring=PredictionEntropyScorer(),
+    )['test_score']
+    assert scores.shape[0] == n_splits, "evaluate all splits"
+    assert np.all(~np.isnan(scores)), "at least some scores are computed"
+
+
+@pytest.mark.parametrize(
+    'n_splits, under_sampling',
+    [(2, 0.2), (2, 0.8)]
+)
+def test_random_shuffle_domain_aware_split(da_dataset, n_splits, under_sampling):
+    X, y, sample_domain = da_dataset.pack_train(
+        as_sources=['s', 's2'],
+        as_targets=['t', 't2']
+    )
+    pipe = make_da_pipeline(
+        SubspaceAlignmentAdapter(n_components=2),
+        LogisticRegression(),
+    )
+    cv = RandomShuffleDomainAwareSplit(
+        n_splits=n_splits, test_size=0.3, random_state=0, under_sampling=under_sampling
+    )
     scores = cross_validate(
         pipe,
         X,
