@@ -20,9 +20,9 @@ X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
 
 # %%
 # create skorch model
-net = DeepCoral(ToyModule(), reg=1, layer_name="dropout", batch_size=10, train_split=None)
-net = DeepJDOT(ToyModule(), layer_name="dropout", batch_size=10, train_split=None)
-# net = DANN(ToyModule(), layer_name="dropout", batch_size=10, train_split=None)
+net = DeepCoral(
+    ToyModule(), reg=1, layer_name="dropout", batch_size=10, train_split=None
+)
 # %%
 # create a dict of X and sample_domain
 X_dict = {"X": X.astype(np.float32), "sample_domain": sample_domain}
@@ -54,5 +54,3 @@ dataset = make_shifted_datasets(
     random_state=42,
     return_dataset=True,
 )
-
-# %%
