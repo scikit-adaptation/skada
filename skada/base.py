@@ -14,10 +14,15 @@ from sklearn.utils.metadata_routing import get_routing_for_object
 from sklearn.utils.metaestimators import available_if
 from sklearn.utils.validation import check_is_fitted
 
+from skada._utils import (
+    _DEFAULT_SOURCE_DOMAIN_LABEL, _DEFAULT_TARGET_DOMAIN_LABEL,
+    _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
+    )
+from skada._utils import _find_y_type
 
 # xxx(okachaiev): this should be `skada.utils.check_X_y_domain`
 # rather than `skada._utils.check_X_y_domain`
-from ._utils import check_X_domain
+from .utils import check_X_domain
 
 
 def _estimator_has(attr):
@@ -71,6 +76,15 @@ class BaseAdapter(BaseEstimator):
         pass
 
     def fit_transform(self, X, y=None, sample_domain=None, **params):
+        """
+        Fit to data, then transform it.
+        In this case, the fitting and the transformation are performed on
+        the target and source domains by default (allow_source=True).
+
+        It should be used only for fitting the estimator, and not for
+        generating the adaptation output.
+        For the latter, use the `transform` method.
+        """
         self.fit(X, y=y, sample_domain=sample_domain, **params)
         # assume 'fit_transform' is called to fit the estimator,
         # thus we allow for the source domain to be adapted
@@ -218,21 +232,30 @@ class BaseSelector(BaseEstimator):
         """Internal API for removing masked samples before passing them
         to the final estimator. Only applicable for the final estimator
         within the Pipeline.
+        Exception: if the final estimator has a transform method, we don't
+        need to do anything.
         """
-        if not self._is_final:
+        # If the estimator is not final, we don't need to do anything
+        # If the estimator has a transform method, we don't need to do anything
+        if not self._is_final or hasattr(self, 'transform'):
             return X, y, routed_params
+
         # in case the estimator is marked as final in the pipeline,
         # the selector is responsible for removing masked labels
         # from the targets
-        if y.dtype in (np.float32, np.float64):
+        y_type = _find_y_type(y)
+        if y_type == 'classification':
+            unmasked_idx = (y != _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL)
+        elif y_type == 'continuous':
             unmasked_idx = ~np.isfinite(y)
-        else:
-            unmasked_idx = (y != -1)
+
         X = X[unmasked_idx]
         y = y[unmasked_idx]
         routed_params = {
             # this is somewhat crude way to test is `v` is indexable
-            k: v[unmasked_idx] if hasattr(v, "__len__") else v
+            k: v[unmasked_idx] if (
+                hasattr(v, "__len__") and len(v) > len(unmasked_idx)
+                ) else v
             for k, v
             in routed_params.items()
         }
@@ -250,7 +273,10 @@ class Shared(BaseSelector):
         if 'sample_domain' in params:
             domains = set(np.unique(params['sample_domain']))
         else:
-            domains = set([1, -2])  # default source and target labels
+            domains = set([
+                _DEFAULT_SOURCE_DOMAIN_LABEL,
+                _DEFAULT_TARGET_DOMAIN_LABEL
+            ])  # default source and target labels
         # xxx(okachaiev): this code is awkward, and it's duplicated everywhere
         routing = get_routing_for_object(self.base_estimator)
         routed_params = routing.fit._route_params(params=params)

@@ -16,7 +16,7 @@ from sklearn.model_selection._split import (
 from sklearn.utils import check_random_state, indexable
 from sklearn.utils.metadata_routing import _MetadataRequester
 
-from ._utils import check_X_domain
+from .utils import check_X_domain, extract_source_indices
 
 
 class SplitSampleDomainRequesterMixin(_MetadataRequester):
@@ -108,7 +108,16 @@ class BaseDomainAwareShuffleSplit(SplitSampleDomainRequesterMixin, metaclass=ABC
 
 
 class SourceTargetShuffleSplit(BaseDomainAwareShuffleSplit):
+    """Source-Target-Shuffle-Split cross-validator.
 
+    Provides train/test indices to split data in train/test sets.
+    Each sample is used once as a test set (singleton) while the
+    remaining samples form the training set.
+
+    Default split is implemented hierarchically. If first designates
+    a single domain as a target followed up by the single train/test
+    shuffle split.
+    """
     def __init__(
         self, n_splits=10, *, test_size=None, train_size=None, random_state=None
     ):
@@ -121,7 +130,8 @@ class SourceTargetShuffleSplit(BaseDomainAwareShuffleSplit):
         self._default_test_size = 0.1
 
     def _iter_indices(self, X, y=None, sample_domain=None):
-        indices = check_X_domain(X, sample_domain, return_indices=True)
+        X, sample_domain = check_X_domain(X, sample_domain)
+        indices = extract_source_indices(sample_domain)
         source_idx, = np.where(indices)
         target_idx, = np.where(~indices)
         n_source_samples = _num_samples(source_idx)
@@ -162,14 +172,7 @@ class LeaveOneDomainOut(SplitSampleDomainRequesterMixin):
     """Leave-One-Domain-Out cross-validator.
 
     Provides train/test indices to split data in train/test sets.
-    Each sample is used once as a test set (singleton) while the
-    remaining samples form the training set.
-
-    Default split is implemented hierarchically. If first designates
-    a single domain as a target followed up by the single train/test
-    shuffle split.
     """
-
     def __init__(
         self, max_n_splits=10, *, test_size=None, train_size=None, random_state=None
     ):
@@ -246,7 +249,8 @@ class LeaveOneDomainOut(SplitSampleDomainRequesterMixin):
                 yield split_idx[train_idx], split_idx[test_idx]
 
     def _iter_indices(self, X, y=None, sample_domain=None):
-        indices = check_X_domain(X, sample_domain, return_indices=True)
+        X, sample_domain = check_X_domain(X, sample_domain)
+        indices = extract_source_indices(sample_domain)
         source_idx, = np.where(indices)
         target_idx, = np.where(~indices)
         n_source_samples = _num_samples(source_idx)

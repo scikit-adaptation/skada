@@ -27,7 +27,7 @@ def plot_shifted_dataset(shift, random_state=42):
     """Plot source and shifted target data for a given type of shift.
 
     The possible shifts are 'covariate_shift', 'target_shift',
-    'concept_drift', or 'subspace'.
+    'concept_drift' or 'subspace'.
 
     We use here the same random seed for multiple calls to
     ensure same distributions.
@@ -37,13 +37,11 @@ def plot_shifted_dataset(shift, random_state=42):
         n_samples_target=20,
         shift=shift,
         noise=0.3,
-        label="multiclass",
+        label="regression",
         random_state=random_state,
     )
-
     X_source, X_target, y_source, y_target = source_target_split(
-        X, y, sample_domain=sample_domain
-    )
+        X, y, sample_domain=sample_domain)
 
     fig, (ax1, ax2) = plt.subplots(1, 2, sharex="row", sharey="row", figsize=(8, 4))
     fig.suptitle(shift.replace("_", " ").title(), fontsize=14)
@@ -51,34 +49,29 @@ def plot_shifted_dataset(shift, random_state=42):
     ax1.scatter(
         X_source[:, 0],
         X_source[:, 1],
-        c=y_source,
-        cmap="tab10",
-        vmax=10,
+        c=y_source*10,
+        vmax=1,
         alpha=0.5,
     )
     ax1.set_title("Source data")
     ax1.set_xlabel("Feature 1")
     ax1.set_ylabel("Feature 2")
 
-    ax2.scatter(
-        X_source[:, 0],
-        X_source[:, 1],
-        c=y_source,
-        cmap="tab10",
-        vmax=10,
-        alpha=0.1,
-    )
-    ax2.scatter(
+    s = ax2.scatter(
         X_target[:, 0],
         X_target[:, 1],
-        c=y_target,
-        cmap="tab10",
-        vmax=10,
+        c=y_target*10,
+        vmax=1,
         alpha=0.5,
     )
     ax2.set_title("Target data")
     ax2.set_xlabel("Feature 1")
     ax2.set_ylabel("Feature 2")
+
+    fig.subplots_adjust(right=0.8)
+    cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.80])
+    cb = fig.colorbar(s, cax=cbar_ax)
+    cb.set_label("y-value*10")
 
     plt.show()
 
@@ -89,6 +82,6 @@ for shift in [
     "covariate_shift",
     "target_shift",
     "concept_drift",
-    "subspace",
+    "subspace"
 ]:
     plot_shifted_dataset(shift)
