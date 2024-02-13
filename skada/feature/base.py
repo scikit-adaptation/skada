@@ -202,8 +202,8 @@ class DomainAwareModule(torch.nn.Module):
             self.module_, self.intermediate_layers, [self.layer_name]
         )
 
-    def forward(self, X, sample_domain):
-        if torch.sum(sample_domain > 0) != 0:  # if source+target -> training
+    def forward(self, X, sample_domain, is_fit=False):
+        if is_fit:
             X_s = X[sample_domain > 0]
             X_t = X[sample_domain < 0]
             # predict
@@ -224,7 +224,7 @@ class DomainAwareModule(torch.nn.Module):
                 torch.cat((features_s, features_t), dim=0),  # features
                 sample_domain,  # domains
             )
-        else:  # if only target -> testing
+        else:
             return self.module_(X)
 
 
@@ -284,7 +284,7 @@ class DomainAwareNet(NeuralNetClassifier):
             raise ValueError(
                 "X should contain a key 'sample_domain' with the domain of each sample."
             )
-        return super().fit(X, y, **fit_params)
+        return super().fit(X, y, is_fit=True, **fit_params)
 
     def predict(self, X, sample_domain=None, **predict_params):
         """model prediction
@@ -296,7 +296,8 @@ class DomainAwareNet(NeuralNetClassifier):
             input data and a key 'sample_domain' with the domain of each
             sample.
         sample_domain : torch tensor
-            The domain of each sample.
+            The domain of each sample. 
+            Could be None since the sample are not used in predict.
         """
         if not isinstance(X, dict):
             X = {"X": X}
@@ -322,6 +323,7 @@ class DomainAwareNet(NeuralNetClassifier):
             The target data.
         sample_domain : torch tensor
             The domain of each sample.
+            Could be None since the sample are not used in score.
         """
         if not isinstance(X, dict):
             X = {"X": X}
