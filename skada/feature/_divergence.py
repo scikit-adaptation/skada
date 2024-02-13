@@ -4,6 +4,7 @@
 # License: BSD 3-Clause
 import torch
 from skada.feature.base import (
+    DomainAwareModule,
     DomainAwareCriterion,
     DomainBalancedDataLoader,
     DomainAwareNet,
@@ -20,9 +21,10 @@ class DeepCoralLoss(BaseDALoss):
     def forward(
         self,
         y_s,
+        y_pred_s,
         y_pred_t,
-        y_pred_domain_s,
-        y_pred_domain_t,
+        domain_pred_s,
+        domain_pred_t,
         features_s,
         features_t,
     ):
@@ -35,8 +37,7 @@ class DeepCoralLoss(BaseDALoss):
 
 def DeepCoral(module, layer_name, reg=1, **kwargs):
     net = DomainAwareNet(
-        module,
-        layer_name,
+        DomainAwareModule(module, layer_name),
         iterator_train=DomainBalancedDataLoader,
         criterion=DomainAwareCriterion(
             torch.nn.CrossEntropyLoss(), DeepCoralLoss(reg=reg)

@@ -35,16 +35,16 @@ class DomainAwareCriterion(torch.nn.Module):
         y_pred,
         y_true,
     ):
-        y_pred, y_pred_domain, features, sample_domain = y_pred  # unpack
+        y_pred, domain_pred, features, sample_domain = y_pred  # unpack
         y_pred_s = y_pred[sample_domain > 0]
         y_pred_t = y_pred[sample_domain < 0]
 
-        if y_pred_domain is not None:
-            y_pred_domain_s = y_pred_domain[sample_domain > 0]
-            y_pred_domain_t = y_pred_domain[sample_domain < 0]
+        if domain_pred is not None:
+            domain_pred_s = domain_pred[sample_domain > 0]
+            domain_pred_t = domain_pred[sample_domain < 0]
         else:
-            y_pred_domain_s = None
-            y_pred_domain_t = None
+            domain_pred_s = None
+            domain_pred_t = None
 
         features_s = features[sample_domain > 0]
         features_t = features[sample_domain < 0]
@@ -52,9 +52,10 @@ class DomainAwareCriterion(torch.nn.Module):
         # predict
         return self.criterion(y_pred_s, y_true[sample_domain > 0]) + self.dacriterion(
             y_true[sample_domain > 0],
+            y_pred_s,
             y_pred_t,
-            y_pred_domain_s,
-            y_pred_domain_t,
+            domain_pred_s,
+            domain_pred_t,
             features_s,
             features_t,
         )
@@ -70,9 +71,10 @@ class BaseDALoss(torch.nn.Module):
     def forward(
         self,
         y_s,
+        y_pred_s,
         y_pred_t,
-        y_pred_domain_s,
-        y_pred_domain_t,
+        domain_pred_s,
+        domain_pred_t,
         features_s,
         features_t,
     ):
@@ -180,10 +182,14 @@ class DomainAwareModule(torch.nn.Module):
 
     Parameters
     ----------
-    module : torch module
-        The module to use.
+    module : torch module (class or instance)
+        A PyTorch :class:`~torch.nn.Module`.
     layer_name : str
-        The name of the layer to extract the features from.
+        The name of the module's layer whose outputs are
+        collected during the training for the adaptation.
+    domain_classifier : torch module, default=None
+        A PyTorch :class:`~torch.nn.Module` used to classify the
+        domain. Could be None.
     """
 
     def __init__(self, module, layer_name, domain_classifier=None):
@@ -197,7 +203,6 @@ class DomainAwareModule(torch.nn.Module):
         )
 
     def forward(self, X, sample_domain):
-        # choose source or target domain
         if torch.sum(sample_domain > 0) != 0:  # if source+target -> training
             X_s = X[sample_domain > 0]
             X_t = X[sample_domain < 0]
@@ -208,14 +213,14 @@ class DomainAwareModule(torch.nn.Module):
             features_t = self.intermediate_layers[self.layer_name]
 
             if self.domain_classifier_ is not None:
-                y_pred_domain_s = self.domain_classifier_(features_s)
-                y_pred_domain_t = self.domain_classifier_(features_t)
-                y_pred_domain = torch.cat((y_pred_domain_s, y_pred_domain_t), dim=0)
+                domain_pred_s = self.domain_classifier_(features_s)
+                domain_pred_t = self.domain_classifier_(features_t)
+                domain_pred = torch.cat((domain_pred_s, domain_pred_t), dim=0)
             else:
-                y_pred_domain = None
+                domain_pred = None
             return (
                 torch.cat((y_pred_s, y_pred_t), dim=0),  # predictions
-                y_pred_domain,  # domain predictions
+                domain_pred,  # domain predictions
                 torch.cat((features_s, features_t), dim=0),  # features
                 sample_domain,  # domains
             )
@@ -232,16 +237,12 @@ class DomainAwareNet(NeuralNetClassifier):
     ----------
     module : torch module
         The module to use.
-    layer_name : str
-        The name of the layer to extract the features from.
-    domain_classifier : torch module
-        The domain classifier to use.
     **kwargs : dict
         Keyword arguments passed to the skorch NeuralNetClassifier class.
     """
 
     def __init__(
-        self, module, layer_name, domain_classifier=None, iterator_train=None, **kwargs
+        self, module, iterator_train=None, **kwargs
     ):
         # TODO val is not working
         # if train_split is None:
@@ -255,7 +256,7 @@ class DomainAwareNet(NeuralNetClassifier):
         )
 
         super().__init__(
-            DomainAwareModule(module, layer_name, domain_classifier),
+            module,
             iterator_train=iterator_train,
             **kwargs
         )

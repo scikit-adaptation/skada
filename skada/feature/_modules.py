@@ -83,7 +83,6 @@ class GradientReversalLayer(Function):
     @staticmethod
     def backward(ctx, grad_output):
         output = grad_output.neg() * ctx.alpha
-
         return output, None
 
 
@@ -108,7 +107,8 @@ class DomainClassifier(nn.Module):
     def __init__(
         self,
         len_last_layer,
-        n_classes=1
+        n_classes=1,
+        alpha=1
     ):
         super().__init__()
         self.classifier = nn.Sequential(
@@ -118,8 +118,9 @@ class DomainClassifier(nn.Module):
             nn.Linear(100, n_classes),
             nn.Sigmoid()
         )
+        self.alpha = alpha
 
-    def forward(self, x, alpha=None):
+    def forward(self, x):
         """Forward pass.
 
         Parameters
@@ -129,5 +130,5 @@ class DomainClassifier(nn.Module):
         alpha: float
             Parameter for the reverse layer.
         """
-        reverse_x = GradientReversalLayer.apply(x, alpha)
-        return self.classifier(reverse_x)
+        reverse_x = GradientReversalLayer.apply(x, self.alpha)
+        return self.classifier(reverse_x).flatten()

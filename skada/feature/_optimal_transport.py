@@ -4,6 +4,7 @@
 from torch import nn
 
 from skada.feature.base import (
+    DomainAwareModule,
     DomainAwareCriterion,
     DomainBalancedDataLoader,
     DomainAwareNet,
@@ -46,9 +47,10 @@ class DeepJDOTLoss(BaseDALoss):
     def forward(
         self,
         y_s,
+        y_pred_s,
         y_pred_t,
-        y_pred_domain_s,
-        y_pred_domain_t,
+        domain_pred_s,
+        domain_pred_t,
         features_s,
         features_t,
     ):
@@ -74,8 +76,7 @@ def DeepJDOT(
     **kwargs
 ):
     net = DomainAwareNet(
-        module,
-        layer_name,
+        DomainAwareModule(module, layer_name),
         iterator_train=DomainBalancedDataLoader,
         criterion=DomainAwareCriterion(
             nn.CrossEntropyLoss(), DeepJDOTLoss(reg_d, reg_cl, target_criterion)

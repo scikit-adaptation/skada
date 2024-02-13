@@ -59,11 +59,10 @@ API and modules
    :toctree: gen_modules/
    :template: class.rst
 
-   DeepCORAL
+   DeepCoral
    DeepJDOT
    DANN
    CDAN
-   DAN
 
 .. autosummary::
    :toctree: gen_modules/

@@ -10,6 +10,7 @@ from skorch.dataset import Dataset
 import pytest
 
 from skada.feature.base import (
+    DomainAwareModule,
     DomainAwareCriterion,
     DomainBalancedDataLoader,
     DomainAwareNet,
@@ -28,9 +29,10 @@ class TestLoss(BaseDALoss):
     def forward(
         self,
         y_s,
+        y_pred_s,
         y_pred_t,
-        y_pred_domain_s,
-        y_pred_domain_t,
+        domain_pred_s,
+        domain_pred_t,
         features_s,
         features_t,
     ):
@@ -53,8 +55,7 @@ def test_domainawaretraining():
     )
 
     method = DomainAwareNet(
-        module,
-        "dropout",
+        DomainAwareModule(module, "dropout"),
         iterator_train=DomainBalancedDataLoader,
         criterion=DomainAwareCriterion(
             torch.nn.CrossEntropyLoss(), TestLoss()
