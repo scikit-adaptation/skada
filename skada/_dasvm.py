@@ -1,3 +1,14 @@
+"""
+    dasvm estimator
+==========================================
+
+The dsvm method comes from [1].
+
+.. [1]  Domain Adaptation Problems: A DASVM Classification
+        Technique and a Circular Validation Strategy
+        Lorenzo Bruzzone, Fellow, IEEE, and Mattia Marconcini, Member, IEEE
+
+"""
 # Author: Ruben Bueno <ruben.bueno@polytechnique.edu>
 # dasvm implementation
 
@@ -53,7 +64,7 @@ class DASVMEstimator(BaseEstimator):
         """
         # We should take k points for each of the c classes,
         # depending on the values of d
-        for j in range(min(self.k, math.ceil(sum(~indices_list)/self.c))):
+        for j in range(min(self.k, math.ceil(sum(~indices_list)/self.n_class))):
             I = np.unique(np.argmax(d[~indices_list], axis=0))
             # We need to get all those indices to be take into account
             # the fact that the some previous points weren't in the list
@@ -125,7 +136,7 @@ class DASVMEstimator(BaseEstimator):
 
         n = Xs.shape[0]
         m = Xt.shape[0]
-        self.c = np.unique(ys).shape[0]  # number of classes
+        self.n_class = np.unique(ys).shape[0]  # number of classes
 
         # This is the list of the indices from the
         # points from Xs that have been discarded
@@ -145,16 +156,16 @@ class DASVMEstimator(BaseEstimator):
 
         # look at those that have not been discarded
         decisions_s = new_estimator.decision_function(Xs)
-        if self.c == 2:
+        if self.n_class == 2:
             decisions_s = np.array([-decisions_s, decisions_s]).T
         # look at those that haven't been added
         decisions_ta = new_estimator.decision_function(Xt)
-        if self.c == 2:
+        if self.n_class == 2:
             decisions_ta = np.array([-decisions_ta, decisions_ta]).T
 
         # We want to take values that are unsure, meaning we want those that have
         # values the closest that we can to c-1 (to 0 when label='binary')
-        decisions_ta = -np.abs(decisions_ta-self.c-1)
+        decisions_ta = -np.abs(decisions_ta-self.n_class-1)
 
         # doing the selection on the labeled data
         self._find_points_next_step(
@@ -164,10 +175,10 @@ class DASVMEstimator(BaseEstimator):
             index_target_added, decisions_ta)
 
         i = 0
-        while (
-                sum(index_target_added) < m or sum(index_source_deleted) < n
-                ) and i < self.Stop:
-            i += 1
+        for i in range(1, self.Stop):
+            if (sum(index_target_added) == m and sum(index_source_deleted) == n):
+                break
+
             old_estimator = new_estimator
             X, y = self._get_X_y(
                 new_estimator, index_target_added, index_source_deleted, Xs, Xt, ys)
@@ -175,6 +186,7 @@ class DASVMEstimator(BaseEstimator):
             new_estimator = clone(self.base_estimator)
             new_estimator.fit(X, y)
 
+            # We check if one of the target point that has been added has changed label
             for j in range(len(index_target_added)):
                 if index_target_added[j]:
                     x = Xt[j]
@@ -191,7 +203,7 @@ class DASVMEstimator(BaseEstimator):
             # We want to take values the estimator is unsure about, meaning that we
             # want those that have values the closest that we can to c-1
             # (to 0 when label='binary', or 4 when is its 'multiclass')
-            decisions_ta = -np.abs(decisions_ta-self.c-1)
+            decisions_ta = -np.abs(decisions_ta-self.n_class-1)
 
             # doing the selection on the labeled data
             self._find_points_next_step(index_source_deleted, decisions_s)
