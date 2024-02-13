@@ -112,7 +112,7 @@ def test_leave_one_domain_out(da_dataset, max_n_splits, n_splits):
 
 @pytest.mark.parametrize(
     'n_splits, under_sampling',
-    [(2, 0.2), (2, 0.8)]
+    [(2, 0.2), (2, 0.8), (2, 2)]
 )
 def test_random_shuffle_domain_aware_split(da_dataset, n_splits, under_sampling):
     X, y, sample_domain = da_dataset.pack_train(
@@ -123,9 +123,18 @@ def test_random_shuffle_domain_aware_split(da_dataset, n_splits, under_sampling)
         SubspaceAlignmentAdapter(n_components=2),
         LogisticRegression(),
     )
-    cv = RandomShuffleDomainAwareSplit(
-        n_splits=n_splits, test_size=0.3, random_state=0, under_sampling=under_sampling
-    )
+
+    if under_sampling > 1:
+        with pytest.raises(ValueError):
+            cv = RandomShuffleDomainAwareSplit(
+                n_splits=n_splits, test_size=0.3, random_state=0, under_sampling=under_sampling
+            )
+        return
+    else:
+        cv = RandomShuffleDomainAwareSplit(
+            n_splits=n_splits, test_size=0.3, random_state=0, under_sampling=under_sampling
+        )
+
     scores = cross_validate(
         pipe,
         X,
