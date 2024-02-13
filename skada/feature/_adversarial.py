@@ -175,6 +175,8 @@ class CDANLoss(BaseDALoss):
 class CDANModule(DomainAwareModule):
     """Conditional Domain Adversarial Networks (CDAN) module.
 
+    From [1]_.
+
     Parameters
     ----------
     module : torch module (class or instance)
@@ -185,6 +187,11 @@ class CDANModule(DomainAwareModule):
     domain_classifier : torch module
         A PyTorch :class:`~torch.nn.Module` used to classify the
         domain.
+
+    References
+    ----------
+    .. [1]  Mingsheng Long et. al. Conditional Adversarial Domain Adaptation
+            In NeurIPS, 2016.
     """
     def __init__(self, module, layer_name, domain_classifier):
         super(CDANModule, self).__init__(module, layer_name, domain_classifier)

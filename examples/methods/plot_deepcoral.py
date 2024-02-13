@@ -1,3 +1,14 @@
+"""
+Optimal Transport Domain Adaptation (OTDA)
+==========================================
+
+This example illustrates the OTDA method from [1] on a simple classification task.
+
+.. [1] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
+        Optimal Transport for Domain Adaptation, in IEEE
+        Transactions on Pattern Analysis and Machine Intelligence
+
+"""
 # %%
 from skada.datasets import make_shifted_datasets
 from skada.feature import DeepCoral
