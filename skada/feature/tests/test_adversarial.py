@@ -83,4 +83,3 @@ def test_cdan():
     history = method.history_
 
     assert history[0]["train_loss"] > history[-1]["train_loss"]
-
