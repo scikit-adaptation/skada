@@ -296,7 +296,7 @@ class DomainAwareNet(NeuralNetClassifier):
             input data and a key 'sample_domain' with the domain of each
             sample.
         sample_domain : torch tensor
-            The domain of each sample. 
+            The domain of each sample.
             Could be None since the sample are not used in predict.
         """
         if not isinstance(X, dict):
