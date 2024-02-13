@@ -23,6 +23,20 @@ class DASVMEstimator(BaseEstimator):
             self, base_estimator=None,
             k=3, Stop=1_000, **kwargs
             ):
+        """Fit adaptation parameters.
+
+        Parameters
+        ----------
+        base_estimator : BaseEstimator
+            The estimator that will be used in the algorithm,
+            It is a SVC by default, but can use any classifier
+            equiped with a `decision_function` method
+        k: int>0
+            The number of points per classes that will be discarded/added
+            at each steps of the algorithm
+        Stop : int
+            The maximal number of iteration of the algorithm when using `fit`
+        """
 
         super().__init__()
         if base_estimator is None:
@@ -32,44 +46,46 @@ class DASVMEstimator(BaseEstimator):
         self.Stop = Stop
         self.k = k
 
-    def _find_points_next_step(self, I_list, d):
+    def _find_points_next_step(self, Indices_list, d):
         """
-        This function allow us to find the next points to add/discard
+        This function allow us to find the next points to add/discard,
+        It is an inplace method, changing Indices_list
         """
         # We should take k points for each of the c classes,
         # depending on the values of d
-        for j in range(min(self.k, math.ceil(sum(~I_list)/self.c))):
-            I = np.unique(np.argmax(d[~I_list], axis=0))
+        for j in range(min(self.k, math.ceil(sum(~Indices_list)/self.c))):
+            I = np.unique(np.argmax(d[~Indices_list], axis=0))
             # We need to get all those indices to be take into account
             # the fact that the some previous points weren't in the list
-            for l in range(len(I_list)):
-                if I_list[l]:
+            for l in range(len(Indices_list)):
+                if Indices_list[l]:
                     I[I >= l] += 1
 
             # We finally only need to change the list
             for l in I:
-                if I_list[l]:
-                    raise ValueError(f"problem here: {l}")
-                I_list[l] = True
+                # Indices_list[l] is False at that point
+                Indices_list[l] = True
 
-        # it is an inplace method, but it is more understandable when
-        # returning the list
-        return I_list
 
     def _get_X_y(
             self, new_estimator, Index_target_added, Index_source_deleted, Xs, Xt, ys
             ):
-        mask = np.ones(Xs.shape[0], dtype=bool)
-        mask[Index_source_deleted] = False
-        X = np.concatenate((Xs[mask], Xt[Index_target_added]))
-        y = np.concatenate((ys[mask], new_estimator.predict(Xt[Index_target_added])))
+        # Allow to get the X and y arrays at a state of the algorithm
+        # We take the source datapoints that have not been deleted, and the target points
+        # that have been added
+        X = np.concatenate((Xs[~Index_source_deleted], Xt[Index_target_added]))
+        y = np.concatenate((ys[~Index_source_deleted], new_estimator.predict(Xt[Index_target_added])))
         return X, y
 
     def get_decision(self, new_estimator, X, I_list):
         # We look at the points that have either not been discarded or not been added
+        # We are assuming that the `decision_function` from the base_estimator is:
+        # giving self.c values between -1 and self.c-1, not having the same integer parts,
+        # for the same datapoint x (the same as for SVC).
+        # When self.c == 2, we assume we only get one value (as for SVC)
         decisions = np.ones(X.shape[0])
         if sum(~I_list) > 0:
-            decisions[~I_list] = new_estimator.predict(X[~I_list])
+            decisions[~I_list] = new_estimator.decision_function(X[~I_list])
             if self.c == 2:
                 decisions = np.array([-decisions, decisions]).T
         return decisions
@@ -80,11 +96,11 @@ class DASVMEstimator(BaseEstimator):
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
-            The source data.
+            The source and training data.
         y : array-like, shape (n_samples,)
-            The source labels.
+            The source labels, followed by some labels that won't be looked at.
         sample_domain : array-like, shape (n_samples,)
-            The domain labels (same as sample_domain).
+            The domain labels.
 
         Returns
         -------
@@ -130,10 +146,10 @@ class DASVMEstimator(BaseEstimator):
         decisions_ta = -np.abs(decisions_ta-self.c-1)
 
         # doing the selection on the labeled data
-        Index_source_deleted = self._find_points_next_step(
+        self._find_points_next_step(
             Index_source_deleted, decisions_s)
         # doing the selection on the semi-labeled data
-        Index_target_added = self._find_points_next_step(
+        self._find_points_next_step(
             Index_target_added, decisions_ta)
 
         i = 0
@@ -181,18 +197,10 @@ class DASVMEstimator(BaseEstimator):
 
         self.base_estimator_ = new_estimator
 
-        # it could be interesting to return multiple estimators,
-        # or the list Index_target_added and Index_source_deleted (this making
-        # them being an object attribute)
+        ## it could be interesting to save the estimators,
+        # or the list of Index_target_added and Index_source_deleted (this making
+        # them being an attribute if the object)
         return self
-
-    def get_estimator(self, *params) -> BaseEstimator:
-        """Returns estimator associated with `params`.
-
-        The set of available estimators and access to them has to be provided
-        by specific implementations.
-        """
-        return self.base_estimator_
 
     def predict(self, X):
         """ return predicted value by the fitted estimator for `X`
@@ -203,6 +211,6 @@ class DASVMEstimator(BaseEstimator):
     def decision_function(self, X):
         """ return values of the decision function of the
                 fitted estimator for `X`
-        `decision_function` method from the estimator we fitted
+        `decision_function` method from the base_estimator_ we fitted
         """
         return self.base_estimator_.decision_function(X)
