@@ -277,5 +277,58 @@ class DomainAwareNet(NeuralNetClassifier):
         if not isinstance(X, dict):
             X = {"X": X}
             X["sample_domain"] = sample_domain
-
+        if "X" not in X.keys():
+            raise ValueError("X should contain a key 'X' with the input data.")
+        if "sample_domain" not in X.keys():
+            raise ValueError(
+                "X should contain a key 'sample_domain' with the domain of each sample."
+            )
         return super().fit(X, y, **fit_params)
+
+    def predict(self, X, sample_domain=None, **predict_params):
+        """model prediction
+
+        Parameters
+        ----------
+        X : dict or torch tensor
+            The input data. If a dict, it should contain a key 'X' with the
+            input data and a key 'sample_domain' with the domain of each
+            sample.
+        sample_domain : torch tensor
+            The domain of each sample.
+        """
+        if not isinstance(X, dict):
+            X = {"X": X}
+            X["sample_domain"] = sample_domain
+        if "X" not in X.keys():
+            raise ValueError("X should contain a key 'X' with the input data.")
+        if "sample_domain" not in X.keys():
+            raise ValueError(
+                "X should contain a key 'sample_domain' with the domain of each sample."
+            )
+        return super().predict(X, **predict_params)
+
+    def score(self, X, y, sample_domain=None, **score_params):
+        """model score
+
+        Parameters
+        ----------
+        X : dict or torch tensor
+            The input data. If a dict, it should contain a key 'X' with the
+            input data and a key 'sample_domain' with the domain of each
+            sample.
+        y : torch tensor
+            The target data.
+        sample_domain : torch tensor
+            The domain of each sample.
+        """
+        if not isinstance(X, dict):
+            X = {"X": X}
+            X["sample_domain"] = sample_domain
+        if "X" not in X.keys():
+            raise ValueError("X should contain a key 'X' with the input data.")
+        if "sample_domain" not in X.keys():
+            raise ValueError(
+                "X should contain a key 'sample_domain' with the domain of each sample."
+            )
+        return super().score(X, y, **score_params)
