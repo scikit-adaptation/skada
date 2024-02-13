@@ -39,7 +39,15 @@ def test_dasvm_estimator(label, n, m):
             "Wrong lenght of the decision function's values "
             "when using `decision_function` method"
             )
+
     # The `DASVMEstimator` should be usable with `make_da_pipeline`
-    clf_dsvm = make_da_pipeline(
-        StandardScaler(), DASVMEstimator(k=5)).fit(
-        X, y, sample_domain=sample_domain)
+    manage_pipeline = False
+    try:
+        clf_dsvm = make_da_pipeline(
+            StandardScaler(), DASVMEstimator(k=5)).fit(
+            X, y, sample_domain=sample_domain)
+        manage_pipeline = True
+    finally:
+        assert manage_pipeline, (
+            "Couldn't use make_da_pipeline with DASVMEstimator"
+            )

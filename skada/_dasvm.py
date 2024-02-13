@@ -66,28 +66,39 @@ class DASVMEstimator(BaseEstimator):
                 # Indices_list[l] is False at that point
                 Indices_list[l] = True
 
-
     def _get_X_y(
             self, new_estimator, Index_target_added, Index_source_deleted, Xs, Xt, ys
             ):
         # Allow to get the X and y arrays at a state of the algorithm
-        # We take the source datapoints that have not been deleted, and the target points
+        # We take the source datapoints that have not been
+        # deleted, and the target points
         # that have been added
         X = np.concatenate((Xs[~Index_source_deleted], Xt[Index_target_added]))
-        y = np.concatenate((ys[~Index_source_deleted], new_estimator.predict(Xt[Index_target_added])))
+        y = np.concatenate((ys[~Index_source_deleted], new_estimator.predict(
+            Xt[Index_target_added])))
         return X, y
 
-    def get_decision(self, new_estimator, X, I_list):
+    def get_decision(self, new_estimator, X, Indices_list):
         # We look at the points that have either not been discarded or not been added
         # We are assuming that the `decision_function` from the base_estimator is:
-        # giving self.c values between -1 and self.c-1, not having the same integer parts,
-        # for the same datapoint x (the same as for SVC).
-        # When self.c == 2, we assume we only get one value (as for SVC)
-        decisions = np.ones(X.shape[0])
-        if sum(~I_list) > 0:
-            decisions[~I_list] = new_estimator.decision_function(X[~I_list])
-            if self.c == 2:
+        # giving c values between -1 and c-1, not having the same
+        # integer parts, for the same datapoint x (the same as for SVC).
+        # When c == 2, we assume we only get one value (as for SVC)
+        # We take c to be the number of classes on which `new_estimator`
+        # has been fitted
+        if sum(~Indices_list) > 0:
+            df = new_estimator.decision_function(X[~Indices_list])
+            # df.ndim allows us to know if we are in the
+            # `binary` case or the `multiclass` one
+            if df.ndim == 1:
+                decisions = np.ones(X.shape[0])
+                decisions[~Indices_list] = df
                 decisions = np.array([-decisions, decisions]).T
+            else:
+                decisions = np.ones((X.shape[0], df.shape[1]))
+                decisions[~Indices_list] = df
+        else:
+            decisions = np.ones(X.shape[0])
         return decisions
 
     def fit(self, X, y=None, sample_domain=None):
@@ -197,7 +208,6 @@ class DASVMEstimator(BaseEstimator):
 
         self.base_estimator_ = new_estimator
 
-        ## it could be interesting to save the estimators,
         # or the list of Index_target_added and Index_source_deleted (this making
         # them being an attribute if the object)
         return self
