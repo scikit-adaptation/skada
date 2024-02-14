@@ -203,20 +203,22 @@ class DASVMEstimator(BaseEstimator):
                         index_target_added[j] = False
 
             # look at those that have not been discarded
-            decisions_source = self._get_decision(new_estimator, Xs, index_source_deleted)
+            decisions_source = self._get_decision(
+                new_estimator, Xs, index_source_deleted)
 
             # We get the distance to the margin:
-            predicted_labels = new_estimator.predict(Xs)
-            margin_distances = np.min(decisions_source-(self.current_classes.shape[0]-1), axis=0)
+            margin_distances = np.min(decisions_source-(
+                self.current_classes.shape[0]-1), axis=0)
             # look at those that haven't been added
             decisions_target = self._get_decision(new_estimator, Xt, index_target_added)
 
             # We want to take values that are close to the margin, meaning that we
-            # want those that have values the closest that we can to c-1+margin_distance, 
+            # want those that have values the closest that we can to c-1+margin_distance
             # (to 0 when label='binary', or 4 when is its 'multiclass')
-            if decisions_target.ndim>1:
+            if decisions_target.ndim > 1:
                 for j in range(self.current_classes.shape[0]):
-                    decisions_target[:, j] = -np.abs(decisions_target[:, j]-(self.n_class-1+margin_distances[j]))
+                    decisions_target[:, j] = -np.abs(decisions_target[:, j]-(
+                        self.n_class-1+margin_distances[j]))
 
             # doing the selection on the labeled data
             self._find_points_next_step(index_source_deleted, decisions_source)
