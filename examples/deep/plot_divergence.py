@@ -25,8 +25,8 @@ from skorch import NeuralNetClassifier
 import matplotlib.pyplot as plt
 
 from skada.datasets import DomainAwareDataset
-from skada.feature import DeepCoral
-from skada.feature import MNISTtoUSPSNet
+from skada.deep import DeepCoral
+from skada.deep import MNISTtoUSPSNet
 
 # %%
 # Load the image datasets

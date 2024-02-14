@@ -3,7 +3,7 @@
 #
 # License: BSD 3-Clause
 import torch
-from skada.feature.base import (
+from skada.deep.base import (
     DomainAwareModule,
     DomainAwareCriterion,
     DomainBalancedDataLoader,

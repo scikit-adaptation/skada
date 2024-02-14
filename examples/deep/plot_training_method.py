@@ -19,10 +19,10 @@ from skorch.dataset import Dataset
 import matplotlib.pyplot as plt
 
 from skada.datasets import DomainAwareDataset
-from skada.feature import DeepCoral, DeepCoralLoss
-from skada.feature import MNISTtoUSPSNet
+from skada.deep import DeepCoral, DeepCoralLoss
+from skada.deep import MNISTtoUSPSNet
 
-from skada.feature.base import (
+from skada.deep.base import (
     DomainAwareModule,
     DomainAwareCriterion,
     DomainBalancedDataLoader,

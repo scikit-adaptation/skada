@@ -4,8 +4,8 @@
 
 import numpy as np
 
-from skada.feature import DeepJDOT
-from skada.feature._modules import ToyModule
+from skada.deep import DeepJDOT
+from skada.deep._modules import ToyModule
 from skada.datasets import make_shifted_datasets
 
 

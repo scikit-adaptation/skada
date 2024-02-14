@@ -47,13 +47,13 @@ API and modules
    make_da_pipeline
 
 
-.. currentmodule:: skada.feature
+.. currentmodule:: skada.deep
 
-.. automodule:: skada.feature
+.. automodule:: skada.deep
    :no-members:
    :no-inherited-members:
 
-:py:mod:`skada.feature`:
+:py:mod:`skada.deep`:
 
 .. autosummary::
    :toctree: gen_modules/

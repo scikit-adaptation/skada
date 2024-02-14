@@ -4,8 +4,8 @@
 
 import numpy as np
 
-from skada.feature import DANN, CDAN
-from skada.feature._modules import ToyModule, DomainClassifier
+from skada.deep import DANN, CDAN
+from skada.deep._modules import ToyModule, DomainClassifier
 from skada.datasets import make_shifted_datasets
 
 

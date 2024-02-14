@@ -9,14 +9,14 @@ from skorch.dataset import Dataset
 
 import pytest
 
-from skada.feature.base import (
+from skada.deep.base import (
     DomainAwareModule,
     DomainAwareCriterion,
     DomainBalancedDataLoader,
     DomainAwareNet,
     BaseDALoss
 )
-from skada.feature._modules import ToyModule
+from skada.deep._modules import ToyModule
 from skada.datasets import make_shifted_datasets
 
 
