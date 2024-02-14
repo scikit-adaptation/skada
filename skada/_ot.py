@@ -202,3 +202,12 @@ class JDOTRegressor(DAEstimator):
                 'Source domain detected. Predictor is trained on target'
                 'and prediction might be biased.')
         return self.estimator_.predict(X)
+
+    def score(self, X, y, sample_domain=None, *, sample_weight=None):
+        """Return the coefficient of determination R^2 of the prediction"""
+        check_is_fitted(self)
+        if sample_domain is not None and np.any(sample_domain < 0):
+            warnings.warn(
+                'Source domain detected. Predictor is trained on target'
+                'and score might be biased.')
+        return self.estimator_.score(X, y, sample_weight=sample_weight)

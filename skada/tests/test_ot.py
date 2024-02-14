@@ -28,6 +28,10 @@ def test_JDOTRegressor(da_reg_dataset):
     jdot = JDOTRegressor(base_estimator=Ridge(), verbose=True, n_iter_max=1)
     jdot.fit(X, y, sample_weight=w, sample_domain=sample_domain)
 
+    score = jdot.score(X, y, sample_domain=sample_domain)
+
+    assert score >= 0
+
 
 def test_JDOTRegressor_pipeline(da_reg_dataset):
 
