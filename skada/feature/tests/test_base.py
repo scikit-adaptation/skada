@@ -65,27 +65,53 @@ def test_domainawaretraining():
         train_split=None
     )
 
-    # without dict
     X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
-    method.fit(X.astype(np.float32), y, sample_domain)
-
     X_test, y_test, sample_domain_test = dataset.pack_test(as_targets=["t"])
+    X = X.astype(np.float32)
+    X_test = X_test.astype(np.float32)
 
-    y_pred = method.predict(X_test.astype(np.float32), sample_domain_test)
-    method.score(X_test.astype(np.float32), y_test, sample_domain_test)
+    # without dict
+    method.fit(X, y, sample_domain)
+
+    y_pred = method.predict(X_test, sample_domain_test)
+    method.score(X_test, y_test, sample_domain_test)
 
     assert y_pred.shape[0] == X_test.shape[0]
 
     # with dict
-    X_dict = {"X": X.astype(np.float32), "sample_domain": sample_domain}
+    X_dict = {"X": X, "sample_domain": sample_domain}
     method.fit(X_dict, y,)
 
-    X_dict_test = {"X": X_test.astype(np.float32), "sample_domain": sample_domain_test}
+    X_dict_test = {"X": X_test, "sample_domain": sample_domain_test}
 
     y_pred = method.predict(X_dict_test)
     method.score(X_dict_test, y_test)
 
     assert y_pred.shape[0] == X_test.shape[0]
+
+    # numpy input
+    method.fit(X, y, sample_domain)
+    y_pred = method.predict(X_test, sample_domain_test)
+    method.score(X_test, y_test, sample_domain_test)
+
+    assert y_pred.shape[0] == X_test.shape[0]
+
+    # tensor input
+    method.fit(torch.tensor(X), torch.tensor(y), torch.tensor(sample_domain))
+    y_pred = method.predict(torch.tensor(X_test), torch.tensor(sample_domain_test))
+    method.score(
+        torch.tensor(X_test),
+        torch.tensor(y_test),
+        torch.tensor(sample_domain_test)
+    )
+
+    assert y_pred.shape[0] == X_test.shape[0]
+
+    # dataset input
+    X_dict = {"X": X, "sample_domain": sample_domain}
+
+    torch_dataset = Dataset(X_dict, y)
+    method.fit(torch_dataset, y=None)
 
     # Test keys name in the dict
     X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
@@ -108,6 +134,15 @@ def test_domainawaretraining():
 
     with pytest.raises(ValueError):
         method.score(X_dict, y,)
+
+    # Test dataset without dict
+    torch_dataset = Dataset(X, y)
+
+    with pytest.raises(ValueError):
+        method.fit(torch_dataset, y=None)
+
+    with pytest.raises(ValueError):
+        method.predict(torch_dataset,)
 
 
 def test_domainbalanceddataloader():

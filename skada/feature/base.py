@@ -266,24 +266,42 @@ class DomainAwareNet(NeuralNetClassifier):
 
         Parameters
         ----------
-        X : dict or torch tensor
+        X : dict, torch tensor, array-like or torch dataset
             The input data. If a dict, it should contain a key 'X' with the
             input data and a key 'sample_domain' with the domain of each
             sample.
-        y : torch tensor
+            If X is a dataset, the dataset should return a dict.
+        y : torch tensor, or array-like
             The target data.
         sample_domain : torch tensor
             The domain of each sample.
         """
-        if not isinstance(X, dict):
+        if isinstance(X, dict):
+            if "X" not in X.keys():
+                raise ValueError("X should contain a key 'X' with the input data.")
+            if "sample_domain" not in X.keys():
+                raise ValueError(
+                    "X should contain a key 'sample_domain' "
+                    "with the domain of each sample."
+                )
+        elif isinstance(X, torch.utils.data.Dataset):
+            test_sample = X[0][0]
+            if isinstance(test_sample, dict):
+                if "X" not in test_sample.keys():
+                    raise ValueError("X should contain a key 'X' with the input data.")
+                if "sample_domain" not in test_sample.keys():
+                    raise ValueError(
+                        "X should contain a key 'sample_domain' "
+                        "with the domain of each sample."
+                    )
+            else:
+                raise ValueError(
+                    "Dataset should contain a dict as X."
+                )
+        else:
             X = {"X": X}
             X["sample_domain"] = sample_domain
-        if "X" not in X.keys():
-            raise ValueError("X should contain a key 'X' with the input data.")
-        if "sample_domain" not in X.keys():
-            raise ValueError(
-                "X should contain a key 'sample_domain' with the domain of each sample."
-            )
+
         return super().fit(X, y, is_fit=True, **fit_params)
 
     def predict(self, X, sample_domain=None, **predict_params):
@@ -291,23 +309,40 @@ class DomainAwareNet(NeuralNetClassifier):
 
         Parameters
         ----------
-        X : dict or torch tensor
+        X : dict, torch tensor, array-like or torch dataset
             The input data. If a dict, it should contain a key 'X' with the
             input data and a key 'sample_domain' with the domain of each
             sample.
+            If X is a dataset, the dataset should return a dict.
         sample_domain : torch tensor
             The domain of each sample.
             Could be None since the sample are not used in predict.
         """
-        if not isinstance(X, dict):
+        if isinstance(X, dict):
+            if "X" not in X.keys():
+                raise ValueError("X should contain a key 'X' with the input data.")
+            if "sample_domain" not in X.keys():
+                raise ValueError(
+                    "X should contain a key 'sample_domain' "
+                    "with the domain of each sample."
+                )
+        elif isinstance(X, torch.utils.data.Dataset):
+            test_sample = X[0][0]
+            if isinstance(test_sample, dict):
+                if "X" not in test_sample.keys():
+                    raise ValueError("X should contain a key 'X' with the input data.")
+                if "sample_domain" not in test_sample.keys():
+                    raise ValueError(
+                        "X should contain a key 'sample_domain' "
+                        "with the domain of each sample."
+                    )
+            else:
+                raise ValueError(
+                    "Dataset should contain a dict as X."
+                )
+        else:
             X = {"X": X}
             X["sample_domain"] = sample_domain
-        if "X" not in X.keys():
-            raise ValueError("X should contain a key 'X' with the input data.")
-        if "sample_domain" not in X.keys():
-            raise ValueError(
-                "X should contain a key 'sample_domain' with the domain of each sample."
-            )
         return super().predict(X, **predict_params)
 
     def score(self, X, y, sample_domain=None, **score_params):
@@ -315,7 +350,7 @@ class DomainAwareNet(NeuralNetClassifier):
 
         Parameters
         ----------
-        X : dict or torch tensor
+        X : dict, torch tensor, array-like
             The input data. If a dict, it should contain a key 'X' with the
             input data and a key 'sample_domain' with the domain of each
             sample.
@@ -325,13 +360,15 @@ class DomainAwareNet(NeuralNetClassifier):
             The domain of each sample.
             Could be None since the sample are not used in score.
         """
-        if not isinstance(X, dict):
+        if isinstance(X, dict):
+            if "X" not in X.keys():
+                raise ValueError("X should contain a key 'X' with the input data.")
+            if "sample_domain" not in X.keys():
+                raise ValueError(
+                    "X should contain a key 'sample_domain' "
+                    "with the domain of each sample."
+                )
+        else:
             X = {"X": X}
             X["sample_domain"] = sample_domain
-        if "X" not in X.keys():
-            raise ValueError("X should contain a key 'X' with the input data.")
-        if "sample_domain" not in X.keys():
-            raise ValueError(
-                "X should contain a key 'sample_domain' with the domain of each sample."
-            )
         return super().score(X, y, **score_params)
