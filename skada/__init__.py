@@ -31,6 +31,7 @@ from ._reweight import (
     KLIEP,
     ReweightDensityAdapter,
     ReweightDensity,
+    TarSAdapter
 )
 from ._subspace import (
     SubspaceAlignmentAdapter,
