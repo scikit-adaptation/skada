@@ -206,8 +206,11 @@ class DASVMEstimator(BaseEstimator):
             decisions_source = self._get_decision(
                 new_estimator, Xs, index_source_deleted)
 
+            decisions_fitted = self._get_decision(
+                new_estimator, np.concatenate((Xs, Xt)), np.concatenate(
+                    (index_source_deleted, index_target_added)))
             # We get the distance to the margin:
-            margin_distances = np.min(decisions_source-(
+            margin_distances = np.min(decisions_fitted-(
                 self.current_classes.shape[0]-1), axis=0)
             # look at those that haven't been added
             decisions_target = self._get_decision(new_estimator, Xt, index_target_added)
@@ -216,9 +219,13 @@ class DASVMEstimator(BaseEstimator):
             # want those that have values the closest that we can to c-1+margin_distance
             # (to 0 when label='binary', or 4 when is its 'multiclass')
             if decisions_target.ndim > 1:
-                for j in range(self.current_classes.shape[0]):
-                    decisions_target[:, j] = -np.abs(decisions_target[:, j]-(
-                        self.n_class-1+margin_distances[j]))
+                if self.current_classes.shape[0] > 1:
+                    for j in range(self.current_classes.shape[0]):
+                        decisions_target[:, j] = -np.abs(decisions_target[:, j]-(
+                            self.n_class-1+margin_distances[j]))
+                else:
+                    decisions_target = -np.abs(decisions_target-(
+                            self.n_class-1+margin_distances))
 
             # doing the selection on the labeled data
             self._find_points_next_step(index_source_deleted, decisions_source)
