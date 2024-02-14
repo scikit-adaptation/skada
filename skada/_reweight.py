@@ -7,6 +7,7 @@
 import warnings
 
 import numpy as np
+from cvxopt import matrix, solvers
 from scipy.stats import multivariate_normal
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics.pairwise import pairwise_kernels
@@ -697,10 +698,6 @@ class TarSAdapter(BaseAdapter):
     ----------
     gamma : float or array like
         Parameters for the kernels.
-    tol : float, default=1e-6
-        Tolerance for the stopping criterion in the optimization.
-    max_iter : int, default=1000
-        Number of maximum iteration before stopping the optimization.
     random_state : int, RandomState instance or None, default=None
         Determines random number generation for dataset creation. Pass an int
         for reproducible output across multiple function calls.
@@ -723,16 +720,10 @@ class TarSAdapter(BaseAdapter):
 
     def __init__(
         self,
-        gamma,  # XXX use the auto/scale mode as done with sklearn SVC
-        tol=1e-6,
-        max_iter=1000,
-        random_state=None,
+        gamma
     ):
         super().__init__()
         self.gamma = gamma
-        self.tol = tol
-        self.max_iter = max_iter
-        self.random_state = random_state
 
     def fit(self, X, y, sample_domain=None, **kwargs):
         """Fit adaptation parameters.
@@ -751,49 +742,6 @@ class TarSAdapter(BaseAdapter):
         self : object
             Returns self.
         """
-        X, sample_domain = check_X_domain(
-            X,
-            sample_domain,
-            allow_multi_source=True,
-            allow_multi_target=True
-        )
-        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
-
-        m = X_source.shape[0]
-        n = X_target.shape[0]
-
-        # check y is discrete or continuous
-        discrete =  np.issubdtype(array.dtype, np.integer):
-
-        # compute A
-        L = pairwise_kernels(y, metric="rbf", gamma=self.gamma)  # XXX check if y is discrete
-        K = pairwise_kernels(X_source, metric="rbf", gamma=gamma)
-        _lambda = 1e-8
-        gamma = L @ np.linalg.inv(L + _lambda * np.eye(m))
-        A = gamma @ K @ gamma.T
-
-        # compute R
-        if discrete:
-            classes = np.unique(y)
-            R = np.zeros((X_target.shape[0], len(classes)))
-            for i, c in enumerate(classes):
-                R[:, i] = (y == c).astype(int)
-        else:
-            lambda_beta = 1e-8
-            R = L @ np.linalg.inv(L + lambda_beta * np.eye(m))
-    
-        # compute M
-        K_cross = pairwise_kernels(X_target, X_source, metric="rbf", gamma=gamma)
-        M = np.ones((1, n)) @ K_cross @ gamma.T
-
-        # solve the optimization problem
-        B_beta = 10
-        eps = B_beta / (4 * np.sqrt(m))
-        ...
-
-        self.alpha_, self.centers_ = self._weights_optimization(
-            self.gamma, X_source, X_target
-        )
         return self
 
     def adapt(self, X, y=None, sample_domain=None, **kwargs):
@@ -819,21 +767,65 @@ class TarSAdapter(BaseAdapter):
         """
         X, sample_domain = check_X_domain(
             X,
-            sample_domain
+            sample_domain,
+            allow_multi_source=True,
+            allow_multi_target=True
         )
-        source_idx = extract_source_indices(sample_domain)
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
 
-        if source_idx.sum() > 0:
-            source_idx, = np.where(source_idx)
-            A = pairwise_kernels(
-                X[source_idx],
-                self.centers_,
-                metric="rbf",
-                gamma=self.best_gamma_
-            )
-            source_weights = A @ self.alpha_
-            weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
-            weights[source_idx] = source_weights
+        m = X_source.shape[0]
+        n = X_target.shape[0]
+
+        # check y is discrete or continuous
+        discrete = np.issubdtype(y.dtype, np.integer)
+
+        # compute A
+        L = pairwise_kernels(y, metric="rbf", gamma=self.gamma)
+        K = pairwise_kernels(X_source, metric="rbf", gamma=self.gamma)
+        _lambda = 1e-8
+        gamma = L @ np.linalg.inv(L + _lambda * np.eye(m))
+        A = gamma @ K @ gamma.T
+
+        # compute R
+        if discrete:
+            classes = np.unique(y)
+            R = np.zeros((X_target.shape[0], len(classes)))
+            for i, c in enumerate(classes):
+                R[:, i] = (y == c).astype(int)
         else:
-            weights = None
+            lambda_beta = 1e-8
+            R = L @ np.linalg.inv(L + lambda_beta * np.eye(m))
+
+        # compute M
+        K_cross = pairwise_kernels(X_target, X_source, metric="rbf", gamma=self.gamma)
+        M = np.ones((1, n)) @ K_cross @ gamma.T
+
+        # solve the optimization problem
+        B_beta = 10
+        eps = B_beta / (4 * np.sqrt(m))
+
+        P = 0.5 * matrix(R.T @ A @ R)
+        q = - (m/n) * matrix(M @ R)
+        G = matrix(
+            np.vstack(
+                R,
+                - R,
+                np.sum(R, axis=0),
+                - np.sum(R, axis=0)
+            )
+        )
+        h = matrix(
+            np.vstack(
+                B_beta,
+                np.zeros((m, 1)),
+                m + m * eps,
+                - m + m * eps
+            )
+        )
+        sol = solvers.qp(P, q, G, h)
+        alpha = np.array(sol['x'])
+        beta = R @ alpha
+
+        weights = np.stack([beta, np.ones(n)], axis=1)
+
         return AdaptationOutput(X=X, sample_weights=weights)
