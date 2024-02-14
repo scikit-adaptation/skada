@@ -116,7 +116,14 @@ class DAEstimator(BaseEstimator):
     """
 
     __metadata_request__fit = {'sample_domain': True}
-    __metadata_request__transform = {'sample_domain': True, 'allow_source': True}
+    __metadata_request__partial_fit = {'sample_domain': True}
+    __metadata_request__predict = {'sample_domain': True, 'allow_source': True}
+    __metadata_request__predict_proba = {'sample_domain': True, 'allow_source': True}
+    __metadata_request__predict_log_proba = {
+        'sample_domain': True, 'allow_source': True}
+    __metadata_request__score = {'sample_domain': True, 'allow_source': True}
+    __metadata_request__decision_function = {
+        'sample_domain': True, 'allow_source': True}
 
     @abstractmethod
     def fit(self, X, y=None, sample_domain=None, *, sample_weight=None):

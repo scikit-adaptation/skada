@@ -185,7 +185,8 @@ class JDOTRegressor(DAEstimator):
     def fit(self, X, y=None, sample_domain=None, *, sample_weight=None):
         """Fit adaptation parameters"""
 
-        Xs, Xt, ys, yt, ws, wt = source_target_split(X, y, sample_weight, sample_domain=sample_domain)
+        Xs, Xt, ys, yt, ws, wt = source_target_split(
+            X, y, sample_weight, sample_domain=sample_domain)
 
         res = solve_jdot_regression(Xs, ys, Xt, self.base_estimator,
                                     alpha=self.alpha, n_iter_max=self.n_iter_max,
@@ -196,4 +197,8 @@ class JDOTRegressor(DAEstimator):
     def predict(self, X, sample_domain=None, *, sample_weight=None):
         """Predict using the model"""
         check_is_fitted(self)
+        if sample_domain is not None and np.any(sample_domain < 0):
+            warnings.warn(
+                'Source domain detected. Predictor is trained on target'
+                'and prediction might be biased.')
         return self.estimator_.predict(X)

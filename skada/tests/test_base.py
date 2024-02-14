@@ -6,6 +6,7 @@ import numpy as np
 
 from skada.base import BaseAdapter, DAEstimator
 
+
 def test_BaseAdapter():
 
     X = np.random.rand(10, 2)

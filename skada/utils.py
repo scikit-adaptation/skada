@@ -244,5 +244,6 @@ def source_target_split(
     source_idx = extract_source_indices(sample_domain)
 
     return list(chain.from_iterable(
-        (a[source_idx], a[~source_idx]) if not a is None else (None,None) for a in arrays
+        (a[source_idx], a[~source_idx]) if a is not None else (None, None)
+        for a in arrays
     ))

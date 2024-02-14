@@ -117,10 +117,10 @@ def test_source_target_split():
     X_source, X_target, weights_source, weights_target = source_target_split(
         X, None, sample_domain=sample_domain)
 
-    assert X_source.shape == (2 * n_samples_source, 2), "X_source shape mismatch" 
+    assert X_source.shape == (2 * n_samples_source, 2), "X_source shape mismatch"
     assert X_target.shape == (2 * n_samples_target, 2), "X_target shape mismatch"
     assert weights_source is None, "weights_source should be None"
-    assert weights_target is None, "weights_target should be None"   
+    assert weights_target is None, "weights_target should be None"
 
 
 def test_check_X_y_allow_exceptions():
