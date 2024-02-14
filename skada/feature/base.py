@@ -101,9 +101,7 @@ class DomainBalancedSampler(Sampler):
         self.negative_indices = [
             idx for idx, sample in enumerate(dataset) if sample[0]["sample_domain"] < 0
         ]
-        self.num_samples = (
-            min(len(self.positive_indices), len(self.negative_indices)) * 2
-        )
+        self.num_samples = len(self.positive_indices)
 
     def __iter__(self):
         positive_sampler = torch.utils.data.sampler.RandomSampler(self.positive_indices)
@@ -112,7 +110,7 @@ class DomainBalancedSampler(Sampler):
         positive_iter = iter(positive_sampler)
         negative_iter = iter(negative_sampler)
 
-        for _ in range(self.num_samples // 2):
+        for _ in range(self.num_samples):
             try:
                 pos_idx = self.positive_indices[next(positive_iter)]
             except StopIteration:
@@ -202,7 +200,7 @@ class DomainAwareModule(torch.nn.Module):
             self.module_, self.intermediate_layers, [self.layer_name]
         )
 
-    def forward(self, X, sample_domain, is_fit=False):
+    def forward(self, X, sample_domain, is_fit=False, return_features=False):
         if is_fit:
             X_s = X[sample_domain > 0]
             X_t = X[sample_domain < 0]
@@ -215,17 +213,31 @@ class DomainAwareModule(torch.nn.Module):
             if self.domain_classifier_ is not None:
                 domain_pred_s = self.domain_classifier_(features_s)
                 domain_pred_t = self.domain_classifier_(features_t)
-                domain_pred = torch.cat((domain_pred_s, domain_pred_t), dim=0)
+                domain_pred = torch.empty((len(sample_domain)))
+                domain_pred[sample_domain > 0] = domain_pred_s
+                domain_pred[sample_domain < 0] = domain_pred_t
             else:
                 domain_pred = None
+
+            y_pred = torch.empty((len(sample_domain), y_pred_s.shape[1]))
+            y_pred[sample_domain > 0] = y_pred_s
+            y_pred[sample_domain < 0] = y_pred_t
+
+            features = torch.empty((len(sample_domain), features_s.shape[1]))
+            features[sample_domain > 0] = features_s
+            features[sample_domain < 0] = features_t
+
             return (
-                torch.cat((y_pred_s, y_pred_t), dim=0),  # predictions
-                domain_pred,  # domain predictions
-                torch.cat((features_s, features_t), dim=0),  # features
-                sample_domain,  # domains
+                y_pred,
+                domain_pred,
+                features,
+                sample_domain,
             )
         else:
-            return self.module_(X)
+            if return_features:
+                return self.module_(X), self.intermediate_layers[self.layer_name]
+            else:
+                return self.module_(X)
 
 
 class DomainAwareNet(NeuralNetClassifier):
@@ -241,9 +253,7 @@ class DomainAwareNet(NeuralNetClassifier):
         Keyword arguments passed to the skorch NeuralNetClassifier class.
     """
 
-    def __init__(
-        self, module, iterator_train=None, **kwargs
-    ):
+    def __init__(self, module, iterator_train=None, **kwargs):
         # TODO val is not working
         # if train_split is None:
         #     iterator_valid = None
@@ -255,11 +265,7 @@ class DomainAwareNet(NeuralNetClassifier):
             DomainBalancedDataLoader if iterator_train is None else iterator_train
         )
 
-        super().__init__(
-            module,
-            iterator_train=iterator_train,
-            **kwargs
-        )
+        super().__init__(module, iterator_train=iterator_train, **kwargs)
 
     def fit(self, X, y, sample_domain=None, **fit_params):
         """Fit the model
@@ -295,9 +301,7 @@ class DomainAwareNet(NeuralNetClassifier):
                         "with the domain of each sample."
                     )
             else:
-                raise ValueError(
-                    "Dataset should contain a dict as X."
-                )
+                raise ValueError("Dataset should contain a dict as X.")
         else:
             X = {"X": X}
             X["sample_domain"] = sample_domain
@@ -337,9 +341,7 @@ class DomainAwareNet(NeuralNetClassifier):
                         "with the domain of each sample."
                     )
             else:
-                raise ValueError(
-                    "Dataset should contain a dict as X."
-                )
+                raise ValueError("Dataset should contain a dict as X.")
         else:
             X = {"X": X}
             X["sample_domain"] = sample_domain
@@ -372,3 +374,19 @@ class DomainAwareNet(NeuralNetClassifier):
             X = {"X": X}
             X["sample_domain"] = sample_domain
         return super().score(X, y, **score_params)
+
+    def predict_features(self, X):
+        """get features
+
+        Parameters
+        ----------
+        X : dict, torch tensor, array-like or torch dataset
+            The input data. If a dict, it should contain a key 'X' with the
+            input data and a key 'sample_domain' with the domain of each
+            sample.
+            If X is a dataset, the dataset should return a dict..
+        """
+        _, features = self.module_(
+            X, sample_domain=None, is_fit=False, return_features=True
+        )
+        return features

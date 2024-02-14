@@ -18,7 +18,13 @@ from ._losses import dan_loss, deepcoral_loss, deepjdot_loss
 from ._divergence import DeepCoral, DeepCoralLoss
 from ._optimal_transport import DeepJDOT
 from ._adversarial import DANN, CDAN
-from ._modules import ToyModule, ToyCNN, DomainClassifier
+from ._modules import (
+    ToyModule,
+    ToyCNN,
+    DomainClassifier,
+    MNISTtoUSPSNet,
+)
+
 
 __all__ = [
     'dan_loss',
@@ -32,4 +38,5 @@ __all__ = [
     'ToyModule',
     'ToyCNN',
     'DomainClassifier',
+    'MNISTtoUSPSNet',
 ]
