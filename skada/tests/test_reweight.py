@@ -16,6 +16,7 @@ from skada import (
     DiscriminatorReweightDensity,
     KLIEPAdapter,
     KLIEP,
+    TarSAdapter,
     make_da_pipeline,
 )
 
@@ -40,6 +41,7 @@ import pytest
         ),
         KLIEP(gamma=[0.1, 1], random_state=42),
         KLIEP(gamma=0.2),
+        make_da_pipeline(TarSAdapter(1.0), LogisticRegression()),
     ],
 )
 def test_reweight_estimator(estimator, da_dataset):
