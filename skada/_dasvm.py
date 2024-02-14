@@ -42,8 +42,11 @@ class DASVMEstimator(BaseEstimator):
     __metadata_request__transform = {'sample_domain': True, 'allow_source': True}
 
     def __init__(
-            self, base_estimator=None,
-            k=3, Stop=1_000, **kwargs
+            self,
+            base_estimator=None,
+            k=3,
+            Stop=1_000,
+            **kwargs
             ):
         super().__init__()
         if base_estimator is None:
@@ -76,23 +79,29 @@ class DASVMEstimator(BaseEstimator):
     def _get_X_y(
             self, new_estimator, index_target_added, index_source_deleted, Xs, Xt, ys
             ):
-        # Allow to get the X and y arrays at a state of the algorithm
-        # We take the source datapoints that have not been
-        # deleted, and the target points
-        # that have been added
+        """
+        Allow to get the X and y arrays at a state of the algorithm
+        We take the source datapoints that have not been
+        deleted, and the target points
+        that have been added
+        """
         X = np.concatenate((Xs[~index_source_deleted], Xt[index_target_added]))
-        y = np.concatenate((ys[~index_source_deleted], new_estimator.predict(
-            Xt[index_target_added])))
+        self.semi_labels = new_estimator.predict(
+            Xt[index_target_added])
+        self.current_classes = np.unique(self.semi_labels)
+        y = np.concatenate((ys[~index_source_deleted], self.semi_labels))
         return X, y
 
     def _get_decision(self, new_estimator, X, indices_list):
-        # We look at the points that have either not been discarded or not been added
-        # We are assuming that the `decision_function` from the base_estimator is:
-        # giving c values between -1 and c-1, not having the same
-        # integer parts, for the same datapoint x (the same as for SVC).
-        # When c == 2, we assume we only get one value (as for SVC)
-        # We take c to be the number of classes on which `new_estimator`
-        # has been fitted
+        """
+        We look at the points that have either not been discarded or not been added
+        We are assuming that the `decision_function` from the base_estimator is:
+        giving c values between -1 and c-1, not having the same
+        integer parts, for the same datapoint x (the same as for SVC).
+        When c == 2, we assume we only get one value (as for SVC)
+        We take c to be the number of classes on which `new_estimator`
+        has been fitted
+        """
         if sum(~indices_list) > 0:
             df = new_estimator.decision_function(X[~indices_list])
             # df.ndim allows us to know if we are in the
@@ -100,7 +109,9 @@ class DASVMEstimator(BaseEstimator):
             if df.ndim == 1:
                 decisions = np.ones(X.shape[0])
                 decisions[~indices_list] = df
-                decisions = np.array([-decisions, decisions]).T
+                # We get the decision to be in the same form than for multiclass:
+                # shape (n_sample, n_class), with the decision boundary at n_class-1
+                decisions = np.array([-decisions+1, decisions+1]).T
             else:
                 decisions = np.ones((X.shape[0], df.shape[1]))
                 decisions[~indices_list] = df
@@ -193,13 +204,19 @@ class DASVMEstimator(BaseEstimator):
 
             # look at those that have not been discarded
             decisions_source = self._get_decision(new_estimator, Xs, index_source_deleted)
+
+            # We get the distance to the margin:
+            predicted_labels = new_estimator.predict(Xs)
+            margin_distances = np.min(decisions_source-(self.current_classes.shape[0]-1), axis=0)
             # look at those that haven't been added
             decisions_target = self._get_decision(new_estimator, Xt, index_target_added)
 
-            # We want to take values the estimator is unsure about, meaning that we
-            # want those that have values the closest that we can to c-1
+            # We want to take values that are close to the margin, meaning that we
+            # want those that have values the closest that we can to c-1+margin_distance, 
             # (to 0 when label='binary', or 4 when is its 'multiclass')
-            decisions_target = -np.abs(decisions_target-self.n_class-1)
+            if decisions_target.ndim>1:
+                for j in range(self.current_classes.shape[0]):
+                    decisions_target[:, j] = -np.abs(decisions_target[:, j]-(self.n_class-1+margin_distances[j]))
 
             # doing the selection on the labeled data
             self._find_points_next_step(index_source_deleted, decisions_source)
