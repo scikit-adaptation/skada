@@ -75,13 +75,13 @@ plt.figure(2, (10, 5))
 plt.subplot(1, 2, 1)
 plt.scatter(Xs[:, 0], Xs[:, 1], c=ys, label="Prediction")
 plt.imshow(Z, extent=(ax[0], ax[1], ax[2], ax[3]), origin='lower', alpha=0.5)
-plt.title(f"SVR Prediction on source (MSE={mse_s:.2f})")
+plt.title(f"KRR Prediction on source (MSE={mse_s:.2f})")
 plt.axis(ax)
 
 plt.subplot(1, 2, 2)
 plt.scatter(Xt[:, 0], Xt[:, 1], c=yt, label="Prediction")
 plt.imshow(Z, extent=(ax[0], ax[1], ax[2], ax[3]), origin='lower', alpha=0.5)
-plt.title(f"SVR Prediction on target (MSE={mse_t:.2f})")
+plt.title(f"KRR Prediction on target (MSE={mse_t:.2f})")
 plt.axis(ax)
 
 

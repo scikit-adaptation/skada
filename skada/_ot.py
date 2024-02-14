@@ -5,13 +5,14 @@
 
 import numpy as np
 from sklearn.base import clone
+from sklearn.utils.validation import check_is_fitted
 from .base import DAEstimator
 from .utils import source_target_split
 import ot
 import warnings
 
 
-def solve_jdot_regression(Xs, ys, Xt, base_estimator, alpha=0.5,
+def solve_jdot_regression(Xs, ys, Xt, base_estimator, alpha=0.5, ws=None, wt=None,
                           n_iter_max=100, tol=1e-5, verbose=False, **kwargs):
     """Solve the joint distribution optimal transport regression problem
 
@@ -32,6 +33,10 @@ def solve_jdot_regression(Xs, ys, Xt, base_estimator, alpha=0.5,
         approaches can be used with the risk that the fixed point might not converge.
     alpha : float, default=0.5
         The trade-off parameter between the feature and label loss in OT metric
+    ws : array-like of shape (n_samples,)
+        Source domain weights (will ne normalized to sum to 1).
+    wt : array-like of shape (m_samples,)
+        Target domain weights (will ne normalized to sum to 1).
     n_iter_max: int
         Max number of JDOT alternat optimization iterations.
     tol: float>0
@@ -66,6 +71,14 @@ def solve_jdot_regression(Xs, ys, Xt, base_estimator, alpha=0.5,
     Mf = Mf / Mf.mean()
 
     nt = Xt.shape[0]
+    if ws is None:
+        ws = np.ones((len(ys),)) / len(ys)
+    else :
+        ws = ws / ws.sum()
+    if wt is None:
+        wt = np.ones((nt,)) / nt
+    else:
+        wt = wt / wt.sum()
 
     lst_loss_ot = []
     lst_loss_tgt_labels = []
@@ -81,7 +94,7 @@ def solve_jdot_regression(Xs, ys, Xt, base_estimator, alpha=0.5,
             M = (1 - alpha) * Mf
 
         # sole OT problem
-        sol = ot.solve(M)
+        sol = ot.solve(M, ws, wt)
 
         T = sol.plan
         loss_ot = sol.value
@@ -172,7 +185,7 @@ class JDOTRegressor(DAEstimator):
     def fit(self, X, y=None, sample_domain=None, *, sample_weight=None):
         """Fit adaptation parameters"""
 
-        Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
+        Xs, Xt, ys, yt, ws, wt = source_target_split(X, y, sample_weight, sample_domain=sample_domain)
 
         res = solve_jdot_regression(Xs, ys, Xt, self.base_estimator,
                                     alpha=self.alpha, n_iter_max=self.n_iter_max,
@@ -182,4 +195,5 @@ class JDOTRegressor(DAEstimator):
 
     def predict(self, X, sample_domain=None, *, sample_weight=None):
         """Predict using the model"""
+        check_is_fitted(self)
         return self.estimator_.predict(X)
