@@ -65,10 +65,12 @@ class ReweightDensityAdapter(BaseAdapter):
         X, sample_domain = check_X_domain(X, sample_domain)
         X_source, X_target = source_target_split(X, sample_domain=sample_domain)
 
-        self.weight_estimator_source_ = clone(self.weight_estimator)
-        self.weight_estimator_target_ = clone(self.weight_estimator)
-        self.weight_estimator_source_.fit(X_source)
-        self.weight_estimator_target_.fit(X_target)
+        source_estimator = clone(self.weight_estimator)
+        source_estimator.fit(X_source)
+        target_estimator = clone(self.weight_estimator)
+        target_estimator.fit(X_target)
+        self.weight_estimator_source_ = source_estimator
+        self.weight_estimator_target_ = target_estimator
         return self
 
     def adapt(self, X, y=None, sample_domain=None):
@@ -85,12 +87,13 @@ class ReweightDensityAdapter(BaseAdapter):
 
         Returns
         -------
-        X_t : array-like, shape (n_samples, n_components)
-            The data (same as X).
-        y_t : array-like, shape (n_samples,)
-            The labels (same as y).
-        weights : array-like, shape (n_samples,)
-            The weights of the samples.
+        output : :class:`skada.base.AdaptationOutput`
+            Dictionary-like object, with the following attributes.
+
+            X_t : array-like, shape (n_samples, n_components)
+                The data (same as X).
+            weights : array-like, shape (n_samples,)
+                The weights of the samples.
         """
         check_is_fitted(self)
         X, sample_domain = check_X_domain(X, sample_domain)
@@ -215,12 +218,13 @@ class GaussianReweightDensityAdapter(BaseAdapter):
 
         Returns
         -------
-        X_t : array-like, shape (n_samples, n_components)
-            The data (same as X).
-        y_t : array-like, shape (n_samples,)
-            The labels (same as y).
-        weights : array-like, shape (n_samples,)
-            The weights of the samples.
+        output : :class:`skada.base.AdaptationOutput`
+            Dictionary-like object, with the following attributes.
+
+            X_t : array-like, shape (n_samples, n_components)
+                The data (same as X).
+            weights : array-like, shape (n_samples,)
+                The weights of the samples.
         """
         check_is_fitted(self)
         X, sample_domain = check_X_domain(X, sample_domain)
@@ -352,12 +356,13 @@ class DiscriminatorReweightDensityAdapter(BaseAdapter):
 
         Returns
         -------
-        X_t : array-like, shape (n_samples, n_components)
-            The data (same as X).
-        y_t : array-like, shape (n_samples,)
-            The labels (same as y).
-        weights : array-like, shape (n_samples,)
-            The weights of the samples.
+        output : :class:`skada.base.AdaptationOutput`
+            Dictionary-like object, with the following attributes.
+
+            X_t : array-like, shape (n_samples, n_components)
+                The data (same as X).
+            weights : array-like, shape (n_samples,)
+                The weights of the samples.
         """
         check_is_fitted(self)
         X, sample_domain = check_X_domain(X, sample_domain)
@@ -581,12 +586,13 @@ class KLIEPAdapter(BaseAdapter):
 
         Returns
         -------
-        X_t : array-like, shape (n_samples, n_components)
-            The data (same as X).
-        y_t : array-like, shape (n_samples,)
-            The labels (same as y).
-        weights : array-like, shape (n_samples,)
-            The weights of the samples.
+        output : :class:`skada.base.AdaptationOutput`
+            Dictionary-like object, with the following attributes.
+
+            X_t : array-like, shape (n_samples, n_components)
+                The data (same as X).
+            weights : array-like, shape (n_samples,)
+                The weights of the samples.
         """
         check_is_fitted(self)
         X, sample_domain = check_X_domain(X, sample_domain)
