@@ -110,7 +110,7 @@ class ReweightDensityAdapter(BaseAdapter):
             weights[source_idx] = source_weights
         else:
             weights = None
-        return AdaptationOutput(X=X, sample_weights=weights)
+        return AdaptationOutput(X=X, sample_weight=weights)
 
 
 def ReweightDensity(
@@ -244,7 +244,7 @@ class GaussianReweightDensityAdapter(BaseAdapter):
             weights[source_idx] = source_weights
         else:
             weights = None
-        return AdaptationOutput(X=X, sample_weights=weights)
+        return AdaptationOutput(X=X, sample_weight=weights)
 
 
 def GaussianReweightDensity(
@@ -376,7 +376,7 @@ class DiscriminatorReweightDensityAdapter(BaseAdapter):
             weights[source_idx] = source_weights
         else:
             weights = None
-        return AdaptationOutput(X=X, sample_weights=weights)
+        return AdaptationOutput(X=X, sample_weight=weights)
 
 
 def DiscriminatorReweightDensity(
@@ -611,7 +611,7 @@ class KLIEPAdapter(BaseAdapter):
             weights[source_idx] = source_weights
         else:
             weights = None
-        return AdaptationOutput(X=X, sample_weights=weights)
+        return AdaptationOutput(X=X, sample_weight=weights)
 
 
 def KLIEP(
