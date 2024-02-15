@@ -59,10 +59,10 @@ API and modules
    :toctree: gen_modules/
    :template: class.rst
 
-   DeepCoral
-   DeepJDOT
-   DANN
-   CDAN
+   DeepCoralLoss
+   DeepJDOTLoss
+   DANLoss
+   CDANLoss
 
 .. autosummary::
    :toctree: gen_modules/
@@ -71,6 +71,10 @@ API and modules
    dan_loss
    deepcoral_loss
    deepjdot_loss
+   DeepCoral
+   DeepJDOT
+   DANN
+   CDAN
 
 .. currentmodule:: skada.metrics
 
