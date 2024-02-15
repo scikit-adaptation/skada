@@ -9,6 +9,7 @@ from typing import Union
 
 import numpy as np
 from sklearn.base import BaseEstimator, clone
+from sklearn.exceptions import UnsetMetadataPassedError
 from sklearn.utils import Bunch
 from sklearn.utils.metadata_routing import get_routing_for_object
 from sklearn.utils.metaestimators import available_if
@@ -43,6 +44,20 @@ def _estimator_has(attr):
 
 class AdaptationOutput(Bunch):
     pass
+
+
+class IncompatibleMetadataError(UnsetMetadataPassedError):
+    """The exception is designated to report the situation when the adapter output
+    the key, like 'sample_weight', that is not explicitly consumed by the following
+    estimator in the pipeline.
+
+    The exception overrides :class:`~sklearn.exceptions.UnsetMetadataPassedError`
+    when there is a reason to believe that the original exception was thrown because
+    of the adapter output rather than being caused by the input to a specific function.
+    """
+
+    def __init__(self, message):
+        super().__init__(message=message, unrequested_params={}, routed_params={})
 
 
 class BaseAdapter(BaseEstimator):
@@ -220,6 +235,35 @@ class BaseSelector(BaseEstimator):
         self._is_final = True
         return self
 
+    def _route_and_merge_params(self, routing_request, X, params=None):
+        if params is None:
+            params = {}
+        if isinstance(X, AdaptationOutput):
+            for k, v in X.items():
+                if k != 'X':
+                    params[k] = v
+            X_out = X['X']
+        else:
+            X_out = X
+        try:
+            routed_params = routing_request._route_params(params=params)
+        except UnsetMetadataPassedError as e:
+            # check if every parameter given by `AdaptationOutput` object
+            # was accepted by the downstream (base) estimator
+            if isinstance(X, AdaptationOutput):
+                for k in X:
+                    if k != 'X' and routing_request.requests.get(k) is None:
+                        method = routing_request.method
+                        raise IncompatibleMetadataError(
+                            f"The adapter provided '{k}' parameter which is not explicitly set as "  # noqa
+                            f"requested or not for '{routing_request.owner}.{method}'.\n"  # noqa
+                            f"Make sure that metadata routing is properly setup, e.g. by calling 'set_{method}_request()'. "  # noqa
+                            "See documentation at https://scikit-learn.org/stable/metadata_routing.html"  # noqa
+                        )
+            # re-raise exception if the problem was not caused by the adapter
+            raise e
+        return X_out, routed_params
+
     def _remove_masked(self, X, y, routed_params):
         """Internal API for removing masked samples before passing them
         to the final estimator. Only applicable for the final estimator
@@ -262,15 +306,8 @@ class Shared(BaseSelector):
         return self.base_estimator_
 
     def fit(self, X, y, **params):
-        # xxx(okachaiev): this code is awkward, and it's duplicated everywhere
         routing = get_routing_for_object(self.base_estimator)
-        routed_params = routing.fit._route_params(params=params)
-        # xxx(okachaiev): code duplication
-        if isinstance(X, AdaptationOutput):
-            for k, v in X.items():
-                if k != 'X' and k in routed_params:
-                    routed_params[k] = v
-            X = X['X']
+        X, routed_params = self._route_and_merge_params(routing.fit, X, params)
         X, y, routed_params = self._remove_masked(X, y, routed_params)
         estimator = clone(self.base_estimator)
         estimator.fit(X, y, **routed_params)
@@ -295,12 +332,8 @@ class Shared(BaseSelector):
     # xxx(okachaiev): fail if unknown domain is given
     def _route_to_estimator(self, method_name, X, y=None, **params):
         check_is_fitted(self)
-        routed_params = getattr(self.routing_, method_name)._route_params(params=params)
-        if isinstance(X, AdaptationOutput):
-            for k, v in X.items():
-                if k != 'X' and k in routed_params:
-                    routed_params[k] = v
-            X = X['X']
+        request = getattr(self.routing_, method_name)
+        X, routed_params = self._route_and_merge_params(request, X, params)
         method = getattr(self.base_estimator_, method_name)
         output = method(X, **routed_params) if y is None else method(
             X, y, **routed_params
@@ -318,18 +351,10 @@ class PerDomain(BaseSelector):
     def fit(self, X, y, **params):
         # xxx(okachaiev): use check_*_domain to derive default domain labels
         sample_domain = params['sample_domain']
-        # xxx(okachaiev): this code is awkward, and it's duplicated everywhere
         routing = get_routing_for_object(self.base_estimator)
-        routed_params = routing.fit._route_params(params=params)
-        # xxx(okachaiev): code duplication
-        if isinstance(X, AdaptationOutput):
-            for k, v in X.items():
-                if k != 'X' and k in routed_params:
-                    routed_params[k] = v
-            X = X['X']
+        X, routed_params = self._route_and_merge_params(routing.fit, X, params)
         X, y, routed_params = self._remove_masked(X, y, routed_params)
         estimators = {}
-        # xxx(okachaiev): maybe return_index?
         for domain_label in np.unique(sample_domain):
             idx, = np.where(sample_domain == domain_label)
             estimator = clone(self.base_estimator)
@@ -345,13 +370,8 @@ class PerDomain(BaseSelector):
 
     def _route_to_estimator(self, method_name, X, y=None, **params):
         check_is_fitted(self)
-        routed_params = getattr(self.routing_, method_name)._route_params(params=params)
-        # xxx(okachaiev): again, code duplication
-        if isinstance(X, AdaptationOutput):
-            for k, v in X.items():
-                if k != 'X' and k in routed_params:
-                    routed_params[k] = v
-            X = X['X']
+        request = getattr(self.routing_, method_name)
+        X, routed_params = self._route_and_merge_params(request, X, params)
         # xxx(okachaiev): use check_*_domain to derive default domain labels
         sample_domain = params['sample_domain']
         output = None
