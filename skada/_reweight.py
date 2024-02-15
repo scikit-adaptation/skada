@@ -62,11 +62,7 @@ class ReweightDensityAdapter(BaseAdapter):
         self : object
             Returns self.
         """
-        # xxx(okachaiev): that's the reason we need a way to cache this call
-        X, sample_domain = check_X_domain(
-            X,
-            sample_domain
-        )
+        X, sample_domain = check_X_domain(X, sample_domain)
         X_source, X_target = source_target_split(X, sample_domain=sample_domain)
 
         self.weight_estimator_source_ = clone(self.weight_estimator)
@@ -96,10 +92,8 @@ class ReweightDensityAdapter(BaseAdapter):
         weights : array-like, shape (n_samples,)
             The weights of the samples.
         """
-        X, sample_domain = check_X_domain(
-            X,
-            sample_domain
-        )
+        check_is_fitted(self)
+        X, sample_domain = check_X_domain(X, sample_domain)
         source_idx = extract_source_indices(sample_domain)
 
         # xxx(okachaiev): move this to API
@@ -198,10 +192,7 @@ class GaussianReweightDensityAdapter(BaseAdapter):
         self : object
             Returns self.
         """
-        X, sample_domain = check_X_domain(
-            X,
-            sample_domain
-        )
+        X, sample_domain = check_X_domain(X, sample_domain)
         X_source, X_target = source_target_split(X, sample_domain=sample_domain)
 
         self.mean_source_ = X_source.mean(axis=0)
@@ -232,10 +223,7 @@ class GaussianReweightDensityAdapter(BaseAdapter):
             The weights of the samples.
         """
         check_is_fitted(self)
-        X, sample_domain = check_X_domain(
-            X,
-            sample_domain
-        )
+        X, sample_domain = check_X_domain(X, sample_domain)
         source_idx = extract_source_indices(sample_domain)
 
         # xxx(okachaiev): move this to API
@@ -340,17 +328,14 @@ class DiscriminatorReweightDensityAdapter(BaseAdapter):
         self : object
             Returns self.
         """
-        X, sample_domain = check_X_domain(
-            X,
-            sample_domain
-        )
+        X, sample_domain = check_X_domain(X, sample_domain)
         source_idx = extract_source_indices(sample_domain)
-
         source_idx, = np.where(source_idx)
-        self.domain_classifier_ = clone(self.domain_classifier)
         y_domain = np.ones(X.shape[0], dtype=np.int32)
         y_domain[source_idx] = 0
-        self.domain_classifier_.fit(X, y_domain)
+        domain_classifier = clone(self.domain_classifier)
+        domain_classifier.fit(X, y_domain)
+        self.domain_classifier_ = domain_classifier
         return self
 
     def adapt(self, X, y=None, sample_domain=None, **kwargs):
@@ -375,10 +360,7 @@ class DiscriminatorReweightDensityAdapter(BaseAdapter):
             The weights of the samples.
         """
         check_is_fitted(self)
-        X, sample_domain = check_X_domain(
-            X,
-            sample_domain
-        )
+        X, sample_domain = check_X_domain(X, sample_domain)
         source_idx = extract_source_indices(sample_domain)
 
         # xxx(okachaiev): move this to API
@@ -606,10 +588,8 @@ class KLIEPAdapter(BaseAdapter):
         weights : array-like, shape (n_samples,)
             The weights of the samples.
         """
-        X, sample_domain = check_X_domain(
-            X,
-            sample_domain
-        )
+        check_is_fitted(self)
+        X, sample_domain = check_X_domain(X, sample_domain)
         source_idx = extract_source_indices(sample_domain)
 
         if source_idx.sum() > 0:

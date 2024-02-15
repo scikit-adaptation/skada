@@ -22,9 +22,6 @@ from skada import (
 import pytest
 
 
-# xxx(okachaiev): the problem with the pipeline being setup this way,
-#                 the estimator does not accept sample_weights (as it
-#                 doesn't request it from the routing)
 @pytest.mark.parametrize(
     "estimator",
     [
