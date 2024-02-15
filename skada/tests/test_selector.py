@@ -5,10 +5,12 @@
 
 import numpy as np
 
-from sklearn.linear_model import LogisticRegression
 from sklearn.datasets import make_regression
+from sklearn.linear_model import LogisticRegression
+from sklearn.utils.metadata_routing import get_routing_for_object
 
 from skada import SubspaceAlignmentAdapter, make_da_pipeline
+from skada.base import PerDomain, Shared
 from skada.datasets import make_shifted_datasets
 from skada.utils import extract_source_indices
 from skada._utils import (
@@ -116,3 +118,11 @@ def test_base_selector_remove_masked_continuous():
     n_source_samples = np.sum(source_idx)
     assert X_output.shape[0] == n_source_samples, 'X output shape mismatch'
     assert X_output.shape[0] == y_output.shape[0]
+
+
+@pytest.mark.parametrize("estimator_cls", [PerDomain, Shared])
+def test_selector_inherits_routing(estimator_cls):
+    lr = LogisticRegression().set_fit_request(sample_weight=True)
+    estimator = estimator_cls(lr)
+    routing = get_routing_for_object(estimator)
+    assert routing.fit.requests['sample_weight']
