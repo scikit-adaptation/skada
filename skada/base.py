@@ -158,7 +158,7 @@ class BaseSelector(BaseEstimator):
         params : mapping of string to any
             Parameter names mapped to their values.
         """
-        params = self.base_estimator.get_params()
+        params = self.base_estimator.get_params(deep=deep)
         params['base_estimator'] = self.base_estimator
         return params
 
