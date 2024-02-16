@@ -133,7 +133,7 @@ def ReweightDensity(
         Pipeline containing the ReweightDensity adapter and the base estimator.
     """
     if base_estimator is None:
-        base_estimator = LogisticRegression()
+        base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
 
     return make_da_pipeline(
         ReweightDensityAdapter(weight_estimator=weight_estimator),
@@ -280,7 +280,7 @@ def GaussianReweightDensity(
            In Journal of Statistical Planning and Inference, 2000.
     """
     if base_estimator is None:
-        base_estimator = LogisticRegression()
+        base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
 
     return make_da_pipeline(
         GaussianReweightDensityAdapter(reg=reg),
@@ -408,7 +408,7 @@ def DiscriminatorReweightDensity(
            In Journal of Statistical Planning and Inference, 2000.
     """
     if base_estimator is None:
-        base_estimator = LogisticRegression()
+        base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
 
     return make_da_pipeline(
         DiscriminatorReweightDensityAdapter(
@@ -615,7 +615,7 @@ class KLIEPAdapter(BaseAdapter):
 
 
 def KLIEP(
-    base_estimator=LogisticRegression(),
+    base_estimator=None,
     gamma=1.0,
     cv=5,
     n_centers=100,
@@ -660,6 +660,8 @@ def KLIEP(
            and Its Application to Covariate Shift Adaptation.
            In NeurIPS, 2007.
     """
+    if base_estimator is None:
+        base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
     return make_da_pipeline(
         KLIEPAdapter(
             gamma=gamma, cv=cv, n_centers=n_centers, tol=tol,
