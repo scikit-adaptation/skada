@@ -769,10 +769,16 @@ class MMDTarSReweightAdapter(BaseAdapter):
         """
         X, sample_domain = check_X_domain(X, sample_domain)
         X_source, X_target = source_target_split(X, sample_domain=sample_domain)
-        if X_source.shape[0] == 0:
-            X_source = self.X_source_
-            y_source = self.y_source_
-        elif y is None:
+
+        m = X_source.shape[0]
+        n = X_target.shape[0]
+
+        # if no source data, return uniform weights for target
+        if m == 0:
+            return AdaptationOutput(X=X, y=y, sample_weights=np.zeros(n))
+
+        # if no y provided, get the source labels from fit method
+        if y is None:
             np.testing.assert_array_equal(
                 X_source,
                 self.X_source_fit_,
@@ -783,11 +789,6 @@ class MMDTarSReweightAdapter(BaseAdapter):
         else:
             X, y = check_X_y_domain(X, y, sample_domain)
             y_source, _ = source_target_split(y, sample_domain=sample_domain)
-        self.X_source_ = X_source
-        self.y_source_ = y_source
-
-        m = X_source.shape[0]
-        n = X_target.shape[0]
 
         # check y is discrete or continuous
         discrete = np.issubdtype(y_source.dtype, np.integer)
@@ -841,7 +842,7 @@ class MMDTarSReweightAdapter(BaseAdapter):
         sol = solvers.qp(P, q, G, h, options={"show_progress": False})
         alpha = np.array(sol['x'])
         beta = R @ alpha
-        weights = np.concatenate([beta.flatten(), np.ones(n)])
+        weights = np.concatenate([beta.flatten(), np.zeros(m + n)])
 
         return AdaptationOutput(X=X, sample_weights=weights)
 
