@@ -38,6 +38,7 @@ from skada import (
 )
 from skada.datasets import make_shifted_datasets
 from skada import source_target_split
+from skada.datasets import DomainAwareDataset
 
 # Use same random seed for multiple calls to make_datasets to
 # ensure same distributions
@@ -118,6 +119,9 @@ for ds_cnt, ds in enumerate(datasets):
     X, y, sample_domain = ds
 
     Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
+
+    dataset = DomainAwareDataset([(Xs, ys, 's'), (Xt, yt, 't')])
+    X, y, sample_domain = dataset.pack_train(as_sources=['s'], as_targets=['t'])
 
     x_min, x_max = X[:, 0].min() - 0.5, X[:, 0].max() + 0.5
     y_min, y_max = X[:, 1].min() - 0.5, X[:, 1].max() + 0.5
