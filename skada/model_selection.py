@@ -118,6 +118,7 @@ class SourceTargetShuffleSplit(BaseDomainAwareShuffleSplit):
     a single domain as a target followed up by the single train/test
     shuffle split.
     """
+
     def __init__(
         self, n_splits=10, *, test_size=None, train_size=None, random_state=None
     ):
@@ -173,6 +174,7 @@ class LeaveOneDomainOut(SplitSampleDomainRequesterMixin):
 
     Provides train/test indices to split data in train/test sets.
     """
+
     def __init__(
         self, max_n_splits=10, *, test_size=None, train_size=None, random_state=None
     ):
