@@ -742,9 +742,9 @@ class TarSAdapter(BaseAdapter):
         self : object
             Returns self.
         """
-        self._X = X
-        self._y = y
-        self._sample_domain = sample_domain
+        self.X_ = X
+        self.y_ = y
+        self.sample_domain_ = sample_domain
         return self
 
     def adapt(self, X, y=None, sample_domain=None, **kwargs):
@@ -768,14 +768,14 @@ class TarSAdapter(BaseAdapter):
         weights : array-like, shape (n_samples,)
             The weights of the samples.
         """
-        np.testing.assert_array_equal(X, self._X)
+        np.testing.assert_array_equal(X, self.X_)
         if y is not None:
-            np.testing.assert_array_equal(y, self._y)
+            np.testing.assert_array_equal(y, self.y_)
         if sample_domain is not None:
-            np.testing.assert_array_equal(sample_domain, self._sample_domain)
+            np.testing.assert_array_equal(sample_domain, self.sample_domain_)
 
-        y = self._y
-        sample_domain = self._sample_domain
+        y = self.y_
+        sample_domain = self.sample_domain_
 
         X, sample_domain = check_X_domain(
             X,
