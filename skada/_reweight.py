@@ -846,7 +846,7 @@ class MMDTarSReweightAdapter(BaseAdapter):
         return AdaptationOutput(X=X, sample_weights=weights)
 
 
-def MMDTarSReweight(base_estimator=LogisticRegression(), gamma=1.0):
+def MMDTarSReweight(base_estimator=None, gamma=1.0):
     """MMDTarSReweight adapter and estimator.
 
     See Section 3 of [4]_ for details.
