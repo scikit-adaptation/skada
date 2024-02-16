@@ -743,7 +743,7 @@ class MMDTarSReweightAdapter(BaseAdapter):
         X_source, _, y_source, _ = source_target_split(
             X, y, sample_domain=sample_domain
         )
-        self.X_source_, self.y_source_ = X_source, y_source
+        self.X_source_fit_, self.y_source_fit_ = X_source, y_source
         return self
 
     def adapt(self, X, y=None, sample_domain=None, **kwargs):
@@ -775,11 +775,11 @@ class MMDTarSReweightAdapter(BaseAdapter):
         elif y is None:
             np.testing.assert_array_equal(
                 X_source,
-                self.X_source_,
-                err_msg="X_source and self.X_source_"
-                "should be equal if y_source is not provided"
+                self.X_source_fit_,
+                err_msg="Source data is different from the one used"
+                " for fitting and new labels are not provided."
             )
-            y_source = self.y_source_
+            y_source = self.y_source_fit_
         else:
             X, y = check_X_y_domain(X, y, sample_domain)
             y_source, _ = source_target_split(y, sample_domain=sample_domain)
