@@ -707,13 +707,10 @@ class MMDTarSReweightAdapter(BaseAdapter):
 
     Attributes
     ----------
-    `best_gamma_` : float
-        The best gamma parameter for the RBF kernel chosen with the likelihood
-        cross validation if several parameters are given as input.
-    `alpha_` : float
-        Solution of the optimization problem.
-    `centers_` : list
-        List of the target data taken as centers for the kernels.
+    `X_source_` : array-like, shape (n_samples, n_features)
+        The source data used for fitting.
+    `y_source_` : array-like, shape (n_samples,)
+        The source labels used for fitting.
 
     References
     ----------
@@ -721,10 +718,7 @@ class MMDTarSReweightAdapter(BaseAdapter):
            In ICML, 2013.
     """
 
-    def __init__(
-        self,
-        gamma
-    ):
+    def __init__(self, gamma):
         super().__init__()
         self.gamma = gamma
 
