@@ -10,7 +10,12 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.utils.metadata_routing import get_routing_for_object
 
 from skada import SubspaceAlignmentAdapter, make_da_pipeline
-from skada.base import PerDomain, Shared
+from skada.base import (
+    AdaptationOutput,
+    IncompatibleMetadataError,
+    PerDomain,
+    Shared,
+)
 from skada.datasets import make_shifted_datasets
 from skada.utils import extract_source_indices
 from skada._utils import (
@@ -126,3 +131,12 @@ def test_selector_inherits_routing(estimator_cls):
     estimator = estimator_cls(lr)
     routing = get_routing_for_object(estimator)
     assert routing.fit.requests['sample_weight']
+
+
+def test_selector_rejects_incompatible_adaptation_output():
+    X = AdaptationOutput(X=np.ones(10), sample_weight=np.zeros(10))
+    y = np.zeros(10)
+    estimator = Shared(LogisticRegression())
+
+    with pytest.raises(IncompatibleMetadataError):
+        estimator.fit(X, y)
