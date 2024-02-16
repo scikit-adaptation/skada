@@ -75,7 +75,7 @@ __all__ = [
     "KLIEPAdapter",
     "KLIEP",
     "KMMAdapter",
-    "KMM"
+    "KMM",
     "ReweightDensityAdapter",
     "ReweightDensity",
 
