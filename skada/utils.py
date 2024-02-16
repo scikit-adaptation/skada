@@ -227,7 +227,10 @@ def source_target_split(
     Parameters
     ----------
     *arrays : sequence of array-like of identical shape (n_samples, n_features)
-        Input features
+        Input features and target variable(s), and or sample_weights to be
+        split. All arrays should have the same length except if None is given
+        then a couple of None variables are returned to allow for optional
+        sample_weight.
     sample_domain : array-like of shape (n_samples,)
         Array specifying the domain labels for each sample.
 
@@ -245,7 +248,8 @@ def source_target_split(
     source_idx = extract_source_indices(sample_domain)
 
     return list(chain.from_iterable(
-        (a[source_idx], a[~source_idx]) for a in arrays
+        (a[source_idx], a[~source_idx]) if a is not None else (None, None)
+        for a in arrays
     ))
 
 
