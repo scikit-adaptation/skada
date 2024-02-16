@@ -235,9 +235,7 @@ class BaseSelector(BaseEstimator):
         self._is_final = True
         return self
 
-    def _route_and_merge_params(self, routing_request, X, params=None):
-        if params is None:
-            params = {}
+    def _route_and_merge_params(self, routing_request, X, params):
         if isinstance(X, AdaptationOutput):
             for k, v in X.items():
                 if k != 'X' and v is not None:
