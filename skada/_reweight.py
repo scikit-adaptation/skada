@@ -840,7 +840,7 @@ class TarSAdapter(BaseAdapter):
             ])
         )
 
-        sol = solvers.qp(P, q, G, h)
+        sol = solvers.qp(P, q, G, h, options={"show_progress": False})
         alpha = np.array(sol['x'])
         beta = R @ alpha
         beta = beta.flatten()
