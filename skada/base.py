@@ -252,7 +252,8 @@ class BaseSelector(BaseEstimator):
             # was accepted by the downstream (base) estimator
             if isinstance(X, AdaptationOutput):
                 for k in X:
-                    if k != 'X' and v is not None and routing_request.requests.get(k) is None:
+                    marker = routing_request.requests.get(k)
+                    if k != 'X' and v is not None and marker is None:
                         method = routing_request.method
                         raise IncompatibleMetadataError(
                             f"The adapter provided '{k}' parameter which is not explicitly set as "  # noqa
@@ -290,8 +291,8 @@ class BaseSelector(BaseEstimator):
         routed_params = {
             # this is somewhat crude way to test is `v` is indexable
             k: v[unmasked_idx] if (
-                hasattr(v, "__len__") and len(v) > len(unmasked_idx)
-                ) else v
+                hasattr(v, '__len__') and len(v) == len(unmasked_idx)
+            ) else v
             for k, v
             in routed_params.items()
         }
