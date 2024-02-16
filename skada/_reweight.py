@@ -17,7 +17,10 @@ from sklearn.utils import check_random_state
 from sklearn.utils.validation import check_is_fitted
 
 from .base import AdaptationOutput, BaseAdapter, clone
-from .utils import check_X_domain, check_X_y_domain, source_target_split, extract_source_indices
+from .utils import (
+    check_X_domain, check_X_y_domain,
+    source_target_split, extract_source_indices
+)
 from ._utils import _estimate_covariance
 from ._pipeline import make_da_pipeline
 
@@ -742,18 +745,11 @@ class TarSAdapter(BaseAdapter):
         self : object
             Returns self.
         """
-        X, y, sample_domain = check_X_y_domain(
-            X,
-            y,
-            sample_domain,
-            allow_multi_source=False,
-            allow_multi_target=False
+        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        X_source, _, y_source, _ = source_target_split(
+            X, y, sample_domain=sample_domain
         )
-
-        self.X_ = X
-        self.y_ = y
-        self.sample_domain_ = sample_domain
-
+        self.X_source_, self.y_source_ = X_source, y_source
         return self
 
     def adapt(self, X, y=None, sample_domain=None, **kwargs):
@@ -777,34 +773,23 @@ class TarSAdapter(BaseAdapter):
         weights : array-like, shape (n_samples,)
             The weights of the samples.
         """
-        if y is None:
-            X, sample_domain = check_X_domain(
-                X,
-                sample_domain,
-                allow_multi_source=False,
-                allow_multi_target=False
-            )
-            X_source, X_target = source_target_split(X, sample_domain=sample_domain)
-            X_source_fit, _ = source_target_split(self.X_, sample_domain=self.sample_domain_)
-
+        X, sample_domain = check_X_domain(X, sample_domain)
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+        if X_source.shape[0] == 0:
+            X_source = self.X_source_
+            y_source = self.y_source_
+        elif y is None:
             np.testing.assert_array_equal(
                 X_source,
-                X_source_fit,
-                err_msg="X_source should be the same as the source data used for fitting or y_source should be provided."
+                self.X_source_,
+                err_msg="X_source and self.X_source_"
+                "should be equal if y_source is not provided"
             )
-
-            y = self.y_
+            y_source = self.y_source_
         else:
-            X, y, sample_domain = check_X_y_domain(
-                X,
-                y,
-                sample_domain,
-                allow_multi_source=False,
-                allow_multi_target=False
-            )
-
-        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
-        y_source, _ = source_target_split(y, sample_domain=sample_domain)
+            X, y = check_X_y_domain(X, y, sample_domain)
+            y_source, _ = source_target_split(y, sample_domain=sample_domain)
+            raise ValueError("y must be provided when X_source is provided.")
 
         m = X_source.shape[0]
         n = X_target.shape[0]
