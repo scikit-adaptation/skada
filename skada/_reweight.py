@@ -803,12 +803,6 @@ class TarSAdapter(BaseAdapter):
                 allow_multi_target=False
             )
 
-        X, sample_domain = check_X_domain(
-            X,
-            sample_domain,
-            allow_multi_source=True,
-            allow_multi_target=True
-        )
         X_source, X_target = source_target_split(X, sample_domain=sample_domain)
         y_source, _ = source_target_split(y, sample_domain=sample_domain)
 
