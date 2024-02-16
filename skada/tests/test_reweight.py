@@ -5,8 +5,9 @@
 # License: BSD 3-Clause
 
 import numpy as np
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression, Ridge
 
+from skada import source_target_split
 from skada import (
     ReweightDensityAdapter,
     ReweightDensity,
@@ -60,6 +61,27 @@ def test_reweight_estimator(estimator, da_dataset):
     assert np.mean(y_pred == y_test) > 0.9
     score = estimator.score(X_test, y_test, sample_domain=sample_domain)
     assert score > 0.9
+
+
+@pytest.mark.parametrize(
+    "estimator",
+    [
+        make_da_pipeline(
+            MMDTarSReweightAdapter(gamma=1.0),
+            Ridge()
+        ),
+        MMDTarSReweight(
+            gamma=1.0,
+            base_estimator=Ridge()
+        )
+    ],
+)
+def test_reg_reweight_estimator(estimator, da_reg_dataset):
+    X, y, sample_domain = da_reg_dataset
+    Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
+    estimator.fit(X, y, sample_domain=sample_domain)
+    score = estimator.score(Xt, yt)
+    assert score >= 0
 
 
 def test_reweight_warning(da_dataset):
