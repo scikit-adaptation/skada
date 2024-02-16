@@ -44,6 +44,7 @@ API and modules
    ClassRegularizerOTMapping
    LinearOTMapping
    CORAL
+   JDOTRegressor
    make_da_pipeline
 
 
