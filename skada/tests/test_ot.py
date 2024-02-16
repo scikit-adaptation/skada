@@ -17,6 +17,7 @@ def test_JDOTRegressor(da_reg_dataset):
 
     Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 
+    # standard case
     jdot = JDOTRegressor(base_estimator=Ridge(), alpha=.1, verbose=True)
 
     jdot.fit(X, y, sample_domain=sample_domain)
@@ -25,12 +26,20 @@ def test_JDOTRegressor(da_reg_dataset):
 
     assert ypred.shape[0] == Xt.shape[0]
 
+    # JDOT with weights
     jdot = JDOTRegressor(base_estimator=Ridge(), verbose=True, n_iter_max=1)
     jdot.fit(X, y, sample_weight=w, sample_domain=sample_domain)
 
     score = jdot.score(X, y, sample_domain=sample_domain)
 
     assert score >= 0
+
+    # JDOT with default base estimator
+    jdot = JDOTRegressor()
+    jdot.fit(X, y, sample_domain=sample_domain)
+
+    with np.testing.assert_raises(ValueError):
+        jdot = JDOTRegressor(StandardScaler())
 
 
 def test_JDOTRegressor_pipeline(da_reg_dataset):

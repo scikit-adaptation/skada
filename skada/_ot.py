@@ -181,9 +181,11 @@ class JDOTRegressor(DAEstimator):
         if base_estimator is None:
             base_estimator = LinearRegression()
         else:
-            if not hasattr(base_estimator, 'fit'):
-                raise ValueError('base_estimator must be a regressor with fit method')
-            self.base_estimator = base_estimator
+            if not hasattr(base_estimator, 'fit') or not hasattr(
+                    base_estimator, 'predict'):
+                raise ValueError('base_estimator must be a regressor with'
+                                 ' fit and predict methods')
+        self.base_estimator = base_estimator
         self.kwargs = kwargs
         self.alpha = alpha
         self.n_iter_max = n_iter_max
