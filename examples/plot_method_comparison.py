@@ -60,12 +60,12 @@ names = [
 classifiers = [
     SVC(),
     ReweightDensity(
-        base_estimator=SVC(),
+        base_estimator=SVC().set_fit_request(sample_weight=True),
         weight_estimator=KernelDensity(bandwidth=0.5),
     ),
-    GaussianReweightDensity(base_estimator=SVC()),
-    DiscriminatorReweightDensity(base_estimator=SVC()),
-    KLIEP(base_estimator=SVC(), gamma=[1, 0.1, 0.001]),
+    GaussianReweightDensity(SVC().set_fit_request(sample_weight=True)),
+    DiscriminatorReweightDensity(SVC().set_fit_request(sample_weight=True)),
+    KLIEP(SVC().set_fit_request(sample_weight=True), gamma=[1, 0.1, 0.001]),
     SubspaceAlignment(base_estimator=SVC(), n_components=1),
     TransferComponentAnalysis(base_estimator=SVC(), n_components=1, mu=0.5),
     OTMapping(base_estimator=SVC()),
