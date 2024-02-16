@@ -742,6 +742,9 @@ class TarSAdapter(BaseAdapter):
         self : object
             Returns self.
         """
+        self._X = X
+        self._y = y
+        self._sample_domain = sample_domain
         return self
 
     def adapt(self, X, y=None, sample_domain=None, **kwargs):
@@ -765,6 +768,15 @@ class TarSAdapter(BaseAdapter):
         weights : array-like, shape (n_samples,)
             The weights of the samples.
         """
+        np.testing.assert_array_equal(X, self._X)
+        if y is not None:
+            np.testing.assert_array_equal(y, self._y)
+        if sample_domain is not None:
+            np.testing.assert_array_equal(sample_domain, self._sample_domain)
+
+        y = self._y
+        sample_domain = self._sample_domain
+
         X, sample_domain = check_X_domain(
             X,
             sample_domain,
@@ -772,15 +784,16 @@ class TarSAdapter(BaseAdapter):
             allow_multi_target=True
         )
         X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+        y_source, _ = source_target_split(y, sample_domain=sample_domain)
 
         m = X_source.shape[0]
         n = X_target.shape[0]
 
         # check y is discrete or continuous
-        discrete = np.issubdtype(y.dtype, np.integer)
+        discrete = np.issubdtype(y_source.dtype, np.integer)
 
         # compute A
-        L = pairwise_kernels(y, metric="rbf", gamma=self.gamma)
+        L = pairwise_kernels(y_source.reshape(-1, 1), metric="rbf", gamma=self.gamma)
         K = pairwise_kernels(X_source, metric="rbf", gamma=self.gamma)
         _lambda = 1e-8
         gamma = L @ np.linalg.inv(L + _lambda * np.eye(m))
@@ -788,10 +801,10 @@ class TarSAdapter(BaseAdapter):
 
         # compute R
         if discrete:
-            classes = np.unique(y)
+            classes = np.unique(y_source)
             R = np.zeros((X_target.shape[0], len(classes)))
             for i, c in enumerate(classes):
-                R[:, i] = (y == c).astype(int)
+                R[:, i] = (y_source == c).astype(int)
         else:
             lambda_beta = 1e-8
             R = L @ np.linalg.inv(L + lambda_beta * np.eye(m))
