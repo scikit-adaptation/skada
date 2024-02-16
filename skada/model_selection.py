@@ -352,12 +352,12 @@ class GroupDomainAwareKFold(GroupKFold):
     ...    group_da_kfold.split(X, y, sample_domain)
     ... ):
     ...     print(f"Fold {i}:")
-    ...     print(f'''  Train: index={train_index},
-    ...     group={[str(b) + '_' +str(a)
+    ...     print(f"  Train: index={train_index}, "
+    ...     f'''group={[str(b) + '_' +str(a)
     ...     for a, b in zip(y[train_index], sample_domain[train_index])
     ...     ]}''')
-    ...     print(f'''  Test: index={train_index},
-    ...     group={[str(b) + '_' +str(a)
+    ...     print(f"  Test: index={test_index}, "
+    ...     f'''group={[str(b) + '_' +str(a)
     ...     for a, b in zip(y[test_index], sample_domain[test_index])
     ...     ]}''')
     Fold 0:
