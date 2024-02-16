@@ -240,7 +240,7 @@ class BaseSelector(BaseEstimator):
             params = {}
         if isinstance(X, AdaptationOutput):
             for k, v in X.items():
-                if k != 'X':
+                if k != 'X' and v is not None:
                     params[k] = v
             X_out = X['X']
         else:
@@ -252,14 +252,14 @@ class BaseSelector(BaseEstimator):
             # was accepted by the downstream (base) estimator
             if isinstance(X, AdaptationOutput):
                 for k in X:
-                    if k != 'X' and routing_request.requests.get(k) is None:
+                    if k != 'X' and v is not None and routing_request.requests.get(k) is None:
                         method = routing_request.method
                         raise IncompatibleMetadataError(
                             f"The adapter provided '{k}' parameter which is not explicitly set as "  # noqa
                             f"requested or not for '{routing_request.owner}.{method}'.\n"  # noqa
                             f"Make sure that metadata routing is properly setup, e.g. by calling 'set_{method}_request()'. "  # noqa
                             "See documentation at https://scikit-learn.org/stable/metadata_routing.html"  # noqa
-                        )
+                        ) from e
             # re-raise exception if the problem was not caused by the adapter
             raise e
         return X_out, routed_params
