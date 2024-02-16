@@ -74,6 +74,7 @@ __all__ = [
     "KLIEP",
     "ReweightDensityAdapter",
     "ReweightDensity",
+    "TarSAdapter",
 
     "SubspaceAlignmentAdapter",
     "SubspaceAlignment",
