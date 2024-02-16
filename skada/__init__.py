@@ -31,7 +31,7 @@ from ._reweight import (
     KLIEP,
     ReweightDensityAdapter,
     ReweightDensity,
-    TarSAdapter
+    MMDTarSReweightAdapter
 )
 from ._subspace import (
     SubspaceAlignmentAdapter,
@@ -74,7 +74,7 @@ __all__ = [
     "KLIEP",
     "ReweightDensityAdapter",
     "ReweightDensity",
-    "TarSAdapter",
+    "MMDTarSReweightAdapter",
 
     "SubspaceAlignmentAdapter",
     "SubspaceAlignment",

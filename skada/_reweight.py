@@ -687,10 +687,10 @@ def KLIEP(
     )
 
 
-class TarSAdapter(BaseAdapter):
-    """Target Shift (TarS) adapter.
+class MMDTarSReweightAdapter(BaseAdapter):
+    """MMDTarSReweight adapter.
 
-    The idea of TarS is to find an importance estimate \beta(y) such that
+    The idea of MMDTarSReweight is to find an importance estimate \beta(y) such that
     the Maximum Mean Discrepancy (MMD) divergence between the source input density
     p_source(x) to its estimate p_target(x) is minimized under the assumption
     of equal conditional distributions p(x|y) for both source and target domains.
