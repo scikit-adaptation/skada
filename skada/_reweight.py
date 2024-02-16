@@ -818,26 +818,28 @@ class TarSAdapter(BaseAdapter):
         eps = B_beta / (4 * np.sqrt(m))
 
         P = 0.5 * matrix(R.T @ A @ R)
-        q = - (m/n) * matrix(M @ R)
+        q = - (m/n) * matrix(M @ R).T
         G = matrix(
-            np.vstack(
+            np.vstack([
                 R,
                 - R,
                 np.sum(R, axis=0),
                 - np.sum(R, axis=0)
-            )
+            ])
         )
         h = matrix(
-            np.vstack(
-                B_beta,
+            np.vstack([
+                B_beta * np.ones((m, 1)),
                 np.zeros((m, 1)),
                 m + m * eps,
                 - m + m * eps
-            )
+            ])
         )
+
         sol = solvers.qp(P, q, G, h)
         alpha = np.array(sol['x'])
         beta = R @ alpha
+        beta = beta.flatten()
 
         weights = np.stack([beta, np.ones(n)], axis=1)
 
