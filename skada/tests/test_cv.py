@@ -20,7 +20,8 @@ from skada.metrics import PredictionEntropyScorer
 from skada.model_selection import (
     LeaveOneDomainOut,
     SourceTargetShuffleSplit,
-    RandomShuffleDomainAwareSplit
+    RandomShuffleDomainAwareSplit,
+    GroupDomainAwareKFold
 )
 
 import pytest
@@ -32,6 +33,7 @@ import pytest
         (GroupShuffleSplit(n_splits=2, test_size=0.3, random_state=0), 2),
         (GroupKFold(n_splits=2), 2),
         (LeaveOneGroupOut(), 4),
+        (GroupDomainAwareKFold(n_splits=4), 4)
     ]
 )
 def test_group_based_cv(da_dataset, cv, n_splits):
@@ -62,7 +64,14 @@ def test_group_based_cv(da_dataset, cv, n_splits):
     assert np.any(~np.isnan(scores)), "at least some scores are computed"
 
 
-def test_domain_aware_split(da_dataset):
+@pytest.mark.parametrize(
+    'cv',
+    [
+        (SourceTargetShuffleSplit(n_splits=4, test_size=0.3, random_state=0)),
+        (RandomShuffleDomainAwareSplit(n_splits=4, test_size=0.3, random_state=0)),
+    ]
+)
+def test_domain_aware_split(da_dataset, cv):
     X, y, sample_domain = da_dataset.pack_train(
         as_sources=['s', 's2'],
         as_targets=['t', 't2']
@@ -72,8 +81,6 @@ def test_domain_aware_split(da_dataset):
         LogisticRegression(),
     )
     pipe.fit(X, y, sample_domain=sample_domain)
-    n_splits = 4
-    cv = SourceTargetShuffleSplit(n_splits=n_splits, test_size=0.3, random_state=0)
     scores = cross_validate(
         pipe,
         X,
@@ -82,7 +89,7 @@ def test_domain_aware_split(da_dataset):
         params={'sample_domain': sample_domain},
         scoring=PredictionEntropyScorer(),
     )['test_score']
-    assert scores.shape[0] == n_splits, "evaluate all splits"
+    assert scores.shape[0] == 4, "evaluate all splits"
     assert np.all(~np.isnan(scores)), "at least some scores are computed"
 
 
@@ -98,30 +105,6 @@ def test_leave_one_domain_out(da_dataset, max_n_splits, n_splits):
     )
     pipe.fit(X, y, sample_domain=sample_domain)
     cv = LeaveOneDomainOut(max_n_splits=max_n_splits, test_size=0.3, random_state=0)
-    scores = cross_validate(
-        pipe,
-        X,
-        y,
-        cv=cv,
-        params={'sample_domain': sample_domain},
-        scoring=PredictionEntropyScorer(),
-    )['test_score']
-    assert scores.shape[0] == n_splits, "evaluate all splits"
-    assert np.all(~np.isnan(scores)), "at least some scores are computed"
-
-
-def test_random_shuffle_domain_aware_split(da_dataset):
-    X, y, sample_domain = da_dataset.pack_train(
-        as_sources=['s', 's2'],
-        as_targets=['t', 't2']
-    )
-    pipe = make_da_pipeline(
-        SubspaceAlignmentAdapter(n_components=2),
-        LogisticRegression(),
-    )
-    pipe.fit(X, y, sample_domain=sample_domain)
-    n_splits = 4
-    cv = RandomShuffleDomainAwareSplit(n_splits=n_splits, test_size=0.3, random_state=0)
     scores = cross_validate(
         pipe,
         X,
