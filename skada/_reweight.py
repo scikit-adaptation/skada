@@ -789,7 +789,6 @@ class TarSAdapter(BaseAdapter):
         else:
             X, y = check_X_y_domain(X, y, sample_domain)
             y_source, _ = source_target_split(y, sample_domain=sample_domain)
-            raise ValueError("y must be provided when X_source is provided.")
 
         m = X_source.shape[0]
         n = X_target.shape[0]
