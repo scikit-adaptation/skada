@@ -796,8 +796,8 @@ class TarSAdapter(BaseAdapter):
         L = pairwise_kernels(y_source.reshape(-1, 1), metric="rbf", gamma=self.gamma)
         K = pairwise_kernels(X_source, metric="rbf", gamma=self.gamma)
         _lambda = 1e-8
-        gamma = L @ np.linalg.inv(L + _lambda * np.eye(m))
-        A = gamma @ K @ gamma.T
+        omega = L @ np.linalg.inv(L + _lambda * np.eye(m))
+        A = omega @ K @ omega.T
 
         # compute R
         if discrete:
@@ -811,7 +811,7 @@ class TarSAdapter(BaseAdapter):
 
         # compute M
         K_cross = pairwise_kernels(X_target, X_source, metric="rbf", gamma=self.gamma)
-        M = np.ones((1, n)) @ K_cross @ gamma.T
+        M = np.ones((1, n)) @ K_cross @ omega.T
 
         # solve the optimization problem
         B_beta = 10
