@@ -198,7 +198,7 @@ class JDOTRegressor(DAEstimator):
         Xs, Xt, ys, yt, ws, wt = source_target_split(
             X, y, sample_weight, sample_domain=sample_domain)
 
-        res = solve_jdot_regression(self.base_estimator, Xs, ys, Xt,
+        res = solve_jdot_regression(self.base_estimator, Xs, ys, Xt, ws=ws, wt=wt,
                                     alpha=self.alpha, n_iter_max=self.n_iter_max,
                                     tol=self.tol, verbose=self.verbose, **self.kwargs)
 
