@@ -844,3 +844,32 @@ class MMDTarSReweightAdapter(BaseAdapter):
         weights = np.stack([beta, np.ones(n)], axis=1)
 
         return AdaptationOutput(X=X, sample_weights=weights)
+
+
+def MMDTarSReweight(base_estimator=LogisticRegression(), gamma=1.0):
+    """MMDTarSReweight adapter and estimator.
+
+    See Section 3 of [4]_ for details.
+
+    Parameters
+    ----------
+    gamma : float or array like
+        Parameters for the kernels.
+
+    Returns
+    -------
+    pipeline : sklearn pipeline
+        Pipeline containing the ReweightDensity adapter and the base estimator.
+
+    References
+    ----------
+    .. [4] Kun Zhang et. al. Domain Adaptation under Target and Conditional Shift
+           In ICML, 2013.
+    """
+    if base_estimator is None:
+        base_estimator = LogisticRegression()
+
+    return make_da_pipeline(
+        MMDTarSReweightAdapter(gamma=gamma),
+        base_estimator
+    )
