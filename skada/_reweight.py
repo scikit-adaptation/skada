@@ -817,7 +817,9 @@ class MMDTarSReweightAdapter(BaseAdapter):
         B_beta = 10
         eps = B_beta / (4 * np.sqrt(m))
 
-        P = 0.5 * matrix(R.T @ A @ R)
+        P = 0.5 * (R.T @ A @ R)
+        P = P + 1e-12 * np.eye(P.shape[0])  # make P positive semi-definite
+        P = matrix(P)
         q = - (m/n) * matrix(M @ R).T
         G = matrix(
             np.vstack([
