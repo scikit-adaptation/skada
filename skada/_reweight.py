@@ -777,14 +777,31 @@ class TarSAdapter(BaseAdapter):
         weights : array-like, shape (n_samples,)
             The weights of the samples.
         """
-        np.testing.assert_array_equal(X, self.X_)
-        if y is not None:
-            np.testing.assert_array_equal(y, self.y_)
-        if sample_domain is not None:
-            np.testing.assert_array_equal(sample_domain, self.sample_domain_)
+        if y is None:
+            X, sample_domain = check_X_domain(
+                X,
+                sample_domain,
+                allow_multi_source=False,
+                allow_multi_target=False
+            )
+            X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+            X_source_fit, _ = source_target_split(self.X_, sample_domain=self.sample_domain_)
 
-        y = self.y_
-        sample_domain = self.sample_domain_
+            np.testing.assert_array_equal(
+                X_source,
+                X_source_fit,
+                err_msg="X_source should be the same as the source data used for fitting or y_source should be provided."
+            )
+
+            y = self.y_
+        else:
+            X, y, sample_domain = check_X_y_domain(
+                X,
+                y,
+                sample_domain,
+                allow_multi_source=False,
+                allow_multi_target=False
+            )
 
         X, sample_domain = check_X_domain(
             X,
