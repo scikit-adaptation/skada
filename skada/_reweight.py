@@ -789,6 +789,8 @@ class MMDTarSReweightAdapter(BaseAdapter):
         else:
             X, y = check_X_y_domain(X, y, sample_domain)
             y_source, _ = source_target_split(y, sample_domain=sample_domain)
+        self.X_source_ = X_source
+        self.y_source_ = y_source
 
         m = X_source.shape[0]
         n = X_target.shape[0]
