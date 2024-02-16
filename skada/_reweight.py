@@ -17,7 +17,7 @@ from sklearn.utils import check_random_state
 from sklearn.utils.validation import check_is_fitted
 
 from .base import AdaptationOutput, BaseAdapter, clone
-from .utils import check_X_domain, source_target_split, extract_source_indices
+from .utils import check_X_domain, check_X_y_domain, source_target_split, extract_source_indices
 from ._utils import _estimate_covariance
 from ._pipeline import make_da_pipeline
 
@@ -742,9 +742,18 @@ class TarSAdapter(BaseAdapter):
         self : object
             Returns self.
         """
+        X, y, sample_domain = check_X_y_domain(
+            X,
+            y,
+            sample_domain,
+            allow_multi_source=False,
+            allow_multi_target=False
+        )
+
         self.X_ = X
         self.y_ = y
         self.sample_domain_ = sample_domain
+
         return self
 
     def adapt(self, X, y=None, sample_domain=None, **kwargs):
