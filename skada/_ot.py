@@ -6,31 +6,30 @@
 import numpy as np
 from sklearn.base import clone
 from sklearn.utils.validation import check_is_fitted
+from sklearn.linear_model import LinearRegression
 from .base import DAEstimator
 from .utils import source_target_split
 import ot
 import warnings
 
 
-def solve_jdot_regression(Xs, ys, Xt, base_estimator, alpha=0.5, ws=None, wt=None,
+def solve_jdot_regression(base_estimator, Xs, ys, Xt, alpha=0.5, ws=None, wt=None,
                           n_iter_max=100, tol=1e-5, verbose=False, **kwargs):
     """Solve the joint distribution optimal transport regression problem
 
     Parameters
     ----------
-    Xs : array-like of shape (n_samples, n_features)
-        Source domain samples.
-
-    ys : array-like of shape (n_samples,)
-        Source domain labels.
-
-    Xt : array-like of shape (m_samples, n_features)
-        Target domain samples.
     base_estimator : object
         The base estimator to be used for the regression task. This estimator
         should solve a least squares regression problem (regularized or not)
         to correspond to JDOT theoretical regression problem but other
         approaches can be used with the risk that the fixed point might not converge.
+    Xs : array-like of shape (n_samples, n_features)
+        Source domain samples.
+    ys : array-like of shape (n_samples,)
+        Source domain labels.
+    Xt : array-like of shape (m_samples, n_features)
+        Target domain samples.
     alpha : float, default=0.5
         The trade-off parameter between the feature and label loss in OT metric
     ws : array-like of shape (n_samples,)
@@ -43,6 +42,8 @@ def solve_jdot_regression(Xs, ys, Xt, base_estimator, alpha=0.5, ws=None, wt=Non
         Tolerance for loss variations (OT and mse) stopping iterations.
     verbose: bool
         Print loss along iterations if True.as_integer_ratio
+    kwargs : dict
+        Additional parameters to be passed to the base estimator.
 
 
     Returns
@@ -72,13 +73,14 @@ def solve_jdot_regression(Xs, ys, Xt, base_estimator, alpha=0.5, ws=None, wt=Non
 
     nt = Xt.shape[0]
     if ws is None:
-        ws = np.ones((len(ys),)) / len(ys)
+        a = np.ones((len(ys),)) / len(ys)
     else :
-        ws = ws / ws.sum()
+        a = ws / ws.sum()
     if wt is None:
-        wt = np.ones((nt,)) / nt
+        b = np.ones((nt,)) / nt
     else:
-        wt = wt / wt.sum()
+        b = wt / wt.sum()
+        kwargs['sample_weight'] = wt  # add it as sample_weight for fit
 
     lst_loss_ot = []
     lst_loss_tgt_labels = []
@@ -94,7 +96,7 @@ def solve_jdot_regression(Xs, ys, Xt, base_estimator, alpha=0.5, ws=None, wt=Non
             M = (1 - alpha) * Mf
 
         # sole OT problem
-        sol = ot.solve(M, ws, wt)
+        sol = ot.solve(M, a, b)
 
         T = sol.plan
         loss_ot = sol.value
@@ -105,7 +107,7 @@ def solve_jdot_regression(Xs, ys, Xt, base_estimator, alpha=0.5, ws=None, wt=Non
         lst_loss_ot.append(loss_ot)
 
         # compute the transported labels
-        yth = nt * ys.T.dot(T)
+        yth = ys.T.dot(T) / b
 
         # fit the estimator
         estimator.fit(Xt, yth, **kwargs)
@@ -144,7 +146,8 @@ class JDOTRegressor(DAEstimator):
         The base estimator to be used for the regression task. This estimator
         should solve a least squares regression problem (regularized or not)
         to correspond to JDOT theoretical regression problem but other
-        approaches can be used with the risk that the fixed point might not converge.
+        approaches can be used with the risk that the fixed point might not
+        converge. default value is LinearRegression() from scikit-learn.
     alpha : float, default=0.5
         The trade-off parameter between the feature and label loss in OT metric
     n_iter_max: int
@@ -173,9 +176,14 @@ class JDOTRegressor(DAEstimator):
 
     """
 
-    def __init__(self, base_estimator, alpha=0.5, n_iter_max=100,
+    def __init__(self, base_estimator=None, alpha=0.5, n_iter_max=100,
                  tol=1e-5, verbose=False, **kwargs):
-        self.base_estimator = base_estimator
+        if base_estimator is None:
+            base_estimator = LinearRegression()
+        else:
+            if not hasattr(base_estimator, 'fit'):
+                raise ValueError('base_estimator must be a regressor with fit method')
+            self.base_estimator = base_estimator
         self.kwargs = kwargs
         self.alpha = alpha
         self.n_iter_max = n_iter_max
@@ -188,7 +196,7 @@ class JDOTRegressor(DAEstimator):
         Xs, Xt, ys, yt, ws, wt = source_target_split(
             X, y, sample_weight, sample_domain=sample_domain)
 
-        res = solve_jdot_regression(Xs, ys, Xt, self.base_estimator,
+        res = solve_jdot_regression(self.base_estimator, Xs, ys, Xt,
                                     alpha=self.alpha, n_iter_max=self.n_iter_max,
                                     tol=self.tol, verbose=self.verbose, **self.kwargs)
 
@@ -197,7 +205,7 @@ class JDOTRegressor(DAEstimator):
     def predict(self, X, sample_domain=None, *, sample_weight=None):
         """Predict using the model"""
         check_is_fitted(self)
-        if sample_domain is not None and np.any(sample_domain < 0):
+        if sample_domain is not None and np.any(sample_domain >= 0):
             warnings.warn(
                 'Source domain detected. Predictor is trained on target'
                 'and prediction might be biased.')
@@ -206,7 +214,7 @@ class JDOTRegressor(DAEstimator):
     def score(self, X, y, sample_domain=None, *, sample_weight=None):
         """Return the coefficient of determination R^2 of the prediction"""
         check_is_fitted(self)
-        if sample_domain is not None and np.any(sample_domain < 0):
+        if sample_domain is not None and np.any(sample_domain >= 0):
             warnings.warn(
                 'Source domain detected. Predictor is trained on target'
                 'and score might be biased.')
