@@ -690,9 +690,8 @@ class MMDTarSReweightAdapter(BaseAdapter):
     ----------
     gamma : float or array like
         Parameters for the kernels.
-    random_state : int, RandomState instance or None, default=None
-        Determines random number generation for dataset creation. Pass an int
-        for reproducible output across multiple function calls.
+    reg : float, default=1e-10
+        Regularization parameter for the labels kernel matrix.
 
     Attributes
     ----------
@@ -707,9 +706,10 @@ class MMDTarSReweightAdapter(BaseAdapter):
            In ICML, 2013.
     """
 
-    def __init__(self, gamma):
+    def __init__(self, gamma, reg=1e-10):
         super().__init__()
         self.gamma = gamma
+        self.reg = reg
 
     def fit(self, X, y, sample_domain=None, **kwargs):
         """Fit adaptation parameters.
@@ -785,8 +785,7 @@ class MMDTarSReweightAdapter(BaseAdapter):
         # compute A
         L = pairwise_kernels(y_source.reshape(-1, 1), metric="rbf", gamma=self.gamma)
         K = pairwise_kernels(X_source, metric="rbf", gamma=self.gamma)
-        _lambda = 1e-8
-        omega = L @ np.linalg.inv(L + _lambda * np.eye(m))
+        omega = L @ np.linalg.inv(L + self.reg * np.eye(m))
         A = omega @ K @ omega.T
 
         # compute R
@@ -796,8 +795,7 @@ class MMDTarSReweightAdapter(BaseAdapter):
             for i, c in enumerate(classes):
                 R[:, i] = (y_source == c).astype(int)
         else:
-            lambda_beta = 1e-8
-            R = L @ np.linalg.inv(L + lambda_beta * np.eye(m))
+            R = L @ np.linalg.inv(L + self.reg * np.eye(m))
 
         # compute M
         K_cross = pairwise_kernels(X_target, X_source, metric="rbf", gamma=self.gamma)
