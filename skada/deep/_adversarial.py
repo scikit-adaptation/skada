@@ -125,10 +125,6 @@ class CDANLoss(BaseDALoss):
     ----------
     reg : float, default=1
         Regularization parameter.
-    max_features : int, default=4096
-        Maximum size of the input for the domain classifier.
-        4096 is the largest number of units in typical deep network
-        according to [1]_.
     target_criterion : torch criterion (class)
         The uninitialized criterion (loss) used to compute the
         CDAN loss. The criterion should support reduction='none'.
@@ -139,10 +135,9 @@ class CDANLoss(BaseDALoss):
             In NeurIPS, 2016.
     """
 
-    def __init__(self, reg=1, max_features=4096, domain_criterion=None):
+    def __init__(self, reg=1, domain_criterion=None):
         super(CDANLoss, self).__init__()
         self.reg = reg
-        self.max_features = max_features
         if domain_criterion is None:
             self.domain_criterion_ = torch.nn.BCELoss()
         else:
@@ -191,19 +186,24 @@ class CDANModule(DomainAwareModule):
     domain_classifier : torch module
         A PyTorch :class:`~torch.nn.Module` used to classify the
         domain.
+    max_features : int, default=4096
+        Maximum size of the input for the domain classifier.
+        4096 is the largest number of units in typical deep network
+        according to [1]_.
 
     References
     ----------
     .. [1]  Mingsheng Long et. al. Conditional Adversarial Domain Adaptation
             In NeurIPS, 2016.
     """
-    def __init__(self, module, layer_name, domain_classifier):
+    def __init__(self, module, layer_name, domain_classifier, max_features=4096):
         super(CDANModule, self).__init__(module, layer_name, domain_classifier)
+        self.max_features = max_features
 
-    def forward(self, X, sample_domain):
-        if torch.sum(sample_domain > 0) != 0:  # if source+target -> training
-            X_s = X[sample_domain > 0]
+    def forward(self, X, sample_domain, is_fit=False, return_features=False):
+        if is_fit:
             X_t = X[sample_domain < 0]
+            X_s = X[sample_domain > 0]
             # predict
             y_pred_s = self.module_(X_s)
             features_s = self.intermediate_layers[self.layer_name]
@@ -240,19 +240,34 @@ class CDANModule(DomainAwareModule):
                 multilinear_map_target = random_layer.forward([features_t, y_pred_t])
 
             if self.domain_classifier_ is not None:
+                print(multilinear_map.shape)
                 domain_pred_s = self.domain_classifier_(multilinear_map)
                 domain_pred_t = self.domain_classifier_(multilinear_map_target)
-                domain_pred = torch.cat((domain_pred_s, domain_pred_t), dim=0)
+                domain_pred = torch.empty((len(sample_domain)))
+                domain_pred[sample_domain > 0] = domain_pred_s
+                domain_pred[sample_domain < 0] = domain_pred_t
             else:
                 domain_pred = None
+
+            y_pred = torch.empty((len(sample_domain), y_pred_s.shape[1]))
+            y_pred[sample_domain > 0] = y_pred_s
+            y_pred[sample_domain < 0] = y_pred_t
+
+            features = torch.empty((len(sample_domain), features_s.shape[1]))
+            features[sample_domain > 0] = features_s
+            features[sample_domain < 0] = features_t
+
             return (
-                torch.cat((y_pred_s, y_pred_t), dim=0),  # predictions
-                domain_pred,  # domain predictions
-                torch.cat((features_s, features_t), dim=0),  # features
-                sample_domain,  # domains
+                y_pred,
+                domain_pred,
+                features,
+                sample_domain,
             )
-        else:  # if only target -> testing
-            return self.module_(X)
+        else:
+            if return_features:
+                return self.module_(X), self.intermediate_layers[self.layer_name]
+            else:
+                return self.module_(X)
 
 
 def CDAN(
@@ -290,10 +305,10 @@ def CDAN(
         domain_classifier = DomainClassifier(alpha=reg)
 
     net = DomainAwareNet(
-        DomainAwareModule(module, layer_name, domain_classifier),
+        CDANModule(module, layer_name, domain_classifier, max_features=max_features),
         iterator_train=DomainBalancedDataLoader,
         criterion=DomainAwareCriterion(
-            torch.nn.CrossEntropyLoss(), CDANLoss(reg=reg, max_features=max_features)
+            torch.nn.CrossEntropyLoss(), CDANLoss(reg=reg)
         ),
         **kwargs
     )
