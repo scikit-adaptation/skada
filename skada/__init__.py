@@ -39,6 +39,7 @@ from ._subspace import (
     TransferComponentAnalysis,
 )
 from ._dasvm import DASVMEstimator
+from ._ot import solve_jdot_regression, JDOTRegressor
 from ._pipeline import make_da_pipeline
 from .utils import source_target_split
 
@@ -81,6 +82,8 @@ __all__ = [
     "TransferComponentAnalysis",
 
     "DASVMEstimator",
+    "solve_jdot_regression",
+    "JDOTRegressor",
 
     "make_da_pipeline",
 
