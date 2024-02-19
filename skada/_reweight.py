@@ -21,7 +21,7 @@ from .utils import (
     check_X_domain, check_X_y_domain,
     source_target_split, extract_source_indices
 )
-from ._utils import _estimate_covariance
+from ._utils import _find_y_type, _estimate_covariance
 from ._pipeline import make_da_pipeline
 
 
@@ -779,7 +779,7 @@ class MMDTarSReweightAdapter(BaseAdapter):
             y_source, _ = source_target_split(y, sample_domain=sample_domain)
 
         # check y is discrete or continuous
-        discrete = np.issubdtype(y_source.dtype, np.integer)
+        discrete = _find_y_type(y_source) == "classification"
 
         # compute A
         L = pairwise_kernels(y_source.reshape(-1, 1), metric="rbf", gamma=self.gamma)
