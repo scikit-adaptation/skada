@@ -209,7 +209,7 @@ class DASVMEstimator(BaseEstimator):
             decisions_fitted = self._get_decision(
                 new_estimator, np.concatenate((Xs, Xt)), np.concatenate(
                     (index_source_deleted, index_target_added)))
-            # We get the distance to the margin:
+            # We get the distance to the margin (in the paper they implemended it with no allowed Cost):
             margin_distances = np.min(decisions_fitted-(
                 self.current_classes.shape[0]-1), axis=0)
             # look at those that haven't been added
