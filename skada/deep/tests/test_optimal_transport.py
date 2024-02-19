@@ -4,11 +4,20 @@
 
 import numpy as np
 
+try:
+    import torch  # noqa: F401
+
+except ImportError:
+    torch = None
+
+import pytest
+
 from skada.deep import DeepJDOT
 from skada.deep.modules import ToyModule
 from skada.datasets import make_shifted_datasets
 
 
+@pytest.mark.skipif(torch is None, reason="PyTorch is not installed.")
 def test_deepjdot():
     module = ToyModule()
     module.eval()

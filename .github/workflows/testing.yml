@@ -48,7 +48,7 @@ jobs:
         python -m pip install --user -e .
     # Run Tests
     - name: Run Tests without torch
-      run: pytest skada/ --verbose --cov=skada skada/ --cov-report term  --ignore=skada/deep
+      run: pytest skada/ --verbose --cov=skada skada/ --cov-report term
     # Codecov 
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
@@ -89,7 +89,7 @@ jobs:
       run: |
         python -m pip install --user -e .
     # Run Tests
-    - name: Run Tests without torch
+    - name: Run Tests with torch
       run: pytest skada/ --verbose --cov=skada skada/ --cov-report term
     # Codecov 
     - name: Upload coverage reports to Codecov

@@ -4,11 +4,20 @@
 
 import numpy as np
 
+try:
+    import torch  # noqa: F401
+
+except ImportError:
+    torch = None
+
+import pytest
+
 from skada.deep import DANN, CDAN
 from skada.deep.modules import ToyModule, DomainClassifier
 from skada.datasets import make_shifted_datasets
 
 
+@pytest.mark.skipif(torch is None, reason="PyTorch is not installed.")
 def test_dann():
     module = ToyModule()
     module.eval()
@@ -47,6 +56,7 @@ def test_dann():
     assert history[0]["train_loss"] > history[-1]["train_loss"]
 
 
+@pytest.mark.skipif(torch is None, reason="PyTorch is not installed.")
 def test_cdan():
     module = ToyModule()
     module.eval()

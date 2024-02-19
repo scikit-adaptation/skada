@@ -3,9 +3,14 @@
 # License: BSD 3-Clause
 
 import numpy as np
-import torch
 
 from skorch.dataset import Dataset
+
+try:
+    import torch  # noqa: F401
+
+except ImportError:
+    torch = None
 
 import pytest
 
@@ -20,6 +25,7 @@ from skada.deep.modules import ToyModule
 from skada.datasets import make_shifted_datasets
 
 
+@pytest.mark.skipif(torch is None, reason="PyTorch is not installed.")
 class TestLoss(BaseDALoss):
     """Test Loss to check the deep API"""
 
@@ -40,6 +46,7 @@ class TestLoss(BaseDALoss):
         return 0
 
 
+@pytest.mark.skipif(torch is None, reason="PyTorch is not installed.")
 def test_domainawaretraining():
     module = ToyModule()
     module.eval()
@@ -145,6 +152,7 @@ def test_domainawaretraining():
         method.predict(torch_dataset,)
 
 
+@pytest.mark.skipif(torch is None, reason="PyTorch is not installed.")
 def test_domainbalanceddataloader():
     n_samples = 20
     dataset = make_shifted_datasets(
