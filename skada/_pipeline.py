@@ -114,7 +114,7 @@ def _wrap_with_selector(
                                  f"Use one of {_DEFAULT_SELECTORS.keys().join(', ')}")
             estimator = selector_cls(estimator)
         else:
-            raise ValueError("Unsupported `default_selector` type: {type(selector)}")
+            raise ValueError(f"Unsupported `default_selector` type: {type(selector)}")
     return estimator
 
 

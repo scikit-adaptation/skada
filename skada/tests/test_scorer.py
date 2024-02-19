@@ -37,7 +37,11 @@ def test_generic_scorer(scorer, da_dataset):
     X, y, sample_domain = da_dataset.pack_train(as_sources=['s'], as_targets=['t'])
     estimator = make_da_pipeline(
         ReweightDensityAdapter(),
-        LogisticRegression().set_score_request(sample_weight=True),
+        LogisticRegression().set_fit_request(
+            sample_weight=True
+        ).set_score_request(
+            sample_weight=True
+        ),
     )
     cv = ShuffleSplit(n_splits=3, test_size=0.3, random_state=0)
     scores = cross_validate(
@@ -57,7 +61,11 @@ def test_supervised_scorer(da_dataset):
     X, y, sample_domain = da_dataset.pack_train(as_sources=['s'], as_targets=['t'])
     estimator = make_da_pipeline(
         ReweightDensityAdapter(),
-        LogisticRegression().set_score_request(sample_weight=True),
+        LogisticRegression().set_fit_request(
+            sample_weight=True
+        ).set_score_request(
+            sample_weight=True
+        ),
     )
     cv = ShuffleSplit(n_splits=3, test_size=0.3, random_state=0)
     _, target_labels, _ = da_dataset.pack(
@@ -87,7 +95,10 @@ def test_supervised_scorer(da_dataset):
 )
 def test_scorer_with_entropy_requires_predict_proba(scorer, da_dataset):
     X, y, sample_domain = da_dataset.pack_train(as_sources=['s'], as_targets=['t'])
-    estimator = make_da_pipeline(ReweightDensityAdapter(), SVC())
+    estimator = make_da_pipeline(
+        ReweightDensityAdapter(),
+        SVC().set_fit_request(sample_weight=True)
+    )
     estimator.fit(X, y, sample_domain=sample_domain)
     with pytest.raises(AttributeError):
         scorer(estimator, X, y, sample_domain=sample_domain)
