@@ -36,6 +36,7 @@ def da_reg_dataset():
         n_samples_source=20,
         n_samples_target=21,
         shift="concept_drift",
+        mean=0.5,
         noise=0.3,
         label="regression",
         random_state=42,
