@@ -717,73 +717,9 @@ class MMDTarSReweightAdapter(BaseAdapter):
         self.tol = tol
         self.max_iter = max_iter
 
-    def fit(self, X, y, sample_domain=None, **kwargs):
-        """Fit adaptation parameters.
-
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            The source data.
-        y : array-like, shape (n_samples,)
-            The source labels.
-        sample_domain : array-like, shape (n_samples,)
-            The domain labels (same as sample_domain).
-
-        Returns
-        -------
-        self : object
-            Returns self.
-        """
-        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
-        X_source, _, y_source, _ = source_target_split(
-            X, y, sample_domain=sample_domain
-        )
-        self.X_source_fit_, self.y_source_fit_ = X_source, y_source
-        return self
-
-    def adapt(self, X, y=None, sample_domain=None, **kwargs):
-        """Predict adaptation (weights, sample or labels).
-
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            The source data.
-        y : array-like, shape (n_samples,)
-            The source labels.
-        sample_domain : array-like, shape (n_samples,)
-            The domain labels (same as sample_domain).
-
-        Returns
-        -------
-        X_t : array-like, shape (n_samples, n_components)
-            The data (same as X).
-        y_t : array-like, shape (n_samples,)
-            The labels (same as y).
-        weights : array-like, shape (n_samples,)
-            The weights of the samples.
-        """
-        X, sample_domain = check_X_domain(X, sample_domain)
-        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
-
-        m = X_source.shape[0]
-        n = X_target.shape[0]
-
-        # if no source data, return uniform weights for target
-        if m == 0:
-            return AdaptationOutput(X=X, y=y, sample_weights=np.zeros(n))
-
-        # if no y provided, get the source labels from fit method
-        if y is None:
-            np.testing.assert_array_equal(
-                X_source,
-                self.X_source_fit_,
-                err_msg="Source data is different from the one used"
-                " for fitting and new labels are not provided."
-            )
-            y_source = self.y_source_fit_
-        else:
-            X, y = check_X_y_domain(X, y, sample_domain)
-            y_source, _ = source_target_split(y, sample_domain=sample_domain)
+    def _weights_optimization(self, X_source, X_target, y_source):
+        """Weight optimization"""
+        m, n = X_source.shape[0], X_target.shape[0]
 
         # check y is discrete or continuous
         discrete = _find_y_type(y_source) == "classification"
@@ -851,8 +787,78 @@ class MMDTarSReweightAdapter(BaseAdapter):
 
         alpha = results.x
         beta = R @ alpha
-        weights = np.concatenate([beta.flatten(), np.zeros(n)])
+        weights = beta.flatten()
 
+        return weights
+
+    def fit(self, X, y, sample_domain=None, **kwargs):
+        """Fit adaptation parameters.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
+        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        X_source, X_target, y_source, _ = source_target_split(
+            X, y, sample_domain=sample_domain
+        )
+        self.X_source_, self.y_source_ = X_source, y_source
+
+        self.weights_ = self._weights_optimization(X_source, X_target, y_source)
+
+        return self
+
+    def adapt(self, X, y=None, sample_domain=None, **kwargs):
+        """Predict adaptation (weights, sample or labels).
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        X_t : array-like, shape (n_samples, n_components)
+            The data (same as X).
+        y_t : array-like, shape (n_samples,)
+            The labels (same as y).
+        weights : array-like, shape (n_samples,)
+            The weights of the samples.
+        """
+        X, sample_domain = check_X_domain(
+            X,
+            sample_domain
+        )
+
+        source_idx = extract_source_indices(sample_domain)
+
+        if source_idx.sum() > 0:
+            if np.array_equal(self.X_source_, X[source_idx]):
+                source_weights = self.weights_
+            else:
+                # get the nearest neighbor in the source domain
+                K = pairwise_kernels(X[source_idx], self.X_source_, metric="rbf", gamma=self.gamma)
+                idx = np.argmax(K, axis=1)
+                source_weights = self.weights_[idx]
+            source_idx = np.where(source_idx)
+            weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
+            weights[source_idx] = source_weights
+        else:
+            weights = None
         return AdaptationOutput(X=X, sample_weight=weights)
 
 
