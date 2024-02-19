@@ -11,7 +11,7 @@ from skada.deep.base import (
     BaseDALoss,
 )
 
-from . import deepjdot_loss
+from .losses import deepjdot_loss
 
 
 class DeepJDOTLoss(BaseDALoss):

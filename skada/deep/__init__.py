@@ -14,29 +14,23 @@ except ImportError as e:
     print("ERROR : torch and skorch are required for importing feature's method.")
     raise e
 
-from ._losses import dan_loss, deepcoral_loss, deepjdot_loss
 from ._divergence import DeepCoral, DeepCoralLoss
-from ._optimal_transport import DeepJDOT
-from ._adversarial import DANN, CDAN
-from ._modules import (
-    ToyModule,
-    ToyCNN,
-    DomainClassifier,
-    MNISTtoUSPSNet,
-)
+from ._optimal_transport import DeepJDOT, DeepJDOTLoss
+from ._adversarial import DANN, CDAN, DANNLoss, CDANLoss
+
+from . import losses
+from . import modules
 
 
 __all__ = [
-    'dan_loss',
-    'deepcoral_loss',
-    'deepjdot_loss',
+    'losses',
+    'modules',
     'DeepCoralLoss',
     'DeepCoral',
+    'DeepJDOTLoss',
     'DeepJDOT',
+    'DANNLoss',
     'DANN',
+    'CDANLoss',
     'CDAN',
-    'ToyModule',
-    'ToyCNN',
-    'DomainClassifier',
-    'MNISTtoUSPSNet',
 ]

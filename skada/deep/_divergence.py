@@ -10,7 +10,7 @@ from skada.deep.base import (
     DomainAwareNet,
     BaseDALoss,
 )
-from . import deepcoral_loss
+from .losses import deepcoral_loss
 
 
 class DeepCoralLoss(BaseDALoss):

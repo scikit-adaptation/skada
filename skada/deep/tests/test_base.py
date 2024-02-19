@@ -16,7 +16,7 @@ from skada.deep.base import (
     DomainAwareNet,
     BaseDALoss
 )
-from skada.deep._modules import ToyModule
+from skada.deep.modules import ToyModule
 from skada.datasets import make_shifted_datasets
 
 

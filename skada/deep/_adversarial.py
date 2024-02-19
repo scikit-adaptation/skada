@@ -13,7 +13,7 @@ from skada.deep.base import (
     DomainAwareNet,
     BaseDALoss,
 )
-from ._modules import DomainClassifier
+from .modules import DomainClassifier
 
 from .utils import check_generator
 
