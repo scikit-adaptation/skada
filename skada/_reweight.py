@@ -851,7 +851,12 @@ class MMDTarSReweightAdapter(BaseAdapter):
                 source_weights = self.weights_
             else:
                 # get the nearest neighbor in the source domain
-                K = pairwise_kernels(X[source_idx], self.X_source_, metric="rbf", gamma=self.gamma)
+                K = pairwise_kernels(
+                    X[source_idx],
+                    self.X_source_,
+                    metric="rbf",
+                    gamma=self.gamma
+                )
                 idx = np.argmax(K, axis=1)
                 source_weights = self.weights_[idx]
             source_idx = np.where(source_idx)
