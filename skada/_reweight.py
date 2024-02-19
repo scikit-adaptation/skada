@@ -832,7 +832,7 @@ class MMDTarSReweightAdapter(BaseAdapter):
         beta = R @ alpha
         weights = np.concatenate([beta.flatten(), np.zeros(n)])
 
-        return AdaptationOutput(X=X, sample_weights=weights)
+        return AdaptationOutput(X=X, sample_weight=weights)
 
 
 def MMDTarSReweight(base_estimator=None, gamma=1.0):
