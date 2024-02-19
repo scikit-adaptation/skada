@@ -110,6 +110,32 @@ class BaseAdapter(BaseEstimator):
         )
 
 
+class DAEstimator(BaseEstimator):
+    """ Generic DA estimator class
+
+    """
+
+    __metadata_request__fit = {'sample_domain': True}
+    __metadata_request__partial_fit = {'sample_domain': True}
+    __metadata_request__predict = {'sample_domain': True, 'allow_source': True}
+    __metadata_request__predict_proba = {'sample_domain': True, 'allow_source': True}
+    __metadata_request__predict_log_proba = {
+        'sample_domain': True, 'allow_source': True}
+    __metadata_request__score = {'sample_domain': True, 'allow_source': True}
+    __metadata_request__decision_function = {
+        'sample_domain': True, 'allow_source': True}
+
+    @abstractmethod
+    def fit(self, X, y=None, sample_domain=None, *, sample_weight=None):
+        """Fit adaptation parameters"""
+        pass
+
+    @abstractmethod
+    def predict(self, X, sample_domain=None, *, sample_weight=None):
+        """Predict using the model"""
+        pass
+
+
 class BaseSelector(BaseEstimator):
 
     def __init__(self, base_estimator: BaseEstimator, **kwargs):
