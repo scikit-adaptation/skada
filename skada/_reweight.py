@@ -13,6 +13,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics.pairwise import pairwise_kernels
 from sklearn.model_selection import check_cv
 from sklearn.neighbors import KernelDensity
+from sklearn.svm import SVC
 from sklearn.utils import check_random_state
 from sklearn.utils.validation import check_is_fitted
 
@@ -856,7 +857,7 @@ def MMDTarSReweight(base_estimator=None, gamma=1.0):
            In ICML, 2013.
     """
     if base_estimator is None:
-        base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
+        base_estimator = SVC().set_fit_request(sample_weight=True)
 
     return make_da_pipeline(
         MMDTarSReweightAdapter(gamma=gamma),
