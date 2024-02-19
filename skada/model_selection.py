@@ -384,7 +384,7 @@ class GroupDomainAwareKFold(GroupKFold):
         return super().split(X, y, groups)
 
 
-class RandomShuffleDomainAwareSplit(BaseDomainAwareShuffleSplit):
+class DomainShuffleSplit(BaseDomainAwareShuffleSplit):
     """Random-Shuffle-DomainAware-Split cross-validator.
     Provides randomized train/test indices to split data depending
     on their sample_domain.
@@ -412,11 +412,11 @@ class RandomShuffleDomainAwareSplit(BaseDomainAwareShuffleSplit):
     Examples
     --------
     >>> import numpy as np
-    >>> from skada.model_selection import RandomShuffleDomainAwareSplit
+    >>> from skada.model_selection import DomainShuffleSplit
     >>> X = np.ones((10, 2))
     >>> y = np.ones((10, 1))
     >>> sample_domain = np.array([1, -2, 1, -2, 1, -2, 1, -2, 1, -2])
-    >>> rsdas = RandomShuffleDomainAwareSplit(
+    >>> rsdas = DomainShuffleSplit(
     ...     n_splits=3,
     ...     random_state=0,
     ...     test_size=0.1,

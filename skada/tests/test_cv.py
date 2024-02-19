@@ -20,7 +20,7 @@ from skada.metrics import PredictionEntropyScorer
 from skada.model_selection import (
     LeaveOneDomainOut,
     SourceTargetShuffleSplit,
-    RandomShuffleDomainAwareSplit,
+    DomainShuffleSplit,
     GroupDomainAwareKFold
 )
 
@@ -68,7 +68,7 @@ def test_group_based_cv(da_dataset, cv, n_splits):
     'cv',
     [
         (SourceTargetShuffleSplit(n_splits=4, test_size=0.3, random_state=0)),
-        (RandomShuffleDomainAwareSplit(n_splits=4, test_size=0.3, random_state=0)),
+        (DomainShuffleSplit(n_splits=4, test_size=0.3, random_state=0)),
     ]
 )
 def test_domain_aware_split(da_dataset, cv):
