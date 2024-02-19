@@ -18,11 +18,12 @@ import math
 from skada.base import BaseEstimator
 from skada.utils import check_X_y_domain, source_target_split
 from sklearn.base import clone
+from .base import DAEstimator
 
 from sklearn.svm import SVC
 
 
-class DASVMEstimator(BaseEstimator):
+class DASVMEstimator(DAEstimator):
     """ DASVM Estimator:
 
         Parameters
@@ -34,18 +35,22 @@ class DASVMEstimator(BaseEstimator):
         k: int>0
             The number of points per classes that will be discarded/added
             at each steps of the algorithm
-        Stop : int
+        max_iter : int
             The maximal number of iteration of the algorithm when using `fit`
+        save_estimators : Bool
+            True if this object should remembers all the fitted estimators
+        save_indices : Bool
+            True if this object should remembers all the values of
+                `index_source_deleted` and `index_target_added`
         """
-
-    __metadata_request__fit = {'sample_domain': True}
-    __metadata_request__transform = {'sample_domain': True, 'allow_source': True}
 
     def __init__(
             self,
             base_estimator=None,
             k=3,
-            Stop=1_000,
+            max_iter=1_000,
+            save_estimators=False,
+            save_indices=False,
             **kwargs
             ):
         super().__init__()
@@ -53,7 +58,9 @@ class DASVMEstimator(BaseEstimator):
             self.base_estimator = SVC(gamma='auto')
         else:
             self.base_estimator = base_estimator
-        self.Stop = Stop
+        self.max_iter = max_iter
+        self.save_estimators = save_estimators
+        self.save_indices = save_indices
         self.k = k
 
     def _find_points_next_step(self, indices_list, d):
@@ -144,56 +151,61 @@ class DASVMEstimator(BaseEstimator):
         n = Xs.shape[0]
         m = Xt.shape[0]
         self.n_class = np.unique(ys).shape[0]  # number of classes
+        self.estimators = []
+        self.indices_source_deleted = []
+        self.indices_target_added = []
 
-        # This is the list of the indices from the
-        # points from Xs that have been discarded
         index_source_deleted = np.array([False]*n)
-        # This is the list of the indices from the
-        # points from Xt that have been added
         index_target_added = np.array([False]*m)
+        if self.save_indices:
+            self.indices_source_deleted.append(
+                np.copy(index_source_deleted))
+            self.indices_target_added.append(
+                np.copy(index_target_added))
 
-        # In the first step, the SVC is fitted on the source
-        X = Xs
-        y = ys
+        X_train = Xs
+        y_train = ys
         new_estimator = self.base_estimator
-        new_estimator.fit(Xs, ys)
+        new_estimator.fit(X_train, y_train)
 
-        # We need to look at the decision function to select
-        # the labaled data that we discard and the semi-labeled points that we will add
+        if self.save_estimators:
+            self.estimators.append(new_estimator)
 
-        # look at those that have not been discarded
+
         decisions_source = new_estimator.decision_function(Xs)
         if self.n_class == 2:
             decisions_source = np.array([-decisions_source, decisions_source]).T
-        # look at those that haven't been added
         decisions_target = new_estimator.decision_function(Xt)
         if self.n_class == 2:
             decisions_target = np.array([-decisions_target, decisions_target]).T
 
-        # We want to take values that are unsure, meaning we want those that have
-        # values the closest that we can to c-1 (to 0 when label='binary')
         decisions_target = -np.abs(decisions_target-self.n_class-1)
 
-        # doing the selection on the labeled data
         self._find_points_next_step(
             index_source_deleted, decisions_source)
-        # doing the selection on the semi-labeled data
         self._find_points_next_step(
             index_target_added, decisions_target)
 
+        if self.save_indices:
+            self.indices_source_deleted.append(
+                np.copy(index_source_deleted))
+            self.indices_target_added.append(
+                np.copy(index_target_added))
+
         i = 0
-        for i in range(1, self.Stop):
+        for i in range(1, self.max_iter):
             if (sum(index_target_added) == m and sum(index_source_deleted) == n):
                 break
 
             old_estimator = new_estimator
-            X, y = self._get_X_y(
+            X_train, y_train = self._get_X_y(
                 new_estimator, index_target_added, index_source_deleted, Xs, Xt, ys)
 
             new_estimator = clone(self.base_estimator)
-            new_estimator.fit(X, y)
+            new_estimator.fit(X_train, y_train)
+            if self.save_estimators:
+                self.estimators.append(new_estimator)
 
-            # We check if one of the target point that has been added has changed label
             for j in range(len(index_target_added)):
                 if index_target_added[j]:
                     x = Xt[j]
@@ -202,28 +214,28 @@ class DASVMEstimator(BaseEstimator):
                         # index_target_added[j] should be True
                         index_target_added[j] = False
 
-            # look at those that have not been discarded
             decisions_source = self._get_decision(
                 new_estimator, Xs, index_source_deleted)
 
             decisions_fitted = self._get_decision(
                 new_estimator, np.concatenate((Xs, Xt)), np.concatenate(
                     (index_source_deleted, index_target_added)))
-            # We get the distance to the margin (in the paper they implemended it with no allowed Cost):
+
+            # We get the distance to the margin (in the paper they
+            # implemended it with no allowed Cost):
             margin_distances = np.min(decisions_fitted-(
                 self.current_classes.shape[0]-1), axis=0)
-            # look at those that haven't been added
             decisions_target = self._get_decision(new_estimator, Xt, index_target_added)
 
-            # We want to take values that are close to the margin, meaning that we
-            # want those that have values the closest that we can to c-1+margin_distance
-            # (to 0 when label='binary', or 4 when is its 'multiclass')
             if decisions_target.ndim > 1:
                 if self.current_classes.shape[0] > 1:
                     for j in range(self.current_classes.shape[0]):
                         decisions_target[:, j] = -np.abs(decisions_target[:, j]-(
                             self.n_class-1+margin_distances[j]))
                 else:
+                    # this is there because I noticed it coulmd happen,
+                    # But creating a test specifically for this might be hard,
+                    # should I still do it?
                     decisions_target = -np.abs(decisions_target-(
                             self.n_class-1+margin_distances))
 
@@ -232,17 +244,22 @@ class DASVMEstimator(BaseEstimator):
             # doing the selection on the semi-labeled data
             self._find_points_next_step(index_target_added, decisions_target)
 
+            if self.save_indices:
+                self.indices_source_deleted.append(
+                    np.copy(index_source_deleted))
+                self.indices_target_added.append(
+                    np.copy(index_target_added))
+
         old_estimator = new_estimator
-        # On last fit only on semi-labeled data
-        X, y = Xt, old_estimator.predict(Xt)
+        X_train, y_train = Xt, old_estimator.predict(Xt)
 
         new_estimator = clone(self.base_estimator)
-        new_estimator.fit(X, y)
+        new_estimator.fit(X_train, y_train)
+        if self.save_estimators:
+            self.estimators.append(new_estimator)
 
         self.base_estimator_ = new_estimator
 
-        # or the list of index_target_added and index_source_deleted (this making
-        # them being an attribute if the object)
         return self
 
     def predict(self, X):
@@ -257,3 +274,12 @@ class DASVMEstimator(BaseEstimator):
         `decision_function` method from the base_estimator_ we fitted
         """
         return self.base_estimator_.decision_function(X)
+
+
+'''
+save estimator and get a plot
+retirer les comms
+review sur github
+
+refaire dasvm kernel lineaire
+'''

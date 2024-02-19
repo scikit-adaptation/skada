@@ -26,7 +26,9 @@ def test_dasvm_estimator(label, n, m):
     Xs, Xt, ys, yt = source_target_split(
         X, y, sample_domain=sample_domain)
 
-    clf_dsvm = DASVMEstimator(k=5).fit(X, y, sample_domain=sample_domain)
+    clf_dasvm = DASVMEstimator(
+        k=5, save_estimators=True, save_indices=True).fit(
+        X, y, sample_domain=sample_domain)
 
     assert clf_dsvm.predict(X).shape == y.shape, (
             "Wrong shape of the predicted y-values (labels) when using `predict` method"

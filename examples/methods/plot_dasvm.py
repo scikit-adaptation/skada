@@ -58,23 +58,34 @@ axis[1].set_title("target data points")
 
 figure.suptitle("data points", fontsize=20)
 
-E = DASVMEstimator(
-    base_estimator=clone(base_estimator), k=3).fit(
+estimator = DASVMEstimator(
+    base_estimator=clone(base_estimator), k=3,
+    save_estimators=True, save_indices=True).fit(
     X, y, sample_domain=sample_domain)
 
-
-figure, axis = plt.subplots(1, 2)
-for i in [0, -1]:
-    e = (base_estimator.fit(Xs, ys) if i == 0 else E)
+N = 5
+K = len(estimator.estimators)//N
+figure, axis = plt.subplots(1, N+1)
+for i in list(range(0, N*K, K)) + [-1]:
+    j = i//K if i != -1 else -1
+    e = estimator.estimators[i]
     x_points = np.linspace(xlim[0], xlim[1], 200)
     y_points = np.linspace(ylim[0], ylim[1], 200)
     X = np.array([[x, y] for x in x_points for y in y_points])
-    a = axis[i].scatter(X[:, 0], X[:, 1], c=e.decision_function(X))
-    axis[i].set_xlim(xlim)
-    axis[i].set_ylim(ylim)
-    axis[i].set_title((
-        "for SVC estimator on source data" if i == 0
-        else "for DASVMEstimator on target data"))
+    a = axis[j].scatter(
+        X[:, 0], X[:, 1], c=e.decision_function(X), alpha=0.03)
+
+    X = np.concatenate((
+        Xs[~estimator.indices_source_deleted[i]],
+        Xt[estimator.indices_target_added[i]]))
+    axis[j].scatter(X[:, 0], X[:, 1], c=e.predict(X))
+    X = Xt[~estimator.indices_target_added[i]]
+    axis[j].scatter(
+        X[:, 0], X[:, 1], cmap="gray", 
+        c=[0.5]*X.shape[0], alpha=0.5, vmax=1, vmin=0)
+
+    axis[j].set_xlim(xlim)
+    axis[j].set_ylim(ylim)
 figure.colorbar(a)
 figure.suptitle("reasulting decision function", fontsize=20)
 plt.show()
