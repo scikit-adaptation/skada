@@ -856,7 +856,7 @@ def MMDTarSReweight(base_estimator=None, gamma=1.0):
            In ICML, 2013.
     """
     if base_estimator is None:
-        base_estimator = LogisticRegression()
+        base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
 
     return make_da_pipeline(
         MMDTarSReweightAdapter(gamma=gamma),

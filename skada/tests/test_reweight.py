@@ -51,7 +51,7 @@ import pytest
         KLIEP(gamma=0.2),
         make_da_pipeline(
             MMDTarSReweightAdapter(gamma=1.0),
-            LogisticRegression()
+            LogisticRegression().set_fit_request(sample_weight=True)
         ),
         MMDTarSReweight(gamma=1.0)
     ],
@@ -74,11 +74,11 @@ def test_reweight_estimator(estimator, da_dataset):
     [
         make_da_pipeline(
             MMDTarSReweightAdapter(gamma=1.0),
-            Ridge()
+            Ridge().set_fit_request(sample_weight=True)
         ),
         MMDTarSReweight(
             gamma=1.0,
-            base_estimator=Ridge()
+            base_estimator=Ridge().set_fit_request(sample_weight=True)
         )
     ],
 )
