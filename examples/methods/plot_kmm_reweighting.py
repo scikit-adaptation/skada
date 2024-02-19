@@ -9,24 +9,29 @@ This example illustrates the use of KMM method [1] to correct covariate-shift.
 
 # Author: Antoine de Mathelin
 #
-# License: MIT License
+# License: BSD 3-Clause
 # sphinx_gallery_thumbnail_number = 1
 
 # %%
-import numpy as np
 import matplotlib.pyplot as plt
 from skada import KMMAdapter
+from skada.datasets import make_shifted_datasets
 
 # %%
 # Generate sample bias dataset
 # ----------------------------
-np.random.seed(123)
-Xs = np.random.randn(100, 2) * .5
-Xt = np.random.random((20, 2))
-
-X = np.concatenate((Xs, Xt))
-sample_domain = np.ones(X.shape[0])
-sample_domain[Xs.shape[0]:] *= -2
+ds = make_shifted_datasets(
+        n_samples_source=12,
+        n_samples_target=3,
+        shift="covariate_shift",
+        label="binary",
+        noise=0.4,
+        random_state=123,
+        return_dataset=True
+)
+X, y, sample_domain = ds.pack_train(as_sources=['s'], as_targets=['t'])
+Xs, ys = ds.get_domain("s")
+Xt, yt = ds.get_domain("t")
 
 # %%
 # Illustration of Importance Weighting
@@ -46,14 +51,14 @@ ax1.plot(Xt[:, 0], Xt[:, 1], "o", c="r", label="Target")
 ax1.set_title("Before Reweighting", fontsize=16)
 ax1.set_xlabel("X1", fontsize=14)
 ax1.set_ylabel("X2", fontsize=14)
-ax1.legend(loc="upper left", fontsize=14)
+ax1.legend(loc="lower left", fontsize=14)
 
 ax2.scatter(Xs[:, 0], Xs[:, 1], s=src_weights, label="Source")
 ax2.plot(Xt[:, 0], Xt[:, 1], "o", c="r", alpha=0.8, label="Target")
 ax2.set_title("After Reweighting", fontsize=16)
 ax2.set_xlabel("X1", fontsize=14)
 ax2.set_ylabel("X2", fontsize=14)
-ax2.legend(loc="upper left", fontsize=14)
+ax2.legend(loc="lower left", fontsize=14)
 
 ax1.tick_params(direction="in", labelleft=False, labelbottom=False)
 ax2.tick_params(direction="in", labelleft=False, labelbottom=False)
