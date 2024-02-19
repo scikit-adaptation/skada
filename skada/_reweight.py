@@ -830,7 +830,7 @@ class MMDTarSReweightAdapter(BaseAdapter):
         sol = solvers.qp(P, q, G, h, options={"show_progress": False})
         alpha = np.array(sol['x'])
         beta = R @ alpha
-        weights = np.concatenate([beta.flatten(), np.zeros(m + n)])
+        weights = np.concatenate([beta.flatten(), np.zeros(n)])
 
         return AdaptationOutput(X=X, sample_weights=weights)
 
