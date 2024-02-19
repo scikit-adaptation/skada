@@ -7,7 +7,6 @@
 import warnings
 
 import numpy as np
-from cvxopt import matrix, solvers
 from scipy.stats import multivariate_normal
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics.pairwise import pairwise_kernels
@@ -16,6 +15,7 @@ from sklearn.neighbors import KernelDensity
 from sklearn.svm import SVC
 from sklearn.utils import check_random_state
 from sklearn.utils.validation import check_is_fitted
+from scipy.optimize import minimize, LinearConstraint
 
 from .base import AdaptationOutput, BaseAdapter, clone
 from .utils import (
@@ -692,6 +692,10 @@ class MMDTarSReweightAdapter(BaseAdapter):
         Parameters for the kernels.
     reg : float, default=1e-10
         Regularization parameter for the labels kernel matrix.
+    tol : float, default=1e-6
+        Tolerance for the stopping criterion in the optimization.
+    max_iter : int, default=1000
+        Number of maximum iteration before stopping the optimization.
 
     Attributes
     ----------
@@ -706,10 +710,12 @@ class MMDTarSReweightAdapter(BaseAdapter):
            In ICML, 2013.
     """
 
-    def __init__(self, gamma, reg=1e-10):
+    def __init__(self, gamma, reg=1e-10, tol=1e-6, max_iter=1000):
         super().__init__()
         self.gamma = gamma
         self.reg = reg
+        self.tol = tol
+        self.max_iter = max_iter
 
     def fit(self, X, y, sample_domain=None, **kwargs):
         """Fit adaptation parameters.
@@ -802,32 +808,48 @@ class MMDTarSReweightAdapter(BaseAdapter):
         M = np.ones((1, n)) @ K_cross @ omega.T
 
         # solve the optimization problem
+        # min_alpha 0.5 * alpha^T P alpha - q^T alpha
+        # s.t. 0 <= R alpha <= B_beta
+        #      m (1 - eps) <= 1^T R alpha <= m (1 + eps)
+        P = 0.5 * (R.T @ A @ R)
+        P = P + 1e-12 * np.eye(P.shape[0])  # make P positive semi-definite
+        q = - (m/n) * (M @ R).T
+
+        def func(alpha):
+            return ((1/2) * alpha.T @ P @ alpha + q.T @ alpha).item()
+
+        def jac(alpha):
+            return P @ alpha.reshape(-1, 1) + q
+
         B_beta = 10
         eps = B_beta / (4 * np.sqrt(m))
 
-        P = 0.5 * (R.T @ A @ R)
-        P = P + 1e-12 * np.eye(P.shape[0])  # make P positive semi-definite
-        P = matrix(P)
-        q = - (m/n) * matrix(M @ R).T
-        G = matrix(
+        constraints = LinearConstraint(
             np.vstack([
                 R,
-                - R,
-                np.sum(R, axis=0),
-                - np.sum(R, axis=0)
-            ])
-        )
-        h = matrix(
-            np.vstack([
-                B_beta * np.ones((m, 1)),
-                np.zeros((m, 1)),
-                m + m * eps,
-                - m + m * eps
+                np.sum(R, axis=0, keepdims=True)
+            ]),
+            lb=np.concatenate([
+                np.zeros((R.shape[0])),
+                [m * (1 - eps)]
+            ]),
+            ub=np.concatenate([
+                B_beta * np.ones((R.shape[0])),
+                [m * (1 + eps)]
             ])
         )
 
-        sol = solvers.qp(P, q, G, h, options={"show_progress": False})
-        alpha = np.array(sol['x'])
+        results = minimize(
+            func,
+            x0=np.ones(R.shape[1]),
+            method="SLSQP",
+            jac=jac,
+            constraints=constraints,
+            tol=self.tol,
+            options={"maxiter": self.max_iter}
+        )
+
+        alpha = results.x
         beta = R @ alpha
         weights = np.concatenate([beta.flatten(), np.zeros(n)])
 
