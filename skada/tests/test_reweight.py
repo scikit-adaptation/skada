@@ -22,23 +22,30 @@ from skada import (
 import pytest
 
 
-# xxx(okachaiev): the problem with the pipeline being setup this way,
-#                 the estimator does not accept sample_weights (as it
-#                 doesn't request it from the routing)
 @pytest.mark.parametrize(
     "estimator",
     [
-        make_da_pipeline(ReweightDensityAdapter(), LogisticRegression()),
+        make_da_pipeline(
+            ReweightDensityAdapter(),
+            LogisticRegression().set_fit_request(sample_weight=True)
+        ),
         ReweightDensity(),
-        make_da_pipeline(GaussianReweightDensityAdapter(), LogisticRegression()),
+        make_da_pipeline(
+            GaussianReweightDensityAdapter(),
+            LogisticRegression().set_fit_request(sample_weight=True)
+        ),
         GaussianReweightDensity(),
-        make_da_pipeline(DiscriminatorReweightDensityAdapter(), LogisticRegression()),
+        make_da_pipeline(
+            DiscriminatorReweightDensityAdapter(),
+            LogisticRegression().set_fit_request(sample_weight=True)
+        ),
         DiscriminatorReweightDensity(),
         make_da_pipeline(
             KLIEPAdapter(gamma=[0.1, 1], random_state=42),
-            LogisticRegression()
+            LogisticRegression().set_fit_request(sample_weight=True)
         ),
         KLIEP(gamma=[0.1, 1], random_state=42),
+        KLIEP(gamma=0.2),
     ],
 )
 def test_reweight_estimator(estimator, da_dataset):
@@ -52,3 +59,16 @@ def test_reweight_estimator(estimator, da_dataset):
     assert np.mean(y_pred == y_test) > 0.9
     score = estimator.score(X_test, y_test, sample_domain=sample_domain)
     assert score > 0.9
+
+
+def test_reweight_warning(da_dataset):
+    X_train, y_train, sample_domain = da_dataset.pack_train(
+        as_sources=['s'],
+        as_targets=['t']
+    )
+    estimator = KLIEPAdapter(gamma=0.1, max_iter=0)
+    estimator.fit(X_train, y_train, sample_domain=sample_domain)
+
+    with pytest.warns(UserWarning,
+                      match="Maximum iteration reached before convergence."):
+        estimator.fit(X_train, y_train, sample_domain=sample_domain)
