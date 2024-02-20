@@ -34,7 +34,7 @@ ylim = (-1.5, 2)
 
 figure, axis = plt.subplots(1, 2)
 
-N = 30
+N = 100
 theta_s = np.concatenate((
     np.linspace(10, 170, N),
     np.linspace(190, 350, N),
@@ -47,8 +47,8 @@ theta_t = (np.concatenate((
     ))+theta_target)*math.pi/180
 
 Xs = np.array([
-    np.cos(theta_s),
-    np.sin(theta_s)
+    (1+np.random.normal(0, 0.1, theta_s.shape[0]))*np.cos(theta_s),
+    (1+np.random.normal(0, 0.1, theta_s.shape[0]))*np.sin(theta_s)
     ]).T
 Xt = np.array([
     (1+np.random.normal(0, 0.1, theta_t.shape[0]))*np.cos(theta_t),
@@ -77,7 +77,7 @@ axis[1].set_title("target data points")
 figure.suptitle("data points", fontsize=20)
 
 estimator = DASVMEstimator(
-    base_estimator=clone(base_estimator), k=5,
+    base_estimator=clone(base_estimator), k=10,
     save_estimators=True, save_indices=True).fit(
     X, y, sample_domain=sample_domain)
 
