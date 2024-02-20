@@ -14,7 +14,7 @@ from skada.utils import (
     check_X_domain,
     extract_source_indices,
     source_target_split,
-    extract_domains_indices
+    extract_domains_indices,
     source_target_merge
 )
 from skada._utils import _check_y_masking

@@ -20,10 +20,10 @@ from sklearn.utils.validation import check_array
 
 from sklearn.utils.metadata_routing import _MetadataRequester
 
-from .utils import (check_X_domain,
-                    extract_source_indices,
-                    extract_domains_indices,
-                    check_X_y_domain
+from .utils import (
+    check_X_domain,
+    extract_source_indices,
+    extract_domains_indices
 )
 
 
@@ -473,17 +473,6 @@ class StratifiedDomainShuffleSplit(StratifiedShuffleSplit):
             allow_auto_sample_domain=True
         )
         return super().split(X, y, groups=None)
-
-
-    # __metadata_request__split = {"groups": "sample_domain"}
-
-    # def split(self, X, y=None, groups=None):
-    #     if (groups is not None) and (y is not None):
-    #         # might be a better way to do this
-    #         # using [a, b] instead doesn't work for some reason
-    #         groups = np.array([str(b) + '_' + str(a) for a, b in zip(y, groups)])
-
-    #     return super().split(X, y, groups)
 
 
 class DomainShuffleSplit(BaseDomainAwareShuffleSplit):
