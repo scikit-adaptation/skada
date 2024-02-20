@@ -6,13 +6,16 @@ import pytest
 
 import numpy as np
 
-from skada.datasets import make_dataset_from_moons_distribution
+from skada.datasets import (
+    make_dataset_from_moons_distribution
+)
 from skada.utils import (
-    check_X_domain,
     check_X_y_domain,
+    check_X_domain,
     extract_source_indices,
     source_target_split,
     extract_domains_indices
+    source_target_merge
 )
 from skada._utils import _check_y_masking
 
@@ -304,6 +307,7 @@ def test_extract_domains_indices():
         random_state=0,
         return_X_y=True,
     )
+
     domain_idx_dict = extract_domains_indices(sample_domain)
     domain_source_idx_dict, domain_target_idx_dict = extract_domains_indices(
             sample_domain,
@@ -324,3 +328,127 @@ def test_extract_domains_indices():
         sum(len(values) for values in domain_target_idx_dict.values()) ==
         2 * n_samples_target
     ), "domain_target_idx_dict shape mismatch"
+
+
+def test_source_target_merge():
+    n_samples_source = 50
+    n_samples_target = 20
+    X, y, sample_domain = make_dataset_from_moons_distribution(
+        pos_source=0.1,
+        pos_target=0.9,
+        n_samples_source=n_samples_source,
+        n_samples_target=n_samples_target,
+        random_state=0,
+        return_X_y=True,
+    )
+
+    X_source, X_target, y_source, y_target = source_target_split(
+        X, y, sample_domain=sample_domain
+    )
+
+    # Test that no Error is raised for a 2D array
+    samples, _ = source_target_merge(X_source, X_target, sample_domain=sample_domain)
+    assert (
+        samples.shape[0] == X_source.shape[0] + X_target.shape[0]
+    ), "target_samples shape mismatch"
+
+    # Test that no Error is raised for a 1D array
+    labels, _ = source_target_merge(y_source, y_target, sample_domain=sample_domain)
+    assert (
+        labels.shape[0] == y_source.shape[0] + y_target.shape[0]
+    ), "labels shape mismatch"
+
+    # Test with empty samples
+    with pytest.raises(ValueError,
+                       match="Only one array can be None or empty in each pair"
+                       ):
+        _ = source_target_merge(np.array([]), np.array([]), sample_domain=np.array([]))
+
+    # Test that no Error with one empty sample
+    _ = source_target_merge(
+        X_source,
+        np.array([]),
+        sample_domain=np.array([1]*X_source.shape[0])
+    )
+    _ = source_target_merge(
+        np.array([]),
+        X_target,
+        sample_domain=np.array([-1]*X_target.shape[0])
+    )
+
+    # Test consistent length
+    with pytest.raises(ValueError,
+                       match="Inconsistent number of samples in source-target arrays "
+                       "and the number infered in the sample_domain"
+                       ):
+        _ = source_target_merge(X_source[0], X_target[1], sample_domain=sample_domain)
+
+    # Test no sample domain
+    _ = source_target_merge(X_source, X_target, sample_domain=None)
+
+    # Test odd number of array
+    with pytest.raises(ValueError,
+                       match="Even number of arrays required as input"
+                       ):
+        _ = source_target_merge(
+            X_source,
+            X_target,
+            y_source,
+            sample_domain=sample_domain
+        )
+
+    # Test >2 arrays
+    _ = source_target_merge(
+        X_source,
+        X_target,
+        y_source,
+        y_target,
+        sample_domain=sample_domain
+    )
+
+    # Test one array
+    with pytest.raises(ValueError,
+                       match="At least two array required as input"
+                       ):
+        _ = source_target_merge(X_source, sample_domain=sample_domain)
+
+    # Test y_target = None + Inconsistent number of samples in source-target
+    with pytest.raises(ValueError,
+                       match="Inconsistent number of samples in source-target arrays "
+                       "and the number infered in the sample_domain"
+                       ):
+        _ = source_target_merge(
+            X_source,
+            X_target,
+            np.ones_like(sample_domain),
+            None,
+            sample_domain=sample_domain
+        )
+
+    # Test y_target = None + Consistent number of samples in source-target
+    _ = source_target_merge(
+        X_source,
+        X_target,
+        y_source,
+        None,
+        sample_domain=sample_domain
+    )
+
+    # Test 2 None in a pair of arrays
+    with pytest.raises(ValueError,
+                       match="Only one array can be None or empty in each pair"
+                       ):
+        _ = source_target_merge(None, None, sample_domain=sample_domain)
+
+    # Test 1 None in 2 pair of arrays
+    _ = source_target_merge(X_source, None, y_source, None, sample_domain=sample_domain)
+
+    # Test inconsistent number of features
+    with pytest.raises(ValueError,
+                       match="Inconsistent number of features in source-target arrays"
+                       ):
+        _ = source_target_merge(
+            X_source[:, :-1],
+            X_target,
+            sample_domain=sample_domain
+        )
