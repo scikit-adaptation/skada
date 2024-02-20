@@ -12,7 +12,7 @@ import pytest
 
 @pytest.mark.parametrize(
     "label, n, m",
-    [("binary", 7, 5), ("binary", 6, 6), ("binary", 5, 7), ("multiclass", 7, 5)],
+    [("binary", 7, 5), ("binary", 6, 6), ("binary", 5, 7)],
 )
 def test_dasvm_estimator(label, n, m):
     X, y, sample_domain = make_shifted_datasets(

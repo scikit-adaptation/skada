@@ -26,7 +26,7 @@ from sklearn.svm import SVC
 
 # base_estimator can be any classifier equipped with `decision_function` such as:
 # SVC(gamma='auto'), LogisticRegression(random_state=0), etc...
-base_estimator = SVC(kernel="rbf")
+base_estimator = SVC()
 
 xlim = (-2.2, 4.2)
 ylim = (-2, 4.2)
@@ -38,7 +38,7 @@ X, y, sample_domain = make_shifted_datasets(
     n_samples_target=15,
     shift="covariate_shift",
     noise=None,
-    label="multiclass",
+    label="binary",
 )
 X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
 Xs, Xt, ys, yt = source_target_split(

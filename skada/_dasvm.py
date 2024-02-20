@@ -55,7 +55,7 @@ class DASVMEstimator(DAEstimator):
             ):
         super().__init__()
         if base_estimator is None:
-            self.base_estimator = SVC(gamma='auto')
+            self.base_estimator = SVC()
         else:
             self.base_estimator = base_estimator
         self.max_iter = max_iter
@@ -71,7 +71,7 @@ class DASVMEstimator(DAEstimator):
         # We should take k points for each of the c classes,
         # depending on the values of d
         condition = np.logical_and(~indices_list, cond_array)
-        for j in range(min(self.k, math.ceil(sum(condition)/self.current_classes.shape[0]))):
+        for j in range(min(self.k, math.ceil(sum(condition)/self.n_class))):
             I = np.unique(np.argmax(d[condition], axis=0))
             # We need to get all those indices to be take into account
             # the fact that the some previous points weren't in the list
@@ -94,10 +94,9 @@ class DASVMEstimator(DAEstimator):
         that have been added
         """
         X = np.concatenate((Xs[~index_source_deleted], Xt[index_target_added]))
-        self.semi_labels = new_estimator.predict(
+        semi_labels = new_estimator.predict(
             Xt[index_target_added])
-        self.current_classes = np.unique(self.semi_labels)
-        y = np.concatenate((ys[~index_source_deleted], self.semi_labels))
+        y = np.concatenate((ys[~index_source_deleted], semi_labels))
         return X, y
 
     def _get_decision(self, new_estimator, X, indices_list):
@@ -114,15 +113,9 @@ class DASVMEstimator(DAEstimator):
             df = new_estimator.decision_function(X[~indices_list])
             # df.ndim allows us to know if we are in the
             # `binary` case or the `multiclass` one
-            if df.ndim == 1:
-                decisions = np.ones(X.shape[0])
-                decisions[~indices_list] = df
-                # We get the decision to be in the same form than for multiclass:
-                # shape (n_sample, n_class), with the decision boundary at n_class-1
-                decisions = np.array([-decisions+1, decisions+1]).T
-            else:
-                decisions = np.ones((X.shape[0], df.shape[1]))
-                decisions[~indices_list] = df
+            decisions = np.ones(X.shape[0])
+            decisions[~indices_list] = df
+            decisions = np.array([-decisions+1, decisions+1]).T
         else:
             decisions = np.ones(X.shape[0])
         return decisions
@@ -151,7 +144,7 @@ class DASVMEstimator(DAEstimator):
 
         n = Xs.shape[0]
         m = Xt.shape[0]
-        self.n_class = np.unique(ys).shape[0]  # number of classes
+        self.n_class = 2  # number of classes
         self.estimators = []
         self.indices_source_deleted = []
         self.indices_target_added = []
@@ -169,9 +162,6 @@ class DASVMEstimator(DAEstimator):
         new_estimator = self.base_estimator
         new_estimator.fit(X_train, y_train)
 
-        self.current_classes = np.unique(
-            new_estimator.predict(
-            Xs))
 
         if self.save_estimators:
             self.estimators.append(new_estimator)
@@ -190,8 +180,8 @@ class DASVMEstimator(DAEstimator):
             index_source_deleted, decisions_source, np.ones(index_source_deleted.shape[0], dtype=bool))
         in_margin_target = np.sum(
             np.logical_and(
-                decisions_target<self.current_classes.shape[0]-1,
-                decisions_target>self.current_classes.shape[0]-2
+                decisions_target<self.n_class-1,
+                decisions_target>self.n_class-2
                 ),
             axis=1
             )>0
@@ -236,22 +226,15 @@ class DASVMEstimator(DAEstimator):
             decisions_target = self._get_decision(new_estimator, Xt, index_target_added)
 
             if decisions_target.ndim > 1:
-                if self.current_classes.shape[0] > 1:
-                    decisions_target_ = -np.abs(decisions_target-(
-                        self.current_classes.shape[0]-1))
-                else:
-                    # this is there because I noticed it coulmd happen,
-                    # But creating a test specifically for this might be hard,
-                    # should I still do it?
-                    decisions_target_ = -np.abs(decisions_target-(
-                            self.current_classes.shape[0]-1))
+                decisions_target_ = -np.abs(decisions_target-1)
+
 
             self._find_points_next_step(
                 index_source_deleted, decisions_source, np.ones(index_source_deleted.shape[0], dtype=bool))
             in_margin_target = np.sum(
                 np.logical_and(
-                    decisions_target<self.current_classes.shape[0]-1,
-                    decisions_target>self.current_classes.shape[0]-2
+                    decisions_target<1,
+                    decisions_target>0
                     ),
                 axis=1
                 )>0
