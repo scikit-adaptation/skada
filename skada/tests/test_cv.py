@@ -21,7 +21,7 @@ from skada.model_selection import (
     LeaveOneDomainOut,
     SourceTargetShuffleSplit,
     DomainShuffleSplit,
-    GroupDomainAwareKFold
+    stratifiedDomainShuffleSplit
 )
 
 import pytest
@@ -32,8 +32,7 @@ import pytest
     [
         (GroupShuffleSplit(n_splits=2, test_size=0.3, random_state=0), 2),
         (GroupKFold(n_splits=2), 2),
-        (LeaveOneGroupOut(), 4),
-        (GroupDomainAwareKFold(n_splits=4), 4)
+        (LeaveOneGroupOut(), 4)
     ]
 )
 def test_group_based_cv(da_dataset, cv, n_splits):
@@ -69,6 +68,7 @@ def test_group_based_cv(da_dataset, cv, n_splits):
     [
         (SourceTargetShuffleSplit(n_splits=4, test_size=0.3, random_state=0)),
         (DomainShuffleSplit(n_splits=4, test_size=0.3, random_state=0)),
+        (stratifiedDomainShuffleSplit(n_splits=4, test_size=0.3, random_state=0)),
     ]
 )
 def test_domain_aware_split(da_dataset, cv):

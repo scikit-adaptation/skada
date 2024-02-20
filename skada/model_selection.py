@@ -12,8 +12,7 @@ import numpy as np
 from sklearn.model_selection._split import (
     _build_repr,
     _num_samples,
-    _validate_shuffle_split,
-    StratifiedShuffleSplit
+    _validate_shuffle_split
 )
 from sklearn.utils import check_random_state, indexable, _approximate_mode
 from sklearn.utils.validation import check_array
@@ -326,7 +325,7 @@ class LeaveOneDomainOut(SplitSampleDomainRequesterMixin):
         return _build_repr(self)
 
 
-class StratifiedDomainShuffleSplit(StratifiedShuffleSplit):
+class stratifiedDomainShuffleSplit(BaseDomainAwareShuffleSplit):
     """Stratified-Domain-Shuffle-Split cross-validator.
 
     This cross-validation object returns stratified randomized folds.
@@ -374,12 +373,10 @@ class StratifiedDomainShuffleSplit(StratifiedShuffleSplit):
     def __init__(
         self, n_splits=10, *, test_size=None, train_size=None, random_state=None
     ):
-        super().__init__(
-            n_splits=n_splits,
-            test_size=test_size,
-            train_size=train_size,
-            random_state=random_state,
-        )
+        self.n_splits = n_splits
+        self.test_size = test_size
+        self.train_size = train_size
+        self.random_state = random_state
         self._default_test_size = 0.1
 
     def _iter_indices(self, X, y, sample_domain=None):
@@ -467,12 +464,7 @@ class StratifiedDomainShuffleSplit(StratifiedShuffleSplit):
             yield train, test
 
     def split(self, X, y, sample_domain=None):
-        X, sample_domain = check_X_domain(
-            X,
-            sample_domain,
-            allow_auto_sample_domain=True
-        )
-        return super().split(X, y, groups=None)
+        return super().split(X, y, sample_domain)
 
 
 class DomainShuffleSplit(BaseDomainAwareShuffleSplit):
