@@ -325,7 +325,7 @@ class LeaveOneDomainOut(SplitSampleDomainRequesterMixin):
         return _build_repr(self)
 
 
-class stratifiedDomainShuffleSplit(BaseDomainAwareShuffleSplit):
+class StratifiedDomainShuffleSplit(BaseDomainAwareShuffleSplit):
     """Stratified-Domain-Shuffle-Split cross-validator.
 
     This cross-validation object returns stratified randomized folds.
