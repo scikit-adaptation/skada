@@ -63,19 +63,20 @@ class DASVMEstimator(DAEstimator):
         self.save_indices = save_indices
         self.k = k
 
-    def _find_points_next_step(self, indices_list, d):
+    def _find_points_next_step(self, indices_list, d, cond_array):
         """
         This function allow us to find the next points to add/discard,
         It is an inplace method, changing indices_list
         """
         # We should take k points for each of the c classes,
         # depending on the values of d
-        for j in range(min(self.k, math.ceil(sum(~indices_list)/self.n_class))):
-            I = np.unique(np.argmax(d[~indices_list], axis=0))
+        condition = np.logical_and(~indices_list, cond_array)
+        for j in range(min(self.k, math.ceil(sum(condition)/self.current_classes.shape[0]))):
+            I = np.unique(np.argmax(d[condition], axis=0))
             # We need to get all those indices to be take into account
             # the fact that the some previous points weren't in the list
-            for l in range(len(indices_list)):
-                if indices_list[l]:
+            for l in range(condition.shape[0]):
+                if ~condition[l]:
                     I[I >= l] += 1
 
             # We finally only need to change the list
@@ -168,6 +169,10 @@ class DASVMEstimator(DAEstimator):
         new_estimator = self.base_estimator
         new_estimator.fit(X_train, y_train)
 
+        self.current_classes = np.unique(
+            new_estimator.predict(
+            Xs))
+
         if self.save_estimators:
             self.estimators.append(new_estimator)
 
@@ -179,12 +184,19 @@ class DASVMEstimator(DAEstimator):
         if self.n_class == 2:
             decisions_target = np.array([-decisions_target, decisions_target]).T
 
-        decisions_target = -np.abs(decisions_target-self.n_class-1)
+        decisions_target_ = -np.abs(decisions_target-self.n_class+1)
 
         self._find_points_next_step(
-            index_source_deleted, decisions_source)
+            index_source_deleted, decisions_source, np.ones(index_source_deleted.shape[0], dtype=bool))
+        in_margin_target = np.sum(
+            np.logical_and(
+                decisions_target<self.current_classes.shape[0]-1,
+                decisions_target>self.current_classes.shape[0]-2
+                ),
+            axis=1
+            )>0
         self._find_points_next_step(
-            index_target_added, decisions_target)
+            index_target_added, decisions_target_, in_margin_target)
 
         if self.save_indices:
             self.indices_source_deleted.append(
@@ -194,7 +206,7 @@ class DASVMEstimator(DAEstimator):
 
         i = 0
         for i in range(1, self.max_iter):
-            if (sum(index_target_added) == m and sum(index_source_deleted) == n):
+            if sum(in_margin_target)==0:
                 break
 
             old_estimator = new_estimator
@@ -221,28 +233,30 @@ class DASVMEstimator(DAEstimator):
                 new_estimator, np.concatenate((Xs, Xt)), np.concatenate(
                     (index_source_deleted, index_target_added)))
 
-            # We get the distance to the margin (in the paper they
-            # implemended it with no allowed Cost):
-            margin_distances = np.min(decisions_fitted-(
-                self.current_classes.shape[0]-1), axis=0)
             decisions_target = self._get_decision(new_estimator, Xt, index_target_added)
 
             if decisions_target.ndim > 1:
                 if self.current_classes.shape[0] > 1:
-                    for j in range(self.current_classes.shape[0]):
-                        decisions_target[:, j] = -np.abs(decisions_target[:, j]-(
-                            self.n_class-1+margin_distances[j]))
+                    decisions_target_ = -np.abs(decisions_target-(
+                        self.current_classes.shape[0]-1))
                 else:
                     # this is there because I noticed it coulmd happen,
                     # But creating a test specifically for this might be hard,
                     # should I still do it?
-                    decisions_target = -np.abs(decisions_target-(
-                            self.n_class-1+margin_distances))
+                    decisions_target_ = -np.abs(decisions_target-(
+                            self.current_classes.shape[0]-1))
 
-            # doing the selection on the labeled data
-            self._find_points_next_step(index_source_deleted, decisions_source)
-            # doing the selection on the semi-labeled data
-            self._find_points_next_step(index_target_added, decisions_target)
+            self._find_points_next_step(
+                index_source_deleted, decisions_source, np.ones(index_source_deleted.shape[0], dtype=bool))
+            in_margin_target = np.sum(
+                np.logical_and(
+                    decisions_target<self.current_classes.shape[0]-1,
+                    decisions_target>self.current_classes.shape[0]-2
+                    ),
+                axis=1
+                )>0
+            self._find_points_next_step(
+                index_target_added, decisions_target, in_margin_target)
 
             if self.save_indices:
                 self.indices_source_deleted.append(
@@ -257,6 +271,12 @@ class DASVMEstimator(DAEstimator):
         new_estimator.fit(X_train, y_train)
         if self.save_estimators:
             self.estimators.append(new_estimator)
+
+        if self.save_indices:
+                self.indices_source_deleted.append(
+                    np.ones(n, dtype=bool))
+                self.indices_target_added.append(
+                    np.ones(m, dtype=bool))
 
         self.base_estimator_ = new_estimator
 
