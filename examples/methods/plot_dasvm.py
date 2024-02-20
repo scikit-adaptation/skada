@@ -17,9 +17,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 
-from skada.datasets import make_shifted_datasets
 from skada._dasvm import DASVMEstimator
-from skada.utils import check_X_y_domain, source_target_split
 from sklearn.base import clone
 
 from sklearn.svm import SVC
@@ -27,7 +25,7 @@ from sklearn.svm import SVC
 
 # base_estimator can be any classifier equipped with `decision_function` such as:
 # SVC(gamma='auto'), LogisticRegression(random_state=0), etc...
-base_estimator = SVC()
+base_estimator = SVC(kernel="Linear")
 
 xlim = (-2.2, 2.5)
 ylim = (-1.5, 2)
@@ -40,7 +38,7 @@ theta_s = np.concatenate((
     np.linspace(190, 350, N),
     ))*math.pi/180
 
-theta_target = 20 # the degree
+theta_target = 20
 theta_t = (np.concatenate((
     np.linspace(10, 170, N),
     np.linspace(190, 350, N),
@@ -61,8 +59,6 @@ yt = np.copy(ys)
 y = np.concatenate((ys, yt))
 
 sample_domain = np.array([1]*2*N+[-2]*2*N)
-
-
 
 axis[0].scatter(Xs[:, 0], Xs[:, 1], c=ys)
 axis[0].set_xlim(xlim)
@@ -95,29 +91,33 @@ for i in list(range(0, N*K, K)) + [-1]:
         X[:, 0], X[:, 1], c=e.decision_function(X), alpha=0.02)
 
     # plot margins
-    X_ = X[np.absolute(e.decision_function(X)-1)<epsilon]
+    X_ = X[np.absolute(e.decision_function(X)-1) < epsilon]
     axis[j].scatter(
-        X_[:, 0], X_[:, 1], c=[1]*X_.shape[0], alpha=1, cmap="gray", s=[0.1]*X_.shape[0])
-    X_ = X[np.absolute(e.decision_function(X)+1)<epsilon]
+        X_[:, 0], X_[:, 1], c=[1]*X_.shape[0],
+        alpha=1, cmap="gray", s=[0.1]*X_.shape[0])
+    X_ = X[np.absolute(e.decision_function(X)+1) < epsilon]
     axis[j].scatter(
-        X_[:, 0], X_[:, 1], c=[1]*X_.shape[0], alpha=1, cmap="gray", s=[0.1]*X_.shape[0])
-    X_ = X[np.absolute(e.decision_function(X))<epsilon]
+        X_[:, 0], X_[:, 1], c=[1]*X_.shape[0],
+        alpha=1, cmap="gray", s=[0.1]*X_.shape[0])
+    X_ = X[np.absolute(e.decision_function(X)) < epsilon]
     axis[j].scatter(
-        X_[:, 0], X_[:, 1], c=[1]*X_.shape[0], alpha=1, cmap="autumn", s=[0.1]*X_.shape[0])
+        X_[:, 0], X_[:, 1], c=[1]*X_.shape[0],
+        alpha=1, cmap="autumn", s=[0.1]*X_.shape[0])
 
     X = np.concatenate((
         Xs[~estimator.indices_source_deleted[i]],
         Xt[estimator.indices_target_added[i]]))
-    try:
-        a = axis[j].scatter(X[:, 0], X[:, 1], c=np.concatenate((
-            ys[~estimator.indices_source_deleted[i]],
-            e.predict(Xt[estimator.indices_target_added[i]]))))
-    except:
-        a = axis[j].scatter(X[:, 0], X[:, 1], c=
-        ys[~estimator.indices_source_deleted[i]])
+
+    if sum(estimator.indices_target_added[i]) > 0:
+        semi_labels = e.predict(Xt[estimator.indices_target_added[i]])
+    else:
+        semi_labels = np.array([])
+    a = axis[j].scatter(X[:, 0], X[:, 1], c=np.concatenate((
+        ys[~estimator.indices_source_deleted[i]],
+        semi_labels)))
     X = Xt[~estimator.indices_target_added[i]]
     axis[j].scatter(
-        X[:, 0], X[:, 1], cmap="gray", 
+        X[:, 0], X[:, 1], cmap="gray",
         c=[0.5]*X.shape[0], alpha=0.5, vmax=1, vmin=0)
 
     axis[j].set_xlim(xlim)

@@ -30,11 +30,11 @@ def test_dasvm_estimator(label, n, m):
         k=5, save_estimators=True, save_indices=True).fit(
         X, y, sample_domain=sample_domain)
 
-    assert clf_dsvm.predict(X).shape == y.shape, (
+    assert clf_dasvm.predict(X).shape == y.shape, (
             "Wrong shape of the predicted y-values (labels) when using `predict` method"
             )
 
-    assert clf_dsvm.decision_function(X).shape[0] == y.shape[0], (
+    assert clf_dasvm.decision_function(X).shape[0] == y.shape[0], (
             "Wrong lenght of the decision function's values "
             "when using `decision_function` method"
             )
@@ -42,7 +42,7 @@ def test_dasvm_estimator(label, n, m):
     # The `DASVMEstimator` should be usable with `make_da_pipeline`
     manage_pipeline = False
     try:
-        clf_dsvm = make_da_pipeline(
+        clf_dasvm = make_da_pipeline(
             StandardScaler(), DASVMEstimator(k=5)).fit(
             X, y, sample_domain=sample_domain)
         manage_pipeline = True

@@ -15,7 +15,6 @@ The dsvm method comes from [1].
 import numpy as np
 import math
 
-from skada.base import BaseEstimator
 from skada.utils import check_X_y_domain, source_target_split
 from sklearn.base import clone
 from .base import DAEstimator
@@ -162,10 +161,8 @@ class DASVMEstimator(DAEstimator):
         new_estimator = self.base_estimator
         new_estimator.fit(X_train, y_train)
 
-
         if self.save_estimators:
             self.estimators.append(new_estimator)
-
 
         decisions_source = new_estimator.decision_function(Xs)
         if self.n_class == 2:
@@ -177,14 +174,15 @@ class DASVMEstimator(DAEstimator):
         decisions_target_ = -np.abs(decisions_target-self.n_class+1)
 
         self._find_points_next_step(
-            index_source_deleted, decisions_source, np.ones(index_source_deleted.shape[0], dtype=bool))
+            index_source_deleted, decisions_source, np.ones(
+                index_source_deleted.shape[0], dtype=bool))
         in_margin_target = np.sum(
             np.logical_and(
-                decisions_target<self.n_class-1,
-                decisions_target>self.n_class-2
+                decisions_target < self.n_class-1,
+                decisions_target > self.n_class-2
                 ),
             axis=1
-            )>0
+            ) > 0
         self._find_points_next_step(
             index_target_added, decisions_target_, in_margin_target)
 
@@ -196,7 +194,7 @@ class DASVMEstimator(DAEstimator):
 
         i = 0
         for i in range(1, self.max_iter):
-            if sum(in_margin_target)==0:
+            if sum(in_margin_target) == 0:
                 break
 
             old_estimator = new_estimator
@@ -219,25 +217,21 @@ class DASVMEstimator(DAEstimator):
             decisions_source = self._get_decision(
                 new_estimator, Xs, index_source_deleted)
 
-            decisions_fitted = self._get_decision(
-                new_estimator, np.concatenate((Xs, Xt)), np.concatenate(
-                    (index_source_deleted, index_target_added)))
-
             decisions_target = self._get_decision(new_estimator, Xt, index_target_added)
 
             if decisions_target.ndim > 1:
                 decisions_target_ = -np.abs(decisions_target-1)
 
-
             self._find_points_next_step(
-                index_source_deleted, decisions_source, np.ones(index_source_deleted.shape[0], dtype=bool))
+                index_source_deleted, decisions_source,
+                np.ones(index_source_deleted.shape[0], dtype=bool))
             in_margin_target = np.sum(
                 np.logical_and(
-                    decisions_target<1,
-                    decisions_target>0
+                    decisions_target < 1,
+                    decisions_target > 0
                     ),
                 axis=1
-                )>0
+                ) > 0
             self._find_points_next_step(
                 index_target_added, decisions_target, in_margin_target)
 
@@ -256,10 +250,10 @@ class DASVMEstimator(DAEstimator):
             self.estimators.append(new_estimator)
 
         if self.save_indices:
-                self.indices_source_deleted.append(
-                    np.ones(n, dtype=bool))
-                self.indices_target_added.append(
-                    np.ones(m, dtype=bool))
+            self.indices_source_deleted.append(
+                np.ones(n, dtype=bool))
+            self.indices_target_added.append(
+                np.ones(m, dtype=bool))
 
         self.base_estimator_ = new_estimator
 
@@ -277,12 +271,3 @@ class DASVMEstimator(DAEstimator):
         `decision_function` method from the base_estimator_ we fitted
         """
         return self.base_estimator_.decision_function(X)
-
-
-'''
-save estimator and get a plot
-retirer les comms
-review sur github
-
-refaire dasvm kernel lineaire
-'''
