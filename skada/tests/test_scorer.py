@@ -127,3 +127,39 @@ def test_scorer_with_log_proba():
     )['test_score']
     assert scores.shape[0] == 3, "evaluate 3 splits"
     assert np.all(~np.isnan(scores)), "all scores are computed"
+    assert np.all(scores <= 0), "all scores are negative"
+
+
+def test_prediction_entropy_scorer_reduction(da_dataset):
+    X, y, sample_domain = da_dataset.pack_train(as_sources=['s'], as_targets=['t'])
+    estimator = make_da_pipeline(
+        ReweightDensityAdapter(),
+        LogisticRegression().set_fit_request(
+            sample_weight=True
+        ),
+    )
+
+    estimator.fit(X, y, sample_domain=sample_domain)
+
+    scorer = PredictionEntropyScorer(reduction='mean')
+    score_mean = scorer._score(estimator, X, y, sample_domain=sample_domain)
+    assert isinstance(score_mean, float), "score_mean is not a float"
+
+    scorer = PredictionEntropyScorer(reduction='sum')
+    score_sum = scorer._score(estimator, X, y, sample_domain=sample_domain)
+    assert isinstance(score_sum, float), "score_sum is not a float"
+
+    assert score_mean == pytest.approx(score_sum / X.shape[0], rel=1e-5)
+
+    scorer = PredictionEntropyScorer(reduction='none')
+    score_none = scorer._score(estimator, X, y, sample_domain=sample_domain)
+    assert isinstance(score_none, np.ndarray), "score_none is not a numpy array"
+
+    with pytest.raises(ValueError):
+        scorer = PredictionEntropyScorer(reduction='WRONG_REDUCTION')
+
+    # Really unlikely to happen, but still
+    with pytest.raises(ValueError):
+        scorer = PredictionEntropyScorer(reduction='none')
+        scorer.reduction = 'WRONG_REDUCTION'
+        scorer._score(estimator, X, y, sample_domain=sample_domain)
