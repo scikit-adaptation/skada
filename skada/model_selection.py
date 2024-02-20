@@ -13,12 +13,18 @@ from sklearn.model_selection._split import (
     _build_repr,
     _num_samples,
     _validate_shuffle_split,
-    GroupKFold
+    StratifiedShuffleSplit
 )
-from sklearn.utils import check_random_state, indexable
+from sklearn.utils import check_random_state, indexable, _approximate_mode
+from sklearn.utils.validation import check_array
+
 from sklearn.utils.metadata_routing import _MetadataRequester
 
-from .utils import check_X_domain, extract_source_indices, extract_domains_indices
+from .utils import (check_X_domain,
+                    extract_source_indices,
+                    extract_domains_indices,
+                    check_X_y_domain
+)
 
 
 class SplitSampleDomainRequesterMixin(_MetadataRequester):
@@ -320,68 +326,164 @@ class LeaveOneDomainOut(SplitSampleDomainRequesterMixin):
         return _build_repr(self)
 
 
-class GroupDomainAwareKFold(GroupKFold):
-    """Group-DomainAware-KFold cross-validator.
+class StratifiedDomainShuffleSplit(StratifiedShuffleSplit):
+    """Stratified-Domain-Shuffle-Split cross-validator.
 
-    Each combinaison of sample_domain and labels form a group.
-    Each group will appear exactly once in the test set across
-    all folds (the number of distinct sample_domain * distinct
-    labels has to be at least equal to the number of folds).
-
-    The folds are approximately balanced in the sense that the number of
-    distinct groups is approximately the same in each fold.
+    This cross-validation object returns stratified randomized folds.
+    The folds are made by preserving the percentage of samples
+    for each class and for each sample domain.
 
     Parameters
     ----------
-    n_splits : int, default=5
+    n_splits : int, default=10
         Number of folds. Must be at least 2.
 
     Examples
     --------
     >>> import numpy as np
-    >>> from skada.model_selection import GroupDomainAwareKFold
+    >>> from skada.model_selection import StratifiedDomainShuffleSplit
     >>> X = np.ones((10, 2))
     >>> y = np.array([-1, 0, 1, -1, 0, 1, -1, 0, 1, -1])
     >>> sample_domain = np.array([-2, 1, 1, -2, 1, 1, -2, 1, 1, -2])
-    >>> group_da_kfold = GroupDomainAwareKFold(n_splits=3)
-    >>> group_da_kfold.get_n_splits(X, y, sample_domain)
+    >>> da_shufflesplit = StratifiedDomainShuffleSplit(n_splits=3)
+    >>> da_shufflesplit.get_n_splits(X, y, sample_domain)
     3
-    >>> print(group_da_kfold)
-    GroupDomainAwareKFold(n_splits=3)
+    >>> print(da_shufflesplit)
+    StratifiedDomainShuffleSplit(n_splits=3, random_state=0,
+    ...     test_size=0.5)
     >>> for i, (train_index, test_index) in enumerate(
-    ...    group_da_kfold.split(X, y, sample_domain)
+    ...    da_shufflesplit.split(X, y, sample_domain)
     ... ):
     ...     print(f"Fold {i}:")
     ...     print(f"  Train: index={train_index}, "
-    ...     f'''group={[str(b) + '_' +str(a)
+    ...     f'''group={[[b, a]
     ...     for a, b in zip(y[train_index], sample_domain[train_index])
     ...     ]}''')
     ...     print(f"  Test: index={test_index}, "
-    ...     f'''group={[str(b) + '_' +str(a)
+    ...     f'''group={[[b, a]
     ...     for a, b in zip(y[test_index], sample_domain[test_index])
     ...     ]}''')
     Fold 0:
-        Train: index=[1 2 4 5 7 8], group=['1_0', '1_1', '1_0', '1_1', '1_0', '1_1']
-        Test:  index=[0 3 6 9], group=['-2_-1', '-2_-1', '-2_-1', '-2_-1']
+        Train: index=[0 6 1 8 2], group=[[-2, -1], [-2, -1], [1, 0], [1, 1], [1, 1]]
+        Test:  index=[4 9 7 5 3], group=[[1, 0], [-2, -1], [1, 0], [1, 1], [-2, -1]]
     Fold 1:
-        Train: index=[0 1 3 4 6 7 9],
-        group=['-2_-1', '1_0', '-2_-1', '1_0', '-2_-1', '1_0', '-2_-1']
-        Test:  index=[2 5 8], group=['1_1', '1_1', '1_1']
-    Fold 2:
-        Train: index=[0 2 3 5 6 8 9],
-        group=['-2_-1', '1_1', '-2_-1', '1_1', '-2_-1', '1_1', '-2_-1']
-        Test:  index=[1 4 7], group=['1_0', '1_0', '1_0']
+        Train: index=[1 2 8 0 3], group=[[1, 0], [1, 1], [1, 1], [-2, -1], [-2, -1]]
+        Test:  index=[7 5 9 4 6], group=[[1, 0], [1, 1], [-2, -1], [1, 0], [-2, -1]]
     """
 
-    __metadata_request__split = {"groups": "sample_domain"}
+    def __init__(
+        self, n_splits=10, *, test_size=None, train_size=None, random_state=None
+    ):
+        super().__init__(
+            n_splits=n_splits,
+            test_size=test_size,
+            train_size=train_size,
+            random_state=random_state,
+        )
+        self._default_test_size = 0.1
 
-    def split(self, X, y=None, groups=None):
-        if (groups is not None) and (y is not None):
-            # might be a better way to do this
-            # using [a, b] instead doesn't work for some reason
-            groups = np.array([str(b) + '_' + str(a) for a, b in zip(y, groups)])
+    def _iter_indices(self, X, y, sample_domain=None):
+        # Original code from scikit-learn: https://github.com/scikit-learn/scikit-learn
+        # Modified to have output folds made while
+        # preserving the labels AND sample_domain
+        # percentages of samples
+        # License: BSD
 
-        return super().split(X, y, groups)
+        X, sample_domain = check_X_domain(
+            X,
+            sample_domain,
+            allow_auto_sample_domain=True
+        )
+        X, y, sample_domain = indexable(X, y, sample_domain)
+
+        n_samples = _num_samples(X)
+        y = check_array(y, input_name="y", ensure_2d=False, dtype=None)
+        n_train, n_test = _validate_shuffle_split(
+            n_samples,
+            self.test_size,
+            self.train_size,
+            default_test_size=self._default_test_size,
+        )
+
+        if y.ndim == 2:
+            # for multi-label y, map each distinct row to a string repr
+            # using join because str(row) uses an ellipsis if len(row) > 1000
+            y = np.array([" ".join(row.astype("str")) for row in y])
+
+        # Stack y and sample_domain to have sample groups
+        groups_array = np.stack((y, sample_domain), axis=-1)
+
+        groups, group_indices = np.unique(groups_array, return_inverse=True, axis=0)
+        n_groups = groups.shape[0]
+
+        group_counts = np.bincount(group_indices)
+        if np.min(group_counts) < 2:
+            raise ValueError(
+                "The least populated group has only 1"
+                " member, which is too few. The minimum"
+                " number of samples for any group cannot"
+                " be less than 2."
+            )
+
+        if n_train < n_groups:
+            raise ValueError(
+                "The train_size = %d should be greater or "
+                "equal to the number of groups = %d" % (n_train, n_groups)
+            )
+        if n_test < n_groups:
+            raise ValueError(
+                "The test_size = %d should be greater or "
+                "equal to the number of groups = %d" % (n_test, n_groups)
+            )
+
+        # Find the sorted list of instances for each class:
+        # (np.unique above performs a sort, so code is O(n logn) already)
+        group_indices = np.split(
+            np.argsort(group_indices, kind="mergesort"), np.cumsum(group_counts)[:-1]
+        )
+
+        rng = check_random_state(self.random_state)
+
+        for _ in range(self.n_splits):
+            # if there are ties in the class-counts, we want
+            # to make sure to break them anew in each iteration
+            n_i = _approximate_mode(group_counts, n_train, rng)
+            class_counts_remaining = group_counts - n_i
+            t_i = _approximate_mode(class_counts_remaining, n_test, rng)
+
+            train = []
+            test = []
+
+            for i in range(n_groups):
+                permutation = rng.permutation(group_counts[i])
+                perm_indices_group_i = group_indices[i].take(permutation, mode="clip")
+
+                train.extend(perm_indices_group_i[: n_i[i]])
+                test.extend(perm_indices_group_i[n_i[i] : n_i[i] + t_i[i]])
+
+            train = rng.permutation(train)
+            test = rng.permutation(test)
+
+            yield train, test
+
+    def split(self, X, y, sample_domain=None):
+        X, sample_domain = check_X_domain(
+            X,
+            sample_domain,
+            allow_auto_sample_domain=True
+        )
+        return super().split(X, y, groups=None)
+
+
+    # __metadata_request__split = {"groups": "sample_domain"}
+
+    # def split(self, X, y=None, groups=None):
+    #     if (groups is not None) and (y is not None):
+    #         # might be a better way to do this
+    #         # using [a, b] instead doesn't work for some reason
+    #         groups = np.array([str(b) + '_' + str(a) for a, b in zip(y, groups)])
+
+    #     return super().split(X, y, groups)
 
 
 class DomainShuffleSplit(BaseDomainAwareShuffleSplit):
