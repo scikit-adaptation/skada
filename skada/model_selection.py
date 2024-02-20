@@ -349,7 +349,7 @@ class StratifiedDomainShuffleSplit(BaseDomainAwareShuffleSplit):
     3
     >>> print(da_shufflesplit)
     StratifiedDomainShuffleSplit(n_splits=3, random_state=None,
-    ...     test_size=None, train_size=None)
+        test_size=None, train_size=None)
     >>> for i, (train_index, test_index) in enumerate(
     ...    da_shufflesplit.split(X, y, sample_domain)
     ... ):
