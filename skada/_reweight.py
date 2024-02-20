@@ -747,7 +747,7 @@ class MMDTarSReweightAdapter(BaseAdapter):
         # min_alpha 0.5 * alpha^T P alpha - q^T alpha
         # s.t. 0 <= R alpha <= B_beta
         #      m (1 - eps) <= 1^T R alpha <= m (1 + eps)
-        P = 0.5 * (R.T @ A @ R)
+        P = R.T @ A @ R
         P = P + 1e-12 * np.eye(P.shape[0])  # make P positive semi-definite
         q = - (m/n) * (M @ R).T
 
