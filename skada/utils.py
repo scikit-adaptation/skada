@@ -2,7 +2,7 @@
 #
 # License: BSD 3-Clause
 
-from typing import Optional, Set
+from typing import Optional, Set, Sequence
 
 import warnings
 
@@ -258,7 +258,7 @@ def source_target_split(
 def source_target_merge(
     *arrays,
     sample_domain : Optional[np.ndarray] = None
-) -> np.ndarray:
+) -> Sequence[np.ndarray]:
     f""" Merge source and target domain data based on sample domain labels.
 
     Parameters
