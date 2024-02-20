@@ -134,7 +134,9 @@ def test_prediction_entropy_scorer_reduction(da_dataset):
     X, y, sample_domain = da_dataset.pack_train(as_sources=['s'], as_targets=['t'])
     estimator = make_da_pipeline(
         ReweightDensityAdapter(),
-        LogisticRegression(),
+        LogisticRegression().set_fit_request(
+            sample_weight=True
+        ),
     )
 
     estimator.fit(X, y, sample_domain=sample_domain)
