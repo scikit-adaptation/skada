@@ -37,7 +37,6 @@ from skada import (
     CORAL
 )
 from skada.datasets import make_shifted_datasets
-from skada import source_target_split
 
 # Use same random seed for multiple calls to make_datasets to
 # ensure same distributions
@@ -61,12 +60,12 @@ names = [
 classifiers = [
     SVC(),
     ReweightDensity(
-        base_estimator=SVC(),
+        base_estimator=SVC().set_fit_request(sample_weight=True),
         weight_estimator=KernelDensity(bandwidth=0.5),
     ),
-    GaussianReweightDensity(base_estimator=SVC()),
-    DiscriminatorReweightDensity(base_estimator=SVC()),
-    KLIEP(base_estimator=SVC(), gamma=[1, 0.1, 0.001]),
+    GaussianReweightDensity(SVC().set_fit_request(sample_weight=True)),
+    DiscriminatorReweightDensity(SVC().set_fit_request(sample_weight=True)),
+    KLIEP(SVC().set_fit_request(sample_weight=True), gamma=[1, 0.1, 0.001]),
     SubspaceAlignment(base_estimator=SVC(), n_components=1),
     TransferComponentAnalysis(base_estimator=SVC(), n_components=1, mu=0.5),
     OTMapping(base_estimator=SVC()),
@@ -83,7 +82,8 @@ datasets = [
         shift="covariate_shift",
         label="binary",
         noise=0.4,
-        random_state=RANDOM_SEED
+        random_state=RANDOM_SEED,
+        return_dataset=True
     ),
     make_shifted_datasets(
         n_samples_source=20,
@@ -91,7 +91,8 @@ datasets = [
         shift="target_shift",
         label="binary",
         noise=0.4,
-        random_state=RANDOM_SEED
+        random_state=RANDOM_SEED,
+        return_dataset=True
     ),
     make_shifted_datasets(
         n_samples_source=20,
@@ -99,7 +100,8 @@ datasets = [
         shift="concept_drift",
         label="binary",
         noise=0.4,
-        random_state=RANDOM_SEED
+        random_state=RANDOM_SEED,
+        return_dataset=True
     ),
     make_shifted_datasets(
         n_samples_source=20,
@@ -107,7 +109,8 @@ datasets = [
         shift="subspace",
         label="binary",
         noise=0.4,
-        random_state=RANDOM_SEED
+        random_state=RANDOM_SEED,
+        return_dataset=True
     ),
 ]
 
@@ -115,9 +118,9 @@ figure, axes = plt.subplots(len(classifiers) + 2, len(datasets), figsize=(9, 27)
 # iterate over datasets
 for ds_cnt, ds in enumerate(datasets):
     # preprocess dataset, split into training and test part
-    X, y, sample_domain = ds
-
-    Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
+    X, y, sample_domain = ds.pack_train(as_sources=['s'], as_targets=['t'])
+    Xs, ys = ds.get_domain("s")
+    Xt, yt = ds.get_domain("t")
 
     x_min, x_max = X[:, 0].min() - 0.5, X[:, 0].max() + 0.5
     y_min, y_max = X[:, 1].min() - 0.5, X[:, 1].max() + 0.5
