@@ -343,13 +343,14 @@ class StratifiedDomainShuffleSplit(BaseDomainAwareShuffleSplit):
     >>> from skada.model_selection import StratifiedDomainShuffleSplit
     >>> X = np.ones((10, 2))
     >>> y = np.array([-1, 0, 1, -1, 0, 1, -1, 0, 1, -1])
-    >>> sample_domain = np.array([-2, 1, 1, -2, 1, 1, -2, 1, 1, -2])
-    >>> da_shufflesplit = StratifiedDomainShuffleSplit(n_splits=3)
+    >>> sample_domain = np.array([-2, 1, 1, -2s, 1, 1, -2, 1, 1, -2])
+    >>> da_shufflesplit = StratifiedDomainShuffleSplit(n_splits=2,
+    ... random_state=0, test_size=0.5)
     >>> da_shufflesplit.get_n_splits(X, y, sample_domain)
-    3
+    2
     >>> print(da_shufflesplit)
-    StratifiedDomainShuffleSplit(n_splits=3, random_state=None,
-        test_size=None, train_size=None)
+    StratifiedDomainShuffleSplit(n_splits=2, random_state=0,
+        test_size=0.5, train_size=None)
     >>> for i, (train_index, test_index) in enumerate(
     ...    da_shufflesplit.split(X, y, sample_domain)
     ... ):
