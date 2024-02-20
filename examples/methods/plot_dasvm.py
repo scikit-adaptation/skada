@@ -15,6 +15,7 @@ This example illustrates the dsvm method from [1].
 
 import numpy as np
 import matplotlib.pyplot as plt
+import math
 
 from skada.datasets import make_shifted_datasets
 from skada._dasvm import DASVMEstimator
@@ -28,22 +29,39 @@ from sklearn.svm import SVC
 # SVC(gamma='auto'), LogisticRegression(random_state=0), etc...
 base_estimator = SVC()
 
-xlim = (-2.2, 4.2)
-ylim = (-2, 4.2)
+xlim = (-2.2, 2.5)
+ylim = (-1.5, 2)
 
 figure, axis = plt.subplots(1, 2)
 
-X, y, sample_domain = make_shifted_datasets(
-    n_samples_source=20,
-    n_samples_target=15,
-    shift="covariate_shift",
-    noise=None,
-    label="binary",
-)
-X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
-Xs, Xt, ys, yt = source_target_split(
-    X, y, sample_domain=sample_domain
-)
+N = 30
+theta_s = np.concatenate((
+    np.linspace(10, 170, N),
+    np.linspace(190, 350, N),
+    ))*math.pi/180
+
+theta_target = 20 # the degree
+theta_t = (np.concatenate((
+    np.linspace(10, 170, N),
+    np.linspace(190, 350, N),
+    ))+theta_target)*math.pi/180
+
+Xs = np.array([
+    np.cos(theta_s),
+    np.sin(theta_s)
+    ]).T
+Xt = np.array([
+    (1+np.random.normal(0, 0.1, theta_t.shape[0]))*np.cos(theta_t),
+    (1+np.random.normal(0, 0.1, theta_t.shape[0]))*np.sin(theta_t)
+    ]).T
+X = np.concatenate((Xs, Xt))
+
+ys = np.array([0]*N+[1]*N)
+yt = np.copy(ys)
+y = np.concatenate((ys, yt))
+
+sample_domain = np.array([1]*2*N+[-2]*2*N)
+
 
 
 axis[0].scatter(Xs[:, 0], Xs[:, 1], c=ys)
@@ -74,7 +92,7 @@ for i in list(range(0, N*K, K)) + [-1]:
     y_points = np.linspace(ylim[0], ylim[1], 200)
     X = np.array([[x, y] for x in x_points for y in y_points])
     axis[j].scatter(
-        X[:, 0], X[:, 1], c=e.decision_function(X), alpha=0.03)
+        X[:, 0], X[:, 1], c=e.decision_function(X), alpha=0.02)
 
     # plot margins
     X_ = X[np.absolute(e.decision_function(X)-1)<epsilon]
