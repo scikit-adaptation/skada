@@ -9,9 +9,9 @@ import numpy as np
 from skada.datasets import (
     make_dataset_from_moons_distribution
 )
-
 from skada.utils import (
-    check_X_y_domain, check_X_domain,
+    check_X_y_domain,
+    check_X_domain,
     extract_source_indices,
     source_target_split,
     source_target_merge
@@ -308,8 +308,9 @@ def test_source_target_merge():
         return_X_y=True,
     )
 
-    X_source, X_target = source_target_split(X, sample_domain=sample_domain)
-    y_source, y_target = source_target_split(y, sample_domain=sample_domain)
+    X_source, X_target, y_source, y_target = source_target_split(
+        X, y, sample_domain=sample_domain
+    )
 
     # Test that no Error is raised for a 2D array
     samples, _ = source_target_merge(X_source, X_target, sample_domain=sample_domain)
@@ -325,7 +326,7 @@ def test_source_target_merge():
 
     # Test with empty samples
     with pytest.raises(ValueError,
-                       match="Only one array can be None or empty in each duo"
+                       match="Only one array can be None or empty in each pair"
                        ):
         _ = source_target_merge(np.array([]), np.array([]), sample_domain=np.array([]))
 
@@ -399,13 +400,13 @@ def test_source_target_merge():
         sample_domain=sample_domain
     )
 
-    # Test 2 None in a duo arrays
+    # Test 2 None in a pair of arrays
     with pytest.raises(ValueError,
-                       match="Only one array can be None or empty in each duo"
+                       match="Only one array can be None or empty in each pair"
                        ):
         _ = source_target_merge(None, None, sample_domain=sample_domain)
 
-    # Test 1 None in 2 duo arrays
+    # Test 1 None in 2 pair of arrays
     _ = source_target_merge(X_source, None, y_source, None, sample_domain=sample_domain)
 
     # Test inconsistent number of features

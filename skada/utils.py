@@ -14,8 +14,10 @@ from sklearn.utils.multiclass import type_of_target
 
 from skada._utils import _check_y_masking
 from skada._utils import (
-    _DEFAULT_SOURCE_DOMAIN_LABEL, _DEFAULT_TARGET_DOMAIN_LABEL,
-    _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL, _DEFAULT_TARGET_DOMAIN_ONLY_LABEL,
+    _DEFAULT_SOURCE_DOMAIN_LABEL,
+    _DEFAULT_TARGET_DOMAIN_LABEL,
+    _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
+    _DEFAULT_TARGET_DOMAIN_ONLY_LABEL,
     _DEFAULT_MASKED_TARGET_REGRESSION_LABEL
 )
 
@@ -263,9 +265,9 @@ def source_target_merge(
     ----------
     *arrays : sequence of array-like
         (, n_features). The number of arrays must be even
-        since we consider duos of source-target arrays each time.
-        Each duo should have at least one non-empty array.
-        In each duo the first array is considered as the source and
+        since we consider pairs of source-target arrays each time.
+        Each pair should have at least one non-empty array.
+        In each pair the first array is considered as the source and
         the second as the target. If one of the array is None or empty,
         it's value will be inferred from the other array and the sample_domain
         (depending on the type of the arrays, they'll have a value of
@@ -334,9 +336,9 @@ def source_target_merge(
         if arrays[i+1] is None or arrays[i+1].shape[0] == 0:
             arrays[i+1] = np.array([])
 
-        # Check no duo is empty
+        # Check no pair is empty
         if (np.size(arrays[i]) == 0 and np.size(arrays[i+1]) == 0):
-            raise ValueError("Only one array can be None or empty in each duo")
+            raise ValueError("Only one array can be None or empty in each pair")
 
         # Check consistent dim of arrays
         if (np.size(arrays[i]) != 0 and np.size(arrays[i+1]) != 0):
@@ -354,14 +356,14 @@ def source_target_merge(
         )
 
         # By assuming that the first array is the source and the second the target
-        index_something_source = 0
-        index_something_target = 1
+        source_assumed_index = 0
+        target_assumed_index = 1
         sample_domain = np.concatenate((
             _DEFAULT_SOURCE_DOMAIN_LABEL*np.ones(
-                arrays[index_something_source].shape[0]
+                arrays[source_assumed_index].shape[0]
             ),
             _DEFAULT_TARGET_DOMAIN_LABEL*np.ones(
-                arrays[index_something_target].shape[0]
+                arrays[target_assumed_index].shape[0]
             )
         ))
 
@@ -385,30 +387,26 @@ def source_target_merge(
             index_is_empty = i+1
 
         if index_is_empty is not None:
-            # We need to infer the value of the empty array in the duo
+            # We need to infer the value of the empty array in the pair
             warnings.warn(
-                "One of the arrays in a duo is empty, it will be inferred"
+                "One of the arrays in a pair is empty, it will be inferred"
             )
 
-            duo_index = i+1 if index_is_empty == i else i
+            pair_index = i+1 if index_is_empty == i else i
 
-            y_type = type_of_target(arrays[duo_index])
+            y_type = type_of_target(arrays[pair_index])
             if y_type == 'binary' or y_type == 'multiclass':
-                arrays[index_is_empty] = (
-                    _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL *
-                    np.ones(
-                        (sample_domain.shape[0] - arrays[duo_index].shape[0],) +
-                        arrays[duo_index].shape[1:]
-                    )
-                )
+                default_masked_label = _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
             else:
-                arrays[index_is_empty] = (
-                    _DEFAULT_MASKED_TARGET_REGRESSION_LABEL *
-                    np.ones(
-                        (sample_domain.shape[0] - arrays[duo_index].shape[0],) +
-                        arrays[duo_index].shape[1:]
-                    )
+                default_masked_label = _DEFAULT_MASKED_TARGET_REGRESSION_LABEL
+
+            arrays[index_is_empty] = (
+                default_masked_label *
+                np.ones(
+                    (sample_domain.shape[0] - arrays[pair_index].shape[0],) +
+                    arrays[pair_index].shape[1:]
                 )
+            )
 
         # Check consistent number of samples in source-target arrays
         # and the number infered in the sample_domain
