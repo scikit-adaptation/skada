@@ -114,9 +114,6 @@ def test_leave_one_domain_out(da_dataset, max_n_splits, n_splits):
         scoring=PredictionEntropyScorer(),
     )['test_score']
     assert scores.shape[0] == n_splits, "evaluate all splits"
-<<<<<<< Updated upstream
-    assert np.all(~np.isnan(scores)), "at least some scores are computed"
-=======
     assert np.all(~np.isnan(scores)), "all scores are computed"
 
 
@@ -179,4 +176,3 @@ def test_stratified_domain_shuffle_split_exceptions():
     splitter = StratifiedDomainShuffleSplit(n_splits=4, test_size=0.1, random_state=0)
     with pytest.raises(ValueError):
         next(iter((splitter.split(X, y, sample_domain))))
->>>>>>> Stashed changes
