@@ -62,17 +62,15 @@ class ReweightDensityAdapter(BaseAdapter):
         self : object
             Returns self.
         """
-        # xxx(okachaiev): that's the reason we need a way to cache this call
-        X, sample_domain = check_X_domain(
-            X,
-            sample_domain
-        )
+        X, sample_domain = check_X_domain(X, sample_domain)
         X_source, X_target = source_target_split(X, sample_domain=sample_domain)
 
-        self.weight_estimator_source_ = clone(self.weight_estimator)
-        self.weight_estimator_target_ = clone(self.weight_estimator)
-        self.weight_estimator_source_.fit(X_source)
-        self.weight_estimator_target_.fit(X_target)
+        source_estimator = clone(self.weight_estimator)
+        source_estimator.fit(X_source)
+        target_estimator = clone(self.weight_estimator)
+        target_estimator.fit(X_target)
+        self.weight_estimator_source_ = source_estimator
+        self.weight_estimator_target_ = target_estimator
         return self
 
     def adapt(self, X, y=None, sample_domain=None):
@@ -89,17 +87,16 @@ class ReweightDensityAdapter(BaseAdapter):
 
         Returns
         -------
-        X_t : array-like, shape (n_samples, n_components)
-            The data (same as X).
-        y_t : array-like, shape (n_samples,)
-            The labels (same as y).
-        weights : array-like, shape (n_samples,)
-            The weights of the samples.
+        output : :class:`skada.base.AdaptationOutput`
+            Dictionary-like object, with the following attributes.
+
+            X_t : array-like, shape (n_samples, n_components)
+                The data (same as X).
+            weights : array-like, shape (n_samples,)
+                The weights of the samples.
         """
-        X, sample_domain = check_X_domain(
-            X,
-            sample_domain
-        )
+        check_is_fitted(self)
+        X, sample_domain = check_X_domain(X, sample_domain)
         source_idx = extract_source_indices(sample_domain)
 
         # xxx(okachaiev): move this to API
@@ -113,7 +110,7 @@ class ReweightDensityAdapter(BaseAdapter):
             weights[source_idx] = source_weights
         else:
             weights = None
-        return AdaptationOutput(X=X, sample_weights=weights)
+        return AdaptationOutput(X=X, sample_weight=weights)
 
 
 def ReweightDensity(
@@ -136,7 +133,7 @@ def ReweightDensity(
         Pipeline containing the ReweightDensity adapter and the base estimator.
     """
     if base_estimator is None:
-        base_estimator = LogisticRegression()
+        base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
 
     return make_da_pipeline(
         ReweightDensityAdapter(weight_estimator=weight_estimator),
@@ -198,10 +195,7 @@ class GaussianReweightDensityAdapter(BaseAdapter):
         self : object
             Returns self.
         """
-        X, sample_domain = check_X_domain(
-            X,
-            sample_domain
-        )
+        X, sample_domain = check_X_domain(X, sample_domain)
         X_source, X_target = source_target_split(X, sample_domain=sample_domain)
 
         self.mean_source_ = X_source.mean(axis=0)
@@ -224,18 +218,16 @@ class GaussianReweightDensityAdapter(BaseAdapter):
 
         Returns
         -------
-        X_t : array-like, shape (n_samples, n_components)
-            The data (same as X).
-        y_t : array-like, shape (n_samples,)
-            The labels (same as y).
-        weights : array-like, shape (n_samples,)
-            The weights of the samples.
+        output : :class:`skada.base.AdaptationOutput`
+            Dictionary-like object, with the following attributes.
+
+            X_t : array-like, shape (n_samples, n_components)
+                The data (same as X).
+            weights : array-like, shape (n_samples,)
+                The weights of the samples.
         """
         check_is_fitted(self)
-        X, sample_domain = check_X_domain(
-            X,
-            sample_domain
-        )
+        X, sample_domain = check_X_domain(X, sample_domain)
         source_idx = extract_source_indices(sample_domain)
 
         # xxx(okachaiev): move this to API
@@ -252,7 +244,7 @@ class GaussianReweightDensityAdapter(BaseAdapter):
             weights[source_idx] = source_weights
         else:
             weights = None
-        return AdaptationOutput(X=X, sample_weights=weights)
+        return AdaptationOutput(X=X, sample_weight=weights)
 
 
 def GaussianReweightDensity(
@@ -288,7 +280,7 @@ def GaussianReweightDensity(
            In Journal of Statistical Planning and Inference, 2000.
     """
     if base_estimator is None:
-        base_estimator = LogisticRegression()
+        base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
 
     return make_da_pipeline(
         GaussianReweightDensityAdapter(reg=reg),
@@ -340,17 +332,14 @@ class DiscriminatorReweightDensityAdapter(BaseAdapter):
         self : object
             Returns self.
         """
-        X, sample_domain = check_X_domain(
-            X,
-            sample_domain
-        )
+        X, sample_domain = check_X_domain(X, sample_domain)
         source_idx = extract_source_indices(sample_domain)
-
         source_idx, = np.where(source_idx)
-        self.domain_classifier_ = clone(self.domain_classifier)
         y_domain = np.ones(X.shape[0], dtype=np.int32)
         y_domain[source_idx] = 0
-        self.domain_classifier_.fit(X, y_domain)
+        domain_classifier = clone(self.domain_classifier)
+        domain_classifier.fit(X, y_domain)
+        self.domain_classifier_ = domain_classifier
         return self
 
     def adapt(self, X, y=None, sample_domain=None, **kwargs):
@@ -367,18 +356,16 @@ class DiscriminatorReweightDensityAdapter(BaseAdapter):
 
         Returns
         -------
-        X_t : array-like, shape (n_samples, n_components)
-            The data (same as X).
-        y_t : array-like, shape (n_samples,)
-            The labels (same as y).
-        weights : array-like, shape (n_samples,)
-            The weights of the samples.
+        output : :class:`skada.base.AdaptationOutput`
+            Dictionary-like object, with the following attributes.
+
+            X_t : array-like, shape (n_samples, n_components)
+                The data (same as X).
+            weights : array-like, shape (n_samples,)
+                The weights of the samples.
         """
         check_is_fitted(self)
-        X, sample_domain = check_X_domain(
-            X,
-            sample_domain
-        )
+        X, sample_domain = check_X_domain(X, sample_domain)
         source_idx = extract_source_indices(sample_domain)
 
         # xxx(okachaiev): move this to API
@@ -389,7 +376,7 @@ class DiscriminatorReweightDensityAdapter(BaseAdapter):
             weights[source_idx] = source_weights
         else:
             weights = None
-        return AdaptationOutput(X=X, sample_weights=weights)
+        return AdaptationOutput(X=X, sample_weight=weights)
 
 
 def DiscriminatorReweightDensity(
@@ -421,7 +408,7 @@ def DiscriminatorReweightDensity(
            In Journal of Statistical Planning and Inference, 2000.
     """
     if base_estimator is None:
-        base_estimator = LogisticRegression()
+        base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
 
     return make_da_pipeline(
         DiscriminatorReweightDensityAdapter(
@@ -599,17 +586,16 @@ class KLIEPAdapter(BaseAdapter):
 
         Returns
         -------
-        X_t : array-like, shape (n_samples, n_components)
-            The data (same as X).
-        y_t : array-like, shape (n_samples,)
-            The labels (same as y).
-        weights : array-like, shape (n_samples,)
-            The weights of the samples.
+        output : :class:`skada.base.AdaptationOutput`
+            Dictionary-like object, with the following attributes.
+
+            X_t : array-like, shape (n_samples, n_components)
+                The data (same as X).
+            weights : array-like, shape (n_samples,)
+                The weights of the samples.
         """
-        X, sample_domain = check_X_domain(
-            X,
-            sample_domain
-        )
+        check_is_fitted(self)
+        X, sample_domain = check_X_domain(X, sample_domain)
         source_idx = extract_source_indices(sample_domain)
 
         if source_idx.sum() > 0:
@@ -625,11 +611,11 @@ class KLIEPAdapter(BaseAdapter):
             weights[source_idx] = source_weights
         else:
             weights = None
-        return AdaptationOutput(X=X, sample_weights=weights)
+        return AdaptationOutput(X=X, sample_weight=weights)
 
 
 def KLIEP(
-    base_estimator=LogisticRegression(),
+    base_estimator=None,
     gamma=1.0,
     cv=5,
     n_centers=100,
@@ -674,6 +660,8 @@ def KLIEP(
            and Its Application to Covariate Shift Adaptation.
            In NeurIPS, 2007.
     """
+    if base_estimator is None:
+        base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
     return make_da_pipeline(
         KLIEPAdapter(
             gamma=gamma, cv=cv, n_centers=n_centers, tol=tol,
