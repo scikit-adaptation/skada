@@ -6,8 +6,8 @@
 SKADA is a library for domain adaptation (DA) with a scikit-learn and Pytorch/skorch
 compatible API with the following features:
 
-- DA estimators with a scikit-learn compatible API (fit, transform, fit_transform).
-- Pytorch/skorch API for deep learning DA algorithms (but also compatible with scikit-learn API).
+- DA estimators with a scikit-learn compatible API (fit, transform, predict).
+- Pytorch/skorch API for deep learning DA algorithms.
 - Classifier/Regressor and data Adapter DA algorithms compatible with scikit-learn pipelines.
 - Compatible with scikit-learn validation loops (cross_val_score, GridSearchCV, etc).
 
@@ -26,7 +26,7 @@ The following algorithms are currently implemented.
 All methods that can be cast as an adaptation of the input data can be used as a
 scikit-learn transformer (Adapter) provides both a full Classifier/Regressor
 estimator and an `Adapter` that can be used in a DA pipeline with
-`make_da_pipeline`. See examples below and gallery.
+`make_da_pipeline`. See the examples below and [the gallery](https://scikit-adaptation.github.io/auto_examples/index.html).
 
 ### Deep learning domain adaptation algorithms
 
@@ -37,13 +37,15 @@ estimator and an `Adapter` that can be used in a DA pipeline with
 
 ### DA metrics
 
-- Prediction entropy
-- 
+- Importance Weighted [17]
+- Prediction entropy [18]
+- Soft neighborhood density [19]
+- Deep Embedded Validation (DEV) [20]
 
 
 ## Installation
 
-The library is not yet available on PyPI. You can install it from the source code by running:
+The library is not yet available on PyPI. You can install it from the source code.
 
 
 ## Short examples
@@ -100,6 +102,14 @@ The library is distributed under the 3-Clause BSD license.
 [15] Ganin, Y., Ustinova, E., Ajakan, H., Germain, P., Larochelle, H., Laviolette, F., ... & Lempitsky, V. (2016). [Domain-adversarial training of neural networks](https://www.jmlr.org/papers/volume17/15-239/15-239.pdf). Journal of machine learning research, 17(59), 1-35.
 
 [16] Long, M., Cao, Z., Wang, J., & Jordan, M. I. (2018). [Conditional adversarial domain adaptation](https://proceedings.neurips.cc/paper_files/paper/2018/file/ab88b15733f543179858600245108dd8-Paper.pdf). Advances in neural information processing systems, 31.
+
+[17] Sugiyama, M., Krauledat, M., & Müller, K. R. (2007). [Covariate shift adaptation by importance weighted cross validation](https://www.jmlr.org/papers/volume8/sugiyama07a/sugiyama07a.pdf). Journal of Machine Learning Research, 8(5).
+
+[18] Morerio, P., Cavazza, J., & Murino, V. (2017).[ Minimal-entropy correlation alignment for unsupervised deep domain adaptation](https://arxiv.org/pdf/1711.10288.pdf). arXiv preprint arXiv:1711.10288.
+
+[19] Saito, K., Kim, D., Teterwak, P., Sclaroff, S., Darrell, T., & Saenko, K. (2021). [Tune it the right way: Unsupervised validation of domain adaptation via soft neighborhood density](https://openaccess.thecvf.com/content/ICCV2021/papers/Saito_Tune_It_the_Right_Way_Unsupervised_Validation_of_Domain_Adaptation_ICCV_2021_paper.pdf). In Proceedings of the IEEE/CVF International Conference on Computer Vision (pp. 9184-9193).
+
+[20] You, K., Wang, X., Long, M., & Jordan, M. (2019, May). [Towards accurate model selection in deep unsupervised domain adaptation](https://proceedings.mlr.press/v97/you19a/you19a.pdf). In International Conference on Machine Learning (pp. 7124-7133). PMLR.
 
 
 

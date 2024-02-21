@@ -1,9 +1,23 @@
 """
-Plot JDOT Regressor
-===================
+JDOT Regressor example
+======================
 
+This example shows how to use the JDOTRegressor to learn a regression model from
+source to target domain on a simple concept drift 2D exemple. We use a
+simple Kernel Ridge Regression (KRR) as base estimator.
+
+We compare the performance of the KRR on the source and target domain, and the
+JDOTRegressor on the same task and illustrate the learned decision boundary and
+the OT plan between samples estimated by JDOT.
 
 """
+
+# Author: Remi Flamary
+#
+# License: MIT License
+# sphinx_gallery_thumbnail_number = 4
+
+
 # %% Imports
 import numpy as np
 import matplotlib.pyplot as plt
@@ -17,8 +31,10 @@ from skada import source_target_split
 
 
 # %%
-# Generate concept drift dataset
-# ------------------------------
+# Generate concept drift dataset and plot it
+# ------------------------------------------
+#
+# We generate a simple 2D concept drift dataset.
 
 X, y, sample_domain = make_shifted_datasets(
         n_samples_source=20,
@@ -34,10 +50,6 @@ y = (y-y.mean())/y.std()
 Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 
 
-# %%
-# Plot data
-# ---------
-
 plt.figure(1, (10, 5))
 plt.subplot(1, 2, 1)
 plt.scatter(Xs[:, 0], Xs[:, 1], c=ys, label="Source")
@@ -50,8 +62,13 @@ plt.title("Target data")
 plt.axis(ax)
 
 # %%
-# Train on source data
-# --------------------
+# Train a regressor on source data
+# --------------------------------
+#
+# We train a simple Kernel Ridge Regression (KRR) on the source domain and
+# evaluate its performance on the source and target domain. Performance is
+# much lower on the target domain due to the shift. We also plot the decision
+# boundary learned by the KRR.
 
 
 clf = KernelRidge(kernel='rbf', alpha=0.5)
@@ -88,6 +105,12 @@ plt.axis(ax)
 # %%
 # Train with JDOT regressor
 # -------------------------
+#
+# We now use the JDOTRegressor to learn a regression model from source to
+# target domain. We use the same KRR as base estimator. We compare the
+# performance of JDOT on the source and target domain, and illustrate the
+# learned decision boundary of JDOT. Performance is much better on the target
+# domain than with the KRR trained on source.
 
 
 jdot = JDOTRegressor(base_estimator=KernelRidge(kernel='rbf', alpha=0.5), alpha=0.01)
