@@ -103,13 +103,15 @@ def plot_cv_indices(cv, X, y, sample_domain, ax, n_splits, lw=10):
 
     # Plot the data classes and sample_domain at the end
     ax.scatter(
-        [i/2 for i in range(1, len(indices)*2+1, 2)], [ii + 1.5] * len(X), c=y,
-        marker="_", lw=lw, cmap=cmap_data, vmin=-1.2, vmax=0.2,
+        [i/2 for i in range(1, len(indices)*2+1, 2)],
+        [ii + 1.5] * len(X), c=y, marker="_", lw=lw,
+        cmap=cmap_data, vmin=-1.2, vmax=0.2,
     )
 
     ax.scatter(
-        [i/2 for i in range(1, len(indices)*2+1, 2)], [ii + 2.5] * len(X), c=sample_domain,
-        marker="_", lw=lw, cmap=cmap_domain, vmin=-1.2, vmax=1.2,
+        [i/2 for i in range(1, len(indices)*2+1, 2)],
+        [ii + 2.5] * len(X), c=sample_domain, marker="_",
+        lw=lw, cmap=cmap_domain, vmin=-1.2, vmax=1.2,
     )
 
     # Formatting
@@ -159,13 +161,15 @@ def plot_lodo_indices(cv, X, y, sample_domain, ax, lw=10):
 
         # Plot the data classes and sample_domain at the end
         ax[ii].scatter(
-            [i/2 for i in range(1, len(indices_to_plot)*2+1, 2)], [1.5] * len(indices_to_plot), c=y_to_plot,
+            [i/2 for i in range(1, len(indices_to_plot)*2+1, 2)],
+            [1.5] * len(indices_to_plot), c=y_to_plot,
             marker="_", lw=lw, cmap=cmap_data, vmin=-1.2,
             vmax=0.2,
         )
 
         ax[ii].scatter(
-            [i/2 for i in range(1, len(indices_to_plot)*2+1, 2)], [2.5] * len(indices_to_plot), c=sample_domain_plot,
+            [i/2 for i in range(1, len(indices_to_plot)*2+1, 2)],
+            [2.5] * len(indices_to_plot), c=sample_domain_plot,
             marker="_", lw=lw, cmap=cmap_domain, vmin=-1.2, vmax=1.2,
         )
 
@@ -177,9 +181,7 @@ def plot_lodo_indices(cv, X, y, sample_domain, ax, lw=10):
             ylim=[3.2, -0.2],
             xlim=[0, len(indices_to_plot)],
         )
-        
-        
-        
+
     return ax
 # %%
 # Let's see how the different cross-validation objects behave on our dataset.
@@ -195,15 +197,14 @@ for cv in cvs:
     if cv is LeaveOneDomainOut:
         fig, ax = plt.subplots(n_splits_lodo, 1, figsize=(6, 3), sharex=True)
         fig.suptitle("{}".format(cv.__name__), fontsize=15)
-        plot_lodo_indices(cv(n_splits_lodo), X_lodo, y_lodo,
-                        sample_domain_lodo, ax
-                        )
+        plot_lodo_indices(
+            cv(n_splits_lodo), X_lodo, y_lodo, sample_domain_lodo, ax
+        )
     else:
         fig, ax = plt.subplots(figsize=(6, 3))
-        plot_cv_indices(cv(n_splits), X, y,
-                        sample_domain, ax, n_splits
-                        )
-        
+        plot_cv_indices(
+            cv(n_splits), X, y, sample_domain, ax, n_splits
+        )
 
     fig.legend(
         [Patch(color=cmap_cv(0.8)), Patch(color=cmap_cv(0.02))],
@@ -212,7 +213,7 @@ for cv in cvs:
     )
     fig.text(0.48, 0.01, "Sample index", ha="center")
     fig.text(0.001, 0.5, "CV iteration", va='center', rotation='vertical')
-    
+
     # Make the legend fit
     plt.tight_layout()
     fig.subplots_adjust(right=0.7)
