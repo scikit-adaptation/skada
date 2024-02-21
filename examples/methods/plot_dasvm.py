@@ -26,8 +26,8 @@ from sklearn.svm import SVC
 # base_estimator can be any classifier equipped with `decision_function` such as:
 # SVC(gamma='auto'), LogisticRegression(random_state=0), etc...
 base_estimator = SVC(kernel="linear")
-target_marker = "x"
-source_marker = "+"
+target_marker = "s"
+source_marker = "o"
 
 xlim = (-2.2, 2.5)
 ylim = (-1.5, 1.5)
@@ -84,29 +84,41 @@ estimator = DASVMEstimator(
 epsilon = 0.02
 N = 5
 K = len(estimator.estimators)//N
-figure, axis = plt.subplots(1, N+1)
+figure, axis = plt.subplots(1, N+1, figsize=(N*5, 3))
 for i in list(range(0, N*K, K)) + [-1]:
     j = i//K if i != -1 else -1
     e = estimator.estimators[i]
     x_points = np.linspace(xlim[0], xlim[1], 200)
     y_points = np.linspace(ylim[0], ylim[1], 200)
     X = np.array([[x, y] for x in x_points for y in y_points])
-    axis[j].scatter(
-        X[:, 0], X[:, 1], c=e.decision_function(X), alpha=0.02)
 
     # plot margins
-    X_ = X[np.absolute(e.decision_function(X)-1) < epsilon]
-    axis[j].scatter(
-        X_[:, 0], X_[:, 1], c=[1]*X_.shape[0],
-        alpha=1, cmap="gray", s=[0.1]*X_.shape[0])
-    X_ = X[np.absolute(e.decision_function(X)+1) < epsilon]
-    axis[j].scatter(
-        X_[:, 0], X_[:, 1], c=[1]*X_.shape[0],
-        alpha=1, cmap="gray", s=[0.1]*X_.shape[0])
-    X_ = X[np.absolute(e.decision_function(X)) < epsilon]
-    axis[j].scatter(
-        X_[:, 0], X_[:, 1], c=[1]*X_.shape[0],
-        alpha=1, cmap="autumn", s=[0.1]*X_.shape[0])
+    if i == -1:
+        X_ = X[np.absolute(e.decision_function(X)-1) < epsilon]
+        axis[j].scatter(
+            X_[:, 0], X_[:, 1], c=[1]*X_.shape[0],
+            alpha=1, cmap="gray", s=[0.1]*X_.shape[0], label="margin")
+        X_ = X[np.absolute(e.decision_function(X)+1) < epsilon]
+        axis[j].scatter(
+            X_[:, 0], X_[:, 1], c=[1]*X_.shape[0],
+            alpha=1, cmap="gray", s=[0.1]*X_.shape[0])
+        X_ = X[np.absolute(e.decision_function(X)) < epsilon]
+        axis[j].scatter(
+            X_[:, 0], X_[:, 1], c=[1]*X_.shape[0],
+            alpha=1, cmap="autumn", s=[0.1]*X_.shape[0], label="decision boundary")
+    else:
+        X_ = X[np.absolute(e.decision_function(X)-1) < epsilon]
+        axis[j].scatter(
+            X_[:, 0], X_[:, 1], c=[1]*X_.shape[0],
+            alpha=1, cmap="gray", s=[0.1]*X_.shape[0])
+        X_ = X[np.absolute(e.decision_function(X)+1) < epsilon]
+        axis[j].scatter(
+            X_[:, 0], X_[:, 1], c=[1]*X_.shape[0],
+            alpha=1, cmap="gray", s=[0.1]*X_.shape[0])
+        X_ = X[np.absolute(e.decision_function(X)) < epsilon]
+        axis[j].scatter(
+            X_[:, 0], X_[:, 1], c=[1]*X_.shape[0],
+            alpha=1, cmap="autumn", s=[0.1]*X_.shape[0])
 
     X_s = Xs[~estimator.indices_source_deleted[i]]
     X_t = Xt[estimator.indices_target_added[i]]
@@ -118,14 +130,15 @@ for i in list(range(0, N*K, K)) + [-1]:
         semi_labels = e.predict(Xt[estimator.indices_target_added[i]])
         axis[j].scatter(
             X_s[:, 0], X_s[:, 1], c=ys[~estimator.indices_source_deleted[i]],
-            marker=source_marker)
-        a = axis[j].scatter(
+            marker=source_marker, alpha=0.7)
+        axis[j].scatter(
             X_t[:, 0], X_t[:, 1], c=semi_labels,
-            marker=target_marker)
+            marker=target_marker, alpha=0.7)
     else:
         semi_labels = np.array([])
-        a = axis[j].scatter(
-            X[:, 0], X[:, 1], c=ys[~estimator.indices_source_deleted[i]])
+        axis[j].scatter(
+            X[:, 0], X[:, 1], c=ys[~estimator.indices_source_deleted[i]],
+            alpha=0.7)
     X = Xt[~estimator.indices_target_added[i]]
     axis[j].scatter(
         X[:, 0], X[:, 1], cmap="gray",
@@ -134,6 +147,8 @@ for i in list(range(0, N*K, K)) + [-1]:
 
     axis[j].set_xlim(xlim)
     axis[j].set_ylim(ylim)
-figure.colorbar(a)
 figure.suptitle("evolutions of predictions", fontsize=20)
+legend = plt.legend()
+legend.legendHandles[0]._sizes = [20]
+legend.legendHandles[1]._sizes = [20]
 plt.show()
