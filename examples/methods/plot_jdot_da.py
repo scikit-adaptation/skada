@@ -2,15 +2,17 @@
 JDOT Regressor example
 ======================
 
-This example shows how to use the JDOTRegressor [10] to learn a regression model from
-source to target domain on a simple concept drift 2D exemple. We use a
+This example shows how to use the JDOTRegressor [10] to learn a regression model
+from source to target domain on a simple concept drift 2D exemple. We use a
 simple Kernel Ridge Regression (KRR) as base estimator.
 
 We compare the performance of the KRR on the source and target domain, and the
 JDOTRegressor on the same task and illustrate the learned decision boundary and
 the OT plan between samples estimated by JDOT.
 
-[10] Courty, N., Flamary, R., Habrard, A., & Rakotomamonjy, A. (2017). Joint distribution optimal transportation for domain adaptation. Advances in neural information processing systems, 30.
+[10] Courty, N., Flamary, R., Habrard, A., & Rakotomamonjy, A. (2017). Joint
+ distribution optimal transportation for domain adaptation. Advances in neural
+ information processing systems, 30.
 
 """
 
