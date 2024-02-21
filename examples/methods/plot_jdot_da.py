@@ -156,12 +156,12 @@ T =T/T.max()
 
 plt.figure(4, (5, 5))
 
-plt.scatter(Xs[:, 0], Xs[:, 1], c='C0', label="Source")
-plt.scatter(Xt[:, 0], Xt[:, 1], c='C1', label="Target")
+plt.scatter(Xs[:, 0], Xs[:, 1], c='C0', label="Source", alpha=0.7)
+plt.scatter(Xt[:, 0], Xt[:, 1], c='C1', label="Target", alpha=0.7)
 
 for i in range(Xs.shape[0]):
     for j in range(Xt.shape[0]):
         if T[i,j]>0.01:
-            plt.plot([Xs[i, 0], Xt[j, 0]], [Xs[i, 1], Xt[j, 1]], 'k', alpha=T[i,j])
-pl.legend()
+            plt.plot([Xs[i, 0], Xt[j, 0]], [Xs[i, 1], Xt[j, 1]], 'k', alpha=T[i,j]*0.8)
+plt.legend()
 plt.title("OT plan between source and target")
