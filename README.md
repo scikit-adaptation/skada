@@ -1,7 +1,12 @@
+# SKADA - Domain Adaptation with scikit-learn and Pytorch
+
+[![PyPI version](https://badge.fury.io/py/skada.svg)](https://badge.fury.io/py/skada)
+[![Build Status](https://github.com/scikit-adaptation/skada/actions/workflows/testing.yml/badge.svg)](https://github.com/scikit-adaptation/skada/actions)
+[![Codecov Status](https://codecov.io/gh/scikit-adaptation/skada/branch/main/graph/badge.svg)](https://codecov.io/gh/scikit-adaptation/skada)
+
+
 > [!WARNING]
 > This library is currently in a phase of active development. All features are subject to change without prior notice. If you are interested in collaborating, please feel free to reach out by opening an issue or starting a discussion.
-
-# SKADA - Domain Adaptation with scikit-learn compatible API
 
 SKADA is a library for domain adaptation (DA) with a scikit-learn and Pytorch/skorch
 compatible API with the following features:
