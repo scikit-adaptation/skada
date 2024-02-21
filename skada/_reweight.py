@@ -14,6 +14,7 @@ from sklearn.model_selection import check_cv
 from sklearn.neighbors import KernelDensity
 from sklearn.utils import check_random_state
 from sklearn.utils.validation import check_is_fitted
+from sklearn.neighbors import KNeighborsClassifier
 
 from .base import AdaptationOutput, BaseAdapter, clone
 from .utils import check_X_domain, source_target_split, extract_source_indices
@@ -667,5 +668,133 @@ def KLIEP(
             gamma=gamma, cv=cv, n_centers=n_centers, tol=tol,
             max_iter=max_iter, random_state=random_state
         ),
+        base_estimator,
+    )
+
+class NearestNeighborDensityAdapter(BaseAdapter):
+    """Adapter based on re-weighting samples using a 1NN,
+
+    See: [Loog, 2012] Loog, M. (2012). 
+    Nearest neighbor-based importance weighting. 
+    In 2012 IEEE International Workshop on Machine 
+    Learning for Signal Processing, pages 1–6. IEEE.
+
+    Parameters
+    ----------
+    base_estimator : estimator object, optional
+        The estimator to use to estimate the densities of source and target
+        observations. If None, a KNeighborsClassifier(n_neighbors=1) estimator
+        is used.
+
+    Attributes
+    ----------
+    weight_estimator_source_ : object
+        The estimator object fitted on the source data.
+    weight_estimator_target_ : object
+        The estimator object fitted on the target data.
+    """
+
+    def __init__(self, base_estimator=None):
+        super().__init__()
+        self.base_estimator = base_estimator or KNeighborsClassifier(
+            n_neighbors=1)
+
+    def fit(self, X, y=None, sample_domain=None):
+        """Fit adaptation parameters.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
+        X, sample_domain = check_X_domain(X, sample_domain)
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+        self.X_source_fit = X_source
+        indices_source = np.arange(X_source.shape[0])
+
+        self.estimator = clone(self.base_estimator)
+        self.estimator.fit(X_source, indices_source)
+
+        self.weight_estimator_source_ = self.estimator
+        self.weight_estimator_target_ = self.estimator
+
+        return self
+
+    def adapt(self, X, y=None, sample_domain=None):
+        """Predict adaptation (weights, sample or labels).
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        output : :class:`skada.base.AdaptationOutput`
+            Dictionary-like object, with the following attributes.
+
+            X_t : array-like, shape (n_samples, n_components)
+                The data (same as X).
+            weights : array-like, shape (n_samples,)
+                The weights of the samples.
+        """
+        check_is_fitted(self)
+        X, sample_domain = check_X_domain(X, sample_domain)
+        source_idx = extract_source_indices(sample_domain)
+
+        # xxx(okachaiev): move this to API
+        if source_idx.sum() > 0:
+            source_idx, = np.where(source_idx)
+            indices_source = np.arange(X[source_idx].shape[0])
+            if np.array_equal(self.X_source_fit, X[source_idx]):
+                estimator = self.estimator
+            else:
+                estimator = clone(self.base_estimator)
+                estimator.fit(X[source_idx], indices_source)
+            predictions = estimator.predict(X[~source_idx])
+            weights = np.array(
+                [np.count_nonzero(predictions == i) for i in indices_source])
+        else:
+            weights = None
+        return AdaptationOutput(X=X, sample_weight=weights)
+
+
+def NearestNeighborReweightDensity(
+    base_estimator=None,
+    weight_estimator=None,
+):
+    """Density re-weighting pipeline adapter and estimator.
+
+    Parameters
+    ----------
+    base_estimator : sklearn estimator, default=None
+        estimator used for fitting and prediction
+    weight_estimator : estimator object, optional
+        The estimator to use to estimate the densities of source and target
+        observations. If None, a KernelDensity estimator is used.
+
+    Returns
+    -------
+    pipeline : sklearn pipeline
+        Pipeline containing the ReweightDensity adapter and the base estimator.
+    """
+    if base_estimator is None:
+        base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
+
+    return make_da_pipeline(
+        NearestNeighborDensityAdapter(base_estimator=weight_estimator),
         base_estimator,
     )

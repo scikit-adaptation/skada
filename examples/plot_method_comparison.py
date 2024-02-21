@@ -28,6 +28,7 @@ from skada import (
     DiscriminatorReweightDensity,
     KLIEP
 )
+from skada._reweight import NearestNeighborReweightDensity
 from skada import SubspaceAlignment, TransferComponentAnalysis
 from skada import (
     OTMapping,
@@ -48,6 +49,7 @@ names = [
     "Gaussian Reweight Density",
     "Discr. Reweight Density",
     "KLIEP",
+    "1NN",
     "Subspace Alignment",
     "TCA",
     "OT mapping",
@@ -66,6 +68,7 @@ classifiers = [
     GaussianReweightDensity(SVC().set_fit_request(sample_weight=True)),
     DiscriminatorReweightDensity(SVC().set_fit_request(sample_weight=True)),
     KLIEP(SVC().set_fit_request(sample_weight=True), gamma=[1, 0.1, 0.001]),
+    NearestNeighborReweightDensity(),
     SubspaceAlignment(base_estimator=SVC(), n_components=1),
     TransferComponentAnalysis(base_estimator=SVC(), n_components=1, mu=0.5),
     OTMapping(base_estimator=SVC()),
