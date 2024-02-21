@@ -17,6 +17,7 @@ accuracy on the test set.
 """
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
+import numpy as np
 
 from sklearn.svm import SVC
 from sklearn.inspection import DecisionBoundaryDisplay
@@ -45,79 +46,30 @@ RANDOM_SEED = 42
 
 names = [
     "Without da",
-    "Reweight Density",
-    "Gaussian Reweight Density",
-    "Discr. Reweight Density",
-    "KLIEP",
     "1NN Reweight Density",
-    "Subspace Alignment",
-    "TCA",
-    "OT mapping",
-    "Entropic OT mapping",
-    "Class Regularizer OT mapping",
-    "Linear OT mapping",
-    "CORAL"
 ]
 
 classifiers = [
     SVC(),
-    ReweightDensity(
-        base_estimator=SVC().set_fit_request(sample_weight=True),
-        weight_estimator=KernelDensity(bandwidth=0.5),
-    ),
-    GaussianReweightDensity(SVC().set_fit_request(sample_weight=True)),
-    DiscriminatorReweightDensity(SVC().set_fit_request(sample_weight=True)),
-    KLIEP(SVC().set_fit_request(sample_weight=True), gamma=[1, 0.1, 0.001]),
-    NearestNeighborReweightDensity(SVC().set_fit_request(sample_weight=True)),
-    SubspaceAlignment(base_estimator=SVC(), n_components=1),
-    TransferComponentAnalysis(base_estimator=SVC(), n_components=1, mu=0.5),
-    OTMapping(base_estimator=SVC()),
-    EntropicOTMapping(base_estimator=SVC()),
-    ClassRegularizerOTMapping(base_estimator=SVC()),
-    LinearOTMapping(base_estimator=SVC()),
-    CORAL(base_estimator=SVC()),
+    NearestNeighborReweightDensity(SVC().set_fit_request(sample_weight=True), laplace_smoothing=True),
 ]
+
+ns = 10
+nt = 10
 
 datasets = [
     make_shifted_datasets(
-        n_samples_source=20,
-        n_samples_target=20,
+        n_samples_source=ns,
+        n_samples_target=nt,
         shift="covariate_shift",
         label="binary",
         noise=0.4,
         random_state=RANDOM_SEED,
         return_dataset=True
     ),
-    make_shifted_datasets(
-        n_samples_source=20,
-        n_samples_target=20,
-        shift="target_shift",
-        label="binary",
-        noise=0.4,
-        random_state=RANDOM_SEED,
-        return_dataset=True
-    ),
-    make_shifted_datasets(
-        n_samples_source=20,
-        n_samples_target=20,
-        shift="concept_drift",
-        label="binary",
-        noise=0.4,
-        random_state=RANDOM_SEED,
-        return_dataset=True
-    ),
-    make_shifted_datasets(
-        n_samples_source=20,
-        n_samples_target=20,
-        shift="subspace",
-        label="binary",
-        noise=0.4,
-        random_state=RANDOM_SEED,
-        return_dataset=True
-    ),
 ]
 
-figure, axes = plt.subplots(len(classifiers) + 2, len(datasets), figsize=(9, 27))
+figure, axes = plt.subplots(len(classifiers) + 2, 2, figsize=(9, 27))
 # iterate over datasets
 for ds_cnt, ds in enumerate(datasets):
     # preprocess dataset, split into training and test part
@@ -142,14 +94,14 @@ for ds_cnt, ds in enumerate(datasets):
         alpha=0.5,
     )
 
-    ax = axes[1, ds_cnt]
+    ax = axes[1, 0]
 
     if ds_cnt == 0:
         ax.set_ylabel("Target data")
     # Plot the target points
     ax.scatter(
-        Xs[:, 0],
-        Xs[:, 1],
+        Xt[:, 0],
+        Xt[:, 1],
         c=ys,
         cmap=cm_bright,
         alpha=0.1,
@@ -180,6 +132,12 @@ for ds_cnt, ds in enumerate(datasets):
             clf, Xs, cmap=cm, alpha=0.8, ax=ax, eps=0.5, response_method="predict",
         )
 
+        if name == "1NN Reweight Density":
+            size = 10*clf.named_steps['nearestneighbordensityadapter'].base_estimator.get_weights(Xs, Xt)
+        else:
+            size = np.array([30]*Xs.shape[0])
+
+
         # Plot the target points
         ax.scatter(
             Xt[:, 0],
@@ -202,6 +160,25 @@ for ds_cnt, ds in enumerate(datasets):
             size=15,
             horizontalalignment="right",
         )
+
+        ax = axes[i, 1]
+
+        # Plot the target points
+        ax.scatter(
+            Xs[:, 0],
+            Xs[:, 1],
+            c=ys,
+            cmap=cm_bright,
+            alpha=0.5,
+            s=size
+        )
+
+        ax.set_xlim(x_min, x_max)
+
+        ax.set_xticks(())
+        ax.set_yticks(())
+
+
         i += 1
 
 plt.tight_layout()

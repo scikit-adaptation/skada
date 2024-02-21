@@ -694,8 +694,9 @@ class NearestNeighborDensityAdapter(BaseAdapter):
         The estimator object fitted on the target data.
     """
 
-    def __init__(self, base_estimator=None):
+    def __init__(self, base_estimator=None, laplace_smoothing=False):
         super().__init__()
+        self.laplace_smoothing = laplace_smoothing
         self.base_estimator = base_estimator or KNeighborsClassifier(
             n_neighbors=1)
 
@@ -728,6 +729,16 @@ class NearestNeighborDensityAdapter(BaseAdapter):
         self.weight_estimator_target_ = self.estimator
 
         return self
+
+    def get_weights(self, Xs, Xt):
+        indices_source = np.arange(Xs.shape[0])
+        estimator = clone(self.base_estimator)
+        estimator.fit(Xs, indices_source)
+        predictions = estimator.predict(Xt)
+        a = (1 if self.laplace_smoothing else 0)
+        weights = np.array(
+            [a + np.count_nonzero(predictions == i) for i in indices_source])
+        return weights
 
     def adapt(self, X, y=None, sample_domain=None):
         """Predict adaptation (weights, sample or labels).
@@ -765,8 +776,9 @@ class NearestNeighborDensityAdapter(BaseAdapter):
                 estimator = clone(self.base_estimator)
                 estimator.fit(X[source_idx], indices_source)
             predictions = estimator.predict(X[~source_idx])
+            a = (1 if self.laplace_smoothing else 0)
             weights = np.array(
-                [np.count_nonzero(predictions == i) for i in indices_source])
+                [a + np.count_nonzero(predictions == i) for i in indices_source])
         else:
             weights = None
         return AdaptationOutput(X=X, sample_weight=weights)
@@ -775,6 +787,7 @@ class NearestNeighborDensityAdapter(BaseAdapter):
 def NearestNeighborReweightDensity(
     base_estimator=None,
     weight_estimator=None,
+    laplace_smoothing=False
 ):
     """Density re-weighting pipeline adapter and estimator.
 
@@ -795,6 +808,6 @@ def NearestNeighborReweightDensity(
         base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
 
     return make_da_pipeline(
-        NearestNeighborDensityAdapter(base_estimator=weight_estimator),
+        NearestNeighborDensityAdapter(base_estimator=weight_estimator, laplace_smoothing=laplace_smoothing),
         base_estimator,
     )
