@@ -2,13 +2,15 @@
 JDOT Regressor example
 ======================
 
-This example shows how to use the JDOTRegressor to learn a regression model from
+This example shows how to use the JDOTRegressor [10] to learn a regression model from
 source to target domain on a simple concept drift 2D exemple. We use a
 simple Kernel Ridge Regression (KRR) as base estimator.
 
 We compare the performance of the KRR on the source and target domain, and the
 JDOTRegressor on the same task and illustrate the learned decision boundary and
 the OT plan between samples estimated by JDOT.
+
+[10] Courty, N., Flamary, R., Habrard, A., & Rakotomamonjy, A. (2017). Joint distribution optimal transportation for domain adaptation. Advances in neural information processing systems, 30.
 
 """
 
@@ -140,3 +142,26 @@ plt.scatter(Xt[:, 0], Xt[:, 1], c=yt, label="Prediction")
 plt.imshow(Zjdot, extent=(ax[0], ax[1], ax[2], ax[3]), origin='lower', alpha=0.5)
 plt.title(f"JDOT Prediction on target (MSE={mse_t:.2f})")
 plt.axis(ax)
+
+# %%
+# Illustration of the OT plan
+# ---------------------------
+#
+# We illustrate the OT plan between samples estimated by JDOT. We plot the
+# OT plan between the source and target samples. We can see that the OT plan
+# is able to align the source and target samples while preserving the label.
+
+T = jdot.sol_.plan
+T =T/T.max()
+
+plt.figure(4, (5, 5))
+
+plt.scatter(Xs[:, 0], Xs[:, 1], c='C0', label="Source")
+plt.scatter(Xt[:, 0], Xt[:, 1], c='C1', label="Target")
+
+for i in range(Xs.shape[0]):
+    for j in range(Xt.shape[0]):
+        if T[i,j]>0.01:
+            plt.plot([Xs[i, 0], Xt[j, 0]], [Xs[i, 1], Xt[j, 1]], 'k', alpha=T[i,j])
+pl.legend()
+plt.title("OT plan between source and target")
