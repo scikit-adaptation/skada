@@ -25,9 +25,9 @@ cmap_data = plt.cm.PRGn
 cmap_domain = plt.cm.RdBu
 cmap_cv = plt.cm.coolwarm
 n_splits = 4
-# Since we'll be using a dataset with 1 source and 1 target source,
-# the lodo splitter will generate only at most 2 splits
-n_splits_lodo = 2
+# Since we'll be using a dataset with 2 source and 2 target source,
+# the lodo splitter will generate only at most 4 splits
+n_splits_lodo = 4
 
 # %%
 # First we generate our datapoints. They are drawn from two different
@@ -46,8 +46,23 @@ dataset = make_shifted_datasets(
     return_dataset=True
 )
 
-X, y, sample_domain = dataset.pack_train(as_sources=['s'], as_targets=['t'])
-_, target_labels, _ = dataset.pack(as_sources=['s'], as_targets=['t'], train=False)
+dataset2 = make_shifted_datasets(
+    n_samples_source=3,
+    n_samples_target=2,
+    shift="concept_drift",
+    label="binary",
+    noise=0.4,
+    random_state=RANDOM_SEED,
+    return_dataset=True
+)
+dataset.merge(dataset2, names_mapping={'s': 's2', 't': 't2'})
+
+X, y, sample_domain = dataset.pack_train(
+    as_sources=['s', 's2'], as_targets=['t', 't2']
+)
+_, target_labels, _ = dataset.pack(
+    as_sources=['s', 's2'], as_targets=['t', 't2'], train=False
+)
 
 # Sort by sample_domain first then by target_labels
 indx_sort = np.lexsort((target_labels, sample_domain))
@@ -111,7 +126,7 @@ def plot_cv_indices(cv, X, y, sample_domain, ax, n_splits, lw=10):
     ax.scatter(
         [i/2 for i in range(1, len(indices)*2+1, 2)],
         [ii + 2.5] * len(X), c=sample_domain, marker="_",
-        lw=lw, cmap=cmap_domain, vmin=-1.2, vmax=1.2,
+        lw=lw, cmap=cmap_domain, vmin=-3.2, vmax=3.2,
     )
 
     # Formatting
@@ -170,7 +185,7 @@ def plot_lodo_indices(cv, X, y, sample_domain, ax, lw=10):
         ax[ii].scatter(
             [i/2 for i in range(1, len(indices_to_plot)*2+1, 2)],
             [2.5] * len(indices_to_plot), c=sample_domain_plot,
-            marker="_", lw=lw, cmap=cmap_domain, vmin=-1.2, vmax=1.2,
+            marker="_", lw=lw, cmap=cmap_domain, vmin=-3.2, vmax=3.2,
         )
 
         # Formatting
@@ -180,6 +195,55 @@ def plot_lodo_indices(cv, X, y, sample_domain, ax, lw=10):
             yticklabels=yticklabels,
             ylim=[3.2, -0.2],
             xlim=[0, len(indices_to_plot)],
+        )
+
+    return ax
+
+
+def plot_st_shuffle_indices(cv, X, y, target_labels, sample_domain, ax, n_splits, lw):
+    """Create a sample plot for indices of a cross-validation object."""
+
+    for n, labels in enumerate([y, target_labels]):
+        # Generate the training/testing visualizations for each CV split
+        cv_args = {'X': X, 'y': labels, 'sample_domain': sample_domain}
+        for ii, (tr, tt) in enumerate(cv.split(**cv_args)):
+            # Fill in indices with the training/test sample_domain
+            indices = np.array([np.nan] * len(X))
+            indices[tt] = 1
+            indices[tr] = 0
+
+            # Visualize the results
+            ax[n].scatter(
+                [i/2 for i in range(1, len(indices)*2+1, 2)],
+                [ii + 0.5] * len(indices),
+                c=indices,
+                marker="_",
+                lw=lw,
+                cmap=cmap_cv,
+                vmin=-0.2,
+                vmax=1.2,
+            )
+
+        # Plot the data classes and sample_domain at the end
+        ax[n].scatter(
+            [i/2 for i in range(1, len(indices)*2+1, 2)],
+            [ii + 1.5] * len(X), c=labels, marker="_", lw=lw,
+            cmap=cmap_data, vmin=-1.2, vmax=0.2,
+        )
+
+        ax[n].scatter(
+            [i/2 for i in range(1, len(indices)*2+1, 2)],
+            [ii + 2.5] * len(X), c=sample_domain, marker="_",
+            lw=lw, cmap=cmap_domain, vmin=-3.2, vmax=3.2,
+        )
+
+        # Formatting
+        yticklabels = list(range(n_splits)) + ["class", "sample_domain"]
+        ax[n].set(
+            yticks=np.arange(n_splits + 2) + 0.5,
+            yticklabels=yticklabels,
+            ylim=[n_splits + 2.2, -0.2],
+            xlim=[0, len(X)],
         )
 
     return ax
@@ -195,10 +259,16 @@ cvs = [SourceTargetShuffleSplit,
 
 for cv in cvs:
     if cv is LeaveOneDomainOut:
-        fig, ax = plt.subplots(n_splits_lodo, 1, figsize=(6, 3), sharex=True)
+        fig, ax = plt.subplots(n_splits_lodo, 1, figsize=(6, 6), sharex=True)
         fig.suptitle("{}".format(cv.__name__), fontsize=15)
         plot_lodo_indices(
             cv(n_splits_lodo), X_lodo, y_lodo, sample_domain_lodo, ax
+        )
+    elif cv is SourceTargetShuffleSplit:
+        fig, ax = plt.subplots(1, 2, figsize=(7, 3), sharey=True)
+        fig.suptitle("{}".format(cv.__name__), fontsize=15)
+        plot_st_shuffle_indices(
+            cv(n_splits), X, y, target_labels, sample_domain, ax, n_splits, 10
         )
     else:
         fig, ax = plt.subplots(figsize=(6, 3))
