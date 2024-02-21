@@ -3,7 +3,7 @@ Visualizing cross-validation behavior in skada
 ==============================================
 
 This illustrates the use of DA cross-validation object such as 
-:class:`~skada.model_selection.RandomShuffleDomainAwareSplit`.
+:class:`~skada.model_selection.DomainShuffleSplit`.
 """  # noqa
 # %%
 # Let's prepare the imports:
@@ -15,13 +15,14 @@ from matplotlib.patches import Patch
 from skada.model_selection import (
     SourceTargetShuffleSplit,
     LeaveOneDomainOut,
-    RandomShuffleDomainAwareSplit,
-    GroupDomainAwareKFold,
+    DomainShuffleSplit,
+    StratifiedDomainShuffleSplit,
 )
 from skada.datasets import make_shifted_datasets
 
 RANDOM_SEED = 0
-cmap_data = plt.cm.Paired
+cmap_data = plt.cm.PRGn
+cmap_domain = plt.cm.RdBu
 cmap_cv = plt.cm.coolwarm
 n_splits = 4
 # Since we'll be using a dataset with 1 source and 1 target source,
@@ -48,19 +49,22 @@ dataset = make_shifted_datasets(
 X, y, sample_domain = dataset.pack_train(as_sources=['s'], as_targets=['t'])
 _, target_labels, _ = dataset.pack(as_sources=['s'], as_targets=['t'], train=False)
 
-indx_sort = np.argsort(sample_domain)
+# Sort by sample_domain first then by target_labels
+indx_sort = np.lexsort((target_labels, sample_domain))
 X = X[indx_sort]
 y = y[indx_sort]
 target_labels = target_labels[indx_sort]
 sample_domain = sample_domain[indx_sort]
 
+
 # For Lodo methods
 X_lodo, y_lodo, sample_domain_lodo = dataset.pack_lodo()
 
-indx_sort = np.argsort(sample_domain_lodo)
+indx_sort = np.lexsort((y_lodo, sample_domain_lodo))
 X_lodo = X_lodo[indx_sort]
 y_lodo = y_lodo[indx_sort]
 sample_domain_lodo = sample_domain_lodo[indx_sort]
+
 
 # %%
 # We’ll define a function that lets us visualize the behavior of
@@ -77,10 +81,7 @@ def plot_cv_indices(cv, X, y, sample_domain, ax, n_splits, lw=10):
     """Create a sample plot for indices of a cross-validation object."""
 
     # Generate the training/testing visualizations for each CV split
-    if isinstance(cv, GroupDomainAwareKFold):
-        cv_args = {'X': X, 'y': y, 'groups': sample_domain}
-    else:
-        cv_args = {'X': X, 'y': y, 'sample_domain': sample_domain}
+    cv_args = {'X': X, 'y': y, 'sample_domain': sample_domain}
 
     for ii, (tr, tt) in enumerate(cv.split(**cv_args)):
         # Fill in indices with the training/test sample_domain
@@ -90,7 +91,7 @@ def plot_cv_indices(cv, X, y, sample_domain, ax, n_splits, lw=10):
 
         # Visualize the results
         ax.scatter(
-            range(len(indices)),
+            [i/2 for i in range(1, len(indices)*2+1, 2)],
             [ii + 0.5] * len(indices),
             c=indices,
             marker="_",
@@ -102,13 +103,13 @@ def plot_cv_indices(cv, X, y, sample_domain, ax, n_splits, lw=10):
 
     # Plot the data classes and sample_domain at the end
     ax.scatter(
-        range(len(X)), [ii + 1.5] * len(X), c=y,
-        marker="_", lw=lw, cmap=cmap_data
+        [i/2 for i in range(1, len(indices)*2+1, 2)], [ii + 1.5] * len(X), c=y,
+        marker="_", lw=lw, cmap=cmap_data, vmin=-1.2, vmax=0.2,
     )
 
     ax.scatter(
-        range(len(X)), [ii + 2.5] * len(X), c=sample_domain,
-        marker="_", lw=lw, cmap=cmap_data
+        [i/2 for i in range(1, len(indices)*2+1, 2)], [ii + 2.5] * len(X), c=sample_domain,
+        marker="_", lw=lw, cmap=cmap_domain, vmin=-1.2, vmax=1.2,
     )
 
     # Formatting
@@ -116,40 +117,102 @@ def plot_cv_indices(cv, X, y, sample_domain, ax, n_splits, lw=10):
     ax.set(
         yticks=np.arange(n_splits + 2) + 0.5,
         yticklabels=yticklabels,
-        xlabel="Sample index",
-        ylabel="CV iteration",
         ylim=[n_splits + 2.2, -0.2],
         xlim=[0, len(X)],
     )
     ax.set_title("{}".format(type(cv).__name__), fontsize=15)
     return ax
 
+
+def plot_lodo_indices(cv, X, y, sample_domain, ax, lw=10):
+    """Create a sample plot for indices of a cross-validation object."""
+
+    # Generate the training/testing visualizations for each CV split
+    cv_args = {'X': X, 'y': y, 'sample_domain': sample_domain}
+
+    for ii, (tr, tt) in enumerate(cv.split(**cv_args)):
+        # Fill in indices with the training/test sample_domain
+        indices = np.array([np.nan] * len(X))
+        indices[tt] = 1
+        indices[tr] = 0
+
+        # To plot
+        # Find indices where the last list contains nan values
+        nan_indices = np.isnan(indices)
+
+        # Remove corresponding elements from all arrays
+        sample_domain_plot = sample_domain[~nan_indices]
+        y_to_plot = y[~nan_indices]
+        indices_to_plot = indices[~nan_indices]
+
+        # # Visualize the results
+        ax[ii].scatter(
+            [i/2 for i in range(1, len(indices_to_plot)*2+1, 2)],
+            [0 + 0.5] * len(indices_to_plot),
+            c=indices_to_plot,
+            marker="_",
+            lw=lw,
+            cmap=cmap_cv,
+            vmin=-0.2,
+            vmax=1.2,
+        )
+
+        # Plot the data classes and sample_domain at the end
+        ax[ii].scatter(
+            [i/2 for i in range(1, len(indices_to_plot)*2+1, 2)], [1.5] * len(indices_to_plot), c=y_to_plot,
+            marker="_", lw=lw, cmap=cmap_data, vmin=-1.2,
+            vmax=0.2,
+        )
+
+        ax[ii].scatter(
+            [i/2 for i in range(1, len(indices_to_plot)*2+1, 2)], [2.5] * len(indices_to_plot), c=sample_domain_plot,
+            marker="_", lw=lw, cmap=cmap_domain, vmin=-1.2, vmax=1.2,
+        )
+
+        # Formatting
+        yticklabels = [ii] + ["class", "sample_domain"]
+        ax[ii].set(
+            yticks=np.arange(1 + 2) + 0.5,
+            yticklabels=yticklabels,
+            ylim=[3.2, -0.2],
+            xlim=[0, len(indices_to_plot)],
+        )
+        
+        
+        
+    return ax
 # %%
 # Let's see how the different cross-validation objects behave on our dataset.
 
 
 cvs = [SourceTargetShuffleSplit,
-       RandomShuffleDomainAwareSplit,
-       GroupDomainAwareKFold,
+       DomainShuffleSplit,
+       StratifiedDomainShuffleSplit,
        LeaveOneDomainOut
        ]
 
 for cv in cvs:
-    fig, ax = plt.subplots(figsize=(6, 3))
-
     if cv is LeaveOneDomainOut:
-        plot_cv_indices(cv(n_splits_lodo), X_lodo, y_lodo,
-                        sample_domain_lodo, ax, n_splits_lodo
+        fig, ax = plt.subplots(n_splits_lodo, 1, figsize=(6, 3), sharex=True)
+        fig.suptitle("{}".format(cv.__name__), fontsize=15)
+        plot_lodo_indices(cv(n_splits_lodo), X_lodo, y_lodo,
+                        sample_domain_lodo, ax
                         )
     else:
-        plot_cv_indices(cv(n_splits), X, target_labels,
+        fig, ax = plt.subplots(figsize=(6, 3))
+        plot_cv_indices(cv(n_splits), X, y,
                         sample_domain, ax, n_splits
                         )
-    ax.legend(
+        
+
+    fig.legend(
         [Patch(color=cmap_cv(0.8)), Patch(color=cmap_cv(0.02))],
         ["Testing set", "Training set"],
-        loc=(1.02, 0.8),
+        loc="center right",
     )
+    fig.text(0.48, 0.01, "Sample index", ha="center")
+    fig.text(0.001, 0.5, "CV iteration", va='center', rotation='vertical')
+    
     # Make the legend fit
     plt.tight_layout()
     fig.subplots_adjust(right=0.7)
@@ -159,14 +222,14 @@ for cv in cvs:
 #   -   :class:`~skada.model_selection.SourceTargetShuffleSplit`: Each sample
 #       is used once as a test set while the remaining samples
 #       form the training set.
-#   -   :class:`~skada.model_selection.RandomShuffleDomainAwareSplit`:
+#   -   :class:`~skada.model_selection.DomainShuffleSplit`:
 #       Randomly split the data depending on their sample_domain.
 #       Each fold is composed of samples coming from both
 #       source and target domains.
-#   -   :class:`~skada.model_selection.GroupDomainAwareKFold`: Same as
-#       :class:`~skada.model_selection.RandomShuffleDomainAwareSplit` but the
+#   -   :class:`~skada.model_selection.StratifiedDomainShuffleSplit`: Same as
+#       :class:`~skada.model_selection.DomainShuffleSplit` but the
 #       split depends not only on the samples sample_domain but also their label.
 #   -   :class:`~skada.model_selection.LeaveOneDomainOut`: Each sample with the same
-#       sample_domain is used once as the test set, while the remaining samples
-#       form the training set (Can be used only with
+#       sample_domain is used once as the target domain, while the remaining samples
+#       from the others sample_domain for the source domain (Can be used only with
 #       :func:`~skada.datasets._base.DomainAwareDataset.pack_lodo`)
