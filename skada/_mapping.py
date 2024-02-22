@@ -711,8 +711,8 @@ class MMDConSMappingAdapter(BaseAdapter):
 
     Parameters
     ----------
-    gamma : float or array like
-        Parameters for the kernels.
+    gamma : float
+        Parameter for the kernels.
     reg_k : float, default=1e-10
         Regularization parameter for the labels kernel matrix.
     reg_m : float, default=1e-10
@@ -724,10 +724,10 @@ class MMDConSMappingAdapter(BaseAdapter):
 
     Attributes
     ----------
-    `X_source_` : array-like, shape (n_samples, n_features)
-        The source data used for fitting.
-    `y_source_` : array-like, shape (n_samples,)
-        The source labels used for fitting.
+    `W_` : array-like, shape (n_samples, n_features)
+        The scaling matrix.
+    `B_` : array-like, shape (n_samples, n_features)
+        The bias matrix.
 
     References
     ----------
