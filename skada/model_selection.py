@@ -470,6 +470,7 @@ class StratifiedDomainShuffleSplit(BaseDomainAwareShuffleSplit):
 
 class DomainShuffleSplit(BaseDomainAwareShuffleSplit):
     """Random-Shuffle-DomainAware-Split cross-validator.
+
     Provides randomized train/test indices to split data depending
     on their sample_domain.
     Each fold is composed of samples coming from both source and target
