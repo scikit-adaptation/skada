@@ -13,7 +13,7 @@ from sklearn.svm import SVC
 
 from .base import BaseAdapter
 from .utils import check_X_domain, source_target_split
-from ._utils import _merge_source_target
+from .utils import source_target_merge
 from ._pipeline import make_da_pipeline
 
 
@@ -93,7 +93,9 @@ class SubspaceAlignmentAdapter(BaseAdapter):
         if X_target.shape[0]:
             X_target = np.dot(self.pca_target_.transform(X_target), self.M_)
         # xxx(okachaiev): this could be done through a more high-level API
-        X_adapt = _merge_source_target(X_source, X_target, sample_domain)
+        X_adapt, _ = source_target_merge(
+            X_source, X_target, sample_domain=sample_domain
+        )
         return X_adapt
 
     def fit(self, X, y=None, sample_domain=None, **kwargs):
