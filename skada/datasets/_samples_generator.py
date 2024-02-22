@@ -167,11 +167,8 @@ def _generate_data_2d_classif_subspace(
         y = np.concatenate((np.zeros(n1), np.ones(2 * n2)), 0)
         y = y.astype(int)
     elif label == 'multiclass':
-        y = np.zeros(n1)
         k = 4
-        if n1 % k != 0:
-            raise ValueError(f"Invalid value: {n_samples}. This value "
-                             "multiplied by 2 should be a multiple from {k}")
+        y = np.zeros(n1+n1%k)
         for i in range(k):
             y = np.concatenate((y, (i + 1) * np.ones(n1//k)), 0)
             y = y.astype(int)
