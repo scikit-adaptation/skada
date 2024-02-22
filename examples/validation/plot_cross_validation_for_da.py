@@ -30,11 +30,11 @@ n_splits = 4
 n_splits_lodo = 4
 
 # %%
-# First we generate our datapoints. They are drawn from two different
-# distributions, one source and one target distribution. The target
-# distribution is shifted with respect to the source distribution.
-# Thus we will have a domain adaptation problem with 1 source domain
-# and 1 target domain.
+# First we generate our datapoints. They are drawn from 4 different
+# distributions, 2 source and 2 target distributions. The target
+# distributions are shifted with respect to the source distributions.
+# Thus we will have a domain adaptation problem with 2 source domains
+# and 2 target domains.
 
 dataset = make_shifted_datasets(
     n_samples_source=3,
@@ -52,7 +52,7 @@ dataset2 = make_shifted_datasets(
     shift="concept_drift",
     label="binary",
     noise=0.4,
-    random_state=RANDOM_SEED,
+    random_state=RANDOM_SEED+1,
     return_dataset=True
 )
 dataset.merge(dataset2, names_mapping={'s': 's2', 't': 't2'})
@@ -242,13 +242,12 @@ def plot_st_shuffle_indices(cv, X, y, target_labels, sample_domain, ax, n_splits
 
 # %%
 # The following plot illustrates the behavior of
-# :class:`~skada.model_selection.SourceTargetShuffleSplit` on a
-# dataset with 2 source and 2 target domains. The first plot
-# shows the indices of the training and testing sets for each
-# split and with the datased packed with
+# :class:`~skada.model_selection.SourceTargetShuffleSplit`.
+# The left plot shows the indices of the training and 
+# testing sets for each split and with the datased packed with
 # :func:`~skada.datasets._base.DomainAwareDataset.pack_train`
 # (the target domains labels are masked (=-1)).
-# While the second plot shows the indices of the training and
+# While the right plot shows the indices of the training and
 # testing sets for each split and with the datased packed with
 # :func:`~skada.datasets._base.DomainAwareDataset.pack_test`.
 
@@ -276,11 +275,10 @@ for cv in cvs:
 
 # %%
 # The following plot illustrates the behavior of
-# :class:`~skada.model_selection.LeaveOneDomainOut` on a
-# dataset with 2 source and 2 target domains.
-# Each subplot shows the indices of the training and testing sets
-# and which domain is used as the target domain for each split.
-
+# :class:`~skada.model_selection.LeaveOneDomainOut`.
+# The plot shows the indices of the training and testing sets
+# for each split and which domain is used as the target domain
+# for each split.
 
 cvs = [LeaveOneDomainOut]
 for cv in cvs:
@@ -303,7 +301,8 @@ for cv in cvs:
 
 
 # %%
-# Let's see how the different cross-validation objects behave on our dataset.
+# Now let's see how the other
+# cross-validation objects behave on our dataset.
 cvs = [DomainShuffleSplit,
        StratifiedDomainShuffleSplit,
        ]
@@ -336,7 +335,8 @@ for cv in cvs:
 #       Each fold is composed of samples coming from both
 #       source and target domains.
 #   -   :class:`~skada.model_selection.StratifiedDomainShuffleSplit`: Same as
-#       :class:`~skada.model_selection.DomainShuffleSplit` but the
+#       :class:`~skada.model_selection.DomainShuffleSplit` but by also 
+#       preserving the percentage of samples for each class and for each sample domain.
 #       split depends not only on the samples sample_domain but also their label.
 #   -   :class:`~skada.model_selection.LeaveOneDomainOut`: Each sample with the same
 #       sample_domain is used once as the target domain, while the remaining samples
