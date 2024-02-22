@@ -1,4 +1,4 @@
-# SKADA - Domain Adaptation with scikit-learn and Pytorch
+# SKADA - Domain Adaptation with scikit-learn and PyTorch
 
 [![PyPI version](https://badge.fury.io/py/skada.svg)](https://badge.fury.io/py/skada)
 [![Build Status](https://github.com/scikit-adaptation/skada/actions/workflows/testing.yml/badge.svg)](https://github.com/scikit-adaptation/skada/actions)
@@ -8,11 +8,11 @@
 > [!WARNING]
 > This library is currently in a phase of active development. All features are subject to change without prior notice. If you are interested in collaborating, please feel free to reach out by opening an issue or starting a discussion.
 
-SKADA is a library for domain adaptation (DA) with a scikit-learn and Pytorch/skorch
+SKADA is a library for domain adaptation (DA) with a scikit-learn and PyTorch/skorch
 compatible API with the following features:
 
 - DA estimators with a scikit-learn compatible API (fit, transform, predict).
-- Pytorch/skorch API for deep learning DA algorithms.
+- PyTorch/skorch API for deep learning DA algorithms.
 - Classifier/Regressor and data Adapter DA algorithms compatible with scikit-learn pipelines.
 - Compatible with scikit-learn validation loops (cross_val_score, GridSearchCV, etc).
 
@@ -28,10 +28,10 @@ The following algorithms are currently implemented.
 - Subspace methods (SubspaceAlignment [8], TCA [9])
 - Other methods (JDOT [10], DASVM [11])
 
-All methods that can be cast as an adaptation of the input data can be used as a
+Any methods that can be cast as an adaptation of the input data can be used as a
 scikit-learn transformer (Adapter) provides both a full Classifier/Regressor
 estimator and an `Adapter` that can be used in a DA pipeline with
-`make_da_pipeline`. See the examples below and [the gallery](https://scikit-adaptation.github.io/auto_examples/index.html).
+`make_da_pipeline`. Refer to the examples below and visit [the gallery](https://scikit-adaptation.github.io/auto_examples/index.html)for more details.
 
 ### Deep learning domain adaptation algorithms
 
@@ -58,14 +58,14 @@ The library is not yet available on PyPI. You can install it from the source cod
 We provide here a few examples to illustrate the use of the library. For more
 details, please refer to this [example](https://scikit-adaptation.github.io/auto_examples/plot_how_to_use_skada.html), the [quick start guide](https://scikit-adaptation.github.io/quickstart.html) and the [gallery](https://scikit-adaptation.github.io/auto_examples/index.html).
 
-First the DA data in the skada API is stored in the following format:
+First, the DA data in the SKADA API is stored in the following format:
 
 ```python
 X, y, sample_domain 
 ```
 
 Where `X` is the input data, `y` is the target labels and `sample_domain` is the
-domain label (positive for source and negative for target domains). We provide
+domain labels (positive for source and negative for target domains). We provide
 below an exmaple ho how to fit a DA estimator:
 
 ```python
@@ -84,15 +84,15 @@ from skada import CORALAdapter, make_da_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
 
-pipe = make_da_pipeline(StandardScaler(),CORALAdapter(), LogisticRegression())
+pipe = make_da_pipeline(StandardScaler(), CORALAdapter(), LogisticRegression())
 
 pipe.fit(X, y, sample_domain=sample_domain) # sample_domain passed by name
 ```
 
-Note that for `Adapter` classes that provide Reweighting of the sample, the 
+Please note that for `Adapter` classes that implement sample reweighting, the 
 subsequent classifier/regressor must require sample_weights as input. This is
-done with the `set_fit_requires` for instance for the `LogisticRegression` with 
-`LogisticRegression().set_fit_requires('sample_weight')` :
+done with the `set_fit_requires` method. For instance, with `LogisticRegression`, you
+would use `LogisticRegression().set_fit_requires('sample_weight')`:
 
 ```python
 from skada import GaussianReweightDensityAdapter, make_da_pipeline
@@ -100,7 +100,7 @@ pipe = make_da_pipeline(GaussianReweightDensityAdapter(),
                         LogisticRegression().set_fit_request(sample_weight=True))
 ```
 
-Finally skada can be used for estimating cross validation scores and parameter
+Finally SKADA can be used for estimating cross validation scores and parameter
 selection :
 
 ```python
@@ -110,20 +110,20 @@ from skada.model_selection import SourceTargetShuffleSplit
 from skada.metrics import PredictionEntropyScorer
 
 # make pipeline
-pipe = make_da_pipeline(StandardScaler(),CORALAdapter(), LogisticRegression())
+pipe = make_da_pipeline(StandardScaler(), CORALAdapter(), LogisticRegression())
 
 # split and score
 cv = SourceTargetShuffleSplit()
 scoring = PredictionEntropyScorer()
 
-# cross va score
+# cross val score
 scores = cross_val_score(pipe, X, y, params={'sample_domain': sample_domain}, 
                          cv=cv, scoring=scoring)
 
 # grid search
 param_grid = {'coraladapter__reg': [0.1, 0.5, 0.9]}
 grid_search = GridSearchCV(estimator=clf,
-                           param_grid={"coraladapter__reg": reg_coral},
+                           param_grid=**param_grid,
                            cv=cv, scoring = scorer)
 
 grid_search.fit(X, y, sample_domain=sample_domain)
