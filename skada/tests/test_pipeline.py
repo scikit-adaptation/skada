@@ -10,8 +10,16 @@ from numpy.testing import assert_array_equal
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
 
-from skada import SubspaceAlignmentAdapter, PerDomain, Shared, make_da_pipeline
+from skada import (
+    CORAL,
+    CORALAdapter,
+    SubspaceAlignmentAdapter,
+    PerDomain,
+    Shared,
+    make_da_pipeline,
+)
 
 import pytest
 
@@ -109,7 +117,7 @@ def test_default_selector_ignored_for_selector():
     assert name == 'perdomain_logisticregression'
 
 
-def test_pipeline_step_parameters(da_dataset):
+def test_pipeline_step_parameters():
     pipe = make_da_pipeline(
         StandardScaler(),
         PCA(),
@@ -123,10 +131,12 @@ def test_pipeline_step_parameters(da_dataset):
 
 def test_named_estimator():
     pipe = make_da_pipeline(
-        (PerDomain(StandardScaler())),
+        PerDomain(StandardScaler()),
         ('adapter', SubspaceAlignmentAdapter(n_components=2)),
         PCA(n_components=4),
         PCA(n_components=2),
+        CORAL(),
+        ('othercoral', CORAL()),
         LogisticRegression(),
     )
     assert 'adapter' in pipe.named_steps
@@ -134,8 +144,31 @@ def test_named_estimator():
     assert 'pca-1' in pipe.named_steps
     assert 'pca-2' in pipe.named_steps
     assert 'logisticregression' in pipe.named_steps
+    assert 'coraladapter' in pipe.named_steps
+    assert 'othercoral__coraladapter' in pipe.named_steps
 
 
 def test_empty_pipeline():
     with pytest.raises(TypeError):
         make_da_pipeline()
+
+
+def test_unwrap_nested_da_pipelines(da_dataset):
+    X, y, sample_domain = da_dataset.pack(
+        as_sources=['s'],
+        as_targets=['t'],
+        train=False,
+    )
+
+    # make a DA pipeline from scratch
+    clf = make_da_pipeline(StandardScaler(), CORALAdapter(), SVC(kernel="rbf"))
+    clf.fit(X, y, sample_domain=sample_domain)
+    y_pred = clf.predict(X[sample_domain < 0])
+
+    # use pre-defined DA pipeline as a step
+    nested_clf = make_da_pipeline(StandardScaler(), CORAL())
+    nested_clf.fit(X, y, sample_domain=sample_domain)
+    y_nested_pred = nested_clf.predict(X[sample_domain < 0])
+
+    # compare outputs
+    assert np.allclose(y_pred, y_nested_pred)
