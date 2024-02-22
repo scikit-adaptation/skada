@@ -243,7 +243,7 @@ def plot_st_shuffle_indices(cv, X, y, target_labels, sample_domain, ax, n_splits
 # %%
 # The following plot illustrates the behavior of
 # :class:`~skada.model_selection.SourceTargetShuffleSplit`.
-# The left plot shows the indices of the training and 
+# The left plot shows the indices of the training and
 # testing sets for each split and with the datased packed with
 # :func:`~skada.datasets._base.DomainAwareDataset.pack_train`
 # (the target domains labels are masked (=-1)).
@@ -335,7 +335,7 @@ for cv in cvs:
 #       Each fold is composed of samples coming from both
 #       source and target domains.
 #   -   :class:`~skada.model_selection.StratifiedDomainShuffleSplit`: Same as
-#       :class:`~skada.model_selection.DomainShuffleSplit` but by also 
+#       :class:`~skada.model_selection.DomainShuffleSplit` but by also
 #       preserving the percentage of samples for each class and for each sample domain.
 #       split depends not only on the samples sample_domain but also their label.
 #   -   :class:`~skada.model_selection.LeaveOneDomainOut`: Each sample with the same
