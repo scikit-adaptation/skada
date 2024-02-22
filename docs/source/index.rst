@@ -13,9 +13,9 @@ Contents
    :maxdepth: 1
 
    self
+   quickstart
    all
    auto_examples/index
-   scorer
 
 .. include:: ../../README.md
    :parser: myst_parser.sphinx_

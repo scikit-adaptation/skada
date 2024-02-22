@@ -201,6 +201,18 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
         Whether `scorer` is a score function (default), meaning high is
         good, or a loss function, meaning low is good. In the latter case, the
         scorer object will sign-flip the outcome of the `scorer`.
+    reduction: str, default='mean'
+        Specifies the reduction to apply to the entropy values.
+        Must be one of ['none', 'mean', 'sum'].
+        If 'none', the entropy values for each sample are returned ([1]_ method).
+        If 'mean', the mean of the entropy values is returned.
+        If 'sum', the sum of the entropy values is returned.
+
+    Returns
+    -------
+    entropy : float or ndarray of floats
+        If `reduction` is 'none', then ndarray of shape (n_samples,).
+        Otherwise float.
 
     References
     ----------
@@ -209,9 +221,18 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
             ICLR, 2018.
     """
 
-    def __init__(self, greater_is_better=False):
+    def __init__(self,
+                 greater_is_better=False,
+                 reduction='mean'):
         super().__init__()
         self._sign = 1 if greater_is_better else -1
+        self.reduction = reduction
+
+        if self.reduction not in ['none', 'mean', 'sum']:
+            raise ValueError(
+                f"Unknown reduction '{self.reduction}'. "
+                "Valid options are: 'none', 'mean', 'sum'."
+            )
 
     def _score(self, estimator, X, y, sample_domain=None, **params):
         if not hasattr(estimator, "predict_proba"):
@@ -235,8 +256,20 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
             )
         else:
             log_proba = np.log(proba + 1e-7)
-        entropy = np.sum(-proba * log_proba, axis=1)
-        return - np.mean(entropy)
+
+        entropy_per_sample = -proba * log_proba
+
+        if self.reduction == 'none':
+            return self._sign * entropy_per_sample
+        elif self.reduction == 'sum':
+            return self._sign * np.sum(entropy_per_sample)
+        elif self.reduction == 'mean':
+            return self._sign * np.mean(entropy_per_sample)
+        else:
+            raise ValueError(
+                f"Unknown reduction '{self.reduction}'. "
+                "Valid options are: 'none', 'mean', 'sum'."
+            )
 
 
 class SoftNeighborhoodDensity(_BaseDomainAwareScorer):
