@@ -86,7 +86,7 @@ sample_domain_lodo = sample_domain_lodo[indx_sort]
 # each cross-validation object.
 # We’ll perform 4 splits (or 2 for the lodo method) of the data.
 # On each split, we’ll visualize the indices chosen for
-# the training set (in blue) and the test set (in red).
+# the training set (in blue) and the test set (in orange).
 
 
 # Code source: scikit-learn documentation
@@ -247,34 +247,82 @@ def plot_st_shuffle_indices(cv, X, y, target_labels, sample_domain, ax, n_splits
         )
 
     return ax
+
+
+# %%
+# The following plot illustrates the behavior of
+# :class:`~skada.model_selection.SourceTargetShuffleSplit` on a
+# dataset with 2 source and 2 target domains. The first plot
+# shows the indices of the training and testing sets for each
+# split and with the datased packed with
+# :func:`~skada.datasets._base.DomainAwareDataset.pack_train`
+# (the target domains labels are masked (=-1)).
+# While the second plot shows the indices of the training and
+# testing sets for each split and with the datased packed with
+# :func:`~skada.datasets._base.DomainAwareDataset.pack_test`.
+
+
+cvs = [SourceTargetShuffleSplit]
+for cv in cvs:
+    fig, ax = plt.subplots(1, 2, figsize=(7, 3), sharey=True)
+    fig.suptitle("{}".format(cv.__name__), fontsize=15)
+    plot_st_shuffle_indices(
+        cv(n_splits), X, y, target_labels, sample_domain, ax, n_splits, 10
+    )
+
+    fig.legend(
+        [Patch(color=cmap_cv(0.8)), Patch(color=cmap_cv(0.02))],
+        ["Testing set", "Training set"],
+        loc="center right",
+    )
+    fig.text(0.48, 0.01, "Sample index", ha="center")
+    fig.text(0.001, 0.5, "CV iteration", va='center', rotation='vertical')
+
+    # Make the legend fit
+    plt.tight_layout()
+    fig.subplots_adjust(right=0.7)
+    
+
+# %%
+# The following plot illustrates the behavior of
+# :class:`~skada.model_selection.LeaveOneDomainOut` on a
+# dataset with 2 source and 2 target domains.
+# Each subplot shows the indices of the training and testing sets
+# and which domain is used as the target domain for each split.
+
+
+cvs = [LeaveOneDomainOut]
+for cv in cvs:
+    fig, ax = plt.subplots(n_splits_lodo, 1, figsize=(6, 6), sharex=True)
+    fig.suptitle("{}".format(cv.__name__), fontsize=15)
+    plot_lodo_indices(
+        cv(n_splits_lodo), X_lodo, y_lodo, sample_domain_lodo, ax
+    )
+
+    fig.legend(
+        [Patch(color=cmap_cv(0.8)), Patch(color=cmap_cv(0.02))],
+        ["Testing set", "Training set"],
+        loc="center right",
+    )
+    fig.text(0.48, 0.01, "Sample index", ha="center")
+    fig.text(0.001, 0.5, "CV iteration", va='center', rotation='vertical')
+
+    # Make the legend fit
+    plt.tight_layout()
+    fig.subplots_adjust(right=0.7)
+
+
 # %%
 # Let's see how the different cross-validation objects behave on our dataset.
-
-
-cvs = [SourceTargetShuffleSplit,
-       DomainShuffleSplit,
+cvs = [DomainShuffleSplit,
        StratifiedDomainShuffleSplit,
-       LeaveOneDomainOut
        ]
 
 for cv in cvs:
-    if cv is LeaveOneDomainOut:
-        fig, ax = plt.subplots(n_splits_lodo, 1, figsize=(6, 6), sharex=True)
-        fig.suptitle("{}".format(cv.__name__), fontsize=15)
-        plot_lodo_indices(
-            cv(n_splits_lodo), X_lodo, y_lodo, sample_domain_lodo, ax
-        )
-    elif cv is SourceTargetShuffleSplit:
-        fig, ax = plt.subplots(1, 2, figsize=(7, 3), sharey=True)
-        fig.suptitle("{}".format(cv.__name__), fontsize=15)
-        plot_st_shuffle_indices(
-            cv(n_splits), X, y, target_labels, sample_domain, ax, n_splits, 10
-        )
-    else:
-        fig, ax = plt.subplots(figsize=(6, 3))
-        plot_cv_indices(
-            cv(n_splits), X, y, sample_domain, ax, n_splits
-        )
+    fig, ax = plt.subplots(figsize=(6, 3))
+    plot_cv_indices(
+        cv(n_splits), X, y, sample_domain, ax, n_splits
+    )
 
     fig.legend(
         [Patch(color=cmap_cv(0.8)), Patch(color=cmap_cv(0.02))],
