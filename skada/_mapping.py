@@ -860,6 +860,9 @@ class MMDConSMappingAdapter(BaseAdapter):
             X,
             sample_domain
         )
+        X_source, X_target, _, _ = source_target_split(
+            X, sample_domain=sample_domain
+        )
 
         # source_idx = extract_source_indices(sample_domain)
 
@@ -882,3 +885,10 @@ class MMDConSMappingAdapter(BaseAdapter):
         # else:
         #     weights = None
         # return AdaptationOutput(X=X, sample_weight=weights)
+
+        X_source_adapt = self.W_ * X + self.B_
+        X_adapt, _ = source_target_merge(
+            X_source_adapt, X_target, sample_domain=sample_domain
+        )
+
+        return X_adapt
