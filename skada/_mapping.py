@@ -8,6 +8,8 @@ from abc import abstractmethod
 
 import numpy as np
 from ot import da
+from scipy.optimize import minimize
+from sklearn.metrics.pairwise import pairwise_kernels
 
 from .base import BaseAdapter, clone
 from .utils import (
@@ -17,7 +19,8 @@ from .utils import (
     source_target_merge
 )
 from ._utils import (
-    _estimate_covariance
+    _estimate_covariance,
+    _find_y_type
 )
 
 from ._pipeline import make_da_pipeline
