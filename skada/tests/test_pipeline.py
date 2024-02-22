@@ -131,7 +131,7 @@ def test_pipeline_step_parameters():
 
 def test_named_estimator():
     pipe = make_da_pipeline(
-        (PerDomain(StandardScaler())),
+        PerDomain(StandardScaler()),
         ('adapter', SubspaceAlignmentAdapter(n_components=2)),
         PCA(n_components=4),
         PCA(n_components=2),
