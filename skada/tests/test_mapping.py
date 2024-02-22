@@ -6,6 +6,7 @@
 
 import numpy as np
 from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
 
 from skada.datasets import DomainAwareDataset
 from skada import (
@@ -19,6 +20,7 @@ from skada import (
     LinearOTMapping,
     OTMappingAdapter,
     OTMapping,
+    MMDConSMappingAdapter,
     make_da_pipeline,
 )
 
@@ -50,6 +52,7 @@ import pytest
         ),
         make_da_pipeline(CORALAdapter(reg=0.1), LogisticRegression()),
         CORAL(),
+        make_da_pipeline(MMDConSMappingAdapter(gamma=1e-3), SVC()),
     ]
 )
 def test_mapping_estimator(estimator, tmp_da_dataset):
