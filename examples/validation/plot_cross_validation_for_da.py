@@ -281,7 +281,7 @@ for cv in cvs:
     # Make the legend fit
     plt.tight_layout()
     fig.subplots_adjust(right=0.7)
-    
+
 
 # %%
 # The following plot illustrates the behavior of
