@@ -12,7 +12,7 @@ import pytest
 
 @pytest.mark.parametrize(
     "label, n, m",
-    [("binary", 7, 5), ("binary", 6, 6), ("binary", 5, 7)],
+    [("binary", 15, 5), ("binary", 10, 10), ("binary", 5, 15)],
 )
 def test_dasvm_estimator(label, n, m):
     X, y, sample_domain = make_shifted_datasets(
@@ -27,7 +27,7 @@ def test_dasvm_estimator(label, n, m):
         X, y, sample_domain=sample_domain)
 
     clf_dasvm = DASVMEstimator(
-        k=5, save_estimators=True, save_indices=True).fit(
+        k=3, save_estimators=True, save_indices=True).fit(
         X, y, sample_domain=sample_domain)
 
     assert clf_dasvm.predict(X).shape == y.shape, (
