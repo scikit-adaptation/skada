@@ -694,3 +694,191 @@ def CORAL(
         CORALAdapter(reg=reg),
         base_estimator,
     )
+
+
+class MMDConSMappingAdapter(BaseAdapter):
+    """MMDConSMapping adapter.
+
+    MMDConSMapping finds a linear transformation that minimizes the Maximum Mean
+    Discrepancy (MMD) between the source and target domains, such that
+    $X^t = W(y^s) \\odot X^s + B(y^s)$, where $W(y^s)$ and $B(y^s)$ are the scaling
+    and bias of the linear transformation, respectively.
+
+    See Section 4 of [4]_ for details.
+
+    Parameters
+    ----------
+    gamma : float or array like
+        Parameters for the kernels.
+    reg_k : float, default=1e-10
+        Regularization parameter for the labels kernel matrix.
+    reg_m : float, default=1e-10
+        Regularization parameter for the mapping parameters.
+    tol : float, default=1e-6
+        Tolerance for the stopping criterion in the optimization.
+    max_iter : int, default=1000
+        Number of maximum iteration before stopping the optimization.
+
+    Attributes
+    ----------
+    `X_source_` : array-like, shape (n_samples, n_features)
+        The source data used for fitting.
+    `y_source_` : array-like, shape (n_samples,)
+        The source labels used for fitting.
+
+    References
+    ----------
+    .. [4] Kun Zhang et. al. Domain Adaptation under Target and Conditional Shift
+           In ICML, 2013.
+    """
+
+    def __init__(self, gamma, reg_k=1e-10, reg_m=1e-10, tol=1e-6, max_iter=1000):
+        super().__init__()
+        self.gamma = gamma
+        self.reg_k = reg_k
+        self.reg_m = reg_m
+        self.tol = tol
+        self.max_iter = max_iter
+        self.W_ = None
+        self.B_ = None
+
+    def _mapping_optimization(self, X_source, X_target, y_source):
+        """Mapping optimization"""
+        m, n = X_source.shape[0], X_target.shape[0]
+
+        # check y is discrete or continuous
+        discrete = _find_y_type(y_source) == "classification"
+
+        # compute omega
+        L = pairwise_kernels(y_source.reshape(-1, 1), metric="rbf", gamma=self.gamma)
+        omega = L @ np.linalg.inv(L + self.reg_k * np.eye(m))
+
+        # compute R
+        if discrete:
+            classes = np.unique(y_source)
+            R = np.zeros((X_target.shape[0], len(classes)))
+            for i, c in enumerate(classes):
+                R[:, i] = (y_source == c).astype(int)
+        else:
+            R = L @ np.linalg.inv(L + self.reg_k * np.eye(m))
+
+        # solve the optimization problem
+        # min_{G, H} MMD(W \odot X^s + B, X^t)
+        # s.t. W = RG, B = RH
+        P = R.T @ A @ R
+        P = P + 1e-12 * np.eye(P.shape[0])  # make P positive semi-definite
+        q = - (m/n) * (M @ R).T
+
+        def flatten(G, H):
+            return np.concatenate((G.flatten(), H.flatten()))
+
+        def unflatten(x):
+            return x[:m * d].reshape(m, d), x[m * d:].reshape(m, d)
+
+        def func(x):
+            G, H = unflatten(x)
+            W = R @ G
+            B = R @ H
+
+            X_new = W * X_source + B
+
+            K = pairwise_kernels(X_new, metric="rbf", gamma=self.gamma)
+            K_cross = pairwise_kernels(X_target, X_new, metric="rbf", gamma=self.gamma)
+            J_cons = (1 / (m ** 2)) * np.sum(omega @ K @ omega.T)
+            J_cons -= (2 / (m * n)) * np.sum(K_cross @ omega.T)
+
+            J_reg = (1 / m) * (np.linalg.norm(W - 1, ord="fro") ** 2) + (1 / n) * (np.linalg.norm(B, ord="fro") ** 2)
+
+            return J_cons + self.reg_m * J_reg
+
+        def jac(x):
+            G, H = unflatten(x)
+            return flatten(np.zeros(G.shape), np.zeros(H.shape))
+
+        results = minimize(
+            func,
+            x0=flatten(np.ones((m, d)), np.zeros((m, d))),
+            method="SLSQP",
+            jac=jac,
+            tol=self.tol,
+            options={"maxiter": self.max_iter}
+        )
+
+        G, H = unflatten(results.x)
+        W = R @ G
+        B = R @ H
+
+        return W, B
+
+    def fit(self, X, y, sample_domain=None, **kwargs):
+        """Fit adaptation parameters.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
+        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        X_source, X_target, y_source, _ = source_target_split(
+            X, y, sample_domain=sample_domain
+        )
+        self.W_, self.B_ = self._mapping_optimization(X_source, X_target, y_source)
+
+        return self
+
+    def adapt(self, X, y=None, sample_domain=None, **kwargs):
+        """Predict adaptation (weights, sample or labels).
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        X_t : array-like, shape (n_samples, n_components)
+            The data (same as X).
+        y_t : array-like, shape (n_samples,)
+            The labels (same as y).
+        weights : array-like, shape (n_samples,)
+            The weights of the samples.
+        """
+        X, sample_domain = check_X_domain(
+            X,
+            sample_domain
+        )
+
+        # source_idx = extract_source_indices(sample_domain)
+
+        # if source_idx.sum() > 0:
+        #     if np.array_equal(self.X_source_, X[source_idx]):
+        #         source_weights = self.weights_
+        #     else:
+        #         # get the nearest neighbor in the source domain
+        #         K = pairwise_kernels(
+        #             X[source_idx],
+        #             self.X_source_,
+        #             metric="rbf",
+        #             gamma=self.gamma
+        #         )
+        #         idx = np.argmax(K, axis=1)
+        #         source_weights = self.weights_[idx]
+        #     source_idx = np.where(source_idx)
+        #     weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
+        #     weights[source_idx] = source_weights
+        # else:
+        #     weights = None
+        # return AdaptationOutput(X=X, sample_weight=weights)
