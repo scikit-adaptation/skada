@@ -55,8 +55,80 @@ The library is not yet available on PyPI. You can install it from the source cod
 
 ## Short examples
 
-TODO
+We provide here a few examples to illustrate the use of the library. For more
+details, please refer to this [example](https://scikit-adaptation.github.io/auto_examples/plot_how_to_use_skada.html), the [quick start guide](https://scikit-adaptation.github.io/quickstart.html) and the [gallery](https://scikit-adaptation.github.io/auto_examples/index.html).
 
+First the DA data in the skada API is stored in the following format:
+
+```python
+X, y, sample_domain 
+```
+
+Where `X` is the input data, `y` is the target labels and `sample_domain` is the
+domain label (positive for source and negative for target domains). We provide
+below an exmaple ho how to fit a DA estimator:
+
+```python
+from skada import CORAL
+
+da = CORAL()
+da.fit(X, y, sample_domain=sample_domain) # sample_domain passed by name
+
+ypred = da.predict(Xt) # predict on test data
+```
+
+One can also use `Adapter` classes to create a full pipeline with DA:
+
+```python
+from skada import CORALAdapter, make_da_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+
+pipe = make_da_pipeline(StandardScaler(),CORALAdapter(), LogisticRegression())
+
+pipe.fit(X, y, sample_domain=sample_domain) # sample_domain passed by name
+```
+
+Note that for `Adapter` classes that provide Reweighting of the sample, the 
+subsequent classifier/regressor must require sample_weights as input. This is
+done with the `set_fit_requires` for instance for the `LogisticRegression` with 
+`LogisticRegression().set_fit_requires('sample_weight')` :
+
+```python
+from skada import GaussianReweightDensityAdapter, make_da_pipeline
+pipe = make_da_pipeline(GaussianReweightDensityAdapter(),
+                        LogisticRegression().set_fit_request(sample_weight=True))
+```
+
+Finally skada can be used for estimating cross validation scores and parameter
+selection :
+
+```python
+from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import cross_val_score
+from skada.model_selection import SourceTargetShuffleSplit
+from skada.metrics import PredictionEntropyScorer
+
+# make pipeline
+pipe = make_da_pipeline(StandardScaler(),CORALAdapter(), LogisticRegression())
+
+# split and score
+cv = SourceTargetShuffleSplit()
+scoring = PredictionEntropyScorer()
+
+# cross va score
+scores = cross_val_score(pipe, X, y, params={'sample_domain': sample_domain}, 
+                         cv=cv, scoring=scoring)
+
+# grid search
+param_grid = {'coraladapter__reg': [0.1, 0.5, 0.9]}
+grid_search = GridSearchCV(estimator=clf,
+                           param_grid={"coraladapter__reg": reg_coral},
+                           cv=cv, scoring = scorer)
+
+grid_search.fit(X, y, sample_domain=sample_domain)
+
+```
 
 ## Acknowledgements
 
