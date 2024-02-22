@@ -104,8 +104,11 @@ Finally SKADA can be used for estimating cross validation scores and parameter
 selection :
 
 ```python
-from sklearn.model_selection import GridSearchCV
-from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_val_score, GridSearchCV
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+
+from skada import CORALAdapter, make_da_pipeline
 from skada.model_selection import SourceTargetShuffleSplit
 from skada.metrics import PredictionEntropyScorer
 
@@ -114,20 +117,19 @@ pipe = make_da_pipeline(StandardScaler(), CORALAdapter(), LogisticRegression())
 
 # split and score
 cv = SourceTargetShuffleSplit()
-scoring = PredictionEntropyScorer()
+scorer = PredictionEntropyScorer()
 
 # cross val score
 scores = cross_val_score(pipe, X, y, params={'sample_domain': sample_domain}, 
-                         cv=cv, scoring=scoring)
+                         cv=cv, scoring=scorer)
 
 # grid search
 param_grid = {'coraladapter__reg': [0.1, 0.5, 0.9]}
-grid_search = GridSearchCV(estimator=clf,
-                           param_grid=**param_grid,
-                           cv=cv, scoring = scorer)
+grid_search = GridSearchCV(estimator=pipe,
+                           param_grid=param_grid,
+                           cv=cv, scoring=scorer)
 
 grid_search.fit(X, y, sample_domain=sample_domain)
-
 ```
 
 ## Acknowledgements
