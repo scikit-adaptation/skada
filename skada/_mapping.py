@@ -748,6 +748,7 @@ class MMDConSMappingAdapter(BaseAdapter):
     def _mapping_optimization(self, X_source, X_target, y_source):
         """Mapping optimization"""
         m, n = X_source.shape[0], X_target.shape[0]
+        d = X_source.shape[1]
 
         # check y is discrete or continuous
         discrete = _find_y_type(y_source) == "classification"
@@ -787,7 +788,8 @@ class MMDConSMappingAdapter(BaseAdapter):
             J_cons = (1 / (m ** 2)) * np.sum(omega @ K @ omega.T)
             J_cons -= (2 / (m * n)) * np.sum(K_cross @ omega.T)
 
-            J_reg = (1 / m) * (np.linalg.norm(W - 1, ord="fro") ** 2) + (1 / n) * (np.linalg.norm(B, ord="fro") ** 2)
+            J_reg = (1 / m) * (np.linalg.norm(W - 1, ord="fro") ** 2)
+            J_reg += (1 / n) * (np.linalg.norm(B, ord="fro") ** 2)
 
             return J_cons + self.reg_m * J_reg
 
