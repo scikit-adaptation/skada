@@ -876,3 +876,55 @@ class MMDConSMappingAdapter(BaseAdapter):
             X_adapt = X
 
         return X_adapt
+
+
+def MMDConSMapping(
+    base_estimator=None,
+    gamma=1.0,
+    reg_k=1e-10,
+    reg_m=1e-10,
+    tol=1e-6,
+    max_iter=1000
+):
+    """MMDConSMapping pipeline with adapter and estimator.
+
+    see [4]_ for details.
+
+    Parameters
+    ----------
+    base_estimator : object, optional (default=None)
+        The base estimator to fit on the target dataset.
+    gamma : float
+        Parameter for the kernels.
+    reg_k : float, default=1e-10
+        Regularization parameter for the labels kernel matrix.
+    reg_m : float, default=1e-10
+        Regularization parameter for the mapping parameters.
+    tol : float, default=1e-6
+        Tolerance for the stopping criterion in the optimization.
+    max_iter : int, default=1000
+        Number of maximum iteration before stopping the optimization.
+
+    Returns
+    -------
+    pipeline : Pipeline
+        Pipeline containing CORAL adapter and base estimator.
+
+    References
+    ----------
+    .. [4] Kun Zhang et. al. Domain Adaptation under Target and Conditional Shift
+           In ICML, 2013.
+    """
+    if base_estimator is None:
+        base_estimator = SVC(kernel="rbf")
+
+    return make_da_pipeline(
+        MMDConSMappingAdapter(
+            gamma=gamma,
+            reg_k=reg_k,
+            reg_m=reg_m,
+            tol=tol,
+            max_iter=max_iter
+        ),
+        base_estimator
+    )
