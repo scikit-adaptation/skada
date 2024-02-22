@@ -135,6 +135,8 @@ def test_named_estimator():
         ('adapter', SubspaceAlignmentAdapter(n_components=2)),
         PCA(n_components=4),
         PCA(n_components=2),
+        CORAL(),
+        ('othercoral', CORAL()),
         LogisticRegression(),
     )
     assert 'adapter' in pipe.named_steps
@@ -142,6 +144,8 @@ def test_named_estimator():
     assert 'pca-1' in pipe.named_steps
     assert 'pca-2' in pipe.named_steps
     assert 'logisticregression' in pipe.named_steps
+    assert 'coraladapter' in pipe.named_steps
+    assert 'othercoral__coraladapter' in pipe.named_steps
 
 
 def test_empty_pipeline():
