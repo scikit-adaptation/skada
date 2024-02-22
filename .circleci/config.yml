@@ -89,6 +89,81 @@ jobs:
             paths:
               - html
 
+    deploy_main:
+      docker:
+        - image: cimg/python:3.10
+      steps:
+        - attach_workspace:
+            at: /tmp/build
+        - run:
+            name: Fetch docs
+            command: |
+              set -e
+              mkdir -p ~/.ssh
+              echo -e "Host *\nStrictHostKeyChecking no" > ~/.ssh/config
+              chmod og= ~/.ssh/config
+              if [ ! -d ~/scikit-adaptation.github.io ]; then
+                git clone git@github.com:/scikit-adaptation/scikit-adaptation.github.io ~/scikit-adaptation.github.io --depth=1
+              fi
+        - run:
+            name: Deploy docs
+            command: |
+              set -e;
+              if [ "${CIRCLE_BRANCH}" == "main" ]; then
+                git config --global user.email "circle@scikit-adaptation.github.io";
+                git config --global user.name "Circle CI";
+                cd ~/scikit-adaptation.github.io;
+                git checkout main
+                git remote -v
+                git fetch origin
+                git reset --hard origin/main
+                git clean -xdf
+                echo "Deploying dev docs for ${CIRCLE_BRANCH}.";
+                cd dev
+                cp -a /tmp/build/html/* .;
+                touch .nojekyll;
+                git add -A;
+                git commit -m "CircleCI update of dev docs (${CIRCLE_BUILD_NUM}).";
+                git push origin main;
+              else
+                echo "No deployment (build: ${CIRCLE_BRANCH}).";
+              fi
+
+    deploy_tag:
+      docker:
+        - image: cimg/python:3.10
+      steps:
+        - attach_workspace:
+            at: /tmp/build
+        - run:
+            name: Fetch docs
+            command: |
+              set -e
+              mkdir -p ~/.ssh
+              echo -e "Host *\nStrictHostKeyChecking no" > ~/.ssh/config
+              chmod og= ~/.ssh/config
+              if [ ! -d ~/scikit-adaptation.github.io ]; then
+                git clone git@github.com:/scikit-adaptation/scikit-adaptation.github.io ~/scikit-adaptation.github.io --depth=1
+              fi
+        - run:
+            name: Deploy docs
+            command: |
+              set -e;
+              git config --global user.email "circle@scikit-adaptation.github.io";
+              git config --global user.name "Circle CI";
+              cd ~/scikit-adaptation.github.io;
+              git checkout main
+              git remote -v
+              git fetch origin
+              git reset --hard origin/main
+              git clean -xdf
+              echo "Deploying dev docs for ${CIRCLE_BRANCH}.";
+              cp -a /tmp/build/html/* .;
+              touch .nojekyll;
+              git add -A;
+              git commit -m "CircleCI update of dev docs (${CIRCLE_BUILD_NUM}).";
+              git push origin main;
+
 
 workflows:
   version: 2
@@ -100,3 +175,18 @@ workflows:
           filters:
             tags:
               only: /[0-9]+(\.[0-9]+)*$/  
+      - deploy_main:
+          requires:
+            - build_docs
+          filters:
+            branches:
+              only:
+                - main
+      - deploy_tag:
+          requires:
+            - build_docs
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /[0-9]+(\.[0-9]+)*$/

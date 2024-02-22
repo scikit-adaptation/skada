@@ -9,20 +9,14 @@ from typing import Union
 
 import numpy as np
 from sklearn.base import BaseEstimator, clone
+from sklearn.exceptions import UnsetMetadataPassedError
 from sklearn.utils import Bunch
 from sklearn.utils.metadata_routing import get_routing_for_object
 from sklearn.utils.metaestimators import available_if
 from sklearn.utils.validation import check_is_fitted
 
-from skada._utils import (
-    _DEFAULT_SOURCE_DOMAIN_LABEL, _DEFAULT_TARGET_DOMAIN_LABEL,
-    _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
-    )
-from skada._utils import _find_y_type
-
-# xxx(okachaiev): this should be `skada.utils.check_X_y_domain`
-# rather than `skada._utils.check_X_y_domain`
-from .utils import check_X_domain
+from skada.utils import check_X_domain
+from skada._utils import _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL, _find_y_type
 
 
 def _estimator_has(attr):
@@ -52,6 +46,20 @@ class AdaptationOutput(Bunch):
     pass
 
 
+class IncompatibleMetadataError(UnsetMetadataPassedError):
+    """The exception is designated to report the situation when the adapter output
+    the key, like 'sample_weight', that is not explicitly consumed by the following
+    estimator in the pipeline.
+
+    The exception overrides :class:`~sklearn.exceptions.UnsetMetadataPassedError`
+    when there is a reason to believe that the original exception was thrown because
+    of the adapter output rather than being caused by the input to a specific function.
+    """
+
+    def __init__(self, message):
+        super().__init__(message=message, unrequested_params={}, routed_params={})
+
+
 class BaseAdapter(BaseEstimator):
 
     __metadata_request__fit = {'sample_domain': True}
@@ -68,12 +76,10 @@ class BaseAdapter(BaseEstimator):
         """Transform samples, labels, and weights into the space in which
         the estimator is trained.
         """
-        pass
 
     @abstractmethod
     def fit(self, X, y=None, sample_domain=None, *, sample_weight=None):
         """Fit adaptation parameters"""
-        pass
 
     def fit_transform(self, X, y=None, sample_domain=None, **params):
         """
@@ -119,6 +125,32 @@ class BaseAdapter(BaseEstimator):
         )
 
 
+class DAEstimator(BaseEstimator):
+    """ Generic DA estimator class
+
+    """
+
+    __metadata_request__fit = {'sample_domain': True}
+    __metadata_request__partial_fit = {'sample_domain': True}
+    __metadata_request__predict = {'sample_domain': True, 'allow_source': True}
+    __metadata_request__predict_proba = {'sample_domain': True, 'allow_source': True}
+    __metadata_request__predict_log_proba = {
+        'sample_domain': True, 'allow_source': True}
+    __metadata_request__score = {'sample_domain': True, 'allow_source': True}
+    __metadata_request__decision_function = {
+        'sample_domain': True, 'allow_source': True}
+
+    @abstractmethod
+    def fit(self, X, y=None, sample_domain=None, *, sample_weight=None):
+        """Fit adaptation parameters"""
+        pass
+
+    @abstractmethod
+    def predict(self, X, sample_domain=None, *, sample_weight=None):
+        """Predict using the model"""
+        pass
+
+
 class BaseSelector(BaseEstimator):
 
     def __init__(self, base_estimator: BaseEstimator, **kwargs):
@@ -150,7 +182,6 @@ class BaseSelector(BaseEstimator):
         The set of available estimators and access to them has to be provided
         by specific implementations.
         """
-        pass
 
     def get_params(self, deep=True):
         """Get parameters for this estimator.
@@ -168,7 +199,7 @@ class BaseSelector(BaseEstimator):
         params : mapping of string to any
             Parameter names mapped to their values.
         """
-        params = self.base_estimator.get_params()
+        params = self.base_estimator.get_params(deep=deep)
         params['base_estimator'] = self.base_estimator
         return params
 
@@ -196,7 +227,9 @@ class BaseSelector(BaseEstimator):
 
     @abstractmethod
     def _route_to_estimator(self, method_name, X, y=None, **params) -> np.ndarray:
-        pass
+        """Abstract method for calling method of a base estimator based on
+        the input and the routing logic associated with domain labels.
+        """
 
     @available_if(_estimator_has('transform'))
     def transform(self, X, **params):
@@ -228,6 +261,34 @@ class BaseSelector(BaseEstimator):
         self._is_final = True
         return self
 
+    def _route_and_merge_params(self, routing_request, X, params):
+        if isinstance(X, AdaptationOutput):
+            for k, v in X.items():
+                if k != 'X' and v is not None:
+                    params[k] = v
+            X_out = X['X']
+        else:
+            X_out = X
+        try:
+            routed_params = routing_request._route_params(params=params)
+        except UnsetMetadataPassedError as e:
+            # check if every parameter given by `AdaptationOutput` object
+            # was accepted by the downstream (base) estimator
+            if isinstance(X, AdaptationOutput):
+                for k in X:
+                    marker = routing_request.requests.get(k)
+                    if k != 'X' and v is not None and marker is None:
+                        method = routing_request.method
+                        raise IncompatibleMetadataError(
+                            f"The adapter provided '{k}' parameter which is not explicitly set as "  # noqa
+                            f"requested or not for '{routing_request.owner}.{method}'.\n"  # noqa
+                            f"Make sure that metadata routing is properly setup, e.g. by calling 'set_{method}_request()'. "  # noqa
+                            "See documentation at https://scikit-learn.org/stable/metadata_routing.html"  # noqa
+                        ) from e
+            # re-raise exception if the problem was not caused by the adapter
+            raise e
+        return X_out, routed_params
+
     def _remove_masked(self, X, y, routed_params):
         """Internal API for removing masked samples before passing them
         to the final estimator. Only applicable for the final estimator
@@ -247,15 +308,15 @@ class BaseSelector(BaseEstimator):
         if y_type == 'classification':
             unmasked_idx = (y != _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL)
         elif y_type == 'continuous':
-            unmasked_idx = ~np.isfinite(y)
+            unmasked_idx = np.isfinite(y)
 
         X = X[unmasked_idx]
         y = y[unmasked_idx]
         routed_params = {
             # this is somewhat crude way to test is `v` is indexable
             k: v[unmasked_idx] if (
-                hasattr(v, "__len__") and len(v) > len(unmasked_idx)
-                ) else v
+                hasattr(v, '__len__') and len(v) == len(unmasked_idx)
+            ) else v
             for k, v
             in routed_params.items()
         }
@@ -266,31 +327,16 @@ class Shared(BaseSelector):
 
     def get_estimator(self) -> BaseEstimator:
         """Provides access to the fitted estimator."""
+        check_is_fitted(self)
         return self.base_estimator_
 
     def fit(self, X, y, **params):
-        # xxx(okachaiev): this should be done in the utils helper
-        if 'sample_domain' in params:
-            domains = set(np.unique(params['sample_domain']))
-        else:
-            domains = set([
-                _DEFAULT_SOURCE_DOMAIN_LABEL,
-                _DEFAULT_TARGET_DOMAIN_LABEL
-            ])  # default source and target labels
-        # xxx(okachaiev): this code is awkward, and it's duplicated everywhere
         routing = get_routing_for_object(self.base_estimator)
-        routed_params = routing.fit._route_params(params=params)
-        # xxx(okachaiev): code duplication
-        if isinstance(X, AdaptationOutput):
-            for k, v in X.items():
-                if k != 'X' and k in routed_params:
-                    routed_params[k] = v
-            X = X['X']
+        X, routed_params = self._route_and_merge_params(routing.fit, X, params)
         X, y, routed_params = self._remove_masked(X, y, routed_params)
         estimator = clone(self.base_estimator)
         estimator.fit(X, y, **routed_params)
         self.base_estimator_ = estimator
-        self.domains_ = domains
         self.routing_ = get_routing_for_object(estimator)
         return self
 
@@ -311,12 +357,8 @@ class Shared(BaseSelector):
     # xxx(okachaiev): fail if unknown domain is given
     def _route_to_estimator(self, method_name, X, y=None, **params):
         check_is_fitted(self)
-        routed_params = getattr(self.routing_, method_name)._route_params(params=params)
-        if isinstance(X, AdaptationOutput):
-            for k, v in X.items():
-                if k != 'X' and k in routed_params:
-                    routed_params[k] = v
-            X = X['X']
+        request = getattr(self.routing_, method_name)
+        X, routed_params = self._route_and_merge_params(request, X, params)
         method = getattr(self.base_estimator_, method_name)
         output = method(X, **routed_params) if y is None else method(
             X, y, **routed_params
@@ -328,23 +370,16 @@ class PerDomain(BaseSelector):
 
     def get_estimator(self, domain_label: int) -> BaseEstimator:
         """Provides access to the fitted estimator based on the domain label."""
+        check_is_fitted(self)
         return self.estimators_[domain_label]
 
     def fit(self, X, y, **params):
         # xxx(okachaiev): use check_*_domain to derive default domain labels
         sample_domain = params['sample_domain']
-        # xxx(okachaiev): this code is awkward, and it's duplicated everywhere
         routing = get_routing_for_object(self.base_estimator)
-        routed_params = routing.fit._route_params(params=params)
-        # xxx(okachaiev): code duplication
-        if isinstance(X, AdaptationOutput):
-            for k, v in X.items():
-                if k != 'X' and k in routed_params:
-                    routed_params[k] = v
-            X = X['X']
+        X, routed_params = self._route_and_merge_params(routing.fit, X, params)
         X, y, routed_params = self._remove_masked(X, y, routed_params)
         estimators = {}
-        # xxx(okachaiev): maybe return_index?
         for domain_label in np.unique(sample_domain):
             idx, = np.where(sample_domain == domain_label)
             estimator = clone(self.base_estimator)
@@ -360,13 +395,8 @@ class PerDomain(BaseSelector):
 
     def _route_to_estimator(self, method_name, X, y=None, **params):
         check_is_fitted(self)
-        routed_params = getattr(self.routing_, method_name)._route_params(params=params)
-        # xxx(okachaiev): again, code duplication
-        if isinstance(X, AdaptationOutput):
-            for k, v in X.items():
-                if k != 'X' and k in routed_params:
-                    routed_params[k] = v
-            X = X['X']
+        request = getattr(self.routing_, method_name)
+        X, routed_params = self._route_and_merge_params(request, X, params)
         # xxx(okachaiev): use check_*_domain to derive default domain labels
         sample_domain = params['sample_domain']
         output = None
