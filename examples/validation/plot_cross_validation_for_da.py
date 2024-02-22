@@ -153,50 +153,41 @@ def plot_lodo_indices(cv, X, y, sample_domain, ax, lw=10):
         indices[tt] = 1
         indices[tr] = 0
 
-        # To plot
-        # Find indices where the last list contains nan values
-        nan_indices = np.isnan(indices)
-
-        # Remove corresponding elements from all arrays
-        sample_domain_plot = sample_domain[~nan_indices]
-        y_to_plot = y[~nan_indices]
-        indices_to_plot = indices[~nan_indices]
-
-        # # Visualize the results
-        ax[ii].scatter(
-            [i/2 for i in range(1, len(indices_to_plot)*2+1, 2)],
-            [0 + 0.5] * len(indices_to_plot),
-            c=indices_to_plot,
+        # Visualize the results
+        ax.scatter(
+            [i/2 for i in range(1, len(indices)*2+1, 2)],
+            [ii + 0.5] * len(indices),
+            c=indices,
             marker="_",
             lw=lw,
             cmap=cmap_cv,
             vmin=-0.2,
             vmax=1.2,
+            s = 1.8
         )
 
-        # Plot the data classes and sample_domain at the end
-        ax[ii].scatter(
-            [i/2 for i in range(1, len(indices_to_plot)*2+1, 2)],
-            [1.5] * len(indices_to_plot), c=y_to_plot,
-            marker="_", lw=lw, cmap=cmap_data, vmin=-1.2,
-            vmax=0.2,
-        )
+    # Plot the data classes and sample_domain at the end
+    ax.scatter(
+        [i/2 for i in range(1, len(indices)*2+1, 2)],
+        [ii + 1.5] * len(X), c=y, marker="_", lw=lw,
+        cmap=cmap_data, vmin=-1.2, vmax=0.2,
+    )
 
-        ax[ii].scatter(
-            [i/2 for i in range(1, len(indices_to_plot)*2+1, 2)],
-            [2.5] * len(indices_to_plot), c=sample_domain_plot,
-            marker="_", lw=lw, cmap=cmap_domain, vmin=-3.2, vmax=3.2,
-        )
+    ax.scatter(
+        [i/2 for i in range(1, len(indices)*2+1, 2)],
+        [ii + 2.5] * len(X), c=sample_domain, marker="_",
+        lw=lw, cmap=cmap_domain, vmin=-3.2, vmax=3.2,
+    )
 
-        # Formatting
-        yticklabels = [ii] + ["class", "sample_domain"]
-        ax[ii].set(
-            yticks=np.arange(1 + 2) + 0.5,
-            yticklabels=yticklabels,
-            ylim=[3.2, -0.2],
-            xlim=[0, len(indices_to_plot)],
-        )
-
+    # Formatting
+    yticklabels = list(range(n_splits)) + ["class", "sample_domain"]
+    ax.set(
+        yticks=np.arange(n_splits + 2) + 0.5,
+        yticklabels=yticklabels,
+        ylim=[n_splits + 2.2, -0.2],
+        xlim=[0, len(X)],
+    )
+    ax.set_title("{}".format(type(cv).__name__), fontsize=15)
     return ax
 
 
@@ -293,8 +284,9 @@ for cv in cvs:
 
 cvs = [LeaveOneDomainOut]
 for cv in cvs:
-    fig, ax = plt.subplots(n_splits_lodo, 1, figsize=(6, 6), sharex=True)
-    fig.suptitle("{}".format(cv.__name__), fontsize=15)
+    #fig, ax = plt.subplots(n_splits_lodo, 1, figsize=(6, 6), sharex=True)
+    fig, ax = plt.subplots(figsize=(6, 3))
+    #fig.suptitle("{}".format(cv.__name__), fontsize=15)
     plot_lodo_indices(
         cv(n_splits_lodo), X_lodo, y_lodo, sample_domain_lodo, ax
     )
