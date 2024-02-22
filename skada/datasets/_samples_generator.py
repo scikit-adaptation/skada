@@ -7,11 +7,9 @@
 import numbers
 
 import numpy as np
-
 from scipy import signal
 from scipy.fftpack import rfft, irfft
 from scipy.stats import multivariate_normal
-
 from sklearn.datasets import make_blobs
 
 from ._base import DomainAwareDataset
@@ -20,7 +18,6 @@ from ._base import DomainAwareDataset
 def _generate_unif_circle(n_samples, rng):
     angle = rng.rand(n_samples, 1) * 2 * np.pi
     r = np.sqrt(rng.rand(n_samples, 1))
-
     x = np.concatenate((r * np.cos(angle), r * np.sin(angle)), 1)
     return x
 
@@ -35,10 +32,10 @@ def _generate_data_2d_classif(n_samples, rng, label='binary'):
         At the end the number of point are 8*n_samples
     rng : random generator
         Generator for dataset creation
-    label : tuple, default='binary'
-        If 'binary, return binary class
-        If 'multiclass', return multiclass
-        if 'regression', return regression's y-values
+    label : str, default='binary'
+        If 'binary, return binary class.
+        If 'multiclass', return multiclass.
+        If 'regression', return regression's y-values
     """
     n2 = n_samples
     n1 = n2 * 4
@@ -103,10 +100,10 @@ def _generate_data_2d_classif_subspace(n_samples, rng, label='binary'):
         At the end the number of point are 8*n_samples
     rng : random generator
         Generator for dataset creation
-    label : tuple, default='binary'
+    label : str, default='binary'
         If 'binary, return binary class
         If 'multiclass', return multiclass
-        if 'regression', return regression's y-values
+        If 'regression', return regression's y-values
     """
     n2 = n_samples
     n1 = n2 * 2
@@ -203,7 +200,6 @@ def _generate_signal_with_peak_frequency(
     fs,
     rng
 ):
-
     X = []
     y = []
     n_classes, n_frequencies = frequencies.shape
@@ -233,7 +229,6 @@ def _generate_signal_with_peak_frequency(
                     X_fft = rfft(X_filtered[:, j])
                     X_filtered[:, j] = irfft(X_fft * channel_weights[j])
                 X_new[i] += X_filtered
-
         X.append(X_new)
         y.append([n_class for _ in range(n_samples)])
     X = np.concatenate(X)
@@ -378,6 +373,10 @@ def make_shifted_datasets(
         If float, standard deviation of Gaussian noise added to the data.
         If array-like, each element of the sequence indicate standard
         deviation of Gaussian noise added to the source and target data.
+    label : str, default='binary'
+        If 'binary, generates binary class labels.
+        If 'multiclass', generates multiclass labels.
+        If 'regression', generates regression's y-values.
     ratio : float, default=0.9
         Ratio of the number of data in class 1 selected
         in the target shift and the sample_selection bias
