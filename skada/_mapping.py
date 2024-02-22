@@ -865,35 +865,14 @@ class MMDConSMappingAdapter(BaseAdapter):
             X,
             sample_domain
         )
-        X_source, X_target, _, _ = source_target_split(
-            X, sample_domain=sample_domain
-        )
+        X_source, X_target, = source_target_split(X, sample_domain=sample_domain)
 
-        # source_idx = extract_source_indices(sample_domain)
-
-        # if source_idx.sum() > 0:
-        #     if np.array_equal(self.X_source_, X[source_idx]):
-        #         source_weights = self.weights_
-        #     else:
-        #         # get the nearest neighbor in the source domain
-        #         K = pairwise_kernels(
-        #             X[source_idx],
-        #             self.X_source_,
-        #             metric="rbf",
-        #             gamma=self.gamma
-        #         )
-        #         idx = np.argmax(K, axis=1)
-        #         source_weights = self.weights_[idx]
-        #     source_idx = np.where(source_idx)
-        #     weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
-        #     weights[source_idx] = source_weights
-        # else:
-        #     weights = None
-        # return AdaptationOutput(X=X, sample_weight=weights)
-
-        X_source_adapt = self.W_ * X + self.B_
-        X_adapt, _ = source_target_merge(
-            X_source_adapt, X_target, sample_domain=sample_domain
-        )
+        if X_source.shape[0] > 0:
+            X_source_adapt = self.W_ * X_source + self.B_
+            X_adapt, _ = source_target_merge(
+                X_source_adapt, X_target, sample_domain=sample_domain
+            )
+        else:
+            X_adapt = X
 
         return X_adapt
