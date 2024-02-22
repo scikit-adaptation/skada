@@ -56,8 +56,7 @@ The library is not yet available on PyPI. You can install it from the source cod
 ## Short examples
 
 We provide here a few examples to illustrate the use of the library. For more
-details, please refer to this [link]() for the [quick start guide]() and the [gallery]
-(https://scikit-adaptation.github.io/auto_examples/index.html).
+details, please refer to this [example](https://scikit-adaptation.github.io/auto_examples/plot_how_to_use_skada.html), the [quick start guide](https://scikit-adaptation.github.io/quickstart.html) and the [gallery](https://scikit-adaptation.github.io/auto_examples/index.html).
 
 First the DA data in the skada API is stored in the following format:
 
