@@ -257,8 +257,20 @@ class BaseSelector(BaseEstimator):
     def _mark_as_final(self) -> 'BaseSelector':
         """Internal API for keeping track of which estimator is final
         in the Pipeline.
+
+        Marks estimator as final.
         """
         self._is_final = True
+        return self
+
+    def _unmark_as_final(self) -> 'BaseSelector':
+        """Internal API for keeping track of which estimator is final
+        in the Pipeline.
+
+        Removes previously set mark indicating that the estimator added
+        as final.
+        """
+        self._is_final = False
         return self
 
     def _route_and_merge_params(self, routing_request, X, params):

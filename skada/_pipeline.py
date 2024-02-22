@@ -84,8 +84,23 @@ def make_da_pipeline(
     if not steps:
         raise TypeError("Missing 1 required positional argument: 'steps'")
 
-    names = [step[0] if isinstance(step, tuple) else None for step in steps]
-    estimators = [step[1] if isinstance(step, tuple) else step for step in steps]
+    names, estimators = [], []
+    for step in steps:
+        name, estimator = step if isinstance(step, tuple) else (None, step)
+        if isinstance(estimator, Pipeline) and isinstance(estimator[0], BaseSelector):
+            # this means we got DA pipeline as a step in the pipeline
+            for nested_name, nested_selector in estimator.steps:
+                if name is not None:
+                    nested_name = f"{name}__{nested_name}"
+                names.append(nested_name)
+                # the final mark is gonna be added later
+                # overall, if we have marked as final estimator as it is not
+                # the final one in the unrolled (un-nested) pipeline, we are
+                # likely doing something wrong
+                estimators.append(nested_selector._unmark_as_final())
+        else:
+            names.append(name)
+            estimators.append(estimator)
 
     wrapped_estimators = _wrap_with_selectors(estimators, default_selector)
     steps = _name_estimators(wrapped_estimators)
