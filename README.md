@@ -131,8 +131,6 @@ grid_search.fit(X, y, sample_domain=sample_domain)
 
 ```
 
-
-
 ## Acknowledgements
 
 This toolbox has been created and is maintained by the SKADA team that includes the following members:

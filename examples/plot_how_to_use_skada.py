@@ -15,7 +15,6 @@ on a simple dataset will illustration of the API choice specific to DA.
 import numpy as np
 from sklearn.model_selection import GridSearchCV
 from skada.metrics import PredictionEntropyScorer
-from sklearn.model_selection import ShuffleSplit
 from sklearn.model_selection import cross_val_score
 from sklearn.linear_model import LogisticRegression
 from skada import CORALAdapter, GaussianReweightDensityAdapter
@@ -176,7 +175,6 @@ grid_search = GridSearchCV(
     cv=SourceTargetShuffleSplit(random_state=0),
     scoring=PredictionEntropyScorer(),
 )
-
 
 grid_search.fit(X, y, sample_domain=sample_domain)
 
