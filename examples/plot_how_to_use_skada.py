@@ -180,3 +180,9 @@ grid_search.fit(X, y, sample_domain=sample_domain)
 
 print('Best regularization parameter:', grid_search.best_params_['coraladapter__reg'])
 print('Accuracy on target:', np.mean(grid_search.predict(Xt) == yt))
+
+
+# %%
+
+clf = make_da_pipeline(StandardScaler(), CORAL())
+clf.fit(X, y, sample_domain=sample_domain)
