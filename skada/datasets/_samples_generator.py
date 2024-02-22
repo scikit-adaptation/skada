@@ -26,8 +26,8 @@ def _generate_unif_circle(n_samples, rng):
 
 
 def _generate_data_2d_classif(
-        n_samples, rng, mu_regression=np.array([0, 0]),
-        sigma_regression=np.array([[1, 0], [0, 1]]),
+        n_samples, rng, mu_regression=None,
+        sigma_regression=None,
         regression_scaling_constant=27, label='binary'):
     """Generate 2d classification data.
 
@@ -110,8 +110,8 @@ def _generate_data_2d_classif(
 
 
 def _generate_data_2d_classif_subspace(
-        n_samples, rng, mu_regression=0,
-        sigma_regression=1,
+        n_samples, rng, mu_regression=None,
+        sigma_regression=None,
         regression_scaling_constant=27, label='binary'):
     """Generate 2d classification data.
 
