@@ -163,7 +163,7 @@ def plot_lodo_indices(cv, X, y, sample_domain, ax, lw=10):
             cmap=cmap_cv,
             vmin=-0.2,
             vmax=1.2,
-            s = 1.8
+            s=1.8
         )
 
     # Plot the data classes and sample_domain at the end
@@ -284,9 +284,7 @@ for cv in cvs:
 
 cvs = [LeaveOneDomainOut]
 for cv in cvs:
-    #fig, ax = plt.subplots(n_splits_lodo, 1, figsize=(6, 6), sharex=True)
     fig, ax = plt.subplots(figsize=(6, 3))
-    #fig.suptitle("{}".format(cv.__name__), fontsize=15)
     plot_lodo_indices(
         cv(n_splits_lodo), X_lodo, y_lodo, sample_domain_lodo, ax
     )
