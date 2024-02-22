@@ -832,7 +832,9 @@ class MMDConSMappingAdapter(BaseAdapter):
         """
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
         X_source, X_target, y_source, _ = source_target_split(
-            X, y, sample_domain=sample_domain
+            X,
+            y,
+            sample_domain=sample_domain
         )
         self.W_, self.B_ = self._mapping_optimization(X_source, X_target, y_source)
 
