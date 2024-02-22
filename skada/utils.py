@@ -431,9 +431,9 @@ def source_target_merge(
 
         if index_is_empty is not None:
             # We need to infer the value of the empty array in the pair
-            warnings.warn(
-                "One of the arrays in a pair is empty, it will be inferred"
-            )
+            # warnings.warn(
+            #    "One of the arrays in a pair is empty, it will be inferred"
+            # )
 
             pair_index = i+1 if index_is_empty == i else i
 
