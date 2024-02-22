@@ -768,9 +768,6 @@ class MMDConSMappingAdapter(BaseAdapter):
         # solve the optimization problem
         # min_{G, H} MMD(W \odot X^s + B, X^t)
         # s.t. W = RG, B = RH
-        P = R.T @ A @ R
-        P = P + 1e-12 * np.eye(P.shape[0])  # make P positive semi-definite
-        q = - (m/n) * (M @ R).T
 
         def flatten(G, H):
             return np.concatenate((G.flatten(), H.flatten()))
