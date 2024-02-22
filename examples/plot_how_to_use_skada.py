@@ -20,6 +20,7 @@ from sklearn.model_selection import cross_val_score
 from sklearn.linear_model import LogisticRegression
 from skada import CORALAdapter, GaussianReweightDensityAdapter
 from skada import make_da_pipeline
+from skada.model_selection import SourceTargetShuffleSplit
 from sklearn.svm import SVC
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
@@ -142,7 +143,7 @@ print('Accuracy on target:', pipe.score(Xt, yt))
 
 
 # splitter for cross-validation of score
-cv = ShuffleSplit(random_state=0)
+cv = SourceTargetShuffleSplit(random_state=0)
 
 # DA scorer not using target labels (not available in DA)
 scorer = PredictionEntropyScorer()
@@ -172,7 +173,7 @@ clf = make_da_pipeline(StandardScaler(), CORALAdapter(), SVC(probability=True))
 grid_search = GridSearchCV(
     estimator=clf,
     param_grid={"coraladapter__reg": reg_coral},
-    cv=ShuffleSplit(random_state=0),
+    cv=SourceTargetShuffleSplit(random_state=0),
     scoring=PredictionEntropyScorer(),
 )
 
