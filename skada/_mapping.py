@@ -774,7 +774,8 @@ class MMDConSMappingAdapter(BaseAdapter):
             return np.concatenate((G.flatten(), H.flatten()))
 
         def unflatten(x):
-            return x[:m * d].reshape(m, d), x[m * d:].reshape(m, d)
+            k = R.shape[1]
+            return x[:k * d].reshape(k, d), x[k * d:].reshape(k, d)
 
         def func(x):
             G, H = unflatten(x)
@@ -799,7 +800,7 @@ class MMDConSMappingAdapter(BaseAdapter):
 
         results = minimize(
             func,
-            x0=flatten(np.ones((m, d)), np.zeros((m, d))),
+            x0=flatten(np.ones((R.shape[1], d)), np.zeros((R.shape[1], d))),
             method="SLSQP",
             jac=jac,
             tol=self.tol,
