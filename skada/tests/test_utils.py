@@ -10,6 +10,7 @@ from skada.datasets import (
     make_dataset_from_moons_distribution
 )
 from skada.utils import (
+    check_sample_domain,
     check_X_y_domain,
     check_X_domain,
     extract_source_indices,
@@ -439,3 +440,12 @@ def test_source_target_merge():
             X_target,
             sample_domain=sample_domain
         )
+
+
+def test_check_sample_domain_lodo():
+    # same domain label added twice (as a source and as a target)
+    check_sample_domain(np.array([1, 1, 2, 2, 2, -1, -1, -2, -2, -2]))
+
+    # 'lodo' packing but counters are off
+    with pytest.raises(ValueError):
+        check_sample_domain(np.array([1, 1, -1, 2, 2, 2, -2, -2]))

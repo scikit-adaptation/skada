@@ -199,10 +199,10 @@ def check_X_domain(
 def check_sample_domain(sample_domain):
     """Validate `sample_domain` parameter for domain adaptation.
 
-    Valid `sample_domain` array contains each index either as a
+    Valid `sample_domain` array contains each domain label either as a
     source (positive) or as a target (negative). The only exception,
     as of now, is 'lodo' (Leave-One-Domain-Out) packing that contains
-    each index twice (both as positive and negative).
+    each domain label twice (both as positive and negative).
 
     Parameters:
     -----------
