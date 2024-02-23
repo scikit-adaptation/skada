@@ -868,15 +868,29 @@ class MMDTarSReweightAdapter(BaseAdapter):
         return AdaptationOutput(X=X, sample_weight=weights)
 
 
-def MMDTarSReweight(base_estimator=None, gamma=1.0):
+def MMDTarSReweight(
+    base_estimator=None,
+    gamma=1.0,
+    reg=1e-10,
+    tol=1e-6,
+    max_iter=1000,
+):
     """MMDTarSReweight adapter and estimator.
 
     See Section 3 of [4]_ for details.
 
     Parameters
     ----------
+    base_estimator : sklearn estimator, default=None
+        Estimator used for fitting and prediction
     gamma : float or array like
         Parameters for the kernels.
+    reg : float, default=1e-10
+        Regularization parameter for the labels kernel matrix.
+    tol : float, default=1e-6
+        Tolerance for the stopping criterion in the optimization.
+    max_iter : int, default=1000
+        Number of maximum iteration before stopping the optimization.
 
     Returns
     -------
@@ -892,6 +906,11 @@ def MMDTarSReweight(base_estimator=None, gamma=1.0):
         base_estimator = SVC().set_fit_request(sample_weight=True)
 
     return make_da_pipeline(
-        MMDTarSReweightAdapter(gamma=gamma),
+        MMDTarSReweightAdapter(
+            gamma=gamma,
+            reg=reg,
+            tol=tol,
+            max_iter=max_iter
+        ),
         base_estimator
     )
