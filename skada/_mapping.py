@@ -747,69 +747,74 @@ class MMDConSMappingAdapter(BaseAdapter):
 
     def _mapping_optimization(self, X_source, X_target, y_source):
         """Mapping optimization"""
-        m, n = X_source.shape[0], X_target.shape[0]
-        d = X_source.shape[1]
+        try:
+            import torch
+        except ImportError:
+            raise ImportError(
+                "MMDConSMappingAdapter requires pytorch to be installed."
+            )
 
         # check y is discrete or continuous
         discrete = _find_y_type(y_source) == "classification"
 
+        # convert to pytorch tensors
+        X_source = torch.tensor(X_source, dtype=torch.float64)
+        X_target = torch.tensor(X_target, dtype=torch.float64)
+        y_source = torch.tensor(y_source, dtype=torch.int64 if discrete else torch.float64)
+
+        # get shapes
+        m, n = X_source.shape[0], X_target.shape[0]
+        d = X_source.shape[1]
+
         # compute omega
-        L = pairwise_kernels(y_source.reshape(-1, 1), metric="rbf", gamma=self.gamma)
-        omega = L @ np.linalg.inv(L + self.reg_k * np.eye(m))
+        L = torch.exp(-self.gamma * torch.cdist(X_source, X_source, p=2))
+        omega = L @ torch.linalg.inv(L + self.reg_k * torch.eye(m))
 
         # compute R
         if discrete:
-            classes = np.unique(y_source)
-            R = np.zeros((X_target.shape[0], len(classes)))
+            classes = torch.unique(y_source)
+            R = torch.zeros((X_target.shape[0], len(classes)), dtype=torch.float64)
             for i, c in enumerate(classes):
-                R[:, i] = (y_source == c).astype(int)
+                R[:, i] = (y_source == c).int()
         else:
-            R = L @ np.linalg.inv(L + self.reg_k * np.eye(m))
+            R = L @ torch.linalg.inv(L + self.reg_k * torch.eye(m))
 
         # solve the optimization problem
         # min_{G, H} MMD(W \odot X^s + B, X^t)
         # s.t. W = RG, B = RH
+        k = R.shape[1]
 
-        def flatten(G, H):
-            return np.concatenate((G.flatten(), H.flatten()))
-
-        def unflatten(x):
-            k = R.shape[1]
-            return x[:k * d].reshape(k, d), x[k * d:].reshape(k, d)
-
-        def func(x):
-            G, H = unflatten(x)
+        def func(G, H):
             W = R @ G
             B = R @ H
 
             X_new = W * X_source + B
 
-            K = pairwise_kernels(X_new, metric="rbf", gamma=self.gamma)
-            K_cross = pairwise_kernels(X_target, X_new, metric="rbf", gamma=self.gamma)
-            J_cons = (1 / (m ** 2)) * np.sum(omega @ K @ omega.T)
-            J_cons -= (2 / (m * n)) * np.sum(K_cross @ omega.T)
+            K = torch.exp(-self.gamma * torch.cdist(X_new, X_new, p=2))
+            K_cross = torch.exp(-self.gamma * torch.cdist(X_target, X_new, p=2))
+            J_cons = (1 / (m ** 2)) * torch.sum(omega @ K @ omega.T)
+            J_cons -= (2 / (m * n)) * torch.sum(K_cross @ omega.T)
 
-            J_reg = (1 / m) * (np.linalg.norm(W - 1, ord="fro") ** 2)
-            J_reg += (1 / n) * (np.linalg.norm(B, ord="fro") ** 2)
+            J_reg = (1 / m) * (torch.sum((W - 1) ** 2) + torch.sum(B ** 2))
 
             return J_cons + self.reg_m * J_reg
 
-        def jac(x):
-            G, H = unflatten(x)
-            return flatten(np.zeros(G.shape), np.zeros(H.shape))
+        # optimize using LBFGS from torch
+        G = torch.ones((k, d), dtype=torch.float64, requires_grad=True)
+        H = torch.zeros((k, d), dtype=torch.float64, requires_grad=True)
+        optimizer = torch.optim.LBFGS([G, H], lr=1, max_iter=self.max_iter, tolerance_grad=self.tol, line_search_fn="strong_wolfe")
 
-        results = minimize(
-            func,
-            x0=flatten(np.ones((R.shape[1], d)), np.zeros((R.shape[1], d))),
-            method="SLSQP",
-            jac=jac,
-            tol=self.tol,
-            options={"maxiter": self.max_iter}
-        )
+        def closure():
+            optimizer.zero_grad()
+            loss = func(G, H)
+            loss.backward()
+            return loss
 
-        G, H = unflatten(results.x)
-        W = R @ G
-        B = R @ H
+        for _ in range(self.max_iter):
+            optimizer.step(closure)
+
+        W = R.numpy() @ G.detach().numpy()
+        B = R.numpy() @ H.detach().numpy()
 
         return W, B
 
