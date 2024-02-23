@@ -106,8 +106,8 @@ def test_mapping_estimator(estimator, tmp_da_dataset):
     ]
 )
 def test_reg_mapping_estimator(estimator, da_reg_dataset):
-     X, y, sample_domain = da_reg_dataset
-     Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
-     estimator.fit(X, y, sample_domain=sample_domain)
-     score = estimator.score(Xt, yt)
-     assert score >= 0
+    X, y, sample_domain = da_reg_dataset
+    Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
+    estimator.fit(X, y, sample_domain=sample_domain)
+    score = estimator.score(Xt, yt)
+    assert score >= 0
