@@ -134,7 +134,7 @@ def test_selector_inherits_routing(estimator_cls):
 
 
 def test_selector_rejects_incompatible_adaptation_output():
-    X = AdaptationOutput(X=np.ones(10), sample_weight=np.zeros(10))
+    X = AdaptationOutput(np.ones(10), sample_weight=np.zeros(10))
     y = np.zeros(10)
     estimator = Shared(LogisticRegression())
 
