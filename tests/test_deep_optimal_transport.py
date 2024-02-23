@@ -6,7 +6,7 @@ import numpy as np
 
 try:
     from skada.deep import DeepJDOT
-    from skada.deep.modules import ToyModule
+    from skada.deep.modules import ToyModule2D
     from skada.datasets import make_shifted_datasets
     torch = True
 
@@ -18,7 +18,7 @@ import pytest
 
 @pytest.mark.skipif(not torch, reason="PyTorch is not installed.")
 def test_deepjdot():
-    module = ToyModule()
+    module = ToyModule2D()
     module.eval()
 
     n_samples = 20
@@ -32,7 +32,7 @@ def test_deepjdot():
     )
 
     method = DeepJDOT(
-        ToyModule(),
+        ToyModule2D(),
         reg_d=1,
         reg_cl=1,
         layer_name="dropout",

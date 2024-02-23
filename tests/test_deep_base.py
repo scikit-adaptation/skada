@@ -12,7 +12,7 @@ try:
         DomainAwareNet,
         BaseDALoss
     )
-    from skada.deep.modules import ToyModule
+    from skada.deep.modules import ToyModule2D
     from skada.datasets import make_shifted_datasets
     from skorch.dataset import Dataset
     import torch
@@ -45,7 +45,7 @@ def test_domainawaretraining():
             """Compute the domain adaptation loss"""
             return 0
 
-    module = ToyModule()
+    module = ToyModule2D()
     module.eval()
 
     n_samples = 20

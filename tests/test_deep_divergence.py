@@ -6,7 +6,7 @@ import numpy as np
 
 try:
     from skada.deep import DeepCoral
-    from skada.deep.modules import ToyModule
+    from skada.deep.modules import ToyModule2D
     from skada.datasets import make_shifted_datasets
     torch = True
 
@@ -18,7 +18,7 @@ import pytest
 
 @pytest.mark.skipif(not torch, reason="PyTorch is not installed.")
 def test_deepcoral():
-    module = ToyModule()
+    module = ToyModule2D()
     module.eval()
 
     n_samples = 20
@@ -32,7 +32,7 @@ def test_deepcoral():
     )
 
     method = DeepCoral(
-        ToyModule(),
+        ToyModule2D(),
         reg=1,
         layer_name="dropout",
         batch_size=10,

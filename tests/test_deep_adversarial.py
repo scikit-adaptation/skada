@@ -6,7 +6,7 @@ import numpy as np
 
 try:
     from skada.deep import DANN, CDAN
-    from skada.deep.modules import ToyModule, DomainClassifier
+    from skada.deep.modules import ToyModule2D, DomainClassifier
     from skada.datasets import make_shifted_datasets
     torch = True
 
@@ -18,7 +18,7 @@ import pytest
 
 @pytest.mark.skipif(not torch, reason="PyTorch is not installed.")
 def test_dann():
-    module = ToyModule()
+    module = ToyModule2D()
     module.eval()
 
     n_samples = 20
@@ -32,7 +32,7 @@ def test_dann():
     )
 
     method = DANN(
-        ToyModule(),
+        ToyModule2D(),
         reg=1,
         domain_classifier=DomainClassifier(num_features=10),
         layer_name="dropout",
@@ -57,7 +57,7 @@ def test_dann():
 
 @pytest.mark.skipif(not torch, reason="PyTorch is not installed.")
 def test_cdan():
-    module = ToyModule()
+    module = ToyModule2D()
     module.eval()
 
     n_samples = 20
@@ -71,7 +71,7 @@ def test_cdan():
     )
 
     method = CDAN(
-        ToyModule(),
+        ToyModule2D(),
         reg=1,
         domain_classifier=DomainClassifier(num_features=20),
         layer_name="dropout",
