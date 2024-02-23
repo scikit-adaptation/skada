@@ -4,22 +4,8 @@
 API and modules
 ===============
 
-.. currentmodule:: skada.datasets
-
-.. automodule:: skada.datasets
-   :no-members:
-   :no-inherited-members:
-
-:py:mod:`skada.datasets`:
-
-.. autosummary::
-   :toctree: gen_modules/
-   :template: function.rst
-
-   make_shifted_blobs
-   make_shifted_datasets
-   make_dataset_from_moons_distribution
-   make_variable_frequency_dataset
+Main module  :py:mod:`skada`
+---------------------------
 
 .. currentmodule:: skada
 
@@ -27,7 +13,8 @@ API and modules
    :no-members:
    :no-inherited-members:
 
-:py:mod:`skada`:
+Sample reweighting DA methods 
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
    :toctree: gen_modules/
@@ -37,24 +24,59 @@ API and modules
    GaussianReweightDensity
    DiscriminatorReweightDensity
    KLIEP
+
+Sample mapping and alignment DA methods
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autosummary::
+   :toctree: gen_modules/
+   :template: function.rst
+
    SubspaceAlignment
    TransferComponentAnalysis
+   CORAL
    OTMapping
    EntropicOTMapping
    ClassRegularizerOTMapping
    LinearOTMapping
-   CORAL
+   
+Other DA methods
+^^^^^^^^^^^^^^^^
+
+.. autosummary::
+   :toctree: gen_modules/
+   :template: function.rst
+
    JDOTRegressor
+
+DA pipeline
+^^^^^^^^^^^
+
+.. autosummary::
+   :toctree: gen_modules/
+   :template: function.rst
+
    make_da_pipeline
 
+Utilities
+^^^^^^^^^
+
+
+
+
+
+
+
+
+
+Deep learning DA :py:mod:`skada.deep`:
+----------------------------------------
 
 .. currentmodule:: skada.deep
 
 .. automodule:: skada.deep
    :no-members:
    :no-inherited-members:
-
-:py:mod:`skada.deep`:
 
 .. autosummary::
    :toctree: gen_modules/
@@ -77,13 +99,17 @@ API and modules
    DANN
    CDAN
 
+
+
+
+DA metrics :py:mod:`skada.metrics`
+----------------------------------
+
 .. currentmodule:: skada.metrics
 
 .. automodule:: skada.metrics
    :no-members:
    :no-inherited-members:
-
-:py:mod:`skada.metrics`:
 
 .. autosummary::
    :toctree: gen_modules/
@@ -94,3 +120,24 @@ API and modules
    PredictionEntropyScorer
    DeepEmbeddedValidation
    SoftNeighborhoodDensity
+
+
+Datasets :py:mod:`skada.datasets`
+--------------------------------
+
+.. currentmodule:: skada.datasets
+
+.. automodule:: skada.datasets
+   :no-members:
+   :no-inherited-members:
+
+.. autosummary::
+   :toctree: gen_modules/
+   :template: function.rst
+
+   make_shifted_blobs
+   make_shifted_datasets
+   make_dataset_from_moons_distribution
+   make_variable_frequency_dataset
+
+

@@ -47,18 +47,6 @@ def _estimate_covariance(X, shrinkage):
     return s
 
 
-def _merge_source_target(X_source, X_target, sample_domain) -> np.ndarray:
-    n_samples = X_source.shape[0] + X_target.shape[0]
-    assert n_samples > 0
-    if X_source.shape[0] > 0:
-        output = np.zeros((n_samples, X_source.shape[1]), dtype=X_source.dtype)
-        output[sample_domain >= 0] = X_source
-    else:
-        output = np.zeros((n_samples, X_target.shape[1]), dtype=X_target.dtype)
-    output[sample_domain < 0] = X_target
-    return output
-
-
 def _check_y_masking(y):
     """Check that labels are properly masked
     ie. labels are either -1 or >= 0
