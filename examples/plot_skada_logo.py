@@ -194,4 +194,5 @@ pl.text(1.3, -1.18, r'\bf\textsf{SKADA}', fontsize=80,
 pl.axis(ax)
 pl.axis('off')
 
-pl.savefig('skada_logo_full_white.png', bbox_inches='tight', dpi=400)
+pl.savefig('skada_logo_full_white.png', transparent=True, bbox_inches='tight', dpi=400)
+pl.savefig('skada_logo_full_white.svg', transparent=True, bbox_inches='tight', dpi=400)
