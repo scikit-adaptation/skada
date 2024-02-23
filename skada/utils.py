@@ -129,7 +129,7 @@ def check_X_domain(
     separately to avoid additional scan for 'sample_domain' array.
 
     Parameters:
-    ----------
+    -----------
     X : array-like of shape (n_samples, n_features)
         Input features.
     sample_domain : array-like of shape (n_samples,)
@@ -148,7 +148,7 @@ def check_X_domain(
         Allow automatic generation of sample_domain if not provided.
 
     Returns:
-    ----------
+    --------
     X : array
         Input features.
     sample_domain : array
@@ -196,6 +196,39 @@ def check_X_domain(
     return X, sample_domain
 
 
+def check_sample_domain(sample_domain):
+    """Validate `sample_domain` parameter for domain adaptation.
+
+    Valid `sample_domain` array contains each index either as a
+    source (positive) or as a target (negative). The only exception,
+    as of now, is 'lodo' (Leave-One-Domain-Out) packing that contains
+    each index twice (both as positive and negative).
+
+    Parameters:
+    -----------
+    sample_domain : array-like of shape (n_samples,)
+        Domain labels for each sample.
+
+    Returns:
+    --------
+    sample_domain : array of shape (n_samples,)
+        Domain labels for for each sample.
+    """
+    sample_domain = check_array(
+        sample_domain,
+        dtype=np.int32,
+        ensure_2d=False,
+        input_name='sample_domain'
+    )
+    indices, counters = np.unique(sample_domain, return_counts=True)
+    if any(-idx in indices for idx in indices):
+        counts = dict(zip(indices, counters))
+        for idx in indices:
+            if -idx not in counts or counts[idx] != counts[-idx]:
+                raise ValueError("Invalid 'sample_domain' array structure.")
+    return sample_domain
+
+
 def extract_source_indices(sample_domain):
     """Extract the indices of the source samples.
 
@@ -209,13 +242,7 @@ def extract_source_indices(sample_domain):
     source_idx : array
         Boolean array indicating source indices.
     """
-    sample_domain = check_array(
-        sample_domain,
-        dtype=np.int32,
-        ensure_2d=False,
-        input_name='sample_domain'
-    )
-
+    sample_domain = check_sample_domain(sample_domain)
     source_idx = (sample_domain >= 0)
     return source_idx
 

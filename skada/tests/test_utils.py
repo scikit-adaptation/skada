@@ -149,9 +149,13 @@ def test_check_X_y_allow_exceptions():
 
     positive_numbers = random_sample_domain[random_sample_domain > 0]
     negative_numbers = random_sample_domain[random_sample_domain < 0]
-    # Count unique positive numbers
+
+    # Count number of sources and targets
     n_sources = len(np.unique(positive_numbers))
     n_targets = len(np.unique(negative_numbers))
+
+    # Adjust targets to avoid sample_domain checker raise issues
+    random_sample_domain[random_sample_domain < 0] -= (n_sources + 1)
 
     with pytest.raises(
         ValueError,
@@ -170,7 +174,7 @@ def test_check_X_y_allow_exceptions():
         match=(
             f"Number of targets provided is {n_targets} "
             f"and 'allow_target' is set to {allow_target}"
-            )
+        )
     ):
         check_X_y_domain(
             X, y, sample_domain=random_sample_domain,
@@ -225,9 +229,12 @@ def test_check_X_allow_exceptions():
     positive_numbers = random_sample_domain[random_sample_domain > 0]
     negative_numbers = random_sample_domain[random_sample_domain < 0]
 
-    # Count unique positive numbers
+    # Count number of sources and targets
     n_sources = len(np.unique(positive_numbers))
     n_targets = len(np.unique(negative_numbers))
+
+    # Adjust targets to avoid sample_domain checker raise issues
+    random_sample_domain[random_sample_domain < 0] -= (n_sources + 1)
 
     with pytest.raises(
         ValueError,
@@ -237,8 +244,10 @@ def test_check_X_allow_exceptions():
         )
     ):
         check_X_domain(
-            X, sample_domain=random_sample_domain,
-            allow_auto_sample_domain=False, allow_source=allow_source
+            X,
+            sample_domain=random_sample_domain,
+            allow_auto_sample_domain=False,
+            allow_source=allow_source
         )
 
     with pytest.raises(
@@ -249,8 +258,10 @@ def test_check_X_allow_exceptions():
         )
     ):
         check_X_domain(
-            X, sample_domain=random_sample_domain,
-            allow_auto_sample_domain=False, allow_target=allow_target
+            X,
+            sample_domain=random_sample_domain,
+            allow_auto_sample_domain=False,
+            allow_target=allow_target
         )
 
     with pytest.raises(
@@ -261,8 +272,10 @@ def test_check_X_allow_exceptions():
         )
     ):
         check_X_domain(
-            X, sample_domain=random_sample_domain,
-            allow_auto_sample_domain=False, allow_multi_source=allow_multi_source
+            X,
+            sample_domain=random_sample_domain,
+            allow_auto_sample_domain=False,
+            allow_multi_source=allow_multi_source
         )
 
     with pytest.raises(
@@ -273,8 +286,10 @@ def test_check_X_allow_exceptions():
         )
     ):
         check_X_domain(
-            X, sample_domain=random_sample_domain,
-            allow_auto_sample_domain=False, allow_multi_target=allow_multi_target
+            X,
+            sample_domain=random_sample_domain,
+            allow_auto_sample_domain=False,
+            allow_multi_target=allow_multi_target
         )
 
 
@@ -343,19 +358,21 @@ def test_source_target_merge():
     )
 
     # Test consistent length
-    with pytest.raises(ValueError,
-                       match="Inconsistent number of samples in source-target arrays "
-                       "and the number infered in the sample_domain"
-                       ):
+    with pytest.raises(
+        ValueError,
+        match="Inconsistent number of samples in source-target arrays "
+              "and the number infered in the sample_domain"
+    ):
         _ = source_target_merge(X_source[0], X_target[1], sample_domain=sample_domain)
 
     # Test no sample domain
     _ = source_target_merge(X_source, X_target, sample_domain=None)
 
     # Test odd number of array
-    with pytest.raises(ValueError,
-                       match="Even number of arrays required as input"
-                       ):
+    with pytest.raises(
+        ValueError,
+        match="Even number of arrays required as input"
+    ):
         _ = source_target_merge(
             X_source,
             X_target,
@@ -373,16 +390,18 @@ def test_source_target_merge():
     )
 
     # Test one array
-    with pytest.raises(ValueError,
-                       match="At least two array required as input"
-                       ):
+    with pytest.raises(
+        ValueError,
+        match="At least two array required as input"
+    ):
         _ = source_target_merge(X_source, sample_domain=sample_domain)
 
     # Test y_target = None + Inconsistent number of samples in source-target
-    with pytest.raises(ValueError,
-                       match="Inconsistent number of samples in source-target arrays "
-                       "and the number infered in the sample_domain"
-                       ):
+    with pytest.raises(
+        ValueError,
+        match="Inconsistent number of samples in source-target arrays "
+              "and the number infered in the sample_domain"
+    ):
         _ = source_target_merge(
             X_source,
             X_target,
@@ -401,18 +420,20 @@ def test_source_target_merge():
     )
 
     # Test 2 None in a pair of arrays
-    with pytest.raises(ValueError,
-                       match="Only one array can be None or empty in each pair"
-                       ):
+    with pytest.raises(
+        ValueError,
+        match="Only one array can be None or empty in each pair"
+    ):
         _ = source_target_merge(None, None, sample_domain=sample_domain)
 
     # Test 1 None in 2 pair of arrays
     _ = source_target_merge(X_source, None, y_source, None, sample_domain=sample_domain)
 
     # Test inconsistent number of features
-    with pytest.raises(ValueError,
-                       match="Inconsistent number of features in source-target arrays"
-                       ):
+    with pytest.raises(
+        ValueError,
+        match="Inconsistent number of features in source-target arrays"
+    ):
         _ = source_target_merge(
             X_source[:, :-1],
             X_target,
