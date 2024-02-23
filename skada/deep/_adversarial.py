@@ -127,7 +127,7 @@ class CDANLoss(BaseDALoss):
         Regularization parameter.
     target_criterion : torch criterion (class)
         The uninitialized criterion (loss) used to compute the
-        CDAN loss. The criterion should support reduction='none'.
+        CDAN loss.
 
     References
     ----------
