@@ -18,7 +18,7 @@ the OT plan between samples estimated by JDOT.
 
 # Author: Remi Flamary
 #
-# License: MIT License
+# License: BSD 3-Clause
 # sphinx_gallery_thumbnail_number = 4
 
 
