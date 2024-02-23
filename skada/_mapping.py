@@ -8,6 +8,8 @@ from abc import abstractmethod
 
 import numpy as np
 from ot import da
+from sklearn.svm import SVC
+import warnings
 
 from .base import BaseAdapter, clone
 from .utils import (
@@ -22,7 +24,6 @@ from ._utils import (
 )
 
 from ._pipeline import make_da_pipeline
-from sklearn.svm import SVC
 
 
 class BaseOTMappingAdapter(BaseAdapter):
@@ -715,9 +716,9 @@ class MMDLSConSMappingAdapter(BaseAdapter):
         Regularization parameter for the labels kernel matrix.
     reg_m : float, default=1e-10
         Regularization parameter for the mapping parameters.
-    tol : float, default=1e-6
+    tol : float, default=1e-5
         Tolerance for the stopping criterion in the optimization.
-    max_iter : int, default=1000
+    max_iter : int, default=100
         Number of maximum iteration before stopping the optimization.
 
     Attributes
@@ -733,7 +734,7 @@ class MMDLSConSMappingAdapter(BaseAdapter):
            In ICML, 2013.
     """
 
-    def __init__(self, gamma, reg_k=1e-10, reg_m=1e-10, tol=1e-6, max_iter=1000):
+    def __init__(self, gamma, reg_k=1e-10, reg_m=1e-10, tol=1e-5, max_iter=100):
         super().__init__()
         self.gamma = gamma
         self.reg_k = reg_k
@@ -798,12 +799,11 @@ class MMDLSConSMappingAdapter(BaseAdapter):
 
             return J_cons + self.reg_m * J_reg
 
-        # optimize using LBFGS from torch
+        # optimize using LBFGS solver
         G = torch.ones((k, d), dtype=torch.float64, requires_grad=True)
         H = torch.zeros((k, d), dtype=torch.float64, requires_grad=True)
         optimizer = torch.optim.LBFGS(
             [G, H],
-            lr=1,
             max_iter=self.max_iter,
             tolerance_grad=self.tol,
             line_search_fn="strong_wolfe"
@@ -815,8 +815,14 @@ class MMDLSConSMappingAdapter(BaseAdapter):
             loss.backward()
             return loss
 
-        for _ in range(self.max_iter):
-            optimizer.step(closure)
+        optimizer.step(closure)
+        grad_norm = torch.cat([G.grad.flatten(), H.grad.flatten()]).abs().max()
+
+        if grad_norm > self.tol:
+            warnings.warn(
+                "Optimization did not converge. "
+                f"Final gradient infinite norm: {grad_norm:.2e}"
+            )
 
         W = R.numpy() @ G.detach().numpy()
         B = R.numpy() @ H.detach().numpy()
@@ -893,8 +899,8 @@ def MMDLSConSMapping(
     gamma=1.0,
     reg_k=1e-10,
     reg_m=1e-10,
-    tol=1e-6,
-    max_iter=1000
+    tol=1e-5,
+    max_iter=100
 ):
     """MMDLSConSMapping pipeline with adapter and estimator.
 
@@ -910,9 +916,9 @@ def MMDLSConSMapping(
         Regularization parameter for the labels kernel matrix.
     reg_m : float, default=1e-10
         Regularization parameter for the mapping parameters.
-    tol : float, default=1e-6
+    tol : float, default=1e-5
         Tolerance for the stopping criterion in the optimization.
-    max_iter : int, default=1000
+    max_iter : int, default=100
         Number of maximum iteration before stopping the optimization.
 
     Returns
