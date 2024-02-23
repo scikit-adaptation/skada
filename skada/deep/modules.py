@@ -15,9 +15,9 @@ except ModuleNotFoundError as e:
     ) from e
 
 
-class ToyModule(torch.nn.Module):
+class 2DToyModule(torch.nn.Module):
     def __init__(self, n_classes=2, num_units=10, nonlin=torch.nn.ReLU()):
-        super(ToyModule, self).__init__()
+        super(2DToyModule, self).__init__()
 
         self.dense0 = torch.nn.Linear(2, num_units)
         self.nonlin = nonlin
