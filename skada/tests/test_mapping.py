@@ -7,7 +7,6 @@
 import numpy as np
 try:
     import torch
-    torch = True
 except ImportError:
     torch = False
 from sklearn.linear_model import LogisticRegression
