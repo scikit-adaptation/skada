@@ -26,7 +26,8 @@ from skada import (
     ReweightDensity,
     GaussianReweightDensity,
     DiscriminatorReweightDensity,
-    KLIEP
+    KLIEP,
+    MMDTarSReweight
 )
 from skada import SubspaceAlignment, TransferComponentAnalysis
 from skada import (
@@ -48,6 +49,7 @@ names = [
     "Gaussian Reweight Density",
     "Discr. Reweight Density",
     "KLIEP",
+    "MMD TarS",
     "Subspace Alignment",
     "TCA",
     "OT mapping",
@@ -66,6 +68,7 @@ classifiers = [
     GaussianReweightDensity(SVC().set_fit_request(sample_weight=True)),
     DiscriminatorReweightDensity(SVC().set_fit_request(sample_weight=True)),
     KLIEP(SVC().set_fit_request(sample_weight=True), gamma=[1, 0.1, 0.001]),
+    MMDTarSReweight(SVC().set_fit_request(sample_weight=True), gamma=1),
     SubspaceAlignment(base_estimator=SVC(), n_components=1),
     TransferComponentAnalysis(base_estimator=SVC(), n_components=1, mu=0.5),
     OTMapping(base_estimator=SVC()),
