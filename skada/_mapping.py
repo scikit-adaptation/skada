@@ -8,8 +8,6 @@ from abc import abstractmethod
 
 import numpy as np
 from ot import da
-from scipy.optimize import minimize
-from sklearn.metrics.pairwise import pairwise_kernels
 
 from .base import BaseAdapter, clone
 from .utils import (
@@ -760,7 +758,8 @@ class MMDConSMappingAdapter(BaseAdapter):
         # convert to pytorch tensors
         X_source = torch.tensor(X_source, dtype=torch.float64)
         X_target = torch.tensor(X_target, dtype=torch.float64)
-        y_source = torch.tensor(y_source, dtype=torch.int64 if discrete else torch.float64)
+        y_source = torch.tensor(
+            y_source, dtype=torch.int64 if discrete else torch.float64)
 
         # get shapes
         m, n = X_source.shape[0], X_target.shape[0]
@@ -802,7 +801,13 @@ class MMDConSMappingAdapter(BaseAdapter):
         # optimize using LBFGS from torch
         G = torch.ones((k, d), dtype=torch.float64, requires_grad=True)
         H = torch.zeros((k, d), dtype=torch.float64, requires_grad=True)
-        optimizer = torch.optim.LBFGS([G, H], lr=1, max_iter=self.max_iter, tolerance_grad=self.tol, line_search_fn="strong_wolfe")
+        optimizer = torch.optim.LBFGS(
+            [G, H],
+            lr=1,
+            max_iter=self.max_iter,
+            tolerance_grad=self.tol,
+            line_search_fn="strong_wolfe"
+        )
 
         def closure():
             optimizer.zero_grad()
