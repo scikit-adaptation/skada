@@ -158,14 +158,16 @@ semi_labels = (
     base_estimator.fit(Xs, ys).predict(Xt),
     estimator.predict(Xt)
     )
-axis[0].scatter(Xt[:, 0], Xt[:, 1], c=semi_labels[0],
+axis[0].scatter(
+    Xt[:, 0], Xt[:, 1], c=semi_labels[0],
     alpha=0.7, marker=target_marker)
-axis[1].scatter(Xt[:, 0], Xt[:, 1], c=semi_labels[1],
+axis[1].scatter(
+    Xt[:, 0], Xt[:, 1], c=semi_labels[1],
     alpha=0.7, marker=target_marker)
 
 scores = (
-    sum(semi_labels[0]==yt),
-    sum(semi_labels[1]==yt)
+    sum(semi_labels[0] == yt),
+    sum(semi_labels[1] == yt)
     )
 
 axis[0].set_title(
