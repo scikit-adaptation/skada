@@ -19,26 +19,11 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 import numpy as np
 
-from sklearn.svm import SVC
 from sklearn.inspection import DecisionBoundaryDisplay
-from sklearn.neighbors import KernelDensity
 
-from skada import (
-    ReweightDensity,
-    GaussianReweightDensity,
-    DiscriminatorReweightDensity,
-    KLIEP
-)
 from sklearn.linear_model import LogisticRegression
 from skada._reweight import NearestNeighborReweightDensity
-from skada import SubspaceAlignment, TransferComponentAnalysis
-from skada import (
-    OTMapping,
-    EntropicOTMapping,
-    ClassRegularizerOTMapping,
-    LinearOTMapping,
-    CORAL
-)
+
 from skada.datasets import make_shifted_datasets
 
 # Use same random seed for multiple calls to make_datasets to
@@ -52,7 +37,9 @@ names = [
 
 classifiers = [
     LogisticRegression(),
-    NearestNeighborReweightDensity(LogisticRegression().set_fit_request(sample_weight=True), laplace_smoothing=True),
+    NearestNeighborReweightDensity(
+        LogisticRegression().set_fit_request(sample_weight=True),
+        laplace_smoothing=True),
 ]
 
 ns = 10
@@ -70,8 +57,7 @@ datasets = [
     ),
 ]
 
-
-
+# We create the dataset
 N = 20
 Xs = np.array(
     [[1+np.random.normal(0, 0.4), 1+np.random.normal(0, 0.4)] for i in range(N)] +
@@ -93,14 +79,12 @@ sample_domain = np.array(
     [1]*2*N + [-2]*2*N
     )
 
+x_min, x_max = -1.5, 1.5
+y_min, y_max = -1.5, 1.5
 
 figure, axes = plt.subplots(len(classifiers) + 1, 2, figsize=(7, 21))
 # iterate over datasets
 for ds_cnt, ds in enumerate(datasets):
-    # preprocess dataset, split into training and test part
-
-    x_min, x_max = -1.5, 1.5
-    y_min, y_max = -1.5, 1.5
     # just plot the dataset first
     cm = plt.cm.RdBu
     cm_bright = ListedColormap(["#FF0000", "#0000FF"])
@@ -155,10 +139,11 @@ for ds_cnt, ds in enumerate(datasets):
         )
 
         if name == "1NN Reweight Density":
-            size = 10*clf.named_steps['nearestneighbordensityadapter'].base_estimator.get_weights(Xs, Xt)
+            size = 10*clf.named_steps[
+                'nearestneighbordensityadapter'].base_estimator.get_weights(
+                    Xs, Xt)
         else:
             size = np.array([30]*Xs.shape[0])
-
 
         # Plot the target points
         ax.scatter(
@@ -176,7 +161,7 @@ for ds_cnt, ds in enumerate(datasets):
         if ds_cnt == 0:
             ax.set_ylabel(name)
         else:
-             ax.set_ylabel("obtained weights")
+            ax.set_ylabel("obtained weights")
         ax.text(
             x_max - 0.3,
             y_min + 0.3,
@@ -201,7 +186,6 @@ for ds_cnt, ds in enumerate(datasets):
 
         ax.set_xticks(())
         ax.set_yticks(())
-
 
         i += 1
 

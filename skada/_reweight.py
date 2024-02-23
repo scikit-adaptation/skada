@@ -671,12 +671,13 @@ def KLIEP(
         base_estimator,
     )
 
+
 class NearestNeighborDensityAdapter(BaseAdapter):
     """Adapter based on re-weighting samples using a 1NN,
 
-    See: [Loog, 2012] Loog, M. (2012). 
-    Nearest neighbor-based importance weighting. 
-    In 2012 IEEE International Workshop on Machine 
+    See: [Loog, 2012] Loog, M. (2012).
+    Nearest neighbor-based importance weighting.
+    In 2012 IEEE International Workshop on Machine
     Learning for Signal Processing, pages 1–6. IEEE.
 
     Parameters
@@ -803,6 +804,8 @@ def NearestNeighborReweightDensity(
         base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
 
     return make_da_pipeline(
-        NearestNeighborDensityAdapter(base_estimator=weight_estimator, laplace_smoothing=laplace_smoothing),
+        NearestNeighborDensityAdapter(
+            base_estimator=weight_estimator,
+            laplace_smoothing=laplace_smoothing),
         base_estimator,
     )

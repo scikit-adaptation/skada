@@ -17,6 +17,7 @@ from skada import (
     KLIEPAdapter,
     KLIEP,
     make_da_pipeline,
+    NearestNeighborReweightDensity,
 )
 
 import pytest
