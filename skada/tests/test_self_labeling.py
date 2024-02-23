@@ -1,7 +1,7 @@
 # Author: Ruben Bueno <ruben.bueno@polytechnique.edu>
 
 from skada.datasets import make_shifted_datasets
-from skada._dasvm import DASVMEstimator
+from skada._self_labeling import DASVMEstimator
 from skada.utils import check_X_y_domain, source_target_split
 from skada._pipeline import make_da_pipeline
 

@@ -17,7 +17,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 
-from skada._dasvm import DASVMEstimator
+from skada._self_labeling import DASVMEstimator
 from sklearn.base import clone
 
 from sklearn.svm import SVC

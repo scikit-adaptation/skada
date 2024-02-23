@@ -10,6 +10,7 @@ The dsvm method comes from [1].
 
 """
 # Author: Ruben Bueno <ruben.bueno@polytechnique.edu>
+# BSD 3-Clause License
 # dasvm implementation
 
 import numpy as np
@@ -101,12 +102,6 @@ class DASVMEstimator(DAEstimator):
     def _get_decision(self, new_estimator, X, indices_list):
         """
         We look at the points that have either not been discarded or not been added
-        We are assuming that the `decision_function` from the base_estimator is:
-        giving c values between -1 and c-1, not having the same
-        integer parts, for the same datapoint x (the same as for SVC).
-        When c == 2, we assume we only get one value (as for SVC)
-        We take c to be the number of classes on which `new_estimator`
-        has been fitted
         """
         if sum(~indices_list) > 0:
             df = new_estimator.decision_function(X[~indices_list])
