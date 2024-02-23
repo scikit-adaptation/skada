@@ -1,5 +1,5 @@
 """
-Plot comparison of DA methods
+Comparison of DA classification methods
 ====================================================
 
 A comparison of a several methods of DA in skada on
