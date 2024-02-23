@@ -34,7 +34,8 @@ from skada import (
     EntropicOTMapping,
     ClassRegularizerOTMapping,
     LinearOTMapping,
-    CORAL
+    CORAL,
+    MMDLSConSMapping
 )
 from skada.datasets import make_shifted_datasets
 
@@ -54,7 +55,8 @@ names = [
     "Entropic OT mapping",
     "Class Regularizer OT mapping",
     "Linear OT mapping",
-    "CORAL"
+    "CORAL",
+    "MMD Loc-Scale mapping"
 ]
 
 classifiers = [
@@ -73,6 +75,7 @@ classifiers = [
     ClassRegularizerOTMapping(base_estimator=SVC()),
     LinearOTMapping(base_estimator=SVC()),
     CORAL(base_estimator=SVC()),
+    MMDLSConSMapping(base_estimator=SVC())
 ]
 
 datasets = [
