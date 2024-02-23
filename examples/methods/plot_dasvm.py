@@ -153,13 +153,15 @@ legend.legendHandles[0]._sizes = [20]
 legend.legendHandles[1]._sizes = [20]
 
 # Show the improvement of the labeling technique
-figure, axis = plt.subplots(1, 2, figsize=(5, 3))
+figure, axis = plt.subplots(1, 2, figsize=(10, 6))
 semi_labels = (
     base_estimator.fit(Xs, ys).predict(Xt),
     estimator.predict(Xt)
     )
-axis[0].scatter(Xt[:, 0], Xt[:, 1], c=semi_labels[0], alpha=0.7)
-axis[1].scatter(Xt[:, 0], Xt[:, 1], c=semi_labels[1], alpha=0.7)
+axis[0].scatter(Xt[:, 0], Xt[:, 1], c=semi_labels[0],
+    alpha=0.7, marker=target_marker)
+axis[1].scatter(Xt[:, 0], Xt[:, 1], c=semi_labels[1],
+    alpha=0.7, marker=target_marker)
 
 scores = (
     sum(semi_labels[0]==yt),

@@ -39,7 +39,6 @@ Sample mapping and alignment DA methods
    EntropicOTMapping
    ClassRegularizerOTMapping
    LinearOTMapping
-   DASVMEstimator
    
 Other DA methods
 ^^^^^^^^^^^^^^^^
@@ -49,6 +48,7 @@ Other DA methods
    :template: function.rst
 
    JDOTRegressor
+   DASVMEstimator
 
 DA pipeline
 ^^^^^^^^^^^
