@@ -862,6 +862,7 @@ class MMDTarSReweightAdapter(BaseAdapter):
             source_idx = np.where(source_idx)
             weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
             weights[source_idx] = source_weights
+            weights += 1e-13  # avoid negative weights
         else:
             weights = None
         return AdaptationOutput(X=X, sample_weight=weights)
