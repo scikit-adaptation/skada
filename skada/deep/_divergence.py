@@ -18,10 +18,6 @@ class DeepCoralLoss(BaseDALoss):
 
     From [1]_.
 
-    Parameters
-    ----------.
-    reg: float, optional (default=1)
-        The regularization parameter of the covariance estimator.
 
     References
     ----------
@@ -31,7 +27,6 @@ class DeepCoralLoss(BaseDALoss):
     """
     def __init__(self, reg=1):
         super(DeepCoralLoss, self).__init__()
-        self.reg = reg
 
     def forward(
         self,
@@ -46,7 +41,7 @@ class DeepCoralLoss(BaseDALoss):
         """Compute the domain adaptation loss"""
         cov_s = torch.cov(features_s)
         cov_t = torch.cov(features_t)
-        loss = self.reg * deepcoral_loss(cov_s, cov_t)
+        loss = deepcoral_loss(cov_s, cov_t)
         return loss
 
 
@@ -75,7 +70,7 @@ def DeepCoral(module, layer_name, reg=1, **kwargs):
         DomainAwareModule(module, layer_name),
         iterator_train=DomainBalancedDataLoader,
         criterion=DomainAwareCriterion(
-            torch.nn.CrossEntropyLoss(), DeepCoralLoss(reg=reg)
+            torch.nn.CrossEntropyLoss(), DeepCoralLoss(), reg=reg
         ),
         **kwargs
     )

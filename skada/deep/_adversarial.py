@@ -25,8 +25,6 @@ class DANNLoss(BaseDALoss):
 
     Parameters
     ----------
-    reg : float, default=1
-        Regularization parameter.
     target_criterion : torch criterion (class)
         The uninitialized criterion (loss) used to compute the
         DANN loss. The criterion should support reduction='none'.
@@ -71,7 +69,7 @@ class DANNLoss(BaseDALoss):
             domain_pred_s, domain_label
         ) + self.domain_criterion_(domain_pred_t, domain_label_target)
 
-        return self.reg * loss
+        return loss
 
 
 def DANN(module, layer_name, reg=1, num_features=1, domain_classifier=None, **kwargs):
@@ -110,7 +108,9 @@ def DANN(module, layer_name, reg=1, num_features=1, domain_classifier=None, **kw
     net = DomainAwareNet(
         DomainAwareModule(module, layer_name, domain_classifier),
         iterator_train=DomainBalancedDataLoader,
-        criterion=DomainAwareCriterion(torch.nn.CrossEntropyLoss(), DANNLoss(reg=reg)),
+        criterion=DomainAwareCriterion(
+            torch.nn.CrossEntropyLoss(), DANNLoss(), reg=1
+        ),
         **kwargs
     )
     return net
@@ -137,7 +137,6 @@ class CDANLoss(BaseDALoss):
 
     def __init__(self, reg=1, domain_criterion=None):
         super(CDANLoss, self).__init__()
-        self.reg = reg
         if domain_criterion is None:
             self.domain_criterion_ = torch.nn.BCELoss()
         else:
@@ -168,7 +167,7 @@ class CDANLoss(BaseDALoss):
         loss = self.domain_criterion_(
             domain_pred_s, domain_label
         ) + self.domain_criterion_(domain_pred_t, domain_label_target)
-        return self.reg * loss
+        return loss
 
 
 class CDANModule(DomainAwareModule):
@@ -196,6 +195,7 @@ class CDANModule(DomainAwareModule):
     .. [1]  Mingsheng Long et. al. Conditional Adversarial Domain Adaptation
             In NeurIPS, 2016.
     """
+
     def __init__(self, module, layer_name, domain_classifier, max_features=4096):
         super(CDANModule, self).__init__(module, layer_name, domain_classifier)
         self.max_features = max_features
@@ -307,9 +307,7 @@ def CDAN(
     net = DomainAwareNet(
         CDANModule(module, layer_name, domain_classifier, max_features=max_features),
         iterator_train=DomainBalancedDataLoader,
-        criterion=DomainAwareCriterion(
-            torch.nn.CrossEntropyLoss(), CDANLoss(reg=reg)
-        ),
+        criterion=DomainAwareCriterion(torch.nn.CrossEntropyLoss(), CDANLoss(), reg=1),
         **kwargs
     )
     return net

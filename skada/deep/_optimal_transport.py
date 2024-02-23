@@ -21,8 +21,6 @@ class DeepJDOTLoss(BaseDALoss):
 
     Parameters
     ----------
-    reg_d : float, default=1
-        Distance term regularization parameter.
     reg_cl : float, default=1
         Class distance term regularization parameter.
     target_criterion : torch criterion (class)
@@ -38,9 +36,9 @@ class DeepJDOTLoss(BaseDALoss):
             15th European Conference on Computer Vision,
             September 2018. Springer.
     """
-    def __init__(self, reg_d=1, reg_cl=1, target_criterion=None):
+
+    def __init__(self, reg_cl=1, target_criterion=None):
         super(DeepJDOTLoss, self).__init__()
-        self.reg_d = reg_d
         self.reg_cl = reg_cl
         self.criterion_ = target_criterion
 
@@ -60,21 +58,13 @@ class DeepJDOTLoss(BaseDALoss):
             y_pred_t,
             features_s,
             features_t,
-            self.reg_d,
             self.reg_cl,
             criterion=self.criterion_,
         )
         return loss
 
 
-def DeepJDOT(
-    module,
-    layer_name,
-    reg_d=1,
-    reg_cl=1,
-    target_criterion=None,
-    **kwargs
-):
+def DeepJDOT(module, layer_name, reg=1, reg_cl=1, target_criterion=None, **kwargs):
     """DeepJDOT.
 
        See [1]_.
@@ -86,8 +76,8 @@ def DeepJDOT(
     layer_name : str
         The name of the module's layer whose outputs are
         collected during the training for the adaptation.
-    reg_d : float, default=1
-        Distance term regularization parameter.
+    reg : float, default=1
+        Regularization parameter.
     reg_cl : float, default=1
         Class distance term regularization parameter.
     target_criterion : torch criterion (class)
@@ -108,7 +98,7 @@ def DeepJDOT(
         DomainAwareModule(module, layer_name),
         iterator_train=DomainBalancedDataLoader,
         criterion=DomainAwareCriterion(
-            nn.CrossEntropyLoss(), DeepJDOTLoss(reg_d, reg_cl, target_criterion)
+            nn.CrossEntropyLoss(), DeepJDOTLoss(reg_cl, target_criterion), reg=reg
         ),
         **kwargs
     )
