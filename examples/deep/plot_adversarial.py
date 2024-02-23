@@ -116,7 +116,7 @@ model = DANN(
     max_epochs=5,
     train_split=False,
     reg=0.01,
-    len_last_layer=128,
+    num_features=128,
     lr=1e-2,
 )
 model.fit(X, y, sample_domain=sample_domain)

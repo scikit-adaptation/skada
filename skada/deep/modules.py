@@ -59,15 +59,15 @@ class ToyCNN(nn.Module):
             nn.ReLU(),
             nn.AvgPool1d(kernel_size)
         )
-        self.len_last_layer = self._len_last_layer(n_channels, input_size)
-        self.fc = nn.Linear(self.len_last_layer, n_classes)
+        self.num_features = self._num_features(n_channels, input_size)
+        self.fc = nn.Linear(self.num_features, n_classes)
 
     def forward(self, x):
         x = self.feature_extractor(x)
         x = self.fc(x.flatten(start_dim=1))
         return x
 
-    def _len_last_layer(self, n_channels, input_size):
+    def _num_features(self, n_channels, input_size):
         self.feature_extractor.eval()
         with torch.no_grad():
             out = self.feature_extractor(
@@ -98,7 +98,7 @@ class DomainClassifier(nn.Module):
 
     Parameters
     ----------
-    len_last_layer : int
+    num_features : int
         Size of the input, e.g size of the last layer of
         the feature extractor
     n_classes : int, default=1
@@ -113,13 +113,13 @@ class DomainClassifier(nn.Module):
 
     def __init__(
         self,
-        len_last_layer,
+        num_features,
         n_classes=1,
         alpha=1
     ):
         super().__init__()
         self.classifier = nn.Sequential(
-            nn.Linear(len_last_layer, 100),
+            nn.Linear(num_features, 100),
             nn.BatchNorm1d(100),
             nn.ReLU(),
             nn.Linear(100, n_classes),

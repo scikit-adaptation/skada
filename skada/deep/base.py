@@ -27,15 +27,15 @@ class DomainAwareCriterion(torch.nn.Module):
     criterion : torch criterion (class)
         The initialized criterion (loss) used to optimize the
         module with prediction on source.
-    dacriterion : torch criterion (class)
+    adapt_criterion : torch criterion (class)
         The initialized criterion (loss) used to compute the
         loss to reduce the divergence between domains.
     """
 
-    def __init__(self, criterion, dacriterion):
+    def __init__(self, criterion, adapt_criterion):
         super(DomainAwareCriterion, self).__init__()
         self.criterion = criterion
-        self.dacriterion = dacriterion
+        self.adapt_criterion = adapt_criterion
 
     def forward(
         self,
@@ -57,7 +57,7 @@ class DomainAwareCriterion(torch.nn.Module):
         features_t = features[sample_domain < 0]
 
         # predict
-        return self.criterion(y_pred_s, y_true[sample_domain > 0]) + self.dacriterion(
+        return self.criterion(y_pred_s, y_true[sample_domain > 0]) + self.adapt_criterion(
             y_true[sample_domain > 0],
             y_pred_s,
             y_pred_t,

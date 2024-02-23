@@ -34,7 +34,7 @@ def test_dann():
     method = DANN(
         ToyModule(),
         reg=1,
-        domain_classifier=DomainClassifier(len_last_layer=10),
+        domain_classifier=DomainClassifier(num_features=10),
         layer_name="dropout",
         batch_size=10,
         max_epochs=10,
@@ -73,7 +73,7 @@ def test_cdan():
     method = CDAN(
         ToyModule(),
         reg=1,
-        domain_classifier=DomainClassifier(len_last_layer=20),
+        domain_classifier=DomainClassifier(num_features=20),
         layer_name="dropout",
         batch_size=10,
         max_epochs=10,

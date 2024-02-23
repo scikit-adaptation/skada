@@ -74,7 +74,7 @@ class DANNLoss(BaseDALoss):
         return self.reg * loss
 
 
-def DANN(module, layer_name, reg=1, len_last_layer=1, domain_classifier=None, **kwargs):
+def DANN(module, layer_name, reg=1, num_features=1, domain_classifier=None, **kwargs):
     """Domain-Adversarial Training of Neural Networks (DANN).
 
     From [1]_.
@@ -90,7 +90,7 @@ def DANN(module, layer_name, reg=1, len_last_layer=1, domain_classifier=None, **
         collected during the training.
     reg : float, default=1
         Regularization parameter.
-    len_last_layer : int, default=1
+    num_features : int, default=1
         Size of the input of domain classifier,
         e.g size of the last layer of
         the feature extractor.
@@ -105,7 +105,7 @@ def DANN(module, layer_name, reg=1, len_last_layer=1, domain_classifier=None, **
             Research, 2016.
     """
     if domain_classifier is None:
-        domain_classifier = DomainClassifier(alpha=reg, len_last_layer=len_last_layer)
+        domain_classifier = DomainClassifier(alpha=reg, num_features=num_features)
 
     net = DomainAwareNet(
         DomainAwareModule(module, layer_name, domain_classifier),
