@@ -40,7 +40,7 @@ theta_s = np.concatenate((
     np.linspace(190, 350, N),
     ))*math.pi/180
 
-theta_target = 20
+theta_target = 30
 theta_t = (np.concatenate((
     np.linspace(10, 170, N),
     np.linspace(190, 350, N),
@@ -151,4 +151,23 @@ figure.suptitle("evolutions of predictions", fontsize=20)
 legend = plt.legend()
 legend.legendHandles[0]._sizes = [20]
 legend.legendHandles[1]._sizes = [20]
+
+# Show the improvement of the labeling technique
+figure, axis = plt.subplots(1, 2, figsize=(5, 3))
+semi_labels = (
+    base_estimator.fit(Xs, ys).predict(Xt),
+    estimator.predict(Xt)
+    )
+axis[0].scatter(Xt[:, 0], Xt[:, 1], c=semi_labels[0], alpha=0.7)
+axis[1].scatter(Xt[:, 0], Xt[:, 1], c=semi_labels[1], alpha=0.7)
+
+scores = (
+    sum(semi_labels[0]==yt),
+    sum(semi_labels[1]==yt)
+    )
+
+axis[0].set_title(
+    f"Score without method: {scores[0]}%")
+axis[1].set_title(
+    f"Score with dasvm: {scores[1]}%")
 plt.show()
