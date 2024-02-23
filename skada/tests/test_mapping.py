@@ -5,12 +5,12 @@
 # License: BSD 3-Clause
 
 import numpy as np
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
 try:
     import torch
 except ImportError:
     torch = False
-from sklearn.linear_model import LogisticRegression
-from sklearn.svm import SVC
 
 from skada.datasets import DomainAwareDataset
 from skada import (
