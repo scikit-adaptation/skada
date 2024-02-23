@@ -57,7 +57,9 @@ class DomainAwareCriterion(torch.nn.Module):
         features_t = features[sample_domain < 0]
 
         # predict
-        return self.criterion(y_pred_s, y_true[sample_domain > 0]) + self.adapt_criterion(
+        return self.criterion(
+            y_pred_s, y_true[sample_domain > 0]
+        ) + self.adapt_criterion(
             y_true[sample_domain > 0],
             y_pred_s,
             y_pred_t,
