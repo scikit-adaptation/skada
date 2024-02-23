@@ -469,7 +469,7 @@ class StratifiedDomainShuffleSplit(BaseDomainAwareShuffleSplit):
 
 
 class DomainShuffleSplit(BaseDomainAwareShuffleSplit):
-    """Random-Shuffle-DomainAware-Split cross-validator.
+    """Domain-Shuffle-Split cross-validator.
 
     Provides randomized train/test indices to split data depending
     on their sample_domain.
@@ -549,6 +549,10 @@ class DomainShuffleSplit(BaseDomainAwareShuffleSplit):
                 [rng.choice(v, int(len(v)*self.under_sampling), replace=False)
                  for v in domain_target_idx_dict.values()]
                 )
+
+            rng.shuffle(source_idx)
+            rng.shuffle(target_idx)
+
             n_source_samples = _num_samples(source_idx)
             n_source_train, n_source_test = _validate_shuffle_split(
                 n_source_samples,
@@ -563,6 +567,7 @@ class DomainShuffleSplit(BaseDomainAwareShuffleSplit):
                 self.train_size,
                 default_test_size=self._default_test_size,
             )
+
             ind_source_train = source_idx[
                 n_source_test : (n_source_test + n_source_train)
             ]
@@ -571,6 +576,7 @@ class DomainShuffleSplit(BaseDomainAwareShuffleSplit):
                 n_target_test : (n_target_test + n_target_train)
             ]
             ind_target_test = target_idx[:n_target_test]
+
             yield (
                 np.concatenate([ind_source_train, ind_target_train]),
                 np.concatenate([ind_source_test, ind_target_test]),
