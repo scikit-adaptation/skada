@@ -508,9 +508,9 @@ class DomainShuffleSplit(BaseDomainAwareShuffleSplit):
     ...     )
     >>> for train_index, test_index in rsdas.split(X, y, sample_domain):
     ...     print("TRAIN:", train_index, "TEST:", test_index)
-    TRAIN: [0 2 6 5 3 9] TEST: [4 1]
-    TRAIN: [6 8 0 3 5 9] TEST: [2 7]
-    TRAIN: [4 6 2 7 9 3] TEST: [8 5]
+    TRAIN: [4 2 0 1 3 9] TEST: [6 5]
+    TRAIN: [8 6 2 5 3 9] TEST: [4 7]
+    TRAIN: [8 2 6 3 1 9] TEST: [4 5]
     """
     def __init__(
         self,
