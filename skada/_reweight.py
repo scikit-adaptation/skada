@@ -8,7 +8,6 @@ import warnings
 
 import numpy as np
 from scipy.stats import multivariate_normal
-from scipy.optimize import minimize, LinearConstraint
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics.pairwise import pairwise_kernels, KERNEL_PARAMS
 from sklearn.model_selection import check_cv
@@ -17,7 +16,7 @@ from sklearn.utils import check_random_state
 from sklearn.utils.validation import check_is_fitted
 
 from .base import AdaptationOutput, BaseAdapter, clone
-from .utils import check_X_domain, source_target_split, extract_source_indices
+from .utils import check_X_domain, source_target_split, extract_source_indices, qp_solve
 from ._utils import _estimate_covariance
 from ._pipeline import make_da_pipeline
 
@@ -701,6 +700,8 @@ class KMMAdapter(BaseAdapter):
         Tolerance for the stopping criterion in the optimization.
     max_iter : int, default=100
         Number of maximum iteration before stopping the optimization.
+    smooth_weights : bool, default=False
+        If True, the weights are "smoothed" using the kernel function.
     random_state : int, RandomState instance or None, default=None
         Determines random number generation for dataset creation. Pass an int
         for reproducible output across multiple function calls.
@@ -728,7 +729,8 @@ class KMMAdapter(BaseAdapter):
         B=1000.,
         eps=None,
         tol=1e-6,
-        max_iter=100,
+        max_iter=1000,
+        smooth_weights=False,
         random_state=None,
     ):
         super().__init__()
@@ -740,6 +742,7 @@ class KMMAdapter(BaseAdapter):
         self.eps = eps
         self.tol = tol
         self.max_iter = max_iter
+        self.smooth_weights = smooth_weights
         self.random_state = random_state
 
         if kernel not in KERNEL_PARAMS:
@@ -799,29 +802,16 @@ class KMMAdapter(BaseAdapter):
         else:
             eps = self.eps
 
-        constraints = LinearConstraint(np.ones((1, Ns)),
-                                       lb=Ns*(1-eps),
-                                       ub=Ns*(1+eps))
+        A = np.stack([np.ones(Ns), -np.ones(Ns)], axis=0)
+        b = np.array([Ns*(1+eps), -Ns*(1-eps)])
 
-        def func(w):
-            return (1/2) * w @ (Kss @ w) - kappa @ w
+        weights, _ = qp_solve(Kss, -kappa, A, b,
+                              lb=np.zeros(Ns),
+                              ub=np.ones(Ns)*self.B,
+                              tol=self.tol,
+                              max_iter=self.max_iter)
 
-        def jac(w):
-            return Kss @ w - kappa
-
-        results = minimize(func,
-                           x0=np.ones(Ns),
-                           method="SLSQP",
-                           jac=jac,
-                           bounds=[(0, self.B)]*Ns,
-                           constraints=constraints,
-                           tol=self.tol,
-                           options={"maxiter": self.max_iter})
-
-        if not results.success:
-            warnings.warn(results.message)
-
-        weights = np.array(results['x']).ravel()
+        weights = np.array(weights).ravel()
         return weights
 
     def adapt(self, X, y=None, sample_domain=None, **kwargs):
@@ -853,16 +843,15 @@ class KMMAdapter(BaseAdapter):
         source_idx = extract_source_indices(sample_domain)
 
         if source_idx.sum() > 0:
-            if np.array_equal(self.X_source_, X[source_idx]):
+            if (np.array_equal(self.X_source_, X[source_idx])
+               and not self.smooth_weights):
                 source_weights = self.weights_
             else:
-                # get the nearest neighbor in the source domain
                 K = pairwise_kernels(X[source_idx], self.X_source_,
                                      metric=self.kernel, filter_params=True,
                                      gamma=self.gamma, degree=self.degree,
                                      coef0=self.coef0)
-                idx = np.argmax(K, axis=1)
-                source_weights = self.weights_[idx]
+                source_weights = K.dot(self.weights_)
             source_idx = np.where(source_idx)
             weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
             weights[source_idx] = source_weights
@@ -880,7 +869,8 @@ def KMM(
     B=1000.,
     eps=None,
     tol=1e-6,
-    max_iter=100,
+    max_iter=1000,
+    smooth_weights=False,
     random_state=None,
 ):
     """KMM pipeline adapter and estimator.
@@ -908,6 +898,8 @@ def KMM(
         Tolerance for the stopping criterion in the optimization.
     max_iter : int, default=100
         Number of maximum iteration before stopping the optimization.
+    smooth_weights : bool, default=False
+        If True, the weights are "smoothed" using the kernel function.
     random_state : int, RandomState instance or None, default=None
         Determines random number generation for dataset creation. Pass an int
         for reproducible output across multiple function calls.
@@ -935,6 +927,7 @@ def KMM(
             eps=eps,
             tol=tol,
             max_iter=max_iter,
+            smooth_weights=smooth_weights,
             random_state=random_state
         ),
         base_estimator,
