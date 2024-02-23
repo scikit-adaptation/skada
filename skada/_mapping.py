@@ -697,10 +697,10 @@ def CORAL(
     )
 
 
-class MMDConSMappingAdapter(BaseAdapter):
-    """MMDConSMapping adapter.
+class MMDLSConSMappingAdapter(BaseAdapter):
+    """MMDLSConSMapping adapter.
 
-    MMDConSMapping finds a linear transformation that minimizes the Maximum Mean
+    MMDLSConSMapping finds a linear transformation that minimizes the Maximum Mean
     Discrepancy (MMD) between the source and target domains, such that
     $X^t = W(y^s) \\odot X^s + B(y^s)$, where $W(y^s)$ and $B(y^s)$ are the scaling
     and bias of the linear transformation, respectively.
@@ -749,7 +749,7 @@ class MMDConSMappingAdapter(BaseAdapter):
             import torch
         except ImportError:
             raise ImportError(
-                "MMDConSMappingAdapter requires pytorch to be installed."
+                "MMDLSConSMappingAdapter requires pytorch to be installed."
             )
 
         # check y is discrete or continuous
@@ -888,7 +888,7 @@ class MMDConSMappingAdapter(BaseAdapter):
         return X_adapt
 
 
-def MMDConSMapping(
+def MMDLSConSMapping(
     base_estimator=None,
     gamma=1.0,
     reg_k=1e-10,
@@ -896,7 +896,7 @@ def MMDConSMapping(
     tol=1e-6,
     max_iter=1000
 ):
-    """MMDConSMapping pipeline with adapter and estimator.
+    """MMDLSConSMapping pipeline with adapter and estimator.
 
     see [4]_ for details.
 
@@ -929,7 +929,7 @@ def MMDConSMapping(
         base_estimator = SVC(kernel="rbf")
 
     return make_da_pipeline(
-        MMDConSMappingAdapter(
+        MMDLSConSMappingAdapter(
             gamma=gamma,
             reg_k=reg_k,
             reg_m=reg_m,

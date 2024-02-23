@@ -20,8 +20,8 @@ from skada import (
     LinearOTMapping,
     OTMappingAdapter,
     OTMapping,
-    MMDConSMappingAdapter,
-    MMDConSMapping,
+    MMDLSConSMappingAdapter,
+    MMDLSConSMapping,
     make_da_pipeline,
 )
 
@@ -53,8 +53,8 @@ import pytest
         ),
         make_da_pipeline(CORALAdapter(reg=0.1), LogisticRegression()),
         CORAL(),
-        make_da_pipeline(MMDConSMappingAdapter(gamma=1e-3), SVC()),
-        MMDConSMapping(),
+        make_da_pipeline(MMDLSConSMappingAdapter(gamma=1e-3), SVC()),
+        MMDLSConSMapping(),
     ]
 )
 def test_mapping_estimator(estimator, tmp_da_dataset):
