@@ -10,9 +10,10 @@ try:
     import torch  # noqa: F401
     import skorch  # noqa: F401
 
-except ImportError as e:
-    print("ERROR : torch and skorch are required for importing feature's method.")
-    raise e
+except ModuleNotFoundError as e:
+    raise ModuleNotFoundError(
+        "The deep module requires torch and skorch to be installed."
+    ) from e
 
 from ._divergence import DeepCoral, DeepCoralLoss
 from ._optimal_transport import DeepJDOT, DeepJDOTLoss
