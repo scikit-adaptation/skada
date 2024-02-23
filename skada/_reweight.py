@@ -722,11 +722,8 @@ class NearestNeighborDensityAdapter(BaseAdapter):
         self.X_source_fit = X_source
         indices_source = np.arange(X_source.shape[0])
 
-        self.estimator = clone(self.base_estimator)
-        self.estimator.fit(X_source, indices_source)
-
-        self.weight_estimator_source_ = self.estimator
-        self.weight_estimator_target_ = self.estimator
+        self.estimator_ = clone(self.base_estimator)
+        self.estimator_.fit(X_source, indices_source)
 
         return self
 
@@ -771,14 +768,12 @@ class NearestNeighborDensityAdapter(BaseAdapter):
             source_idx, = np.where(source_idx)
             indices_source = np.arange(X[source_idx].shape[0])
             if np.array_equal(self.X_source_fit, X[source_idx]):
-                estimator = self.estimator
+                estimator = self.estimator_
             else:
                 estimator = clone(self.base_estimator)
                 estimator.fit(X[source_idx], indices_source)
-            predictions = estimator.predict(X[~source_idx])
-            a = (1 if self.laplace_smoothing else 0)
-            weights = np.array(
-                [a + np.count_nonzero(predictions == i) for i in indices_source])
+            weights = np.ones(X.shape[0])
+            weights[source_idx] = self.get_weights(X[source_idx], X[~source_idx])
         else:
             weights = None
         return AdaptationOutput(X=X, sample_weight=weights)

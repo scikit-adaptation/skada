@@ -29,6 +29,7 @@ from skada import (
     DiscriminatorReweightDensity,
     KLIEP
 )
+from sklearn.linear_model import LogisticRegression
 from skada._reweight import NearestNeighborReweightDensity
 from skada import SubspaceAlignment, TransferComponentAnalysis
 from skada import (
@@ -50,8 +51,8 @@ names = [
 ]
 
 classifiers = [
-    SVC(),
-    NearestNeighborReweightDensity(SVC().set_fit_request(sample_weight=True), laplace_smoothing=True),
+    LogisticRegression(),
+    NearestNeighborReweightDensity(LogisticRegression().set_fit_request(sample_weight=True), laplace_smoothing=True),
 ]
 
 ns = 10
@@ -69,20 +70,41 @@ datasets = [
     ),
 ]
 
-figure, axes = plt.subplots(len(classifiers) + 2, 2, figsize=(9, 27))
+
+
+N = 20
+Xs = np.array(
+    [[1+np.random.normal(0, 0.4), 1+np.random.normal(0, 0.4)] for i in range(N)] +
+    [[-1+np.random.normal(0, 0.4), -1+np.random.normal(0, 0.4)] for i in range(N)]
+    )
+Xt = np.array(
+    [[1+np.random.uniform(-2.5, 0.5), 1+np.random.normal(0, 0.3)] for i in range(N)] +
+    [[-1+np.random.uniform(-0.5, 2.5), -1+np.random.normal(0, 0.3)] for i in range(N)]
+    )
+X = np.concatenate((Xs, Xt))
+ys = np.array(
+    [0]*N + [1]*N
+    )
+yt = np.array(
+    [0]*N + [1]*N
+    )
+y = np.concatenate((ys, yt))
+sample_domain = np.array(
+    [1]*2*N + [-2]*2*N
+    )
+
+
+figure, axes = plt.subplots(len(classifiers) + 1, 2, figsize=(7, 21))
 # iterate over datasets
 for ds_cnt, ds in enumerate(datasets):
     # preprocess dataset, split into training and test part
-    X, y, sample_domain = ds.pack_train(as_sources=['s'], as_targets=['t'])
-    Xs, ys = ds.get_domain("s")
-    Xt, yt = ds.get_domain("t")
 
-    x_min, x_max = X[:, 0].min() - 0.5, X[:, 0].max() + 0.5
-    y_min, y_max = X[:, 1].min() - 0.5, X[:, 1].max() + 0.5
+    x_min, x_max = -1.5, 1.5
+    y_min, y_max = -1.5, 1.5
     # just plot the dataset first
     cm = plt.cm.RdBu
     cm_bright = ListedColormap(["#FF0000", "#0000FF"])
-    ax = axes[0, ds_cnt]
+    ax = axes[0, 1]
     if ds_cnt == 0:
         ax.set_ylabel("Source data")
     # Plot the source points
@@ -94,7 +116,7 @@ for ds_cnt, ds in enumerate(datasets):
         alpha=0.5,
     )
 
-    ax = axes[1, 0]
+    ax = axes[0, 0]
 
     if ds_cnt == 0:
         ax.set_ylabel("Target data")
@@ -117,7 +139,7 @@ for ds_cnt, ds in enumerate(datasets):
     ax.set_ylim(y_min, y_max)
     ax.set_xticks(())
     ax.set_yticks(())
-    i = 2
+    i = 1
 
     # iterate over classifiers
     for name, clf in zip(names, classifiers):
@@ -153,6 +175,8 @@ for ds_cnt, ds in enumerate(datasets):
         ax.set_yticks(())
         if ds_cnt == 0:
             ax.set_ylabel(name)
+        else:
+             ax.set_ylabel("obtained weights")
         ax.text(
             x_max - 0.3,
             y_min + 0.3,
@@ -181,5 +205,6 @@ for ds_cnt, ds in enumerate(datasets):
 
         i += 1
 
+figure.suptitle("Comparison of the weighting da methods")
 plt.tight_layout()
 plt.show()
