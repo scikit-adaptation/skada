@@ -5,6 +5,11 @@
 # License: BSD 3-Clause
 
 import numpy as np
+try:
+    import torch
+    torch = True
+except ImportError:
+    torch = False
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 
@@ -53,8 +58,14 @@ import pytest
         ),
         make_da_pipeline(CORALAdapter(reg=0.1), LogisticRegression()),
         CORAL(),
-        make_da_pipeline(MMDLSConSMappingAdapter(gamma=1e-3), SVC()),
-        MMDLSConSMapping(),
+        pytest.param(
+            make_da_pipeline(MMDLSConSMappingAdapter(gamma=1e-3), SVC()),
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed")
+        ),
+        pytest.param(
+            MMDLSConSMapping(),
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed")
+        )
     ]
 )
 def test_mapping_estimator(estimator, tmp_da_dataset):
