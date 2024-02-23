@@ -6,7 +6,7 @@
 
 import numpy as np
 from sklearn.linear_model import LogisticRegression
-from sklearn.svm import SVC
+from sklearn.svm import SVC, SVR
 try:
     import torch
 except ImportError:
@@ -27,6 +27,7 @@ from skada import (
     MMDLSConSMappingAdapter,
     MMDLSConSMapping,
     make_da_pipeline,
+    source_target_split
 )
 
 import pytest
@@ -90,3 +91,23 @@ def test_mapping_estimator(estimator, tmp_da_dataset):
     assert np.mean(y_pred == y_test) > 0.9
     score = estimator.score(X_test, y_test, sample_domain=sample_domain)
     assert score > 0.9
+
+
+@pytest.mark.parametrize(
+    "estimator", [
+        pytest.param(
+            make_da_pipeline(MMDLSConSMappingAdapter(gamma=1e-3), SVR()),
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed")
+        ),
+        pytest.param(
+            MMDLSConSMapping(SVR()),
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed")
+        )
+    ]
+)
+def test_reg_mapping_estimator(estimator, da_reg_dataset):
+     X, y, sample_domain = da_reg_dataset
+     Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
+     estimator.fit(X, y, sample_domain=sample_domain)
+     score = estimator.score(Xt, yt)
+     assert score >= 0
