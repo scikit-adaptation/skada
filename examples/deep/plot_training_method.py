@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 
 from skada.datasets import DomainAwareDataset
 from skada.deep import DeepCoral, DeepCoralLoss
-from skada.deep import MNISTtoUSPSNet
+from skada.deep.modules import MNISTtoUSPSNet
 
 from skada.deep.base import (
     DomainAwareModule,

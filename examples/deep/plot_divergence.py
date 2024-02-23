@@ -26,7 +26,7 @@ import matplotlib.pyplot as plt
 
 from skada.datasets import DomainAwareDataset
 from skada.deep import DeepCoral
-from skada.deep import MNISTtoUSPSNet
+from skada.deep.modules import MNISTtoUSPSNet
 
 # %%
 # Load the image datasets

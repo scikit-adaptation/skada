@@ -59,10 +59,6 @@ def deepjdot_loss(
 
     Parameters
     ----------
-    embedd : tensor
-        embeddings of the source data used to perform the distance matrix.
-    embedd_target : tensor
-        embeddings of the target data used to perform the distance matrix.
     y_s : tensor
         labels of the source data used to perform the distance matrix.
     y_pred_t : tensor
