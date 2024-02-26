@@ -1,6 +1,7 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Remi Flamary <remi.flamary@polytechnique.edu>
 #         Oleksii Kachaiev <kachayev@gmail.com>
+#         Yanis Lalou <yanis.lalou@polytechnique.edu>
 #
 # License: BSD 3-Clause
 
@@ -16,7 +17,12 @@ from sklearn.model_selection import (
 
 from skada import SubspaceAlignmentAdapter, make_da_pipeline
 from skada.metrics import PredictionEntropyScorer
-from skada.model_selection import LeaveOneDomainOut, SourceTargetShuffleSplit
+from skada.model_selection import (
+    LeaveOneDomainOut,
+    SourceTargetShuffleSplit,
+    DomainShuffleSplit,
+    StratifiedDomainShuffleSplit
+)
 
 import pytest
 
@@ -26,7 +32,7 @@ import pytest
     [
         (GroupShuffleSplit(n_splits=2, test_size=0.3, random_state=0), 2),
         (GroupKFold(n_splits=2), 2),
-        (LeaveOneGroupOut(), 4),
+        (LeaveOneGroupOut(), 4)
     ]
 )
 def test_group_based_cv(da_dataset, cv, n_splits):
@@ -57,7 +63,15 @@ def test_group_based_cv(da_dataset, cv, n_splits):
     assert np.any(~np.isnan(scores)), "at least some scores are computed"
 
 
-def test_domain_aware_split(da_dataset):
+@pytest.mark.parametrize(
+    'cv',
+    [
+        (SourceTargetShuffleSplit(n_splits=4, test_size=0.3, random_state=0)),
+        (DomainShuffleSplit(n_splits=4, test_size=0.3, random_state=0)),
+        (StratifiedDomainShuffleSplit(n_splits=4, test_size=0.3, random_state=0)),
+    ]
+)
+def test_domain_aware_split(da_dataset, cv):
     X, y, sample_domain = da_dataset.pack_train(
         as_sources=['s', 's2'],
         as_targets=['t', 't2']
@@ -67,8 +81,6 @@ def test_domain_aware_split(da_dataset):
         LogisticRegression(),
     )
     pipe.fit(X, y, sample_domain=sample_domain)
-    n_splits = 4
-    cv = SourceTargetShuffleSplit(n_splits=n_splits, test_size=0.3, random_state=0)
     scores = cross_validate(
         pipe,
         X,
@@ -77,7 +89,7 @@ def test_domain_aware_split(da_dataset):
         params={'sample_domain': sample_domain},
         scoring=PredictionEntropyScorer(),
     )['test_score']
-    assert scores.shape[0] == n_splits, "evaluate all splits"
+    assert scores.shape[0] == 4, "evaluate all splits"
     assert np.all(~np.isnan(scores)), "at least some scores are computed"
 
 
@@ -102,4 +114,65 @@ def test_leave_one_domain_out(da_dataset, max_n_splits, n_splits):
         scoring=PredictionEntropyScorer(),
     )['test_score']
     assert scores.shape[0] == n_splits, "evaluate all splits"
-    assert np.all(~np.isnan(scores)), "at least some scores are computed"
+    assert np.all(~np.isnan(scores)), "all scores are computed"
+
+
+def test_domain_shuffle_split(da_dataset):
+    X, y, sample_domain = da_dataset.pack_train(
+        as_sources=['s', 's2'],
+        as_targets=['t', 't2']
+    )
+    pipe = make_da_pipeline(
+        SubspaceAlignmentAdapter(n_components=2),
+        LogisticRegression(),
+    )
+
+    with pytest.raises(ValueError):
+        DomainShuffleSplit(n_splits=4, test_size=0.3,
+                           random_state=0, under_sampling=2
+                           )
+
+    cv = DomainShuffleSplit(n_splits=4, test_size=0.3, random_state=0)
+    scores = cross_validate(
+        pipe,
+        X,
+        y,
+        cv=cv,
+        params={'sample_domain': sample_domain},
+        scoring=PredictionEntropyScorer(),
+    )['test_score']
+    assert scores.shape[0] == 4, "evaluate all splits"
+    assert np.all(~np.isnan(scores)), "all scores are computed"
+
+
+def test_stratified_domain_shuffle_split_exceptions():
+    # Test with y.ndim == 2 nothing is raised
+    X = np.ones((10, 2))
+    y = np.array(5*[[0], [1]])
+    sample_domain = np.array(5*[0, 1])
+    splitter = StratifiedDomainShuffleSplit(n_splits=4, test_size=0.5, random_state=0)
+    next(iter((splitter.split(X, y, sample_domain))))
+
+    # Test np.min(group_counts) < 2
+    X = np.ones((2, 2))
+    y = np.array([0, 1])
+    sample_domain = np.array([0, 1])
+    splitter = StratifiedDomainShuffleSplit(n_splits=4, test_size=0.5, random_state=0)
+    with pytest.raises(ValueError):
+        next(iter((splitter.split(X, y, sample_domain))))
+
+    # Test n_train < n_groups:
+    X = np.ones((10, 2))
+    y = np.array(5*[0, 1])
+    sample_domain = np.array(5*[0, 1])
+    splitter = StratifiedDomainShuffleSplit(n_splits=4, test_size=0.9, random_state=0)
+    with pytest.raises(ValueError):
+        next(iter((splitter.split(X, y, sample_domain))))
+
+    # Test n_test < n_groups:
+    X = np.ones((10, 2))
+    y = np.array(5*[0, 1])
+    sample_domain = np.array(5*[0, 1])
+    splitter = StratifiedDomainShuffleSplit(n_splits=4, test_size=0.1, random_state=0)
+    with pytest.raises(ValueError):
+        next(iter((splitter.split(X, y, sample_domain))))
