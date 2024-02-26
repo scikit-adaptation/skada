@@ -80,6 +80,26 @@ axis[1].set_title("target data points")
 
 figure.suptitle("data points", fontsize=20)
 
+"""
+    Usage of the DASVMEstimator
+==========================================
+Here we create our estimator,
+The algorithm of the dasvm consist in fitting multiple base_estimator (SVC) by:
+    - removing from the training dataset (if possible)
+    `k` points from the source dataset for which the current
+    estimator is doing well
+    - adding to the training dataset (if possible) `k`
+    points from the target dataset for which out current
+    estimator is not so sure about it's prediction (those
+    are target points in the margin band, that are close to
+    the margin)
+    - semi-labeling points that were added to the training set
+    and came from the target dataset
+    - fit a new estimator on this training set
+Here we plot the progression of the SVC classifier when training with the dasvm
+algorithm
+"""
+
 estimator = DASVMEstimator(
     base_estimator=clone(base_estimator), k=5,
     save_estimators=True, save_indices=True).fit(
@@ -152,6 +172,17 @@ for i in list(range(0, N*K, K)) + [-1]:
     axis[j].set_xlim(xlim)
     axis[j].set_ylim(ylim)
 figure.suptitle("evolutions of predictions", fontsize=20)
+
+"""
+    Evolutions of predictions
+==========================================
+We can see that as the dasvm algorithm is used, the new SVC that are fitted
+have margin and decision boundaries that come closer to the target data
+In the end, the algorithm allowed us to fit a SVC that is able to predict
+the labels of the target datasets while it was not able to do it without the
+dasvm algorithm
+"""
+
 
 margin_line = mlines.Line2D(
     [], [], color='black', marker='_', markersize=15, label='margin')
