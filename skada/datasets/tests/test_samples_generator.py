@@ -216,7 +216,11 @@ def test_make_subspace_datasets():
     assert np.unique(y_target).shape == (2,), "Unexpected number of cluster"
 
 
-def test_make_variable_frequency_dataset():
+@pytest.mark.parametrize(
+    "negative_frequecies",
+    [False, True],
+)
+def test_make_variable_frequency_dataset(negative_frequecies):
     X, y, sample_domain = make_variable_frequency_dataset(
         n_samples_source=10,
         n_samples_target=5,
@@ -226,7 +230,7 @@ def test_make_variable_frequency_dataset():
         band_size=1,
         noise=None,
         random_state=None,
-        _negative_frequecies=True
+        _negative_frequecies=negative_frequecies
     )
     X, y, sample_domain = check_X_y_domain(
         X,
