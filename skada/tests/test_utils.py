@@ -15,8 +15,8 @@ from skada.utils import (
     check_X_domain,
     extract_source_indices,
     source_target_split,
+    extract_domains_indices,
     source_target_merge
-
 )
 from skada._utils import _check_y_masking
 
@@ -310,6 +310,40 @@ def test_extract_source_indices():
     assert len(source_idx) == (len(sample_domain)), "source_idx shape mismatch"
     assert np.sum(source_idx) == 2 * n_samples_source, "source_idx sum mismatch"
     assert np.sum(~source_idx) == 2 * n_samples_target, "target_idx sum mismatch"
+
+
+def test_extract_domains_indices():
+    n_samples_source = 50
+    n_samples_target = 20
+    X, y, sample_domain = make_dataset_from_moons_distribution(
+        pos_source=0.1,
+        pos_target=0.9,
+        n_samples_source=n_samples_source,
+        n_samples_target=n_samples_target,
+        random_state=0,
+        return_X_y=True,
+    )
+
+    domain_idx_dict = extract_domains_indices(sample_domain)
+    domain_source_idx_dict, domain_target_idx_dict = extract_domains_indices(
+            sample_domain,
+            split_source_target=True
+        )
+
+    assert (
+        sum(len(values) for values in domain_idx_dict.values()) ==
+        len(sample_domain)
+    ), "domain_idx_dict shape mismatch"
+
+    assert (
+        sum(len(values) for values in domain_source_idx_dict.values()) ==
+        2 * n_samples_source
+    ), "domain_source_idx_dict shape mismatch"
+
+    assert (
+        sum(len(values) for values in domain_target_idx_dict.values()) ==
+        2 * n_samples_target
+    ), "domain_target_idx_dict shape mismatch"
 
 
 def test_source_target_merge():
