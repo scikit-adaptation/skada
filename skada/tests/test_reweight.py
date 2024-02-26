@@ -51,6 +51,8 @@ import pytest
         NearestNeighborReweightDensity(
             LogisticRegression().set_fit_request(sample_weight=True),
             laplace_smoothing=True),
+        NearestNeighborReweightDensity(
+            laplace_smoothing=True),
         make_da_pipeline(
             NearestNeighborDensityAdapter(laplace_smoothing=True),
             LogisticRegression().set_fit_request(sample_weight=True)
