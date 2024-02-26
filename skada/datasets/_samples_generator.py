@@ -169,7 +169,7 @@ def _generate_data_2d_classif_subspace(
         y = y.astype(int)
     elif label == 'multiclass':
         k = 4
-        y = np.zeros(n1+n1%k)
+        y = np.zeros(n1+n1 % k)
         for i in range(k):
             y = np.concatenate((y, (i + 1) * np.ones(n1//k)), 0)
             y = y.astype(int)

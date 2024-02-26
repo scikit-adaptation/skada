@@ -13,17 +13,27 @@ from skada.datasets import (
     make_dataset_from_moons_distribution,
     make_shifted_blobs,
     make_shifted_datasets,
-    make_variable_frequency_dataset
+    make_variable_frequency_dataset,
+    DomainAwareDataset
 )
 from skada.utils import check_X_y_domain, source_target_split
 
 
-def test_make_dataset_from_moons_distribution():
+@pytest.mark.parametrize(
+    "noise",
+    [None, 1, "array"],
+)
+def test_make_dataset_from_moons_distribution(noise):
+    if noise == "array":
+        Noise = np.ones(50)
+    else:
+        Noise = noise
     X, y, sample_domain = make_dataset_from_moons_distribution(
-        pos_source=0.1,
-        pos_target=0.9,
         n_samples_source=50,
         n_samples_target=20,
+        noise=Noise,
+        pos_source=0.1,
+        pos_target=0.9,
         random_state=0,
         return_X_y=True,
     )
@@ -73,14 +83,22 @@ def test_make_dataset_from_multi_moons_distribution():
     ), "Unexpected number of source and target"
 
 
-def test_make_shifted_blobs():
+@pytest.mark.parametrize(
+    "noise",
+    [None, 1, "array"],
+)
+def test_make_shifted_blobs(noise):
+    if noise == "array":
+        Noise = np.ones(50)
+    else:
+        Noise = noise
     cluster_stds = np.array([0.05, 0.2, 0.4])
     cluster_centers = np.array([[0.0, 0.0], [1.0, 1.0], [0.0, 1.0]])
     X, y, sample_domain = make_shifted_blobs(
         n_samples=50,
         n_features=2,
         shift=0.10,
-        noise=None,
+        noise=Noise,
         centers=cluster_centers,
         cluster_std=cluster_stds,
         random_state=None,
@@ -96,19 +114,27 @@ def test_make_shifted_blobs():
     assert X_target.shape == (50, 2), "X target shape mismatch"
     assert y_target.shape == (50,), "y target shape mismatch"
     assert np.unique(y_target).shape == (3,), "Unexpected number of cluster"
-    assert_almost_equal((X_target - X_source), 0.10, 1, "Unexpected std")
+    if noise is None:
+        assert_almost_equal((X_target - X_source), 0.10, 1, "Unexpected std")
+    # There are no checks for the std when there is noise
 
 
 @pytest.mark.parametrize(
-    "shift",
-    ["covariate_shift", "target_shift", "concept_drift", "subspace"],
+    "shift, noise",
+    [(shift, noise)
+        for shift in ["covariate_shift", "target_shift", "concept_drift", "subspace"]
+        for noise in [None, 1, "array"]],
 )
-def test_make_shifted_datasets(shift):
+def test_make_shifted_datasets(shift, noise):
+    if noise == "array":
+        Noise = np.ones(10 * 8)
+    else:
+        Noise = noise
     X, y, sample_domain = make_shifted_datasets(
         n_samples_source=10,
         n_samples_target=10,
         shift=shift,
-        noise=None,
+        noise=Noise,
         label="binary",
     )
     X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
@@ -217,10 +243,16 @@ def test_make_subspace_datasets():
 
 
 @pytest.mark.parametrize(
-    "negative_frequecies",
-    [False, True],
+    "negative_frequecies, noise",
+    [(negative_frequecies, noise)
+        for negative_frequecies in [False, True]
+        for noise in [None, 1, "array"]],
 )
-def test_make_variable_frequency_dataset(negative_frequecies):
+def test_make_variable_frequency_dataset(negative_frequecies, noise):
+    if noise == "array":
+        Noise = np.ones(3 * 10)
+    else:
+        Noise = noise
     X, y, sample_domain = make_variable_frequency_dataset(
         n_samples_source=10,
         n_samples_target=5,
@@ -228,8 +260,9 @@ def test_make_variable_frequency_dataset(negative_frequecies):
         n_classes=3,
         delta_f=1,
         band_size=1,
-        noise=None,
+        noise=Noise,
         random_state=None,
+        return_dataset=False,
         _negative_frequecies=negative_frequecies
     )
     X, y, sample_domain = check_X_y_domain(
@@ -248,6 +281,20 @@ def test_make_variable_frequency_dataset(negative_frequecies):
     assert X_target.shape == (3 * 5, 1, 3000), "X target shape mismatch"
     assert y_target.shape == (3 * 5,), "y target shape mismatch"
     assert np.unique(y_target).shape == (3,), "Unexpected number of cluster"
+
+    dataset = make_variable_frequency_dataset(
+        n_samples_source=10,
+        n_samples_target=5,
+        n_channels=1,
+        n_classes=3,
+        delta_f=1,
+        band_size=1,
+        noise=Noise,
+        random_state=None,
+        return_dataset=True,
+        _negative_frequecies=negative_frequecies
+    )
+    assert isinstance(dataset, DomainAwareDataset), "return_dataset=True but a dataset has not been returned"
 
 
 def test_invalid_shift_value():
