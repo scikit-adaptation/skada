@@ -142,6 +142,7 @@ This toolbox has been created and is maintained by the SKADA team that includes 
 * [Antoine Collas](https://www.antoinecollas.fr/)
 * [Yanis Lalou](https://github.com/YanisLalou)
 * [Antoine de Mathelin](https://scholar.google.com/citations?user=h79bffAAAAAJ&hl=fr)
+* [Ruben Bueno]()
 
 ## License
 
