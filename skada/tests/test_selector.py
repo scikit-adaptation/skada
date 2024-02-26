@@ -130,7 +130,7 @@ def test_selector_inherits_routing(estimator_cls):
     lr = LogisticRegression().set_fit_request(sample_weight=True)
     estimator = estimator_cls(lr)
     routing = get_routing_for_object(estimator)
-    assert routing.fit.requests['sample_weight']
+    assert 'sample_weight' in routing.consumes('fit', ['sample_weight'])
 
 
 def test_selector_rejects_incompatible_adaptation_output():
