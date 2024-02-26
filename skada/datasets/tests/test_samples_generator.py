@@ -37,6 +37,7 @@ def test_make_dataset_from_moons_distribution(noise):
         pos_target=0.9,
         random_state=0,
         return_X_y=True,
+        return_dataset=False,
     )
     X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
     X_source, X_target, y_source, y_target = source_target_split(
@@ -50,6 +51,20 @@ def test_make_dataset_from_moons_distribution(noise):
     assert y_target.shape == (2 * 20,), "y target shape mismatch"
     assert np.unique(y_target).shape == (2,), "Unexpected number of cluster"
 
+    dataset = make_dataset_from_moons_distribution(
+        n_samples_source=50,
+        n_samples_target=20,
+        noise=Noise,
+        pos_source=0.1,
+        pos_target=0.9,
+        random_state=0,
+        return_X_y=True,
+        return_dataset=True,
+    )
+    assert isinstance(dataset, DomainAwareDataset), \
+        "return_dataset=True but a dataset has not been returned"
+
+
 
 # xxx(okachaiev): find out why this one doesn't work
 def test_make_dataset_from_multi_moons_distribution():
@@ -61,6 +76,7 @@ def test_make_dataset_from_multi_moons_distribution():
         n_samples_target=20,
         random_state=0,
         return_X_y=True,
+        return_dataset=False,
     )
     X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
     X_source, X_target, y_source, y_target = source_target_split(
@@ -83,6 +99,18 @@ def test_make_dataset_from_multi_moons_distribution():
         5,
     ), "Unexpected number of source and target"
 
+    dataset = make_dataset_from_moons_distribution(
+        pos_source=[0.1, 0.2, 0.3],
+        pos_target=[0.8, 0.9],
+        n_samples_source=50,
+        n_samples_target=20,
+        random_state=0,
+        return_X_y=True,
+        return_dataset=True,
+    )
+    assert isinstance(dataset, DomainAwareDataset), \
+        "return_dataset=True but a dataset has not been returned"
+
 
 @pytest.mark.parametrize(
     "noise",
@@ -103,6 +131,7 @@ def test_make_shifted_blobs(noise):
         centers=cluster_centers,
         cluster_std=cluster_stds,
         random_state=None,
+        return_dataset=False,
     )
     X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
     X_source, X_target, y_source, y_target = source_target_split(
@@ -118,6 +147,19 @@ def test_make_shifted_blobs(noise):
     if noise is None:
         assert_almost_equal((X_target - X_source), 0.10, 1, "Unexpected std")
     # There are no checks for the std when there is noise
+
+    dataset = make_shifted_blobs(
+        n_samples=50,
+        n_features=2,
+        shift=0.10,
+        noise=Noise,
+        centers=cluster_centers,
+        cluster_std=cluster_stds,
+        random_state=None,
+        return_dataset=True,
+    )
+    assert isinstance(dataset, DomainAwareDataset), \
+        "return_dataset=True but a dataset has not been returned"
 
 
 @pytest.mark.parametrize(
@@ -137,6 +179,7 @@ def test_make_shifted_datasets(shift, noise):
         shift=shift,
         noise=Noise,
         label="binary",
+        return_dataset=False,
     )
     X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
     X_source, X_target, y_source, y_target = source_target_split(
@@ -157,6 +200,17 @@ def test_make_shifted_datasets(shift, noise):
         assert y_target.shape == (10 * 8,), "y target shape mismatch"
     assert np.unique(y_target).shape == (2,), "Unexpected number of cluster"
 
+    dataset = make_shifted_datasets(
+        n_samples_source=10,
+        n_samples_target=10,
+        shift=shift,
+        noise=Noise,
+        label="binary",
+        return_dataset=True,
+    )
+    assert isinstance(dataset, DomainAwareDataset), \
+        "return_dataset=True but a dataset has not been returned"
+
 
 @pytest.mark.parametrize(
     "shift",
@@ -170,6 +224,7 @@ def test_make_multi_source_shifted_datasets(shift):
         shift=shift,
         noise=None,
         label="multiclass",
+        return_dataset=False,
     )
     X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
     X_source, X_target, y_source, y_target = source_target_split(
@@ -190,6 +245,17 @@ def test_make_multi_source_shifted_datasets(shift):
         assert X_target.shape == (10 * 8, 2), "X target shape mismatch"
         assert y_target.shape == (10 * 8,), "y target shape mismatch"
     assert np.unique(y_target).shape[0] <= 5, "Unexpected number of cluster"
+
+    dataset = make_shifted_datasets(
+        n_samples_source=10,
+        n_samples_target=10,
+        shift=shift,
+        noise=None,
+        label="multiclass",
+        return_dataset=True,
+    )
+    assert isinstance(dataset, DomainAwareDataset), \
+        "return_dataset=True but a dataset has not been returned"
 
 
 @pytest.mark.parametrize(
@@ -221,6 +287,17 @@ def test_make_shifted_datasets_regression(shift):
         assert X_target.shape == (10 * 8, 2), "X target shape mismatch"
         assert y_target.shape == (10 * 8,), "y target shape mismatch"
 
+    dataset = make_shifted_datasets(
+        n_samples_source=10,
+        n_samples_target=10,
+        shift=shift,
+        noise=None,
+        label="regression",
+        return_dataset=True,
+    )
+    assert isinstance(dataset, DomainAwareDataset), \
+        "return_dataset=True but a dataset has not been returned"
+
 
 def test_make_subspace_datasets():
     X, y, sample_domain = make_shifted_datasets(
@@ -229,6 +306,7 @@ def test_make_subspace_datasets():
         shift="subspace",
         noise=None,
         label="binary",
+        return_dataset=False
     )
     X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
     X_source, X_target, y_source, y_target = source_target_split(
@@ -241,6 +319,17 @@ def test_make_subspace_datasets():
     assert X_target.shape == (10 * 4, 2), "X target shape mismatch"
     assert y_target.shape == (10 * 4,), "y target shape mismatch"
     assert np.unique(y_target).shape == (2,), "Unexpected number of cluster"
+
+    dataset = make_shifted_datasets(
+        n_samples_source=10,
+        n_samples_target=10,
+        shift="subspace",
+        noise=None,
+        label="binary",
+        return_dataset=False
+    )
+    assert isinstance(dataset, DomainAwareDataset), \
+        "return_dataset=True but a dataset has not been returned"
 
 
 @pytest.mark.parametrize(
