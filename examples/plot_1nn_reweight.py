@@ -1,19 +1,9 @@
 """
-Plot comparison of DA methods
+Plot comparison of 1NN reweighting
 ====================================================
 
-A comparison of a several methods of DA in skada on
-synthetic datasets. The point of this example is to
-illustrate the nature of decision boundaries of
-different methods. This should be taken with a grain
-of salt, as the intuition conveyed by these examples
-does not necessarily carry over to real datasets.
-
-
-The plots show training points in solid colors then
-training points in semi-transparent and testing points
-in solid colors. The lower right shows the classification
-accuracy on the test set.
+A comparison of 1NN reweighting and no da classifications
+on a custom dataset having a covariate shift
 """
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
