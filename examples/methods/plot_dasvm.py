@@ -9,6 +9,12 @@ This example illustrates the dsvm method from [1].
         Lorenzo Bruzzone, Fellow, IEEE, and Mattia Marconcini, Member, IEEE
 
 """
+
+# Author: Ruben Bueno
+#
+# License: BSD 3-Clause
+# sphinx_gallery_thumbnail_number = 1
+
 # %% Imports
 
 import numpy as np
@@ -55,6 +61,14 @@ Xs, Xt, ys, yt = source_target_split(
     X, y, sample_domain=sample_domain
 )
 
+"""
+    Plots of the dataset
+==========================================
+As we can see, the source and target datasets have different
+distributions of the points but have the same labels for
+the same x-values.
+We are then in the case of covariate shift
+"""
 
 axis[0].scatter(Xs[:, 0], Xs[:, 1], c=ys, marker=source_marker)
 axis[0].set_xlim(xlim)
@@ -67,7 +81,27 @@ axis[1].set_ylim(ylim)
 axis[1].set_title("target data points")
 
 figure.suptitle("data points", fontsize=20)
-plt.show()
+
+
+"""
+    Usage of the DASVMEstimator
+==========================================
+Here we create our estimator,
+The algorithm of the dasvm consist in fitting multiple base_estimator (SVC) by:
+    - removing from the training dataset (if possible)
+    `k` points from the source dataset for which the current
+    estimator is doing well
+    - adding to the training dataset (if possible) `k`
+    points from the target dataset for which out current
+    estimator is not so sure about it's prediction (those
+    are target points in the margin band, that are close to
+    the margin)
+    - semi-labeling points that were added to the training set
+    and came from the target dataset
+    - fit a new estimator on this training set
+Here we plot the progression of the SVC classifier when training with the dasvm
+algorithm
+"""
 
 estimator = DASVMEstimator(
     base_estimator=clone(base_estimator), k=5,
@@ -142,6 +176,17 @@ for i in list(range(0, N*K, K)) + [-1]:
     axis[j].set_ylim(ylim)
 figure.suptitle("evolutions of predictions", fontsize=20)
 
+"""
+    Evolutions of predictions
+==========================================
+We can see that as the dasvm algorithm is used, the new SVC that are fitted
+have margin and decision boundaries that come closer to the target data
+In the end, the algorithm allowed us to fit a SVC that is able to predict
+the labels of the target datasets while it was not able to do it without the
+dasvm algorithm
+"""
+
+
 margin_line = mlines.Line2D(
     [], [], color='black', marker='_', markersize=15, label='margin')
 decision_boundary = mlines.Line2D(
@@ -151,7 +196,6 @@ axis[0].legend(
     handles=[margin_line, decision_boundary], loc='lower left')
 axis[-1].legend(
     handles=[margin_line, decision_boundary])
-plt.show()
 
 # Show the improvement of the labeling technique
 figure, axis = plt.subplots(1, 2, figsize=(10, 6))
@@ -166,10 +210,10 @@ axis[1].scatter(
     Xt[:, 0], Xt[:, 1], c=semi_labels[1],
     alpha=0.7, marker=target_marker)
 
-scores = (
+scores = np.array([
     sum(semi_labels[0] == yt),
     sum(semi_labels[1] == yt)
-    )
+    ]) * 100 / semi_labels[0].shape[0]
 
 axis[0].set_title(
     f"Score without method: {scores[0]}%")

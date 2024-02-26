@@ -48,6 +48,7 @@ Other DA methods
    :template: function.rst
 
    JDOTRegressor
+   OTMapping
    DASVMEstimator
 
 DA pipeline
