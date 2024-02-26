@@ -81,4 +81,142 @@ axis[1].set_title("target data points")
 
 figure.suptitle("data points", fontsize=20)
 
+
+"""
+    Usage of the DASVMEstimator
+------------------------------------------
+Here we create our estimator,
+The algorithm of the dasvm consist in fitting multiple base_estimator (SVC) by:
+    - removing from the training dataset (if possible)
+    `k` points from the source dataset for which the current
+    estimator is doing well
+    - adding to the training dataset (if possible) `k`
+    points from the target dataset for which out current
+    estimator is not so sure about it's prediction (those
+    are target points in the margin band, that are close to
+    the margin)
+    - semi-labeling points that were added to the training set
+    and came from the target dataset
+    - fit a new estimator on this training set
+Here we plot the progression of the SVC classifier when training with the dasvm
+algorithm
+"""
+
+estimator = DASVMEstimator(
+    base_estimator=clone(base_estimator), k=5,
+    save_estimators=True, save_indices=True).fit(
+    X, y, sample_domain=sample_domain)
+
+epsilon = 0.02
+N = 3
+K = len(estimator.estimators)//N
+figure, axis = plt.subplots(1, N+1, figsize=(N*5, 3))
+for i in list(range(0, N*K, K)) + [-1]:
+    j = i//K if i != -1 else -1
+    e = estimator.estimators[i]
+    x_points = np.linspace(xlim[0], xlim[1], 200)
+    y_points = np.linspace(ylim[0], ylim[1], 200)
+    X = np.array([[x, y] for x in x_points for y in y_points])
+
+    # plot margins
+    if j == -1:
+        X_ = X[np.absolute(e.decision_function(X)-1) < epsilon]
+        axis[j].scatter(
+            X_[:, 0], X_[:, 1], c=[1]*X_.shape[0],
+            alpha=1, cmap="gray", s=[0.1]*X_.shape[0], label="margin")
+        X_ = X[np.absolute(e.decision_function(X)+1) < epsilon]
+        axis[j].scatter(
+            X_[:, 0], X_[:, 1], c=[1]*X_.shape[0],
+            alpha=1, cmap="gray", s=[0.1]*X_.shape[0])
+        X_ = X[np.absolute(e.decision_function(X)) < epsilon]
+        axis[j].scatter(
+            X_[:, 0], X_[:, 1], c=[1]*X_.shape[0],
+            alpha=1, cmap="autumn", s=[0.1]*X_.shape[0], label="decision boundary")
+    else:
+        X_ = X[np.absolute(e.decision_function(X)-1) < epsilon]
+        axis[j].scatter(
+            X_[:, 0], X_[:, 1], c=[1]*X_.shape[0],
+            alpha=1, cmap="gray", s=[0.1]*X_.shape[0])
+        X_ = X[np.absolute(e.decision_function(X)+1) < epsilon]
+        axis[j].scatter(
+            X_[:, 0], X_[:, 1], c=[1]*X_.shape[0],
+            alpha=1, cmap="gray", s=[0.1]*X_.shape[0])
+        X_ = X[np.absolute(e.decision_function(X)) < epsilon]
+        axis[j].scatter(
+            X_[:, 0], X_[:, 1], c=[1]*X_.shape[0],
+            alpha=1, cmap="autumn", s=[0.1]*X_.shape[0])
+
+    X_s = Xs[~estimator.indices_source_deleted[i]]
+    X_t = Xt[estimator.indices_target_added[i]]
+    X = np.concatenate((
+        X_s,
+        X_t))
+
+    if sum(estimator.indices_target_added[i]) > 0:
+        semi_labels = e.predict(Xt[estimator.indices_target_added[i]])
+        axis[j].scatter(
+            X_s[:, 0], X_s[:, 1], c=ys[~estimator.indices_source_deleted[i]],
+            marker=source_marker, alpha=0.7)
+        axis[j].scatter(
+            X_t[:, 0], X_t[:, 1], c=semi_labels,
+            marker=target_marker, alpha=0.7)
+    else:
+        semi_labels = np.array([])
+        axis[j].scatter(
+            X[:, 0], X[:, 1], c=ys[~estimator.indices_source_deleted[i]],
+            alpha=0.7)
+    X = Xt[~estimator.indices_target_added[i]]
+    axis[j].scatter(
+        X[:, 0], X[:, 1], cmap="gray",
+        c=[0.5]*X.shape[0], alpha=0.5, vmax=1, vmin=0,
+        marker=target_marker)
+
+    axis[j].set_xlim(xlim)
+    axis[j].set_ylim(ylim)
+figure.suptitle("evolutions of predictions", fontsize=20)
+
+"""
+    Evolutions of predictions
+------------------------------------------
+We can see that as the dasvm algorithm is used, the new SVC that are fitted
+have margin and decision boundaries that come closer to the target data
+In the end, the algorithm allowed us to fit a SVC that is able to predict
+the labels of the target datasets while it was not able to do it without the
+dasvm algorithm
+"""
+
+
+margin_line = mlines.Line2D(
+    [], [], color='black', marker='_', markersize=15, label='margin')
+decision_boundary = mlines.Line2D(
+    [], [], color='red', marker='_',
+    markersize=15, label='decision boundary')
+axis[0].legend(
+    handles=[margin_line, decision_boundary], loc='lower left')
+axis[-1].legend(
+    handles=[margin_line, decision_boundary])
+
+# Show the improvement of the labeling technique
+figure, axis = plt.subplots(1, 2, figsize=(10, 6))
+semi_labels = (
+    base_estimator.fit(Xs, ys).predict(Xt),
+    estimator.predict(Xt)
+    )
+axis[0].scatter(
+    Xt[:, 0], Xt[:, 1], c=semi_labels[0],
+    alpha=0.7, marker=target_marker)
+axis[1].scatter(
+    Xt[:, 0], Xt[:, 1], c=semi_labels[1],
+    alpha=0.7, marker=target_marker)
+
+scores = np.array([
+    sum(semi_labels[0] == yt),
+    sum(semi_labels[1] == yt)
+    ]) * 100 / semi_labels[0].shape[0]
+
+axis[0].set_title(
+    f"Score without method: {scores[0]}%")
+axis[1].set_title(
+    f"Score with dasvm: {scores[1]}%")
+figure.suptitle("predictions")
 plt.show()
