@@ -10,10 +10,6 @@ This example illustrates the dsvm method from [1].
 
 """
 
-# Author: Ruben Bueno <ruben.bueno@polytechnique.edu>
-#
-# License: BSD 3-Clause
-
 RANDOM_SEED = 42
 
 # %% Imports
