@@ -20,7 +20,6 @@ RANDOM_SEED = 42
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
-import math
 
 from skada._self_labeling import DASVMEstimator
 from skada.datasets import make_dataset_from_moons_distribution
@@ -154,10 +153,11 @@ for i in list(range(0, N*K, K)) + [-1]:
     axis[j].set_ylim(ylim)
 figure.suptitle("evolutions of predictions", fontsize=20)
 
-margin_line = mlines.Line2D([], [], color='black', marker='_',
-                          markersize=15, label='margin')
-decision_boundary = mlines.Line2D([], [], color='red', marker='_',
-                          markersize=15, label='decision boundary')
+margin_line = mlines.Line2D(
+    [], [], color='black', marker='_', markersize=15, label='margin')
+decision_boundary = mlines.Line2D(
+    [], [], color='red', marker='_',
+    markersize=15, label='decision boundary')
 axis[0].legend(
     handles=[margin_line, decision_boundary], loc='lower left')
 axis[-1].legend(
