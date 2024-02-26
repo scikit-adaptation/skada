@@ -225,7 +225,8 @@ def test_make_variable_frequency_dataset():
         delta_f=1,
         band_size=1,
         noise=None,
-        random_state=None
+        random_state=None,
+        _negative_frequecies=True
     )
     X, y, sample_domain = check_X_y_domain(
         X,

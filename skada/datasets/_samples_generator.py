@@ -1,6 +1,7 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Remi Flamary <remi.flamary@polytechnique.edu>
 #         Oleksii Kachaiev <kachayev@gmail.com>
+#         Bueno Ruben <ruben.bueno@polytechnique.edu>
 #
 # License: BSD 3-Clause
 
@@ -685,6 +686,7 @@ def make_variable_frequency_dataset(
     random_state=None,
     return_X_y=True,
     return_dataset=False,
+    _negative_frequecies=False,
 ):
     """Make dataset with different peak frequency.
 
@@ -725,6 +727,9 @@ def make_variable_frequency_dataset(
     return_dataset : boolean, optional (default=False)
         When set to `True`, the function returns
         :class:`~skada.datasets.DomainAwareDataset` object.
+    _negative_frequecies : boolean, optional (default=False)
+        This parametter only exists for test purposes,
+        it sets the frequencies to be negative instead of positive
 
     Returns
     -------
@@ -753,7 +758,7 @@ def make_variable_frequency_dataset(
     input_size = 3000
     fs = 100
     highest_frequency = 15
-    frequencies = rng.choice(
+    frequencies = (-1 if _negative_frequecies else 1) * rng.choice(
         highest_frequency, size=(n_classes, n_frequencies), replace=False
     )
 
