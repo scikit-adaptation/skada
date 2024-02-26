@@ -65,7 +65,6 @@ def test_make_dataset_from_moons_distribution(noise):
         "return_dataset=True but a dataset has not been returned"
 
 
-
 # xxx(okachaiev): find out why this one doesn't work
 def test_make_dataset_from_multi_moons_distribution():
     # Test for multi source and multi target
