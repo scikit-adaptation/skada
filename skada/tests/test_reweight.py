@@ -18,6 +18,7 @@ from skada import (
     KLIEP,
     make_da_pipeline,
     NearestNeighborReweightDensity,
+    NearestNeighborDensityAdapter,
 )
 
 import pytest
@@ -47,6 +48,13 @@ import pytest
         ),
         KLIEP(gamma=[0.1, 1], random_state=42),
         KLIEP(gamma=0.2),
+        NearestNeighborReweightDensity(
+            LogisticRegression().set_fit_request(sample_weight=True),
+            laplace_smoothing=True),
+        make_da_pipeline(
+            NearestNeighborDensityAdapter(laplace_smoothing=True),
+            LogisticRegression().set_fit_request(sample_weight=True)
+        ),
     ],
 )
 def test_reweight_estimator(estimator, da_dataset):
