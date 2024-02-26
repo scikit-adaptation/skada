@@ -5,6 +5,11 @@ Plot comparison of 1NN reweighting
 A comparison of 1NN reweighting and no da classifications
 on a custom dataset having a covariate shift
 """
+
+# Author: Ruben Bueno <ruben.bueno@polytechnique.edu>
+#
+# License: BSD 3-Clause
+
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 import numpy as np
@@ -13,6 +18,7 @@ from sklearn.inspection import DecisionBoundaryDisplay
 
 from sklearn.linear_model import LogisticRegression
 from skada._reweight import NearestNeighborReweightDensity
+
 
 # Use same random seed for multiple calls to make_datasets to
 # ensure same distributions
@@ -110,7 +116,7 @@ for name, clf in zip(names, classifiers):
     )
 
     if name == "1NN Reweight Density":
-        size = 10*clf.named_steps[
+        size = 20*clf.named_steps[
             'nearestneighbordensityadapter'].base_estimator.get_weights(
                 Xs, Xt)
     else:
