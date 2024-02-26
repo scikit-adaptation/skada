@@ -432,7 +432,11 @@ def test_make_variable_frequency_dataset(negative_frequecies, noise):
         "return_dataset=True but a dataset has not been returned"
 
 
-def test_invalid_shift_value():
+@pytest.mark.parametrize(
+    "label",
+    ["binary", "multiclass", "regression"],
+)
+def test_invalid_shift_value(label):
     invalid_shift = "invalid_shift_value"
 
     with pytest.raises(ValueError):
@@ -441,11 +445,15 @@ def test_invalid_shift_value():
             n_samples_target=10,
             shift=invalid_shift,
             noise=None,
-            label="binary",
+            label=label,
         )
 
 
-def test_invalid_label_value():
+@pytest.mark.parametrize(
+    "shift",
+    ["covariate_shift", "subspace"],
+)
+def test_invalid_label_value(shift):
     invalid_label = "invalid_label_value"
 
     with pytest.raises(ValueError):
@@ -454,4 +462,5 @@ def test_invalid_label_value():
             n_samples_target=10,
             noise=None,
             label=invalid_label,
+            shift=shift
         )
