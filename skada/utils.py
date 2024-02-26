@@ -221,6 +221,49 @@ def extract_source_indices(sample_domain):
     return source_idx
 
 
+def extract_domains_indices(sample_domain, split_source_target=False):
+    """Extract the indices of the specific
+    domain samples.
+
+    Parameters:
+    ----------
+    sample_domain : array-like of shape (n_samples,)
+        Array specifying the domain labels for each sample.
+    split_source_target : bool, optional (default=False)
+        Whether to split the source and target domains.
+
+    Returns:
+    ----------
+    domains_idx : dict
+        A dictionary where keys are unique domain labels
+        and values are indexes of the samples belonging to
+        the corresponding domain.
+    If split_source_target is True, then two dictionaries are returned:
+        - source_idx: keys >= 0
+        - target_idx: keys < 0
+    """
+    sample_domain = check_array(
+        sample_domain,
+        dtype=np.int32,
+        ensure_2d=False,
+        input_name='sample_domain'
+    )
+
+    domain_idx = {}
+
+    unique_domains = np.unique(sample_domain)
+    for domain in unique_domains:
+        source_idx = (sample_domain == domain)
+        domain_idx[domain] = np.flatnonzero(source_idx)
+
+    if split_source_target:
+        source_domain_idx = {k: v for k, v in domain_idx.items() if k >= 0}
+        target_domain_idx = {k: v for k, v in domain_idx.items() if k < 0}
+        return source_domain_idx, target_domain_idx
+    else:
+        return domain_idx
+
+
 def source_target_split(
     *arrays,
     sample_domain
