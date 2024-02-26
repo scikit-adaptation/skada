@@ -325,7 +325,7 @@ def test_make_subspace_datasets():
         shift="subspace",
         noise=None,
         label="binary",
-        return_dataset=False
+        return_dataset=True
     )
     assert isinstance(dataset, DomainAwareDataset), \
         "return_dataset=True but a dataset has not been returned"
