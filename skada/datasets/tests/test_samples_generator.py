@@ -1,6 +1,7 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Remi Flamary <remi.flamary@polytechnique.edu>
 #         Oleksii Kachaiev <kachayev@gmail.com>
+#         Bueno Ruben <ruben.bueno@polytechnique.edu>
 #
 # License: BSD 3-Clause
 
@@ -294,7 +295,8 @@ def test_make_variable_frequency_dataset(negative_frequecies, noise):
         return_dataset=True,
         _negative_frequecies=negative_frequecies
     )
-    assert isinstance(dataset, DomainAwareDataset), "return_dataset=True but a dataset has not been returned"
+    assert isinstance(dataset, DomainAwareDataset), \
+        "return_dataset=True but a dataset has not been returned"
 
 
 def test_invalid_shift_value():
