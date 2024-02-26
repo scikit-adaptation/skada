@@ -16,8 +16,10 @@ This example illustrates the dsvm method from [1].
 
 RANDOM_SEED = 42
 
+# %% Imports
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.lines as mlines
 import math
 
 from skada._self_labeling import DASVMEstimator
@@ -32,13 +34,18 @@ from sklearn.svm import SVC
 # base_estimator can be any classifier equipped with `decision_function` such as:
 # SVC(gamma='auto'), LogisticRegression(random_state=0), etc...
 base_estimator = SVC()
+
 target_marker = "s"
 source_marker = "o"
-
-xlim = (-2.2, 2.5)
-ylim = (-1.5, 1.5)
+xlim = (-1.5, 2.4)
+ylim = (-1, 1.3)
 
 figure, axis = plt.subplots(1, 2)
+
+"""
+    We generate our dataset
+==========================================
+"""
 
 X, y, sample_domain = make_dataset_from_moons_distribution(
     pos_source=[0.1, 0.2, 0.3, 0.4],
@@ -52,6 +59,15 @@ X, y, sample_domain = make_dataset_from_moons_distribution(
 Xs, Xt, ys, yt = source_target_split(
     X, y, sample_domain=sample_domain
 )
+
+"""
+    Plots of the dataset
+==========================================
+As we can see, the source and target datasets have different
+distributions of the points but have the same labels for
+the same x-values.
+We are then in the case of covariate shift
+"""
 
 axis[0].scatter(Xs[:, 0], Xs[:, 1], c=ys, marker=source_marker)
 axis[0].set_xlim(xlim)
@@ -82,7 +98,7 @@ for i in list(range(0, N*K, K)) + [-1]:
     X = np.array([[x, y] for x in x_points for y in y_points])
 
     # plot margins
-    if i == -1:
+    if j == -1:
         X_ = X[np.absolute(e.decision_function(X)-1) < epsilon]
         axis[j].scatter(
             X_[:, 0], X_[:, 1], c=[1]*X_.shape[0],
@@ -137,9 +153,15 @@ for i in list(range(0, N*K, K)) + [-1]:
     axis[j].set_xlim(xlim)
     axis[j].set_ylim(ylim)
 figure.suptitle("evolutions of predictions", fontsize=20)
-legend = plt.legend()
-legend.legendHandles[0]._sizes = [20]
-legend.legendHandles[1]._sizes = [20]
+
+margin_line = mlines.Line2D([], [], color='black', marker='_',
+                          markersize=15, label='margin')
+decision_boundary = mlines.Line2D([], [], color='red', marker='_',
+                          markersize=15, label='decision boundary')
+axis[0].legend(
+    handles=[margin_line, decision_boundary], loc='lower left')
+axis[-1].legend(
+    handles=[margin_line, decision_boundary])
 
 # Show the improvement of the labeling technique
 figure, axis = plt.subplots(1, 2, figsize=(10, 6))
@@ -163,4 +185,5 @@ axis[0].set_title(
     f"Score without method: {scores[0]}%")
 axis[1].set_title(
     f"Score with dasvm: {scores[1]}%")
+figure.suptitle("predictions")
 plt.show()
