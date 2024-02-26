@@ -14,11 +14,16 @@ This example illustrates the dsvm method from [1].
 #
 # License: BSD 3-Clause
 
+RANDOM_SEED = 42
+
 import numpy as np
 import matplotlib.pyplot as plt
 import math
 
 from skada._self_labeling import DASVMEstimator
+from skada.datasets import make_dataset_from_moons_distribution
+from skada import source_target_split
+
 from sklearn.base import clone
 
 from sklearn.svm import SVC
@@ -26,7 +31,7 @@ from sklearn.svm import SVC
 
 # base_estimator can be any classifier equipped with `decision_function` such as:
 # SVC(gamma='auto'), LogisticRegression(random_state=0), etc...
-base_estimator = SVC(kernel="linear")
+base_estimator = SVC()
 target_marker = "s"
 source_marker = "o"
 
@@ -35,35 +40,18 @@ ylim = (-1.5, 1.5)
 
 figure, axis = plt.subplots(1, 2)
 
-N = 50
-theta_s = np.concatenate((
-    np.linspace(10, 170, N),
-    np.linspace(190, 350, N),
-    ))*math.pi/180
+X, y, sample_domain = make_dataset_from_moons_distribution(
+    pos_source=[0.1, 0.2, 0.3, 0.4],
+    pos_target=[0.6, 0.7, 0.8, 0.9],
+    n_samples_source=10,
+    n_samples_target=10,
+    noise=0.1,
+    random_state=RANDOM_SEED
+)
 
-theta_target = 30
-theta_t = (np.concatenate((
-    np.linspace(10, 170, N),
-    np.linspace(190, 350, N),
-    ))+theta_target)*math.pi/180
-
-Xs = np.array([
-    (1+np.random.normal(0, 0.1, theta_s.shape[0]))*np.cos(theta_s),
-    (1+np.random.normal(0, 0.1, theta_s.shape[0]))*np.sin(theta_s)
-    ]).T
-Xs += np.array([[-0.5, 0]]*N+[[0.5, 0]]*N)
-Xt = np.array([
-    (1+np.random.normal(0, 0.1, theta_t.shape[0]))*np.cos(theta_t),
-    (1+np.random.normal(0, 0.1, theta_t.shape[0]))*np.sin(theta_t)
-    ]).T
-Xt += np.array([[-0.5, 0]]*N+[[0.5, 0]]*N)
-X = np.concatenate((Xs, Xt))
-
-ys = np.array([0]*N+[1]*N)
-yt = np.copy(ys)
-y = np.concatenate((ys, yt))
-
-sample_domain = np.array([1]*2*N+[-2]*2*N)
+Xs, Xt, ys, yt = source_target_split(
+    X, y, sample_domain=sample_domain
+)
 
 axis[0].scatter(Xs[:, 0], Xs[:, 1], c=ys, marker=source_marker)
 axis[0].set_xlim(xlim)
@@ -83,7 +71,7 @@ estimator = DASVMEstimator(
     X, y, sample_domain=sample_domain)
 
 epsilon = 0.02
-N = 5
+N = 3
 K = len(estimator.estimators)//N
 figure, axis = plt.subplots(1, N+1, figsize=(N*5, 3))
 for i in list(range(0, N*K, K)) + [-1]:
