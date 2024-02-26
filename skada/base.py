@@ -48,7 +48,11 @@ def _estimator_has(attr):
 
 
 class AdaptationOutput(Bunch):
-    pass
+    """Container object for multi-key adaptation output."""
+
+    def __init__(self, X, **kwargs):
+        self.X = X
+        super().__init__(**kwargs)
 
 
 class IncompatibleMetadataError(UnsetMetadataPassedError):
@@ -288,23 +292,23 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
         self._is_final = False
         return self
 
-    def _route_and_merge_params(self, routing_request, X, params):
-        if isinstance(X, AdaptationOutput):
-            for k, v in X.items():
-                if k != 'X' and v is not None:
+    def _route_and_merge_params(self, routing_request, X_input, params):
+        if isinstance(X_input, AdaptationOutput):
+            X_out = X_input.X
+            for k, v in X_input.items():
+                if v is not None:
                     params[k] = v
-            X_out = X['X']
         else:
-            X_out = X
+            X_out = X_input
         try:
             routed_params = routing_request._route_params(params=params)
         except UnsetMetadataPassedError as e:
             # check if every parameter given by `AdaptationOutput` object
             # was accepted by the downstream (base) estimator
-            if isinstance(X, AdaptationOutput):
-                for k in X:
+            if isinstance(X_input, AdaptationOutput):
+                for k in X_input:
                     marker = routing_request.requests.get(k)
-                    if k != 'X' and v is not None and marker is None:
+                    if v is not None and marker is None:
                         method = routing_request.method
                         raise IncompatibleMetadataError(
                             f"The adapter provided '{k}' parameter which is not explicitly set as "  # noqa
