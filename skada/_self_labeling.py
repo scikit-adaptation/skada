@@ -10,8 +10,8 @@ The dsvm method comes from [1].
 
 """
 # Author: Ruben Bueno <ruben.bueno@polytechnique.edu>
-# BSD 3-Clause License
-# dasvm implementation
+#
+# License: BSD 3-Clause
 
 import numpy as np
 import math

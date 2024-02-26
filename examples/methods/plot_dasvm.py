@@ -11,8 +11,8 @@ This example illustrates the dsvm method from [1].
 """
 
 # Author: Ruben Bueno <ruben.bueno@polytechnique.edu>
-# BSD 3-Clause License
-# dasvm plots
+#
+# License: BSD 3-Clause
 
 import numpy as np
 import matplotlib.pyplot as plt
