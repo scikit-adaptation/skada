@@ -67,8 +67,7 @@ x_min, x_max = -1.5, 1.5
 y_min, y_max = -1.5, 1.5
 
 figure, axes = plt.subplots(len(classifiers) + 1, 2, figsize=(7, 21))
-# iterate over datasets
-    
+
 # just plot the dataset first
 cm = plt.cm.RdBu
 cm_bright = ListedColormap(["#FF0000", "#0000FF"])
