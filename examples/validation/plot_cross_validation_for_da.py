@@ -14,7 +14,7 @@ This illustrates the use of DA cross-validation object such as
 # License: BSD 3-Clause
 # sphinx_gallery_thumbnail_number = 1
 
-
+# %% imports
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Patch
