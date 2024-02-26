@@ -9,10 +9,8 @@ This example illustrates the dsvm method from [1].
         Lorenzo Bruzzone, Fellow, IEEE, and Mattia Marconcini, Member, IEEE
 
 """
-
-RANDOM_SEED = 42
-
 # %% Imports
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
@@ -25,6 +23,8 @@ from sklearn.base import clone
 
 from sklearn.svm import SVC
 
+
+RANDOM_SEED = 42
 
 # base_estimator can be any classifier equipped with `decision_function` such as:
 # SVC(gamma='auto'), LogisticRegression(random_state=0), etc...
@@ -75,6 +75,7 @@ axis[1].set_ylim(ylim)
 axis[1].set_title("target data points")
 
 figure.suptitle("data points", fontsize=20)
+plt.show()
 
 """
     Usage of the DASVMEstimator
@@ -189,6 +190,7 @@ axis[0].legend(
     handles=[margin_line, decision_boundary], loc='lower left')
 axis[-1].legend(
     handles=[margin_line, decision_boundary])
+plt.show()
 
 # Show the improvement of the labeling technique
 figure, axis = plt.subplots(1, 2, figsize=(10, 6))
