@@ -8,6 +8,13 @@ This illustrates the use of DA cross-validation object such as
 # %%
 # Let's prepare the imports:
 
+
+# Author: Yanis Lalou
+#
+# License: BSD 3-Clause
+# sphinx_gallery_thumbnail_number = 1
+
+
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Patch
@@ -332,12 +339,12 @@ for cv in cvs:
 #       form the training set.
 #   -   :class:`~skada.model_selection.DomainShuffleSplit`:
 #       Randomly split the data depending on their sample_domain.
-#       Each fold is composed of samples coming from both
+#       Each fold is composed of samples coming from all
 #       source and target domains.
 #   -   :class:`~skada.model_selection.StratifiedDomainShuffleSplit`: Same as
 #       :class:`~skada.model_selection.DomainShuffleSplit` but by also
 #       preserving the percentage of samples for each class and for each sample domain.
-#       split depends not only on the samples sample_domain but also their label.
+#       Split depends not only on the samples sample_domain but also their label.
 #   -   :class:`~skada.model_selection.LeaveOneDomainOut`: Each sample with the same
 #       sample_domain is used once as the target domain, while the remaining samples
 #       from the others sample_domain for the source domain (Can be used only with
