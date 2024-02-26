@@ -65,6 +65,51 @@ def test_make_dataset_from_moons_distribution(noise):
         "return_dataset=True but a dataset has not been returned"
 
 
+@pytest.mark.parametrize(
+    "noise",
+    [None, 1, "array"],
+)
+def test_make_dataset_from_moons_distribution_array_pos(noise):
+    if noise == "array":
+        Noise = np.ones(50)
+    else:
+        Noise = noise
+    X, y, sample_domain = make_dataset_from_moons_distribution(
+        n_samples_source=50,
+        n_samples_target=20,
+        noise=Noise,
+        pos_source=[0.1, 0.4],
+        pos_target=[0.7, 0.9],
+        random_state=0,
+        return_X_y=True,
+        return_dataset=False,
+    )
+    X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+    X_source, X_target, y_source, y_target = source_target_split(
+        X, y, sample_domain=sample_domain
+    )
+
+    assert X_source.shape == (4 * 50, 2), "X source shape mismatch"
+    assert y_source.shape == (4 * 50,), "y source shape mismatch"
+    assert np.unique(y_source).shape == (2,), "Unexpected number of cluster"
+    assert X_target.shape == (4 * 20, 2), "X target shape mismatch"
+    assert y_target.shape == (4 * 20,), "y target shape mismatch"
+    assert np.unique(y_target).shape == (2,), "Unexpected number of cluster"
+
+    dataset = make_dataset_from_moons_distribution(
+        n_samples_source=50,
+        n_samples_target=20,
+        noise=Noise,
+        pos_source=0.1,
+        pos_target=0.9,
+        random_state=0,
+        return_X_y=True,
+        return_dataset=True,
+    )
+    assert isinstance(dataset, DomainAwareDataset), \
+        "return_dataset=True but a dataset has not been returned"
+
+
 # xxx(okachaiev): find out why this one doesn't work
 def test_make_dataset_from_multi_moons_distribution():
     # Test for multi source and multi target
