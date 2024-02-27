@@ -10,7 +10,7 @@ This example illustrates the dsvm method from [21].
 # Author: Ruben Bueno
 #
 # License: BSD 3-Clause
-# sphinx_gallery_thumbnail_number = 1
+# sphinx_gallery_thumbnail_number = 2
 
 
 # %% Imports
@@ -30,7 +30,8 @@ from sklearn.svm import SVC
 RANDOM_SEED = 42
 
 # base_estimator can be any classifier equipped with `decision_function` such as:
-# SVC(gamma='auto'), LogisticRegression(random_state=0), etc...
+# SVC(kernel='poly'), SVC(kernel='linear'), LogisticRegression(random_state=0), etc...
+# however the estimator has been created only for SVC
 base_estimator = SVC()
 
 target_marker = "s"
@@ -208,7 +209,7 @@ scores = np.array([
     ])*100/semi_labels[0].shape[0]
 
 axis[0].set_title(
-    f"Score without method: {scores[0]}%")
+    f"Score without da methods: {scores[0]}%")
 axis[1].set_title(
     f"Score with dasvm: {scores[1]}%")
 figure.suptitle("predictions")
