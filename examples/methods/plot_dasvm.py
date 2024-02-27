@@ -2,7 +2,7 @@
 Plot for the dasvm estimator
 ======================
 
-This example illustrates the dsvm method from [1].
+This example illustrates the dsvm method from [21].
 
 """
 
@@ -39,10 +39,11 @@ ylim = (-1, 1.3)
 
 figure, axis = plt.subplots(1, 2)
 
-"""
-    We generate our dataset
-------------------------------------------
-"""
+# %%
+# We generate our dataset
+# ------------------------------------------
+#
+# We generate a simple 2D covariate shift dataset.
 
 X, y, sample_domain = make_dataset_from_moons_distribution(
     pos_source=[0.1, 0.2, 0.3, 0.4],
@@ -57,14 +58,16 @@ Xs, Xt, ys, yt = source_target_split(
     X, y, sample_domain=sample_domain
 )
 
-"""
-    Plots of the dataset
-------------------------------------------
-As we can see, the source and target datasets have different
-distributions of the points but have the same labels for
-the same x-values.
-We are then in the case of covariate shift
-"""
+
+# %%
+#     Plots of the dataset
+# ------------------------------------------
+#
+# As we can see, the source and target datasets have different
+# distributions of the points but have the same labels for
+# the same x-values.
+# We are then in the case of covariate shift
+
 
 axis[0].scatter(Xs[:, 0], Xs[:, 1], c=ys, marker=source_marker)
 axis[0].set_xlim(xlim)
@@ -79,25 +82,26 @@ axis[1].set_title("target data points")
 figure.suptitle("data points", fontsize=20)
 
 
-"""
-    Usage of the DASVMEstimator
-------------------------------------------
-Here we create our estimator,
-The algorithm of the dasvm consist in fitting multiple base_estimator (SVC) by:
-    - removing from the training dataset (if possible)
-    `k` points from the source dataset for which the current
-    estimator is doing well
-    - adding to the training dataset (if possible) `k`
-    points from the target dataset for which out current
-    estimator is not so sure about it's prediction (those
-    are target points in the margin band, that are close to
-    the margin)
-    - semi-labeling points that were added to the training set
-    and came from the target dataset
-    - fit a new estimator on this training set
-Here we plot the progression of the SVC classifier when training with the dasvm
-algorithm
-"""
+# %%
+#     Usage of the DASVMEstimator
+# ------------------------------------------
+#
+# Here we create our estimator,
+# The algorithm of the dasvm consist in fitting multiple base_estimator (SVC) by:
+#     - removing from the training dataset (if possible)
+#     `k` points from the source dataset for which the current
+#     estimator is doing well
+#     - adding to the training dataset (if possible) `k`
+#     points from the target dataset for which out current
+#     estimator is not so sure about it's prediction (those
+#     are target points in the margin band, that are close to
+#     the margin)
+#     - semi-labeling points that were added to the training set
+#     and came from the target dataset
+#     - fit a new estimator on this training set
+# Here we plot the progression of the SVC classifier when training with the dasvm
+# algorithm
+
 
 estimator = DASVMEstimator(
     base_estimator=clone(base_estimator), k=5,
@@ -170,6 +174,39 @@ for i in list(range(0, N*K, K)) + [-1]:
 
     axis[j].set_xlim(xlim)
     axis[j].set_ylim(ylim)
+
 figure.suptitle("evolutions of predictions", fontsize=20)
 
+margin_line = mlines.Line2D(
+    [], [], color='black', marker='_', markersize=15, label='margin')
+decision_boundary = mlines.Line2D(
+    [], [], color='red', marker='_', markersize=15, label='decision boundary')
+axis[0].legend(
+    handles=[margin_line, decision_boundary], loc='lower left')
+axis[-1].legend(
+    handles=[margin_line, decision_boundary])
+
+# Show the improvement of the labeling technique
+figure, axis = plt.subplots(1, 2, figsize=(10, 6))
+semi_labels = (
+    base_estimator.fit(Xs, ys).predict(Xt),
+    estimator.predict(Xt)
+    )
+axis[0].scatter(
+    Xt[:, 0], Xt[:, 1], c=semi_labels[0],
+    alpha=0.7, marker=target_marker)
+axis[1].scatter(
+    Xt[:, 0], Xt[:, 1], c=semi_labels[1],
+    alpha=0.7, marker=target_marker)
+
+scores = (
+    sum(semi_labels[0] == yt),
+    sum(semi_labels[1] == yt)
+    )
+
+axis[0].set_title(
+    f"Score without method: {scores[0]}%")
+axis[1].set_title(
+    f"Score with dasvm: {scores[1]}%")
+figure.suptitle("predictions")
 plt.show()
