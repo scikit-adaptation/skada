@@ -15,7 +15,8 @@ from skada.utils import (
     extract_source_indices,
     source_target_split,
     extract_domains_indices,
-    source_target_merge
+    source_target_merge,
+    qp_solve
 )
 from skada._utils import _check_y_masking
 
@@ -452,3 +453,54 @@ def test_source_target_merge():
             X_target,
             sample_domain=sample_domain
         )
+
+
+def test_qp_solve():
+    Q = np.array([[2., .5],
+                  [.5, 1.]])
+    c = np.array([1., 1.])
+
+    Aeq = np.array([[1., 1.]])
+    beq = np.array([1.])
+
+    A = -np.eye(2)
+    b = np.zeros(2)
+
+    lb = np.array([0., 0.])
+    ub = np.array([0., 0.])
+
+    x0 = 2. * np.ones(2)
+
+    sol1 = np.array([0.25, 0.75])
+    sol2 = -np.linalg.inv(Q) @ c
+
+    res = qp_solve(Q, c, Aeq=Aeq, beq=beq, lb=lb)
+    assert np.allclose(res[0], sol1)
+
+    res = qp_solve(Q, c, Aeq=Aeq, beq=beq, lb=lb, x0=x0)
+    assert np.allclose(res[0], sol1)
+
+    res = qp_solve(Q, c, A, b, Aeq=Aeq, beq=beq)
+    assert np.allclose(res[0], sol1)
+
+    res = qp_solve(Q, c)
+    assert np.allclose(res[0], sol2)
+
+    res = qp_solve(Q, c, ub=ub)
+    assert np.allclose(res[0], sol2)
+
+    res = qp_solve(Q, c, ub=ub)
+    assert np.allclose(res[0], sol2)
+
+    res = qp_solve(Q)
+    assert np.allclose(res[0], np.zeros(2))
+
+    res = qp_solve(Q, c, lb=lb, ub=ub)
+    assert np.allclose(res[0], np.zeros(2))
+
+    res = qp_solve(Q, c, log=True)
+    assert isinstance(res[2], dict)
+
+    with pytest.warns(UserWarning,
+                      match="Iteration limit reached"):
+        qp_solve(Q, c, Aeq=Aeq, beq=beq, lb=lb, max_iter=1)
