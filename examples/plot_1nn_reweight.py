@@ -15,9 +15,11 @@ from matplotlib.colors import ListedColormap
 import numpy as np
 
 from sklearn.inspection import DecisionBoundaryDisplay
+from skada.datasets import make_shifted_datasets
 
 from sklearn.linear_model import LogisticRegression
 from skada._reweight import NearestNeighborReweightDensity
+from skada import source_target_split
 
 
 # Use same random seed for multiple calls to make_datasets to
@@ -37,30 +39,22 @@ classifiers = [
 ]
 
 np.random.seed(RANDOM_SEED)
-# We create the dataset, 2*N is the sample size of source and target
-N = 20
-Xs = np.array(
-    [[1+np.random.normal(0, 0.4), 1+np.random.normal(0, 0.4)] for i in range(N)] +
-    [[-1+np.random.normal(0, 0.4), -1+np.random.normal(0, 0.4)] for i in range(N)]
-    )
-Xt = np.array(
-    [[1+np.random.uniform(-2.5, 0.5), 1+np.random.normal(0, 0.3)] for i in range(N)] +
-    [[-1+np.random.uniform(-0.5, 2.5), -1+np.random.normal(0, 0.3)] for i in range(N)]
-    )
-X = np.concatenate((Xs, Xt))
-ys = np.array(
-    [0]*N + [1]*N
-    )
-yt = np.array(
-    [0]*N + [1]*N
-    )
-y = np.concatenate((ys, yt))
-sample_domain = np.array(
-    [1]*2*N + [-2]*2*N
-    )
 
-x_min, x_max = -1.5, 1.5
-y_min, y_max = -1.5, 1.5
+# We generate a simple 2D covariate shift dataset.
+
+X, y, sample_domain = make_shifted_datasets(
+    n_samples_source=50,
+    n_samples_target=50,
+    noise=0.1,
+    random_state=RANDOM_SEED
+)
+
+Xs, Xt, ys, yt = source_target_split(
+    X, y, sample_domain=sample_domain
+)
+
+x_min, x_max = -1.5, 4.5
+y_min, y_max = -1.5, 4.5
 
 figure, axes = plt.subplots(len(classifiers) + 1, 2, figsize=(7, 21))
 
