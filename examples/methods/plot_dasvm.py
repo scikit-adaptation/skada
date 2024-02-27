@@ -87,7 +87,9 @@ figure.suptitle("data points", fontsize=20)
 #     Usage of the DASVMEstimator
 # ------------------------------------------
 #
-# Here we create our estimator,
+# The main problem here is that we only know the distribution of the points
+# from the target dataset, our goal is to label it.
+# 
 # The algorithm of the dasvm consist in fitting multiple base_estimator (SVC) by:
 #     - removing from the training dataset (if possible) \
 #     `k` points from the source dataset for which the current
@@ -190,7 +192,20 @@ axis[0].legend(
 axis[-1].legend(
     handles=[margin_line, decision_boundary])
 
-# Show the improvement of the labeling technique
+# %%
+#     Labeling the target dataset
+# ------------------------------------------
+#
+# Here we show 4 states from our algorithm, At first we are only given source
+# data points with label (which are circle, in colors showing the label), and
+# taget datapoints that have no labels (which are represented as squares, in
+# gray when they have no labels)
+# 
+# As we go further in the algorithm steps, we can notice that more and more of
+# the target datapoints (squares) are now labeled, while more and more of the
+# source datapoints (circles) are removed from the training set
+
+# We show the improvement of the labeling technique
 figure, axis = plt.subplots(1, 2, figsize=(10, 4))
 semi_labels = (
     base_estimator.fit(Xs, ys).predict(Xt),
