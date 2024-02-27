@@ -48,7 +48,7 @@ Other DA methods
    :template: function.rst
 
    JDOTRegressor
-   DASVMEstimator
+   DASVMClassifier
 
 DA pipeline
 ^^^^^^^^^^^

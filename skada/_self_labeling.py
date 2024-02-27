@@ -23,7 +23,7 @@ from .base import DAEstimator
 from sklearn.svm import SVC
 
 
-class DASVMEstimator(DAEstimator):
+class DASVMClassifier(DAEstimator):
     """ DASVM Estimator:
 
         Parameters
