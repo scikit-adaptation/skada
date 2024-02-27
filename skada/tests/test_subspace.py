@@ -77,5 +77,5 @@ def test_subspace_default_n_components(adapter, n_samples, n_features, n_compone
     X_test, _, sample_domain = dataset.pack_test(as_targets=['t'])
     output = adapter.transform(X_test, sample_domain=sample_domain)
     if isinstance(output, AdaptationOutput):
-        output = output['X']
+        output = output.X
     assert output.shape[1] == n_components
