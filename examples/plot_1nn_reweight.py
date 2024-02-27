@@ -53,7 +53,7 @@ Xs, Xt, ys, yt = source_target_split(
     X, y, sample_domain=sample_domain
 )
 
-x_min, x_max = -1.5, 4.5
+x_min, x_max = -2.5, 4.5
 y_min, y_max = -1.5, 4.5
 
 figure, axes = plt.subplots(len(classifiers) + 1, 2, figsize=(7, 21))
@@ -71,6 +71,11 @@ ax.scatter(
     cmap=cm_bright,
     alpha=0.5,
 )
+
+ax.set_xticks(())
+ax.set_yticks(())
+ax.set_xlim(x_min, x_max)
+ax.set_ylim(y_min, y_max)
 
 ax = axes[0, 0]
 
@@ -94,9 +99,9 @@ ax.set_xlim(x_min, x_max)
 ax.set_ylim(y_min, y_max)
 ax.set_xticks(())
 ax.set_yticks(())
-i = 1
 
 # iterate over classifiers
+i = 1
 for name, clf in zip(names, classifiers):
     print(name, clf)
     ax = axes[i, 0]
@@ -106,7 +111,7 @@ for name, clf in zip(names, classifiers):
         clf.fit(X, y, sample_domain=sample_domain)
     score = clf.score(Xt, yt)
     DecisionBoundaryDisplay.from_estimator(
-        clf, Xs, cmap=cm, alpha=0.8, ax=ax, eps=0.5, response_method="predict",
+        clf, Xs, cmap=cm, alpha=0.4, ax=ax, eps=0.5, response_method="predict",
     )
 
     if name == "1NN Reweight Density":
@@ -126,7 +131,7 @@ for name, clf in zip(names, classifiers):
     )
 
     ax.set_xlim(x_min, x_max)
-
+    ax.set_ylim(y_min, y_max)
     ax.set_xticks(())
     ax.set_yticks(())
     ax.set_ylabel(name)
@@ -151,7 +156,7 @@ for name, clf in zip(names, classifiers):
     )
 
     ax.set_xlim(x_min, x_max)
-
+    ax.set_ylim(y_min, y_max)
     ax.set_xticks(())
     ax.set_yticks(())
     ax.set_ylabel("obtained weights")
