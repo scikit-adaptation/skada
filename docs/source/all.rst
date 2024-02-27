@@ -120,6 +120,25 @@ DA metrics :py:mod:`skada.metrics`
    SoftNeighborhoodDensity
 
 
+Model Selection :py:mod:`skada.model_selection`
+--------------------------------
+
+.. currentmodule:: skada.model_selection
+
+.. automodule:: skada.model_selection
+   :no-members:
+   :no-inherited-members:
+
+.. autosummary::
+   :toctree: gen_modules/
+   :template: class.rst
+
+   SourceTargetShuffleSplit
+   DomainShuffleSplit
+   StratifiedDomainShuffleSplit
+   LeaveOneDomainOut
+
+
 Datasets :py:mod:`skada.datasets`
 --------------------------------
 

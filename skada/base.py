@@ -11,7 +11,12 @@ import numpy as np
 from sklearn.base import BaseEstimator, clone
 from sklearn.exceptions import UnsetMetadataPassedError
 from sklearn.utils import Bunch
-from sklearn.utils.metadata_routing import get_routing_for_object
+from sklearn.utils.metadata_routing import (
+    MetadataRouter,
+    MethodMapping,
+    _MetadataRequester,
+    get_routing_for_object,
+)
 from sklearn.utils.metaestimators import available_if
 from sklearn.utils.validation import check_is_fitted
 
@@ -43,7 +48,11 @@ def _estimator_has(attr):
 
 
 class AdaptationOutput(Bunch):
-    pass
+    """Container object for multi-key adaptation output."""
+
+    def __init__(self, X, **kwargs):
+        self.X = X
+        super().__init__(**kwargs)
 
 
 class IncompatibleMetadataError(UnsetMetadataPassedError):
@@ -125,9 +134,10 @@ class BaseAdapter(BaseEstimator):
         )
 
 
-class DAEstimator(BaseEstimator):
-    """ Generic DA estimator class
-
+class _DAMetadataRequesterMixin(_MetadataRequester):
+    """Mixin class for adding metadata related to the domain adaptation
+    functionality. The mixin is primarily designed for the internal API
+    and is expected to be rarely, if at all, required by end users.
     """
 
     __metadata_request__fit = {'sample_domain': True}
@@ -135,10 +145,18 @@ class DAEstimator(BaseEstimator):
     __metadata_request__predict = {'sample_domain': True, 'allow_source': True}
     __metadata_request__predict_proba = {'sample_domain': True, 'allow_source': True}
     __metadata_request__predict_log_proba = {
-        'sample_domain': True, 'allow_source': True}
+        'sample_domain': True,
+        'allow_source': True
+    }
     __metadata_request__score = {'sample_domain': True, 'allow_source': True}
     __metadata_request__decision_function = {
-        'sample_domain': True, 'allow_source': True}
+        'sample_domain': True,
+        'allow_source': True
+    }
+
+
+class DAEstimator(BaseEstimator, _DAMetadataRequesterMixin):
+    """Generic DA estimator class."""
 
     @abstractmethod
     def fit(self, X, y=None, sample_domain=None, *, sample_weight=None):
@@ -151,7 +169,9 @@ class DAEstimator(BaseEstimator):
         pass
 
 
-class BaseSelector(BaseEstimator):
+class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
+
+    __metadata_request__transform = {'sample_domain': True}
 
     def __init__(self, base_estimator: BaseEstimator, **kwargs):
         super().__init__()
@@ -159,21 +179,20 @@ class BaseSelector(BaseEstimator):
         self.base_estimator.set_params(**kwargs)
         self._is_final = False
 
-    # xxx(okachaiev): should this be a metadata routing object instead of request?
     def get_metadata_routing(self):
-        request = get_routing_for_object(self.base_estimator)
-        request.fit.add_request(param='sample_domain', alias=True)
-        request.transform.add_request(param='sample_domain', alias=True)
-        request.predict.add_request(param='sample_domain', alias=True)
-        if hasattr(self.base_estimator, 'predict_proba'):
-            request.predict_proba.add_request(param='sample_domain', alias=True)
-        if hasattr(self.base_estimator, 'predict_log_proba'):
-            request.predict_log_proba.add_request(param='sample_domain', alias=True)
-        if hasattr(self.base_estimator, 'decision_function'):
-            request.decision_function.add_request(param='sample_domain', alias=True)
-        if hasattr(self.base_estimator, 'score'):
-            request.score.add_request(param='sample_domain', alias=True)
-        return request
+        return (
+            MetadataRouter(owner=self.__class__.__name__)
+            .add_self_request(self)
+            .add(estimator=self.base_estimator, method_mapping=MethodMapping()
+                 .add(callee='fit', caller='fit')
+                 .add(callee='partial_fit', caller='partial_fit')
+                 .add(callee='transform', caller='transform')
+                 .add(callee='predict', caller='predict')
+                 .add(callee='predict_proba', caller='predict_proba')
+                 .add(callee='predict_log_proba', caller='predict_log_proba')
+                 .add(callee='decision_function', caller='decision_function')
+                 .add(callee='score', caller='score'))
+        )
 
     @abstractmethod
     def get_estimator(self, *params) -> BaseEstimator:
@@ -273,23 +292,23 @@ class BaseSelector(BaseEstimator):
         self._is_final = False
         return self
 
-    def _route_and_merge_params(self, routing_request, X, params):
-        if isinstance(X, AdaptationOutput):
-            for k, v in X.items():
-                if k != 'X' and v is not None:
+    def _route_and_merge_params(self, routing_request, X_input, params):
+        if isinstance(X_input, AdaptationOutput):
+            X_out = X_input.X
+            for k, v in X_input.items():
+                if v is not None:
                     params[k] = v
-            X_out = X['X']
         else:
-            X_out = X
+            X_out = X_input
         try:
             routed_params = routing_request._route_params(params=params)
         except UnsetMetadataPassedError as e:
             # check if every parameter given by `AdaptationOutput` object
             # was accepted by the downstream (base) estimator
-            if isinstance(X, AdaptationOutput):
-                for k in X:
+            if isinstance(X_input, AdaptationOutput):
+                for k in X_input:
                     marker = routing_request.requests.get(k)
-                    if k != 'X' and v is not None and marker is None:
+                    if v is not None and marker is None:
                         method = routing_request.method
                         raise IncompatibleMetadataError(
                             f"The adapter provided '{k}' parameter which is not explicitly set as "  # noqa
