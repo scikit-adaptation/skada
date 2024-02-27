@@ -63,11 +63,11 @@ Xs, Xt, ys, yt = source_target_split(
 # ------------------------------------------
 #
 # As we can see, the source and target datasets have different
-# distributions of the points but have the same labels for
-# the same x-values.
+# distributions for the points' positions but have the same
+# labels for the same x-values.
 # We are then in the case of covariate shift
 
-figure, axis = plt.subplots(1, 2)
+figure, axis = plt.subplots(1, 2, figsize=(10, 4))
 
 axis[0].scatter(Xs[:, 0], Xs[:, 1], c=ys, marker=source_marker)
 axis[0].set_xlim(xlim)
@@ -88,7 +88,7 @@ figure.suptitle("data points", fontsize=20)
 #
 # Here we create our estimator,
 # The algorithm of the dasvm consist in fitting multiple base_estimator (SVC) by:
-#     - removing from the training dataset (if possible)
+#     - removing from the training dataset (if possible) \
 #     `k` points from the source dataset for which the current
 #     estimator is doing well
 #     - adding to the training dataset (if possible) `k`
@@ -190,7 +190,7 @@ axis[-1].legend(
     handles=[margin_line, decision_boundary])
 
 # Show the improvement of the labeling technique
-figure, axis = plt.subplots(1, 2, figsize=(10, 6))
+figure, axis = plt.subplots(1, 2, figsize=(10, 4))
 semi_labels = (
     base_estimator.fit(Xs, ys).predict(Xt),
     estimator.predict(Xt)
