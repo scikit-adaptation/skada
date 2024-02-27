@@ -108,15 +108,15 @@ estimator = DASVMEstimator(
     save_estimators=True, save_indices=True).fit(
     X, y, sample_domain=sample_domain)
 
-epsilon = 0.02
-N = 3
-K = len(estimator.estimators)//N
-figure, axis = plt.subplots(1, N+1, figsize=(N*5, 3))
-for i in list(range(0, N*K, K)) + [-1]:
+epsilon = 0.01
+K = len(estimator.estimators)//3
+figure, axis = plt.subplots(2, 2, figsize=(2 * 5, 2 * 4))
+axis = np.concatenate((axis[0], axis[1]))
+for i in list(range(0, len(estimator.estimators), K)) + [-1]:
     j = i//K if i != -1 else -1
     e = estimator.estimators[i]
-    x_points = np.linspace(xlim[0], xlim[1], 200)
-    y_points = np.linspace(ylim[0], ylim[1], 200)
+    x_points = np.linspace(xlim[0], xlim[1], 500)
+    y_points = np.linspace(ylim[0], ylim[1], 500)
     X = np.array([[x, y] for x in x_points for y in y_points])
 
     # plot margins
@@ -174,6 +174,9 @@ for i in list(range(0, N*K, K)) + [-1]:
 
     axis[j].set_xlim(xlim)
     axis[j].set_ylim(ylim)
+    if i == -1:
+        i = len(estimator.estimators)
+    axis[j].set_title(f"predictions at step {i}")
 
 figure.suptitle("evolutions of predictions", fontsize=20)
 
