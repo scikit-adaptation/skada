@@ -10,6 +10,7 @@ This example illustrates the dsvm method from [21].
 # Author: Ruben Bueno
 #
 # License: BSD 3-Clause
+# sphinx_gallery_thumbnail_number = 1
 
 
 # %% Imports
@@ -36,8 +37,6 @@ target_marker = "s"
 source_marker = "o"
 xlim = (-1.5, 2.4)
 ylim = (-1, 1.3)
-
-figure, axis = plt.subplots(1, 2)
 
 # %%
 # We generate our dataset
@@ -68,6 +67,7 @@ Xs, Xt, ys, yt = source_target_split(
 # the same x-values.
 # We are then in the case of covariate shift
 
+figure, axis = plt.subplots(1, 2)
 
 axis[0].scatter(Xs[:, 0], Xs[:, 1], c=ys, marker=source_marker)
 axis[0].set_xlim(xlim)
