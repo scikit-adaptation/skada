@@ -2,9 +2,9 @@
 Kernel Mean Matching
 ====================
 This example illustrates the use of KMM method [1] to correct covariate-shift.
+
 .. [1] J. Huang, A. Gretton, K. Borgwardt, B. Schölkopf and A. J. Smola.
-       'Correcting sample selection bias by unlabeled data.'
-       In NIPS, 2007.
+        Correcting sample selection bias by unlabeled data. In NIPS, 2007.
 """
 
 # Author: Antoine de Mathelin
@@ -46,7 +46,7 @@ for smooth in [False, True]:
 
     base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
     kmm = KMM(base_estimator, gamma=10., max_iter=1000,
-              smooth_weights=smooth, random_state=123)
+              smooth_weights=smooth)
     kmm.fit(X, y, sample_domain=sample_domain)
     weights = kmm[0].transform(X, sample_domain=sample_domain,
                                allow_source=True)

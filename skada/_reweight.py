@@ -702,14 +702,11 @@ class KMMAdapter(BaseAdapter):
         Number of maximum iteration before stopping the optimization.
     smooth_weights : bool, default=False
         If True, the weights are "smoothed" using the kernel function.
-    random_state : int, RandomState instance or None, default=None
-        Determines random number generation for dataset creation. Pass an int
-        for reproducible output across multiple function calls.
 
     Attributes
     ----------
-    `weights_` : array-like, shape (n_samples,)
-        The learned weights.
+    `source_weights_` : array-like, shape (n_samples,)
+        The learned source weights.
     `X_source_` : array-like, shape (n_samples, n_features)
         The source data.
 
@@ -731,7 +728,6 @@ class KMMAdapter(BaseAdapter):
         tol=1e-6,
         max_iter=1000,
         smooth_weights=False,
-        random_state=None,
     ):
         super().__init__()
         self.kernel = kernel
@@ -743,11 +739,11 @@ class KMMAdapter(BaseAdapter):
         self.tol = tol
         self.max_iter = max_iter
         self.smooth_weights = smooth_weights
-        self.random_state = random_state
 
         if kernel not in KERNEL_PARAMS:
+            kernel_list = str(list(KERNEL_PARAMS.keys()))
             raise ValueError("`kernel` argument should be included in %s,"
-                             " got '%s'" % (str(KERNEL_PARAMS), str(kernel)))
+                             " got '%s'" % (kernel_list, str(kernel)))
 
     def fit(self, X, y=None, sample_domain=None, **kwargs):
         """Fit adaptation parameters.
@@ -774,7 +770,7 @@ class KMMAdapter(BaseAdapter):
         )
         X_source, X_target = source_target_split(X, sample_domain=sample_domain)
 
-        self.weights_ = self._weights_optimization(X_source, X_target)
+        self.source_weights_ = self._weights_optimization(X_source, X_target)
         self.X_source_ = X_source
 
         return self
@@ -845,13 +841,13 @@ class KMMAdapter(BaseAdapter):
         if source_idx.sum() > 0:
             if (np.array_equal(self.X_source_, X[source_idx])
                and not self.smooth_weights):
-                source_weights = self.weights_
+                source_weights = self.source_weights_
             else:
                 K = pairwise_kernels(X[source_idx], self.X_source_,
                                      metric=self.kernel, filter_params=True,
                                      gamma=self.gamma, degree=self.degree,
                                      coef0=self.coef0)
-                source_weights = K.dot(self.weights_)
+                source_weights = K.dot(self.source_weights_)
             source_idx = np.where(source_idx)
             weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
             weights[source_idx] = source_weights
@@ -871,7 +867,6 @@ def KMM(
     tol=1e-6,
     max_iter=1000,
     smooth_weights=False,
-    random_state=None,
 ):
     """KMM pipeline adapter and estimator.
 
@@ -900,9 +895,6 @@ def KMM(
         Number of maximum iteration before stopping the optimization.
     smooth_weights : bool, default=False
         If True, the weights are "smoothed" using the kernel function.
-    random_state : int, RandomState instance or None, default=None
-        Determines random number generation for dataset creation. Pass an int
-        for reproducible output across multiple function calls.
 
     Returns
     -------
@@ -927,8 +919,7 @@ def KMM(
             eps=eps,
             tol=tol,
             max_iter=max_iter,
-            smooth_weights=smooth_weights,
-            random_state=random_state
+            smooth_weights=smooth_weights
         ),
         base_estimator,
     )

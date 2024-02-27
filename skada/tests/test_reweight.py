@@ -49,10 +49,11 @@ import pytest
         KLIEP(gamma=[0.1, 1], random_state=42),
         KLIEP(gamma=0.2),
         make_da_pipeline(
-            KMMAdapter(gamma=0.1, random_state=42),
+            KMMAdapter(gamma=0.1),
             LogisticRegression().set_fit_request(sample_weight=True)
         ),
-        KMM()
+        KMM(),
+        KMM(eps=0.1),
     ],
 )
 def test_reweight_estimator(estimator, da_dataset):
@@ -79,3 +80,28 @@ def test_reweight_warning(da_dataset):
     with pytest.warns(UserWarning,
                       match="Maximum iteration reached before convergence."):
         estimator.fit(X_train, y_train, sample_domain=sample_domain)
+
+
+def test_kmm_kernel_error():
+    with pytest.raises(ValueError, match="got 'hello'"):
+        KMMAdapter(kernel="hello")
+
+
+# KMM.adapt behavior should be the same when smooth weights is True or
+# when X_source differs between fit and adapt.
+def test_kmm_new_X_adapt(da_dataset):
+    X_train, y_train, sample_domain = da_dataset.pack_train(
+        as_sources=['s'],
+        as_targets=['t']
+    )
+    estimator = KMMAdapter(smooth_weights=True)
+    estimator.fit(X_train, sample_domain=sample_domain)
+    res1 = estimator.adapt(X_train, sample_domain=sample_domain)
+
+    estimator = KMMAdapter(smooth_weights=False)
+    estimator.fit(X_train, sample_domain=sample_domain)
+    res2 = estimator.adapt(X_train, sample_domain=sample_domain)
+    res3 = estimator.adapt(X_train+1e-8, sample_domain=sample_domain)
+
+    assert np.allclose(res1["sample_weight"], res3["sample_weight"])
+    assert not np.allclose(res1["sample_weight"], res2["sample_weight"])
