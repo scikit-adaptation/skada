@@ -181,4 +181,48 @@ for i in list(range(0, N*K, K)) + [-1]:
     axis[j].set_ylim(ylim)
 figure.suptitle("evolutions of predictions", fontsize=20)
 
+"""
+    Evolutions of predictions
+------------------------------------------
+We can see that as the dasvm algorithm is used, the new SVC that are fitted
+have margin and decision boundaries that come closer to the target data
+In the end, the algorithm allowed us to fit a SVC that is able to predict
+the labels of the target datasets while it was not able to do it without the
+dasvm algorithm
+"""
+
+
+margin_line = mlines.Line2D(
+    [], [], color='black', marker='_', markersize=15, label='margin')
+decision_boundary = mlines.Line2D(
+    [], [], color='red', marker='_',
+    markersize=15, label='decision boundary')
+axis[0].legend(
+    handles=[margin_line, decision_boundary], loc='lower left')
+axis[-1].legend(
+    handles=[margin_line, decision_boundary])
+
+# Show the improvement of the labeling technique
+figure, axis = plt.subplots(1, 2, figsize=(10, 6))
+semi_labels = (
+    base_estimator.fit(Xs, ys).predict(Xt),
+    estimator.predict(Xt)
+    )
+axis[0].scatter(
+    Xt[:, 0], Xt[:, 1], c=semi_labels[0],
+    alpha=0.7, marker=target_marker)
+axis[1].scatter(
+    Xt[:, 0], Xt[:, 1], c=semi_labels[1],
+    alpha=0.7, marker=target_marker)
+
+scores = np.array([
+    sum(semi_labels[0] == yt),
+    sum(semi_labels[1] == yt)
+    ]) * 100 / semi_labels[0].shape[0]
+
+axis[0].set_title(
+    f"Score without method: {scores[0]}%")
+axis[1].set_title(
+    f"Score with dasvm: {scores[1]}%")
+figure.suptitle("predictions")
 plt.show()
