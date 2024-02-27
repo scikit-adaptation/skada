@@ -18,7 +18,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 
-from skada._self_labeling import DASVMEstimator
+from skada._self_labeling import DASVMClassifier
 from skada.datasets import make_dataset_from_moons_distribution
 from skada import source_target_split
 
@@ -84,7 +84,7 @@ figure.suptitle("data points", fontsize=20)
 
 
 # %%
-#     Usage of the DASVMEstimator
+#     Usage of the DASVMClassifier
 # ------------------------------------------
 #
 # The main problem here is that we only know the distribution of the points
@@ -92,21 +92,21 @@ figure.suptitle("data points", fontsize=20)
 #
 # The algorithm of the dasvm consist in fitting multiple base_estimator (SVC) by:
 #     - removing from the training dataset (if possible)
-#          `k` points from the source dataset for which the current
-#          estimator is doing well
+#       `k` points from the source dataset for which the current
+#       estimator is doing well
 #     - adding to the training dataset (if possible) `k`
-#     points from the target dataset for which out current
-#     estimator is not so sure about it's prediction (those
-#     are target points in the margin band, that are close to
-#     the margin)
+#       points from the target dataset for which out current
+#       estimator is not so sure about it's prediction (those
+#       are target points in the margin band, that are close to
+#       the margin)
 #     - semi-labeling points that were added to the training set
-#     and came from the target dataset
+#       and came from the target dataset
 #     - fit a new estimator on this training set
 # Here we plot the progression of the SVC classifier when training with the dasvm
 # algorithm
 
 
-estimator = DASVMEstimator(
+estimator = DASVMClassifier(
     base_estimator=clone(base_estimator), k=5,
     save_estimators=True, save_indices=True).fit(
     X, y, sample_domain=sample_domain)
