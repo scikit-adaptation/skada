@@ -91,8 +91,7 @@ figure.suptitle("data points", fontsize=20)
 # from the target dataset, our goal is to label it.
 #
 # The algorithm of the dasvm consist in fitting multiple base_estimator (SVC) by:
-#     - ..
-#          removing from the training dataset (if possible)
+#     - removing from the training dataset (if possible)
 #          `k` points from the source dataset for which the current
 #          estimator is doing well
 #     - adding to the training dataset (if possible) `k`
