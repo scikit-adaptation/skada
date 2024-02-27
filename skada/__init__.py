@@ -9,6 +9,7 @@ import sklearn
 from .version import __version__  # noqa: F401
 from . import model_selection
 from . import metrics
+from . import utils
 from .base import BaseAdapter, PerDomain, Shared
 from ._mapping import (
     ClassRegularizerOTMappingAdapter,
@@ -50,6 +51,7 @@ sklearn.set_config(enable_metadata_routing=True)
 __all__ = [
     "metrics",
     "model_selection",
+    "utils",
 
     "BaseAdapter",
     "PerDomain",

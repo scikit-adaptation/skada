@@ -149,14 +149,14 @@ def test_stratified_domain_shuffle_split_exceptions():
     # Test with y.ndim == 2 nothing is raised
     X = np.ones((10, 2))
     y = np.array(5*[[0], [1]])
-    sample_domain = np.array(5*[0, 1])
+    sample_domain = np.array(5*[-2, 1])
     splitter = StratifiedDomainShuffleSplit(n_splits=4, test_size=0.5, random_state=0)
     next(iter((splitter.split(X, y, sample_domain))))
 
     # Test np.min(group_counts) < 2
     X = np.ones((2, 2))
     y = np.array([0, 1])
-    sample_domain = np.array([0, 1])
+    sample_domain = np.array([-2, 1])
     splitter = StratifiedDomainShuffleSplit(n_splits=4, test_size=0.5, random_state=0)
     with pytest.raises(ValueError):
         next(iter((splitter.split(X, y, sample_domain))))
@@ -164,7 +164,7 @@ def test_stratified_domain_shuffle_split_exceptions():
     # Test n_train < n_groups:
     X = np.ones((10, 2))
     y = np.array(5*[0, 1])
-    sample_domain = np.array(5*[0, 1])
+    sample_domain = np.array(5*[-2, 1])
     splitter = StratifiedDomainShuffleSplit(n_splits=4, test_size=0.9, random_state=0)
     with pytest.raises(ValueError):
         next(iter((splitter.split(X, y, sample_domain))))
@@ -172,7 +172,7 @@ def test_stratified_domain_shuffle_split_exceptions():
     # Test n_test < n_groups:
     X = np.ones((10, 2))
     y = np.array(5*[0, 1])
-    sample_domain = np.array(5*[0, 1])
+    sample_domain = np.array(5*[-2, 1])
     splitter = StratifiedDomainShuffleSplit(n_splits=4, test_size=0.1, random_state=0)
     with pytest.raises(ValueError):
         next(iter((splitter.split(X, y, sample_domain))))
