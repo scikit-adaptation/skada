@@ -199,10 +199,10 @@ axis[1].scatter(
     Xt[:, 0], Xt[:, 1], c=semi_labels[1],
     alpha=0.7, marker=target_marker)
 
-scores = (
+scores = np.array([
     sum(semi_labels[0] == yt),
     sum(semi_labels[1] == yt)
-    )
+    ])*100/semi_labels[0].shape[0]
 
 axis[0].set_title(
     f"Score without method: {scores[0]}%")
