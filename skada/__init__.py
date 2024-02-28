@@ -90,6 +90,8 @@ __all__ = [
 
     "solve_jdot_regression",
     "JDOTRegressor",
+    "solve_jdot_classification",
+    "JDOTClassifier",
 
     "make_da_pipeline",
 

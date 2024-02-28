@@ -42,6 +42,7 @@ def da_reg_dataset():
     )
     return X, y, sample_domain
 
+
 @pytest.fixture(scope='session')
 def da_multiclass_dataset():
     X, y, sample_domain = make_shifted_datasets(
@@ -53,6 +54,7 @@ def da_multiclass_dataset():
         random_state=42,
     )
     return X, y, sample_domain
+
 
 @pytest.fixture(scope='session')
 def da_binary_dataset():

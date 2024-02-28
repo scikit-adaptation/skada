@@ -27,7 +27,8 @@ def get_jdot_class_cost_matrix(Ys, Xt, estimator=None, metric='multinomial'):
     estimator : object
         The already fitted estimator to be used for the classification task. This
         estimator should optimize a classification loss coresponding to the
-        given metric and provide compatible predict method (decision_function of predict_proba). If None, a constant prediction is used.
+        given metric and provide compatible predict method (decision_function of
+        predict_proba). If None, a constant prediction is used.
     metric : str, default='multinomial'
         The metric to use for the cost matrix. Can be 'multinomial' for cross-entropy
         cost/ multinomial logistic regression or 'hinge' for hinge cost (SVM/SVC).
@@ -58,7 +59,8 @@ def get_jdot_class_cost_matrix(Ys, Xt, estimator=None, metric='multinomial'):
             M = - np.sum(Ys[:, None, :]*np.log(Yt_pred[None, :, :]+1e-16), 2)
         else:
             raise ValueError(
-                'Estimator must have predict_proba or predict_log_proba method for cce loss')
+                'Estimator must have predict_proba or predict_log_proba'
+                ' method for cce loss')
 
     elif metric == 'hinge':
         Ys = 2 * Ys - 1  # make Y -1/1 for hinge loss
@@ -166,7 +168,8 @@ def get_tgt_loss_jdot_class(Xh, yh, wh, estimator, metric='multinomial'):
             loss = - np.sum(yh*np.log(Yh_pred+1e-16), 1).dot(wh)
         else:
             raise ValueError(
-                'Estimator must have predict_proba or predict_log_proba method for multinomial loss')
+                'Estimator must have predict_proba or predict_log_proba method'
+                ' for multinomial loss')
 
     elif metric == 'hinge':
         yh = 2 * yh - 1  # make Y -1/1 for hinge loss
@@ -383,7 +386,6 @@ def solve_jdot_classification(base_estimator, Xs, ys, Xt, alpha=0.5, ws=None, wt
 
     lst_loss_ot = []
     lst_loss_tgt_labels = []
-    y_pred = 0
     Ml = get_jdot_class_cost_matrix(ys, Xt, None, metric=metric)
 
     for i in range(n_iter_max):
@@ -534,7 +536,8 @@ class JDOTClassifier(DAEstimator):
         The base estimator to be used for the classification task. This estimator
         should solve a classification problem to correspond to JDOT theoretical
         classification problem but other approaches can be used with the risk
-        that the fixed point might not converge. default value is LogisticRegression(() from scikit-learn.
+        that the fixed point might not converge. default value is
+        LogisticRegression(() from scikit-learn.
     alpha : float, default=0.5
         The trade-off parameter between the feature and label loss in OT metric
     metric : str, default='mutlinomial'
@@ -589,9 +592,19 @@ class JDOTClassifier(DAEstimator):
         Xs, Xt, ys, yt, ws, wt = source_target_split(
             X, y, sample_weight, sample_domain=sample_domain)
 
-        res = solve_jdot_classification(self.base_estimator, Xs, ys, Xt, ws=ws, wt=wt,
-                                        alpha=self.alpha, metric=self.metric, n_iter_max=self.n_iter_max,
-                                        tol=self.tol, verbose=self.verbose, **self.kwargs)
+        res = solve_jdot_classification(
+            self.base_estimator,
+            Xs,
+            ys,
+            Xt,
+            ws=ws,
+            wt=wt,
+            alpha=self.alpha,
+            metric=self.metric,
+            n_iter_max=self.n_iter_max,
+            tol=self.tol,
+            verbose=self.verbose,
+            **self.kwargs)
 
         self.estimator_, self.lst_loss_ot_, self.lst_loss_tgt_labels_, self.sol_ = res
 

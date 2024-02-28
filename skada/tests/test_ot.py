@@ -74,7 +74,7 @@ def test_JDOTClassifier(da_multiclass_dataset, da_binary_dataset):
         Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 
         # standard case (Logistic)
-        jdot = JDOTClassifier(alpha=.1, verbose=True)
+        jdot = JDOTClassifier(LogisticRegression(), alpha=.1, verbose=True)
         jdot.fit(X, y, sample_domain=sample_domain)
         ypred = jdot.predict(Xt)
 
