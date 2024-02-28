@@ -117,6 +117,7 @@ scores_dict = {}
 # data that is distributed as the target sample domain, it will thus
 # not be performing optimaly.
 
+
 def Create_section(
         clf,
         name="Without da",
@@ -186,6 +187,7 @@ def Create_section(
     ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
     ax.set_title("obtained weights")
     figure.suptitle(suptitle)
+
 
 Create_section(
     LogisticRegression(), "Without da",
@@ -274,6 +276,7 @@ Create_section(
 #     Finally we can see the resulting scores:
 # ------------------------------------------
 
+
 def print_as_table(scores):
     keys = list(scores.keys())
     lenghts = [len(k) for k in keys]
@@ -281,6 +284,7 @@ def print_as_table(scores):
     for k in keys:
         print(f"{k}{' '*(max_lenght - len(k))} | ", end="")
         print(f"{scores[k]*100}{' '*(6-len(str(scores[k]*100)))}%")
+
 
 print_as_table(scores_dict)
 
