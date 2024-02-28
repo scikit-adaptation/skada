@@ -154,7 +154,7 @@ for name, clf in zip(names, classifiers):
                 X, sample_domain=sample_domain
                 ).sample_weight[idx]
     else:
-        size = np.array([30]*Xs.shape[0])
+        size = np.array([20]*Xs.shape[0])
 
     # Plot the target points
     ax.scatter(
