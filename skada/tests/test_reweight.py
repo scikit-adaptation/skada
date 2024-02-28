@@ -152,6 +152,30 @@ def test_kmm_kernel_error():
         KMMAdapter(kernel="hello")
 
 
+@pytest.mark.parametrize(
+    "estimator",
+    [
+        ReweightDensityAdapter(),
+        GaussianReweightDensityAdapter(),
+        DiscriminatorReweightDensityAdapter(),
+        KLIEPAdapter(gamma=[0.1, 1], random_state=42),
+        KMMAdapter(gamma=0.1, smooth_weights=True),
+        MMDTarSReweightAdapter(gamma=1.0),
+    ],
+)
+def test_new_X_adapt(estimator, da_dataset):
+    X_train, y_train, sample_domain = da_dataset.pack_train(
+        as_sources=['s'],
+        as_targets=['t']
+    )
+    estimator.fit(X_train, y_train, sample_domain=sample_domain)
+    res1 = estimator.adapt(X_train, y_train, sample_domain=sample_domain)
+
+    res2 = estimator.adapt(X_train+1e-8, y_train, sample_domain=sample_domain)
+
+    assert np.allclose(res1["sample_weight"], res2["sample_weight"])
+
+
 # KMM.adapt behavior should be the same when smooth weights is True or
 # when X_source differs between fit and adapt.
 def test_kmm_new_X_adapt(da_dataset):
