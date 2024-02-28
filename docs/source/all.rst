@@ -48,6 +48,7 @@ Other DA methods
    :template: function.rst
 
    JDOTRegressor
+   DASVMClassifier
 
 DA pipeline
 ^^^^^^^^^^^
