@@ -24,10 +24,11 @@ from skada.utils import check_X_y_domain, source_target_split
 
 @pytest.mark.parametrize(
     "pos_source, pos_target, noise",
-    [(pos_source, pos_target, noise) 
-    for pos_source in [0.1, [0.1, 0.3]]
-    for pos_target in [0.9, [0.7, 0.9]]
-    for noise in [None, 1, [0, 1]]],
+    [
+        (pos_source, pos_target, noise)
+        for pos_source in [0.1, [0.1, 0.3]]
+        for pos_target in [0.9, [0.7, 0.9]]
+        for noise in [None, 1, [0, 1]]],
 )
 def test_make_dataset_from_moons_distribution(pos_source, pos_target, noise):
     X, y, sample_domain = make_dataset_from_moons_distribution(
