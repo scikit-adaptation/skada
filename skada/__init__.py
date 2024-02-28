@@ -40,7 +40,11 @@ from ._subspace import (
     TransferComponentAnalysisAdapter,
     TransferComponentAnalysis,
 )
-from ._ot import solve_jdot_regression, JDOTRegressor
+from ._ot import (
+    solve_jdot_regression,
+    JDOTRegressor,
+    solve_jdot_classification,
+    JDOTClassifier)
 from ._pipeline import make_da_pipeline
 from .utils import source_target_split
 

@@ -1,6 +1,6 @@
 """
-JDOT Regressor example
-======================
+JDOT Regressor and Classifier examples
+======================================
 
 This example shows how to use the JDOTRegressor [10] to learn a regression model
 from source to target domain on a simple concept drift 2D exemple. We use a
@@ -23,20 +23,22 @@ the OT plan between samples estimated by JDOT.
 
 
 # %% Imports
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
 import numpy as np
 import matplotlib.pyplot as plt
 
 from sklearn.metrics import mean_squared_error
 from sklearn.kernel_ridge import KernelRidge
 
-from skada import JDOTRegressor
+from skada import JDOTRegressor, JDOTClassifier
 from skada.datasets import make_shifted_datasets
 from skada import source_target_split
 
 
 # %%
-# Generate concept drift dataset and plot it
-# ------------------------------------------
+# Generate concept drift regression dataset and plot it
+# -----------------------------------------------------
 #
 # We generate a simple 2D concept drift dataset.
 
@@ -167,3 +169,219 @@ for i in range(Xs.shape[0]):
             plt.plot([Xs[i, 0], Xt[j, 0]], [Xs[i, 1], Xt[j, 1]], 'k', alpha=T[i, j]*0.8)
 plt.legend()
 plt.title("OT plan between source and target")
+
+
+# %%
+# Generate concept drift classification dataset and plot it
+# -----------------------------------------------------
+#
+# We generate a simple 2D concept drift dataset.
+
+X, y, sample_domain = make_shifted_datasets(
+        n_samples_source=20,
+        n_samples_target=20,
+        shift="concept_drift",
+        noise=0.2,
+        label="multiclass",
+        random_state=42,
+    )
+
+
+Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
+
+
+plt.figure(5, (10, 5))
+plt.subplot(1, 2, 1)
+plt.scatter(Xs[:, 0], Xs[:, 1], c=ys, cmap='tab10', vmax=9, label="Source")
+plt.title("Source data")
+ax = plt.axis()
+
+plt.subplot(1, 2, 2)
+plt.scatter(Xt[:, 0], Xt[:, 1], c=yt, cmap='tab10', vmax=9, label="Target")
+plt.title("Target data")
+plt.axis(ax)
+
+# %%
+# Train a classifier on source data
+# --------------------------------
+#
+# We train a simple SVC classifier on the source domain and evaluate its
+# performance on the source and target domain. Performance is much lower on
+# the target domain due to the shift. We also plot the decision boundary
+
+
+clf = SVC(kernel='rbf', C=1)
+clf = LogisticRegression()
+clf.fit(Xs, ys)
+
+# Compute accuracy on source and target
+ys_pred = clf.predict(Xs)
+yt_pred = clf.predict(Xt)
+
+acc_s = (ys_pred == ys).mean()
+acc_t = (yt_pred == yt).mean()
+
+print(f"Accuracy on source: {acc_s:.2f}")
+print(f"Accuracy on target: {acc_t:.2f}")
+
+XX, YY = np.meshgrid(np.linspace(ax[0], ax[1], 100), np.linspace(ax[2], ax[3], 100))
+Z = clf.predict(np.c_[XX.ravel(), YY.ravel()]).reshape(XX.shape)
+
+
+plt.figure(6, (10, 5))
+plt.subplot(1, 2, 1)
+plt.scatter(Xs[:, 0], Xs[:, 1], c=ys, cmap='tab10', vmax=9, label="Prediction")
+plt.imshow(
+    Z,
+    extent=(
+        ax[0],
+        ax[1],
+        ax[2],
+        ax[3]),
+    origin='lower',
+    alpha=0.5,
+    cmap='tab10',
+    vmax=9,
+        )
+plt.title(f"SVC Prediction on source (ACC={acc_s:.2f})")
+
+plt.subplot(1, 2, 2)
+plt.scatter(Xt[:, 0], Xt[:, 1], c=yt, cmap='tab10', vmax=9, label="Prediction")
+plt.imshow(
+    Z,
+    extent=(
+        ax[0],
+        ax[1],
+        ax[2],
+        ax[3]),
+    origin='lower',
+    alpha=0.5,
+    cmap='tab10',
+    vmax=9,
+        )
+plt.title(f"SVC Prediction on target (ACC={acc_t:.2f})")
+plt.axis(ax)
+
+
+# %%
+# Train with JDOT classifier
+# -------------------------
+#
+# We now use the JDOTClassifier to learn a classification model from source to
+# target domain. We use the same SVC as base estimator. We compare the
+# performance of JDOT on the source and target domain, and illustrate the
+# learned decision boundary of JDOT. Performance is much better on the target
+# domain than with the SVC trained on source.
+
+
+jdot = JDOTClassifier(LogisticRegression())
+
+jdot.fit(X, y, sample_domain=sample_domain)
+
+ys_pred = jdot.predict(Xs)
+yt_pred = jdot.predict(Xt)
+
+acc_s = (ys_pred == ys).mean()
+acc_t = (yt_pred == yt).mean()
+
+print(f"JDOT Accuracy on source: {acc_s:.2f}")
+print(f"JDOT Accuracy on target: {acc_t:.2f}")
+
+XX, YY = np.meshgrid(np.linspace(ax[0], ax[1], 100), np.linspace(ax[2], ax[3], 100))
+Z = jdot.predict(np.c_[XX.ravel(), YY.ravel()]).reshape(XX.shape)
+
+
+plt.figure(7, (10, 5))
+plt.subplot(1, 2, 1)
+plt.scatter(Xs[:, 0], Xs[:, 1], c=ys, cmap='tab10', vmax=9, label="Prediction")
+plt.imshow(
+    Z,
+    extent=(
+        ax[0],
+        ax[1],
+        ax[2],
+        ax[3]),
+    origin='lower',
+    alpha=0.5,
+    cmap='tab10',
+    vmax=9,
+        )
+plt.title(f"JDOT reglog on source (ACC={acc_s:.2f})")
+
+plt.subplot(1, 2, 2)
+plt.scatter(Xt[:, 0], Xt[:, 1], c=yt, cmap='tab10', vmax=9, label="Prediction")
+plt.imshow(
+    Z,
+    extent=(
+        ax[0],
+        ax[1],
+        ax[2],
+        ax[3]),
+    origin='lower',
+    alpha=0.5,
+    cmap='tab10',
+    vmax=9,
+        )
+plt.title(f"JDOT reglog on target (ACC={acc_t:.2f})")
+plt.axis(ax)
+
+
+# %%
+# Train with JDOT classifier with SVC
+# -------------------------
+#
+# We now use the JDOTClassifier with a support vector classifier as base
+# estimator to learn a classification model from source to target domain.
+# Note that in this case it is necessary to change the metric from the default
+# 'multinomial' to 'hinge' to match the hinge loss used by the SVC.
+
+jdot = JDOTClassifier(SVC(kernel='rbf', C=10), metric='hinge')
+
+jdot.fit(X, y, sample_domain=sample_domain)
+
+ys_pred = jdot.predict(Xs)
+yt_pred = jdot.predict(Xt)
+
+acc_s = (ys_pred == ys).mean()
+acc_t = (yt_pred == yt).mean()
+
+print(f"JDOT Accuracy on source: {acc_s:.2f}")
+print(f"JDOT Accuracy on target: {acc_t:.2f}")
+
+XX, YY = np.meshgrid(np.linspace(ax[0], ax[1], 100), np.linspace(ax[2], ax[3], 100))
+Z = jdot.predict(np.c_[XX.ravel(), YY.ravel()]).reshape(XX.shape)
+
+
+plt.figure(8, (10, 5))
+plt.subplot(1, 2, 1)
+plt.scatter(Xs[:, 0], Xs[:, 1], c=ys, cmap='tab10', vmax=9, label="Prediction")
+plt.imshow(
+    Z,
+    extent=(
+        ax[0],
+        ax[1],
+        ax[2],
+        ax[3]),
+    origin='lower',
+    alpha=0.5,
+    cmap='tab10',
+    vmax=9,
+        )
+plt.title(f"JDOT SVC on source (ACC={acc_s:.2f})")
+
+plt.subplot(1, 2, 2)
+plt.scatter(Xt[:, 0], Xt[:, 1], c=yt, cmap='tab10', vmax=9, label="Prediction")
+plt.imshow(
+    Z,
+    extent=(
+        ax[0],
+        ax[1],
+        ax[2],
+        ax[3]),
+    origin='lower',
+    alpha=0.5,
+    cmap='tab10',
+    vmax=9,
+        )
+plt.title(f"JDOT SVC on target (ACC={acc_t:.2f})")
+plt.axis(ax)

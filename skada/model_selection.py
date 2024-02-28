@@ -512,6 +512,7 @@ class DomainShuffleSplit(BaseDomainAwareShuffleSplit):
     TRAIN: [8 6 2 5 3 9] TEST: [4 7]
     TRAIN: [8 2 6 3 1 9] TEST: [4 5]
     """
+
     def __init__(
         self,
         n_splits=10,
