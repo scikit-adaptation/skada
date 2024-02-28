@@ -57,8 +57,8 @@ from skada import (
 RANDOM_SEED = 42
 
 X, y, sample_domain = make_shifted_datasets(
-    n_samples_source=50,
-    n_samples_target=50,
+    n_samples_source=20,
+    n_samples_target=20,
     noise=0.1,
     random_state=RANDOM_SEED
 )
