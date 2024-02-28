@@ -1,5 +1,5 @@
 """
-Plot comparison of 1NN reweighting
+Plot comparison of reweighting methods
 ====================================================
 
 A comparison of 1NN reweighting and no da classifications
@@ -17,10 +17,16 @@ import numpy as np
 from sklearn.inspection import DecisionBoundaryDisplay
 from skada.datasets import make_shifted_datasets
 
+from sklearn.neighbors import KernelDensity
 from sklearn.linear_model import LogisticRegression
 from skada._reweight import NearestNeighborReweightDensity
-from skada import source_target_split
-
+from skada import (
+    source_target_split,
+    ReweightDensity,
+    GaussianReweightDensity,
+    DiscriminatorReweightDensity,
+    KLIEP
+)
 
 # Use same random seed for multiple calls to make_datasets to
 # ensure same distributions
@@ -28,11 +34,22 @@ RANDOM_SEED = 1
 
 names = [
     "Without da",
+    "Reweight Density",
+    "Gaussian Reweight Density",
+    "Discr. Reweight Density",
+    "KLIEP",
     "1NN Reweight Density",
 ]
 
 classifiers = [
     LogisticRegression(),
+    ReweightDensity(
+        base_estimator=LogisticRegression().set_fit_request(sample_weight=True),
+        weight_estimator=KernelDensity(bandwidth=0.5),
+    ),
+    GaussianReweightDensity(LogisticRegression().set_fit_request(sample_weight=True)),
+    DiscriminatorReweightDensity(LogisticRegression().set_fit_request(sample_weight=True)),
+    KLIEP(LogisticRegression().set_fit_request(sample_weight=True), gamma=[1, 0.1, 0.001]),
     NearestNeighborReweightDensity(
         LogisticRegression().set_fit_request(sample_weight=True),
         laplace_smoothing=True),
