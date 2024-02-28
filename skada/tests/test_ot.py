@@ -6,9 +6,12 @@ import numpy as np
 from skada import JDOTRegressor, JDOTClassifier
 from sklearn.linear_model import Ridge, LogisticRegression
 from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 from skada.utils import source_target_split
 from skada import make_da_pipeline
+from skada._ot import get_jdot_class_cost_matrix, get_tgt_loss_jdot_class
+from sklearn.preprocessing import OneHotEncoder
 
 
 def test_JDOTRegressor(da_reg_dataset):
@@ -96,9 +99,100 @@ def test_JDOTClassifier(da_multiclass_dataset, da_binary_dataset):
         jdot = JDOTClassifier()
         jdot.fit(X, y, sample_domain=sample_domain)
 
+        # test raise error
         with np.testing.assert_raises(ValueError):
             jdot = JDOTClassifier(StandardScaler())
 
+            # test raise error
+        with np.testing.assert_raises(ValueError):
+            jdot = JDOTClassifier(metric='bad_metric')
+            jdot.fit(X, y, sample_domain=sample_domain)
+
+        # No porba method in base estimator
         with np.testing.assert_raises(ValueError):
             jdot = JDOTClassifier(SVC())
             jdot.fit(X, y, sample_domain=sample_domain)
+
+        # no decision function with hinge
+        with np.testing.assert_raises(ValueError):
+            jdot = JDOTClassifier(RandomForestClassifier(), metric='hinge')
+            jdot.fit(X, y, sample_domain=sample_domain)
+
+        # estimator without log_proba
+        lp = LogisticRegression.predict_log_proba
+        delattr(LogisticRegression, 'predict_log_proba')
+        jdot = JDOTClassifier(LogisticRegression())
+        jdot.fit(X, y, sample_domain=sample_domain)
+        setattr(LogisticRegression, 'predict_log_proba', lp)
+
+
+def test_jdot_class_cost_matrix(da_multiclass_dataset):
+
+    X, y, sample_domain = da_multiclass_dataset
+
+    Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
+
+    Ys = OneHotEncoder().fit_transform(ys[:, None]).toarray()
+
+    # test without predict log_proba
+    lp = LogisticRegression.predict_log_proba
+    delattr(LogisticRegression, 'predict_log_proba')
+    est = LogisticRegression()
+    est.fit(Xs, ys)
+    M = get_jdot_class_cost_matrix(Ys, Xt, est)
+    setattr(LogisticRegression, 'predict_log_proba', lp)
+    assert M.shape[0] == Ys.shape[0]
+
+    # raise because no probas
+    with np.testing.assert_raises(ValueError):
+        est = SVC()
+        est.fit(Xs, ys)
+        M = get_jdot_class_cost_matrix(Ys, Xt, est)
+
+    # raise because no decision function
+    with np.testing.assert_raises(ValueError):
+        est = RandomForestClassifier()
+        est.fit(Xs, ys)
+        M = get_jdot_class_cost_matrix(Ys, Xt, est, metric='hinge')
+
+    with np.testing.assert_raises(ValueError):
+        est = LogisticRegression()
+        est.fit(Xs, ys)
+        M = get_jdot_class_cost_matrix(Ys, Xt, est, metric='bad_metric')
+
+
+def test_jdot_class_tgt_loss(da_multiclass_dataset):
+
+    X, y, sample_domain = da_multiclass_dataset
+
+    Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
+
+    Ys = OneHotEncoder().fit_transform(ys[:, None]).toarray()
+
+    ws = np.ones(Xs.shape[0])
+
+    # test without predict log_proba
+    lp = LogisticRegression.predict_log_proba
+    delattr(LogisticRegression, 'predict_log_proba')
+    est = LogisticRegression()
+    est.fit(Xs, ys)
+    loss = get_tgt_loss_jdot_class(Xs, Ys, ws, est)
+    setattr(LogisticRegression, 'predict_log_proba', lp)
+    assert loss >= 0
+
+    # raise because no probas
+    with np.testing.assert_raises(ValueError):
+        est = SVC()
+        est.fit(Xs, ys)
+        loss = get_tgt_loss_jdot_class(Xs, Ys, ws, est)
+
+    # raise because no decision function
+    with np.testing.assert_raises(ValueError):
+        est = RandomForestClassifier()
+        est.fit(Xs, ys)
+        loss = get_tgt_loss_jdot_class(Xs, Ys, ws, est, metric='hinge')
+
+    with np.testing.assert_raises(ValueError):
+        est = LogisticRegression()
+        est.fit(Xs, ys)
+        loss = get_tgt_loss_jdot_class(Xs, Ys, ws, est, metric='bad_metric')
