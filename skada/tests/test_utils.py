@@ -14,8 +14,9 @@ from skada.utils import (
     check_X_domain,
     extract_source_indices,
     source_target_split,
-    source_target_merge
-
+    extract_domains_indices,
+    source_target_merge,
+    qp_solve
 )
 from skada._utils import _check_y_masking
 
@@ -296,6 +297,40 @@ def test_extract_source_indices():
     assert np.sum(~source_idx) == 2 * n_samples_target, "target_idx sum mismatch"
 
 
+def test_extract_domains_indices():
+    n_samples_source = 50
+    n_samples_target = 20
+    X, y, sample_domain = make_dataset_from_moons_distribution(
+        pos_source=0.1,
+        pos_target=0.9,
+        n_samples_source=n_samples_source,
+        n_samples_target=n_samples_target,
+        random_state=0,
+        return_X_y=True,
+    )
+
+    domain_idx_dict = extract_domains_indices(sample_domain)
+    domain_source_idx_dict, domain_target_idx_dict = extract_domains_indices(
+            sample_domain,
+            split_source_target=True
+        )
+
+    assert (
+        sum(len(values) for values in domain_idx_dict.values()) ==
+        len(sample_domain)
+    ), "domain_idx_dict shape mismatch"
+
+    assert (
+        sum(len(values) for values in domain_source_idx_dict.values()) ==
+        2 * n_samples_source
+    ), "domain_source_idx_dict shape mismatch"
+
+    assert (
+        sum(len(values) for values in domain_target_idx_dict.values()) ==
+        2 * n_samples_target
+    ), "domain_target_idx_dict shape mismatch"
+
+
 def test_source_target_merge():
     n_samples_source = 50
     n_samples_target = 20
@@ -418,3 +453,54 @@ def test_source_target_merge():
             X_target,
             sample_domain=sample_domain
         )
+
+
+def test_qp_solve():
+    Q = np.array([[2., .5],
+                  [.5, 1.]])
+    c = np.array([1., 1.])
+
+    Aeq = np.array([[1., 1.]])
+    beq = np.array([1.])
+
+    A = -np.eye(2)
+    b = np.zeros(2)
+
+    lb = np.array([0., 0.])
+    ub = np.array([0., 0.])
+
+    x0 = 2. * np.ones(2)
+
+    sol1 = np.array([0.25, 0.75])
+    sol2 = -np.linalg.inv(Q) @ c
+
+    res = qp_solve(Q, c, Aeq=Aeq, beq=beq, lb=lb)
+    assert np.allclose(res[0], sol1)
+
+    res = qp_solve(Q, c, Aeq=Aeq, beq=beq, lb=lb, x0=x0)
+    assert np.allclose(res[0], sol1)
+
+    res = qp_solve(Q, c, A, b, Aeq=Aeq, beq=beq)
+    assert np.allclose(res[0], sol1)
+
+    res = qp_solve(Q, c)
+    assert np.allclose(res[0], sol2)
+
+    res = qp_solve(Q, c, ub=ub)
+    assert np.allclose(res[0], sol2)
+
+    res = qp_solve(Q, c, ub=ub)
+    assert np.allclose(res[0], sol2)
+
+    res = qp_solve(Q)
+    assert np.allclose(res[0], np.zeros(2))
+
+    res = qp_solve(Q, c, lb=lb, ub=ub)
+    assert np.allclose(res[0], np.zeros(2))
+
+    res = qp_solve(Q, c, log=True)
+    assert isinstance(res[2], dict)
+
+    with pytest.warns(UserWarning,
+                      match="Iteration limit reached"):
+        qp_solve(Q, c, Aeq=Aeq, beq=beq, lb=lb, max_iter=1)
