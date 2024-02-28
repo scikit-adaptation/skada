@@ -48,8 +48,11 @@ classifiers = [
         weight_estimator=KernelDensity(bandwidth=0.5),
     ),
     GaussianReweightDensity(LogisticRegression().set_fit_request(sample_weight=True)),
-    DiscriminatorReweightDensity(LogisticRegression().set_fit_request(sample_weight=True)),
-    KLIEP(LogisticRegression().set_fit_request(sample_weight=True), gamma=[1, 0.1, 0.001]),
+    DiscriminatorReweightDensity(
+        LogisticRegression().set_fit_request(sample_weight=True)),
+    KLIEP(
+        LogisticRegression().set_fit_request(
+            sample_weight=True), gamma=[1, 0.1, 0.001]),
     NearestNeighborReweightDensity(
         LogisticRegression().set_fit_request(sample_weight=True),
         laplace_smoothing=True),
@@ -131,10 +134,15 @@ for name, clf in zip(names, classifiers):
         clf, Xs, cmap=cm, alpha=0.4, ax=ax, eps=0.5, response_method="predict",
     )
 
-    if name == "1NN Reweight Density":
-        size = 20*clf.named_steps[
-            'nearestneighbordensityadapter'].base_estimator.get_weights(
-                Xs, Xt)
+    if name != "Without da":
+        keys = list(clf.named_steps.keys())
+        weight_estimator = clf.named_steps[
+            keys[0]].base_estimator
+        weight_estimator.fit(X, sample_domain=sample_domain)
+        idx = sample_domain > 0
+        size = 1 + 10*weight_estimator.adapt(
+                X, sample_domain=sample_domain
+                ).sample_weight[idx]
     else:
         size = np.array([30]*Xs.shape[0])
 

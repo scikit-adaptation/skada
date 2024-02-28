@@ -780,6 +780,7 @@ class NearestNeighborDensityAdapter(BaseAdapter):
             weights = None
         return AdaptationOutput(X=X, sample_weight=weights)
 
+
 def NearestNeighborReweightDensity(
     base_estimator=None,
     weight_estimator=None,
@@ -809,6 +810,7 @@ def NearestNeighborReweightDensity(
             laplace_smoothing=laplace_smoothing),
         base_estimator,
     )
+
 
 class KMMAdapter(BaseAdapter):
     """Kernel Mean Matching (KMM).
@@ -994,6 +996,7 @@ class KMMAdapter(BaseAdapter):
         else:
             weights = None
         return AdaptationOutput(X=X, sample_weight=weights)
+
 
 def KMM(
     base_estimator=None,
