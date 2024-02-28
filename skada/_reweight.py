@@ -1072,12 +1072,13 @@ class MMDTarSReweightAdapter(BaseAdapter):
 
         Returns
         -------
-        X_t : array-like, shape (n_samples, n_components)
-            The data (same as X).
-        y_t : array-like, shape (n_samples,)
-            The labels (same as y).
-        weights : array-like, shape (n_samples,)
-            The weights of the samples.
+        output : :class:`skada.base.AdaptationOutput`
+            Dictionary-like object, with the following attributes.
+
+            X : array-like, shape (n_samples, n_components)
+                The data (same as X).
+            sample_weight : array-like, shape (n_samples,)
+                The weights of the samples.
         """
         X, sample_domain = check_X_domain(
             X,
