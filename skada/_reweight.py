@@ -8,7 +8,6 @@
 import warnings
 
 import numpy as np
-import scipy
 from scipy.stats import multivariate_normal
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics.pairwise import pairwise_kernels, KERNEL_PARAMS
@@ -942,6 +941,10 @@ class MMDTarSReweightAdapter(BaseAdapter):
 
     See Section 3 of [4]_ for details.
 
+    .. warning::
+        This adapter uses a nearest neighbors approach to compute weights when adapting
+        on source data different from the fitted source data.
+
     Parameters
     ----------
     gamma : float or array like
@@ -955,10 +958,10 @@ class MMDTarSReweightAdapter(BaseAdapter):
 
     Attributes
     ----------
+    `source_weights_` : array-like, shape (n_samples,)
+        The learned source weights.
     `X_source_` : array-like, shape (n_samples, n_features)
-        The source data used for fitting.
-    `y_source_` : array-like, shape (n_samples,)
-        The source labels used for fitting.
+        The source data.
 
     References
     ----------
@@ -1052,9 +1055,9 @@ class MMDTarSReweightAdapter(BaseAdapter):
         X_source, X_target, y_source, _ = source_target_split(
             X, y, sample_domain=sample_domain
         )
-        self.X_source_, self.y_source_ = X_source, y_source
+        self.X_source_ = X_source
 
-        self.weights_ = self._weights_optimization(X_source, X_target, y_source)
+        self.source_weights_ = self._weights_optimization(X_source, X_target, y_source)
 
         return self
 
@@ -1089,14 +1092,10 @@ class MMDTarSReweightAdapter(BaseAdapter):
 
         if source_idx.sum() > 0:
             if np.array_equal(self.X_source_, X[source_idx]):
-                source_weights = self.weights_
+                source_weights = self.source_weights_
             else:
                 # get the nearest neighbor in the source domain
-                C = scipy.spatial.distance.cdist(
-                    X[source_idx],
-                    self.X_source_,
-                    metric="euclidean"
-                )
+                C = pairwise_kernels(X[source_idx], self.X_source_)
                 idx = np.argmin(C, axis=1)
                 source_weights = self.weights_[idx]
             source_idx = np.where(source_idx)
