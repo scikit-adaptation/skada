@@ -108,6 +108,8 @@ ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
 
 # We create a dict to store scores:
 Scores = {}
+
+
 def Create_section(
         clf,
         name="Without da",
@@ -184,6 +186,7 @@ def Create_section(
 # When not using domain adaptatiion, the classifier won't train on
 # data that is distributed as the target sample domain, it will thus
 # not be performing optimaly.
+
 
 Create_section(
     LogisticRegression(), "Without da",
