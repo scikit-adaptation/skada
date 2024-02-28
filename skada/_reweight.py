@@ -1,6 +1,7 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Remi Flamary <remi.flamary@polytechnique.edu>
 #         Oleksii Kachaiev <kachayev@gmail.com>
+#         Antoine Collas <contact@antoinecollas.fr>
 #
 # License: BSD 3-Clause
 
@@ -16,7 +17,6 @@ from sklearn.neighbors import KernelDensity
 from sklearn.svm import SVC
 from sklearn.utils import check_random_state
 from sklearn.utils.validation import check_is_fitted
-from scipy.optimize import minimize, LinearConstraint
 
 from .base import AdaptationOutput, BaseAdapter, clone
 from .utils import (
@@ -1005,45 +1005,29 @@ class MMDTarSReweightAdapter(BaseAdapter):
         #      m (1 - eps) <= 1^T R alpha <= m (1 + eps)
         P = R.T @ A @ R
         P = P + 1e-12 * np.eye(P.shape[0])  # make P positive semi-definite
-        q = - (m/n) * (M @ R).T
-
-        def func(alpha):
-            return ((1/2) * alpha.T @ P @ alpha + q.T @ alpha).item()
-
-        def jac(alpha):
-            return P @ alpha.reshape(-1, 1) + q
+        q = - (m/n) * ((M @ R).T).flatten()
 
         B_beta = 10
         eps = B_beta / (4 * np.sqrt(m))
 
-        constraints = LinearConstraint(
-            np.vstack([
-                R,
-                np.sum(R, axis=0, keepdims=True)
-            ]),
-            lb=np.concatenate([
-                np.zeros((R.shape[0])),
-                [m * (1 - eps)]
-            ]),
-            ub=np.concatenate([
-                B_beta * np.ones((R.shape[0])),
-                [m * (1 + eps)]
-            ])
-        )
+        A = np.vstack([R, np.sum(R, axis=0, keepdims=True)])
+        lb = np.concatenate([
+            np.zeros((R.shape[0])),
+            [m * (1 - eps)]
+        ])
+        ub = np.concatenate([
+            B_beta * np.ones((R.shape[0])),
+            [m * (1 + eps)]
+        ])
 
-        results = minimize(
-            func,
-            x0=np.ones(R.shape[1]),
-            method="SLSQP",
-            jac=jac,
-            constraints=constraints,
-            tol=self.tol,
-            options={"maxiter": self.max_iter}
+        outputs = qp_solve(
+            Q=P, c=q,
+            A=A, Alb=lb, Aub=ub,
+            tol=self.tol, max_iter=self.max_iter
         )
+        alpha = outputs[0]
 
-        alpha = results.x
-        beta = R @ alpha
-        weights = beta.flatten()
+        weights = (R @ alpha).flatten()
 
         return weights
 
