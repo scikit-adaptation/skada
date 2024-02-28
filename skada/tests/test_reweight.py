@@ -81,12 +81,48 @@ def test_reweight_estimator(estimator, da_dataset):
     "estimator",
     [
         make_da_pipeline(
+            ReweightDensityAdapter(),
+            Ridge().set_fit_request(sample_weight=True)
+        ),
+        ReweightDensity(Ridge().set_fit_request(sample_weight=True)),
+        make_da_pipeline(
+            GaussianReweightDensityAdapter(),
+            Ridge().set_fit_request(sample_weight=True)
+        ),
+        GaussianReweightDensity(Ridge().set_fit_request(sample_weight=True)),
+        make_da_pipeline(
+            DiscriminatorReweightDensityAdapter(),
+            Ridge().set_fit_request(sample_weight=True)
+        ),
+        DiscriminatorReweightDensity(Ridge().set_fit_request(sample_weight=True)),
+        make_da_pipeline(
+            KLIEPAdapter(gamma=[0.1, 1], random_state=42),
+            Ridge().set_fit_request(sample_weight=True)
+        ),
+        KLIEP(
+            Ridge().set_fit_request(sample_weight=True),
+            gamma=[0.1, 1], random_state=42
+        ),
+        KLIEP(
+            Ridge().set_fit_request(sample_weight=True),
+            gamma=0.2
+        ),
+        make_da_pipeline(
+            KMMAdapter(gamma=0.1),
+            Ridge().set_fit_request(sample_weight=True)
+        ),
+        KMM(Ridge().set_fit_request(sample_weight=True)),
+        KMM(
+            Ridge().set_fit_request(sample_weight=True),
+            eps=0.1
+        ),
+        make_da_pipeline(
             MMDTarSReweightAdapter(gamma=1.0),
             Ridge().set_fit_request(sample_weight=True)
         ),
         MMDTarSReweight(
-            gamma=1.0,
-            base_estimator=Ridge().set_fit_request(sample_weight=True)
+            Ridge().set_fit_request(sample_weight=True),
+            gamma=1.0
         )
     ],
 )
