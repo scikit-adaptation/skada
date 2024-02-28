@@ -515,8 +515,9 @@ def _merge_arrays(
     return output
 
 
-def qp_solve(Q, c=None, A=None, b=None, Aeq=None, beq=None, lb=None, ub=None,
-             x0=None, tol=1e-6, max_iter=1000, verbose=False, log=False):
+def qp_solve(Q, c=None, A=None, Alb=None, Aub=None, lb=None, ub=None,
+             Aeq=None, beq=None, x0=None, tol=1e-6, max_iter=1000,
+             verbose=False, log=False):
     r""" Solves a standard quadratic program
 
     Solve the following optimization problem:
@@ -527,7 +528,7 @@ def qp_solve(Q, c=None, A=None, b=None, Aeq=None, beq=None, lb=None, ub=None,
 
         lb <= x <= ub
 
-        Ax <= b
+        A_{lb} <= Ax <= A_{ub}
 
         A_{eq} x = b_{eq}
 
@@ -544,7 +545,9 @@ def qp_solve(Q, c=None, A=None, b=None, Aeq=None, beq=None, lb=None, ub=None,
         Linear cost vector
     A : (n,d) ndarray, float64, optional
         Linear inequality constraint matrix.
-    b : (n,) ndarray, float64, optional
+    Alb : (n,) ndarray, float64, optional
+        Linear inequality constraint vector.
+    Aub : (n,) ndarray, float64, optional
         Linear inequality constraint vector.
     Aeq : (n,d) ndarray, float64, optional
         Linear equality constraint matrix .
@@ -577,7 +580,11 @@ def qp_solve(Q, c=None, A=None, b=None, Aeq=None, beq=None, lb=None, ub=None,
     # Constraints
     constraints = []
     if A is not None:
-        constraints.append(LinearConstraint(A, ub=b))
+        if Alb is None:
+            Alb = -np.inf*np.ones(A.shape[0])
+        if Aub is None:
+            Aub = np.inf*np.ones(A.shape[0])
+        constraints.append(LinearConstraint(A, lb=Alb, ub=Aub))
     if Aeq is not None:
         constraints.append(LinearConstraint(Aeq, lb=beq, ub=beq))
 
