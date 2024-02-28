@@ -170,10 +170,20 @@ def test_new_X_adapt(estimator, da_dataset):
     )
     estimator.fit(X_train, y_train, sample_domain=sample_domain)
     res1 = estimator.adapt(X_train, y_train, sample_domain=sample_domain)
+    idx = np.random.choice(X_train.shape[0], 10)
+    true_weights = res1["sample_weight"][idx]
 
-    res2 = estimator.adapt(X_train+1e-8, y_train, sample_domain=sample_domain)
+    # Adapt with new X, i.e. same domain, different samples
+    res2 = estimator.adapt(
+        X_train[idx, :] + 1e-8,
+        y_train[idx],
+        sample_domain=sample_domain[idx]
+    )
 
-    assert np.allclose(res1["sample_weight"], res2["sample_weight"])
+    # Check that the normalized weights are the same
+    true_weights = true_weights / np.sum(true_weights)
+    res2["sample_weight"] = res2["sample_weight"] / np.sum(res2["sample_weight"])
+    assert np.allclose(true_weights, res2["sample_weight"])
 
 
 # KMM.adapt behavior should be the same when smooth weights is True or
