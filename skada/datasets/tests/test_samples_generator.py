@@ -192,7 +192,6 @@ def test_make_shifted_blobs(noise):
         assert_almost_equal((X_target - X_source), 0.10, 1, "Unexpected std")
     # There are no tests concerning std when there is noise
 
-
     dataset = make_shifted_blobs(
         n_samples=50,
         n_features=2,
