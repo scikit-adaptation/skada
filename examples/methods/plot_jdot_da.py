@@ -274,7 +274,7 @@ plt.axis(ax)
 # domain than with the SVC trained on source.
 
 
-jdot = JDOTClassifier(LogisticRegression())
+jdot = JDOTClassifier(LogisticRegression(), verbose=True)
 
 jdot.fit(X, y, sample_domain=sample_domain)
 
@@ -335,7 +335,7 @@ plt.axis(ax)
 # Note that in this case it is necessary to change the metric from the default
 # 'multinomial' to 'hinge' to match the hinge loss used by the SVC.
 
-jdot = JDOTClassifier(SVC(kernel='rbf', C=10), metric='hinge')
+jdot = JDOTClassifier(SVC(kernel='rbf', C=1), metric='hinge')
 
 jdot.fit(X, y, sample_domain=sample_domain)
 

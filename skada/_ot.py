@@ -408,7 +408,7 @@ def solve_jdot_classification(base_estimator, Xs, ys, Xt, alpha=0.5, ws=None, wt
         lst_loss_ot.append(loss_ot)
 
         # compute the transported labels
-        Yth = T.T.dot(Ys)  # not normalized because used in fit
+        Yth = T.T.dot(Ys) * nt  # not normalized because weights used in fit
 
         # cerate reweighted taregt data for classification
         Xh, yh, wh = get_data_jdot_class(Xt, Yth, labels)
