@@ -45,6 +45,7 @@ from ._ot import (
     JDOTRegressor,
     solve_jdot_classification,
     JDOTClassifier)
+from ._self_labeling import DASVMClassifier
 from ._pipeline import make_da_pipeline
 from .utils import source_target_split
 
@@ -88,6 +89,7 @@ __all__ = [
     "TransferComponentAnalysisAdapter",
     "TransferComponentAnalysis",
 
+    "DASVMClassifier",
     "solve_jdot_regression",
     "JDOTRegressor",
     "solve_jdot_classification",
