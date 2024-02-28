@@ -1,6 +1,7 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Remi Flamary <remi.flamary@polytechnique.edu>
 #         Oleksii Kachaiev <kachayev@gmail.com>
+#         Bueno Ruben <ruben.bueno@polytechnique.edu>
 #
 # License: BSD 3-Clause
 
@@ -172,11 +173,8 @@ def _generate_data_2d_classif_subspace(
         y = np.concatenate((np.zeros(n1), np.ones(2 * n2)), 0)
         y = y.astype(int)
     elif label == 'multiclass':
-        y = np.zeros(n1)
         k = 4
-        if n1 % k != 0:
-            raise ValueError(f"Invalid value: {n_samples}. This value "
-                             "multiplied by 2 should be a multiple from {k}")
+        y = np.zeros(n1+n1 % k)
         for i in range(k):
             y = np.concatenate((y, (i + 1) * np.ones(n1//k)), 0)
             y = y.astype(int)
@@ -695,6 +693,7 @@ def make_variable_frequency_dataset(
     random_state=None,
     return_X_y=True,
     return_dataset=False,
+    _negative_frequecies=False,
 ):
     """Make dataset with different peak frequency.
 
@@ -735,6 +734,9 @@ def make_variable_frequency_dataset(
     return_dataset : boolean, optional (default=False)
         When set to `True`, the function returns
         :class:`~skada.datasets.DomainAwareDataset` object.
+    _negative_frequecies : boolean, optional (default=False)
+        This parametter only exists for test purposes,
+        it sets the frequencies to be negative instead of positive
 
     Returns
     -------
@@ -763,7 +765,7 @@ def make_variable_frequency_dataset(
     input_size = 3000
     fs = 100
     highest_frequency = 15
-    frequencies = rng.choice(
+    frequencies = (-1 if _negative_frequecies else 1) * rng.choice(
         highest_frequency, size=(n_classes, n_frequencies), replace=False
     )
 
