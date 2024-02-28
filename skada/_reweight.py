@@ -10,7 +10,7 @@ import warnings
 import numpy as np
 from scipy.stats import multivariate_normal
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics.pairwise import pairwise_kernels, KERNEL_PARAMS
+from sklearn.metrics.pairwise import pairwise_distances, pairwise_kernels, KERNEL_PARAMS
 from sklearn.model_selection import check_cv
 from sklearn.neighbors import KernelDensity
 from sklearn.svm import SVC
@@ -1095,9 +1095,9 @@ class MMDTarSReweightAdapter(BaseAdapter):
                 source_weights = self.source_weights_
             else:
                 # get the nearest neighbor in the source domain
-                C = pairwise_kernels(X[source_idx], self.X_source_)
+                C = pairwise_distances(X[source_idx], self.X_source_)
                 idx = np.argmin(C, axis=1)
-                source_weights = self.weights_[idx]
+                source_weights = self.source_weights_[idx]
             source_idx = np.where(source_idx)
             weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
             weights[source_idx] = source_weights
