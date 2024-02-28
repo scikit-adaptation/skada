@@ -26,7 +26,7 @@ from skada.utils import check_X_y_domain, source_target_split
 )
 def test_make_dataset_from_moons_distribution(noise):
     if noise == "array":
-        Noise = np.ones(50)
+        Noise = (0, 1)
     else:
         Noise = noise
     X, y, sample_domain = make_dataset_from_moons_distribution(
@@ -71,7 +71,7 @@ def test_make_dataset_from_moons_distribution(noise):
 )
 def test_make_dataset_from_moons_distribution_array_pos(noise):
     if noise == "array":
-        Noise = np.ones(50)
+        Noise = (0, 1)
     else:
         Noise = noise
     X, y, sample_domain = make_dataset_from_moons_distribution(
@@ -162,7 +162,7 @@ def test_make_dataset_from_multi_moons_distribution():
 )
 def test_make_shifted_blobs(noise):
     if noise == "array":
-        Noise = np.ones(50)
+        Noise = (0, 1)
     else:
         Noise = noise
     cluster_stds = np.array([0.05, 0.2, 0.4])
@@ -190,7 +190,8 @@ def test_make_shifted_blobs(noise):
     assert np.unique(y_target).shape == (3,), "Unexpected number of cluster"
     if noise is None:
         assert_almost_equal((X_target - X_source), 0.10, 1, "Unexpected std")
-    # There are no checks for the std when there is noise
+    # There are no tests concerning std when there is noise
+
 
     dataset = make_shifted_blobs(
         n_samples=50,
@@ -214,7 +215,7 @@ def test_make_shifted_blobs(noise):
 )
 def test_make_shifted_datasets(shift, noise):
     if noise == "array":
-        Noise = np.ones(10 * 8)
+        Noise = (0, 1)
     else:
         Noise = noise
     X, y, sample_domain = make_shifted_datasets(
@@ -384,7 +385,7 @@ def test_make_subspace_datasets():
 )
 def test_make_variable_frequency_dataset(negative_frequecies, noise):
     if noise == "array":
-        Noise = np.ones(3 * 10)
+        Noise = (0, 1)
     else:
         Noise = noise
     X, y, sample_domain = make_variable_frequency_dataset(
