@@ -1,5 +1,5 @@
 """
-Plot for the dasvm estimator
+Plot for the DASVM classifier
 ======================
 
 This example illustrates the dsvm method from [21].
@@ -40,10 +40,12 @@ xlim = (-1.5, 2.4)
 ylim = (-1, 1.3)
 
 # %%
-# We generate our dataset
+# We generate our 2D dataset with 2 classes
 # ------------------------------------------
 #
-# We generate a simple 2D covariate shift dataset.
+# We generate a simple 2D dataset from moon distribution, where source and target
+# are not taken from the same location in the moons. This dataset present a covariate
+# shift.
 
 X, y, sample_domain = make_dataset_from_moons_distribution(
     pos_source=[0.1, 0.2, 0.3, 0.4],
@@ -66,7 +68,7 @@ Xs, Xt, ys, yt = source_target_split(
 # As we can see, the source and target datasets have different
 # distributions for the points' positions but have the same
 # labels for the same x-values.
-# We are then in the case of covariate shift
+# We are then in the case of covariate shift.
 
 figure, axis = plt.subplots(1, 2, figsize=(10, 4))
 
@@ -90,7 +92,7 @@ figure.suptitle("data points", fontsize=20)
 # The main problem here is that we only know the distribution of the points
 # from the target dataset, our goal is to label it.
 #
-# The algorithm of the dasvm consist in fitting multiple base_estimator (SVC) by:
+# The algorithm of the DASVM consist in fitting multiple base_estimator (SVC) by:
 #     - removing from the training dataset (if possible)
 #       `k` points from the source dataset for which the current
 #       estimator is doing well
@@ -102,7 +104,7 @@ figure.suptitle("data points", fontsize=20)
 #     - semi-labeling points that were added to the training set
 #       and came from the target dataset
 #     - fit a new estimator on this training set
-# Here we plot the progression of the SVC classifier when training with the dasvm
+# Here we plot the progression of the SVC classifier when training with the DASVM
 # algorithm
 
 
@@ -198,7 +200,7 @@ axis[-1].legend(
 #
 # Here we show 4 states from our algorithm, At first we are only given source
 # data points with label (which are circle, in colors showing the label), and
-# taget datapoints that have no labels (which are represented as squares, in
+# target datapoints that have no labels (which are represented as squares, in
 # gray when they have no labels)
 #
 # As we go further in the algorithm steps, we can notice that more and more of
@@ -226,6 +228,6 @@ scores = np.array([
 axis[0].set_title(
     f"Score without da methods: {scores[0]}%")
 axis[1].set_title(
-    f"Score with dasvm: {scores[1]}%")
+    f"Score with DASVM: {scores[1]}%")
 figure.suptitle("predictions")
 plt.show()
