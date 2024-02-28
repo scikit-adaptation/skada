@@ -1,5 +1,5 @@
 
-# Quickstart
+# Users Guide
 
 The core concept introduced with this API are the following:
 * `sample_domain` labels
