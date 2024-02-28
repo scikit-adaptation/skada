@@ -38,13 +38,13 @@ from skada import (
 # while taking those weights into account, so that the fitted estimator is
 # well suitted to predicting labels from points drawn from the target distribution.
 
-RANDOM_SEED = 42
-
 # %%
 # We generate our 2D dataset with 2 classes
 # ------------------------------------------
 #
 # We generate a simple 2D dataset with covariate shift
+
+RANDOM_SEED = 42
 
 X, y, sample_domain = make_shifted_datasets(
     n_samples_source=50,
@@ -107,8 +107,15 @@ ax.set_xticks(()), ax.set_yticks(())
 ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
 
 # We create a dict to store scores:
-Scores = {}
+scores_dict = {}
 
+# %%
+#     Illustration of the problem with no domain adaptation
+# ------------------------------------------
+#
+# When not using domain adaptatiion, the classifier won't train on
+# data that is distributed as the target sample domain, it will thus
+# not be performing optimaly.
 
 def Create_section(
         clf,
@@ -161,6 +168,7 @@ def Create_section(
         size=15,
         horizontalalignment="right",
     )
+    scores_dict[name] = score
 
     ax = axes[1]
 
@@ -178,15 +186,6 @@ def Create_section(
     ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
     ax.set_title("obtained weights")
     figure.suptitle(suptitle)
-
-# %%
-#     Illustration of the problem with no domain adaptation
-# ------------------------------------------
-#
-# When not using domain adaptatiion, the classifier won't train on
-# data that is distributed as the target sample domain, it will thus
-# not be performing optimaly.
-
 
 Create_section(
     LogisticRegression(), "Without da",
@@ -271,15 +270,18 @@ Create_section(
         laplace_smoothing=True),
     "1NN Reweight Density")
 
-plt.tight_layout()
-plt.show()
-
 # %%
-#     Plots of the methods
+#     Finally we can see the resulting scores:
 # ------------------------------------------
-#
-# First we plotted the dataset, and then each reweighting methods,
-# On the left part we can see the prediction made by the dapipeline (mostly
-# composed of a logistic regression classifier and the reweighting adapter).
-# And on the right plots, we have plotted the the source dataset with the weights
-# that have been obtained by the reweighting adapter
+
+def print_as_table(scores):
+    keys = list(scores.keys())
+    lenghts = [len(k) for k in keys]
+    max_lenght = max(lenghts)
+    for k in keys:
+        print(f"{k}{' '*(max_lenght - len(k))} | ", end="")
+        print(f"{scores[k]*100}{' '*(6-len(str(scores[k]*100)))}%")
+
+print_as_table(scores_dict)
+
+plt.show()
