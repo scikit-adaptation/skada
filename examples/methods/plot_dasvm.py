@@ -1,5 +1,5 @@
 """
-Plot for the DASVM classifier
+DASVM classifier example
 ======================
 
 This example illustrates the dsvm method from [21].
@@ -31,7 +31,7 @@ RANDOM_SEED = 42
 
 # base_estimator can be any classifier equipped with `decision_function` such as:
 # SVC(kernel='poly'), SVC(kernel='linear'), LogisticRegression(random_state=0), etc...
-# however the estimator has been created only for SVC
+# however the estimator has been created only for SVC.
 base_estimator = SVC()
 
 target_marker = "s"
@@ -93,19 +93,19 @@ figure.suptitle("data points", fontsize=20)
 # from the target dataset, our goal is to label it.
 #
 # The algorithm of the DASVM consist in fitting multiple base_estimator (SVC) by:
-#     - removing from the training dataset (if possible)
+#     - Removing from the training dataset (if possible)
 #       `k` points from the source dataset for which the current
 #       estimator is doing well
-#     - adding to the training dataset (if possible) `k`
+#     - Adding to the training dataset (if possible) `k`
 #       points from the target dataset for which out current
 #       estimator is not so sure about it's prediction (those
 #       are target points in the margin band, that are close to
 #       the margin)
-#     - semi-labeling points that were added to the training set
+#     - Semi-labeling points that were added to the training set
 #       and came from the target dataset
-#     - fit a new estimator on this training set
+#     - Fit a new estimator on this training set
 # Here we plot the progression of the SVC classifier when training with the DASVM
-# algorithm
+# algorithm.
 
 
 estimator = DASVMClassifier(
@@ -205,9 +205,9 @@ axis[-1].legend(
 #
 # As we go further in the algorithm steps, we can notice that more and more of
 # the target datapoints (squares) are now labeled, while more and more of the
-# source datapoints (circles) are removed from the training set
+# source datapoints (circles) are removed from the training set.
 
-# We show the improvement of the labeling technique
+# We show the improvement of the labeling technique.
 figure, axis = plt.subplots(1, 2, figsize=(10, 4))
 semi_labels = (
     base_estimator.fit(Xs, ys).predict(Xt),
