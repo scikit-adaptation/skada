@@ -9,6 +9,7 @@ to covariate shift
 # Author: Ruben Bueno <ruben.bueno@polytechnique.edu>
 #
 # License: BSD 3-Clause
+# sphinx_gallery_thumbnail_number = 7
 
 # %% Imports
 import matplotlib.pyplot as plt
@@ -69,7 +70,7 @@ figsize = (8, 4)
 figure, axes = plt.subplots(1, 2, figsize=figsize)
 
 cm = plt.cm.RdBu
-colormap = ListedColormap(["#FF0000", "#0000FF"])
+colormap = "cool"
 ax = axes[1]
 ax.set_title("Source data")
 # Plot the source points:
@@ -118,7 +119,7 @@ scores_dict = {}
 # not be performing optimaly.
 
 
-def Create_section(
+def Plots_for(
         clf,
         name="Without da",
         suptitle=None,
@@ -186,10 +187,10 @@ def Create_section(
     ax.set_xticks(()), ax.set_yticks(())
     ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
     ax.set_title("obtained weights")
-    figure.suptitle(suptitle)
+    figure.suptitle(suptitle, fontsize=16, y=1)
 
 
-Create_section(
+Plots_for(
     LogisticRegression(), "Without da",
     suptitle="Illustration of the classifier with no da")
 
@@ -200,7 +201,7 @@ Create_section(
 # Here the adapter based on re-weighting samples using
 # density estimation.
 
-Create_section(
+Plots_for(
     ReweightDensity(
         base_estimator=LogisticRegression().set_fit_request(sample_weight=True),
         weight_estimator=KernelDensity(bandwidth=0.5),
@@ -217,7 +218,7 @@ Create_section(
 #           covariate shift by weighting the log-likelihood function.
 #           In Journal of Statistical Planning and Inference, 2000.
 
-Create_section(
+Plots_for(
     GaussianReweightDensity(LogisticRegression().set_fit_request(sample_weight=True)),
     "Gaussian Reweight Density")
 
@@ -231,7 +232,7 @@ Create_section(
 #            covariate shift by weighting the log-likelihood function.
 #            In Journal of Statistical Planning and Inference, 2000.
 
-Create_section(
+Plots_for(
     DiscriminatorReweightDensity(
         LogisticRegression().set_fit_request(sample_weight=True)),
     "Discr. Reweight Density")
@@ -250,7 +251,7 @@ Create_section(
 #           and Its Application to Covariate Shift Adaptation.
 #           In NeurIPS, 2007.
 
-Create_section(
+Plots_for(
     KLIEP(
         LogisticRegression().set_fit_request(
             sample_weight=True), gamma=[1, 0.1, 0.001]),
@@ -266,7 +267,7 @@ Create_section(
 #           In 2012 IEEE International Workshop on Machine
 #           Learning for Signal Processing, pages 1–6. IEEE
 
-Create_section(
+Plots_for(
     NearestNeighborReweightDensity(
         LogisticRegression().set_fit_request(sample_weight=True),
         laplace_smoothing=True),
