@@ -29,6 +29,8 @@ from ._reweight import (
     GaussianReweightDensity,
     KLIEPAdapter,
     KLIEP,
+    KMMAdapter,
+    KMM,
     ReweightDensityAdapter,
     ReweightDensity,
 )
@@ -72,6 +74,8 @@ __all__ = [
     "GaussianReweightDensity",
     "KLIEPAdapter",
     "KLIEP",
+    "KMMAdapter",
+    "KMM",
     "ReweightDensityAdapter",
     "ReweightDensity",
 

@@ -11,6 +11,7 @@ from itertools import chain
 
 from sklearn.utils import check_array, check_consistent_length
 from sklearn.utils.multiclass import type_of_target
+from scipy.optimize import minimize, LinearConstraint
 
 from skada._utils import _check_y_masking
 from skada._utils import (
@@ -218,6 +219,49 @@ def extract_source_indices(sample_domain):
 
     source_idx = (sample_domain >= 0)
     return source_idx
+
+
+def extract_domains_indices(sample_domain, split_source_target=False):
+    """Extract the indices of the specific
+    domain samples.
+
+    Parameters:
+    ----------
+    sample_domain : array-like of shape (n_samples,)
+        Array specifying the domain labels for each sample.
+    split_source_target : bool, optional (default=False)
+        Whether to split the source and target domains.
+
+    Returns:
+    ----------
+    domains_idx : dict
+        A dictionary where keys are unique domain labels
+        and values are indexes of the samples belonging to
+        the corresponding domain.
+    If split_source_target is True, then two dictionaries are returned:
+        - source_idx: keys >= 0
+        - target_idx: keys < 0
+    """
+    sample_domain = check_array(
+        sample_domain,
+        dtype=np.int32,
+        ensure_2d=False,
+        input_name='sample_domain'
+    )
+
+    domain_idx = {}
+
+    unique_domains = np.unique(sample_domain)
+    for domain in unique_domains:
+        source_idx = (sample_domain == domain)
+        domain_idx[domain] = np.flatnonzero(source_idx)
+
+    if split_source_target:
+        source_domain_idx = {k: v for k, v in domain_idx.items() if k >= 0}
+        target_domain_idx = {k: v for k, v in domain_idx.items() if k < 0}
+        return source_domain_idx, target_domain_idx
+    else:
+        return domain_idx
 
 
 def source_target_split(
@@ -469,3 +513,119 @@ def _merge_arrays(
         output[sample_domain < 0] = array_target
 
     return output
+
+
+def qp_solve(Q, c=None, A=None, b=None, Aeq=None, beq=None, lb=None, ub=None,
+             x0=None, tol=1e-6, max_iter=1000, verbose=False, log=False):
+    r""" Solves a standard quadratic program
+
+    Solve the following optimization problem:
+
+    .. math::
+        \min_x \quad  \frac{1}{2}x^TQx + x^Tc
+
+
+        lb <= x <= ub
+
+        Ax <= b
+
+        A_{eq} x = b_{eq}
+
+    Return val as None if optmization failed.
+
+    All constraint parameters are optional, they will be ignore is left at
+    default value None.
+
+    Parameters
+    ----------
+    Q : (d,d) ndarray, float64, optional
+        Quadratic cost matrix matrix
+    c : (d,) ndarray, float64, optional
+        Linear cost vector
+    A : (n,d) ndarray, float64, optional
+        Linear inequality constraint matrix.
+    b : (n,) ndarray, float64, optional
+        Linear inequality constraint vector.
+    Aeq : (n,d) ndarray, float64, optional
+        Linear equality constraint matrix .
+    beq : (n,) ndarray, float64, optional
+        Linear equality constraint vector.   .
+    lb : (d) ndarray, float64, optional
+        Lower bound constraint, -np.inf if not provided.
+    ub : (d) ndarray, float64, optional
+        Upper bound constraint, np.inf if not provided.
+    x0 : (d,) ndarray, float64, optional
+        Initialization. Ones by default.
+    tol : float, optional
+        Tolerance for termination.
+    max_iter : int, optional
+        Maximum number of iterations to perform.
+    verbose : boolean, optional
+        Print optimization informations.
+    log : boolean, optional
+        Return a dictionary with optim informations in adition to x and val
+
+    Returns
+    -------
+    x: (d,) ndarray
+        Optimal solution x
+    val: float
+        optimal value of the objective (None if optimization error)
+    log: dict
+        Optional log output
+    """
+    # Constraints
+    constraints = []
+    if A is not None:
+        constraints.append(LinearConstraint(A, ub=b))
+    if Aeq is not None:
+        constraints.append(LinearConstraint(Aeq, lb=beq, ub=beq))
+
+    # Objective function
+    if c is None:
+        def func(x):
+            return (1/2) * x @ (Q @ x)
+
+        def jac(x):
+            return Q @ x
+    else:
+        def func(x):
+            return (1/2) * x @ (Q @ x) + x @ c
+
+        def jac(x):
+            return Q @ x + c
+
+    if x0 is None:
+        x0 = np.ones(Q.shape[0])
+
+    # Bounds
+    if lb is None and ub is None:
+        bounds = None
+    else:
+        if lb is None:
+            bounds = [(-np.inf, b) for b in ub]
+        elif ub is None:
+            bounds = [(b, np.inf) for b in lb]
+        else:
+            bounds = [(b1, b2) for b1, b2 in zip(lb, ub)]
+
+    # Optimization
+    results = minimize(func,
+                       x0=x0,
+                       method="SLSQP",
+                       jac=jac,
+                       bounds=bounds,
+                       constraints=constraints,
+                       tol=tol,
+                       options={"maxiter": max_iter,
+                                "disp": verbose})
+
+    if not results.success:
+        warnings.warn(results.message)
+
+    outputs = (results['x'], results['fun'])
+
+    if log:
+        outputs += (results,)
+
+    return outputs

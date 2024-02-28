@@ -9,14 +9,14 @@ import warnings
 import numpy as np
 from scipy.stats import multivariate_normal
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics.pairwise import pairwise_kernels
+from sklearn.metrics.pairwise import pairwise_kernels, KERNEL_PARAMS
 from sklearn.model_selection import check_cv
 from sklearn.neighbors import KernelDensity
 from sklearn.utils import check_random_state
 from sklearn.utils.validation import check_is_fitted
 
 from .base import AdaptationOutput, BaseAdapter, clone
-from .utils import check_X_domain, source_target_split, extract_source_indices
+from .utils import check_X_domain, source_target_split, extract_source_indices, qp_solve
 from ._utils import _estimate_covariance
 from ._pipeline import make_da_pipeline
 
@@ -90,9 +90,9 @@ class ReweightDensityAdapter(BaseAdapter):
         output : :class:`skada.base.AdaptationOutput`
             Dictionary-like object, with the following attributes.
 
-            X_t : array-like, shape (n_samples, n_components)
+            X : array-like, shape (n_samples, n_components)
                 The data (same as X).
-            weights : array-like, shape (n_samples,)
+            sample_weight : array-like, shape (n_samples,)
                 The weights of the samples.
         """
         check_is_fitted(self)
@@ -110,7 +110,7 @@ class ReweightDensityAdapter(BaseAdapter):
             weights[source_idx] = source_weights
         else:
             weights = None
-        return AdaptationOutput(X=X, sample_weight=weights)
+        return AdaptationOutput(X, sample_weight=weights)
 
 
 def ReweightDensity(
@@ -221,9 +221,9 @@ class GaussianReweightDensityAdapter(BaseAdapter):
         output : :class:`skada.base.AdaptationOutput`
             Dictionary-like object, with the following attributes.
 
-            X_t : array-like, shape (n_samples, n_components)
+            X : array-like, shape (n_samples, n_components)
                 The data (same as X).
-            weights : array-like, shape (n_samples,)
+            sample_weight : array-like, shape (n_samples,)
                 The weights of the samples.
         """
         check_is_fitted(self)
@@ -244,7 +244,7 @@ class GaussianReweightDensityAdapter(BaseAdapter):
             weights[source_idx] = source_weights
         else:
             weights = None
-        return AdaptationOutput(X=X, sample_weight=weights)
+        return AdaptationOutput(X, sample_weight=weights)
 
 
 def GaussianReweightDensity(
@@ -359,9 +359,9 @@ class DiscriminatorReweightDensityAdapter(BaseAdapter):
         output : :class:`skada.base.AdaptationOutput`
             Dictionary-like object, with the following attributes.
 
-            X_t : array-like, shape (n_samples, n_components)
+            X : array-like, shape (n_samples, n_components)
                 The data (same as X).
-            weights : array-like, shape (n_samples,)
+            sample_weight : array-like, shape (n_samples,)
                 The weights of the samples.
         """
         check_is_fitted(self)
@@ -376,7 +376,7 @@ class DiscriminatorReweightDensityAdapter(BaseAdapter):
             weights[source_idx] = source_weights
         else:
             weights = None
-        return AdaptationOutput(X=X, sample_weight=weights)
+        return AdaptationOutput(X, sample_weight=weights)
 
 
 def DiscriminatorReweightDensity(
@@ -589,9 +589,9 @@ class KLIEPAdapter(BaseAdapter):
         output : :class:`skada.base.AdaptationOutput`
             Dictionary-like object, with the following attributes.
 
-            X_t : array-like, shape (n_samples, n_components)
+            X : array-like, shape (n_samples, n_components)
                 The data (same as X).
-            weights : array-like, shape (n_samples,)
+            sample_weight : array-like, shape (n_samples,)
                 The weights of the samples.
         """
         check_is_fitted(self)
@@ -611,7 +611,7 @@ class KLIEPAdapter(BaseAdapter):
             weights[source_idx] = source_weights
         else:
             weights = None
-        return AdaptationOutput(X=X, sample_weight=weights)
+        return AdaptationOutput(X, sample_weight=weights)
 
 
 def KLIEP(
@@ -666,6 +666,260 @@ def KLIEP(
         KLIEPAdapter(
             gamma=gamma, cv=cv, n_centers=n_centers, tol=tol,
             max_iter=max_iter, random_state=random_state
+        ),
+        base_estimator,
+    )
+
+
+class KMMAdapter(BaseAdapter):
+    """Kernel Mean Matching (KMM).
+
+    The idea of KMM is to find an importance estimate w(x) such that
+    the Maximum Mean Discrepancy (MMD) divergence between the target
+    input density p_target(x) and the reweighted source input density
+    w(x)p_source(x) is minimized.
+
+    See [1]_ for details.
+
+    Parameters
+    ----------
+    kernel : str, default="rbf"
+        Kernel
+    gamma : float, None
+        Parameters for the kernels.
+    degree : int, 3
+        Parameters for the kernels.
+    coef0 : float, default
+        Parameters for the kernels.
+    B : float, default=1000.
+        Weight upper bound.
+    eps : float, default=None
+        KMM tolerance parameter. If `None`, eps is set to
+        (sqrt(n_samples_source) - 1) / sqrt(n_samples_source).
+    tol : float, default=1e-6
+        Tolerance for the stopping criterion in the optimization.
+    max_iter : int, default=100
+        Number of maximum iteration before stopping the optimization.
+    smooth_weights : bool, default=False
+        If True, the weights are "smoothed" using the kernel function.
+
+    Attributes
+    ----------
+    `source_weights_` : array-like, shape (n_samples,)
+        The learned source weights.
+    `X_source_` : array-like, shape (n_samples, n_features)
+        The source data.
+
+    References
+    ----------
+    .. [1] J. Huang, A. Gretton, K. Borgwardt, B. Schölkopf and A. J. Smola.
+           'Correcting sample selection bias by unlabeled data.'
+           In NIPS, 2007.
+    """
+
+    def __init__(
+        self,
+        kernel="rbf",
+        gamma=None,
+        degree=3,
+        coef0=1,
+        B=1000.,
+        eps=None,
+        tol=1e-6,
+        max_iter=1000,
+        smooth_weights=False,
+    ):
+        super().__init__()
+        self.kernel = kernel
+        self.gamma = gamma
+        self.degree = degree
+        self.coef0 = coef0
+        self.B = B
+        self.eps = eps
+        self.tol = tol
+        self.max_iter = max_iter
+        self.smooth_weights = smooth_weights
+
+        if kernel not in KERNEL_PARAMS:
+            kernel_list = str(list(KERNEL_PARAMS.keys()))
+            raise ValueError("`kernel` argument should be included in %s,"
+                             " got '%s'" % (kernel_list, str(kernel)))
+
+    def fit(self, X, y=None, sample_domain=None, **kwargs):
+        """Fit adaptation parameters.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
+        X, sample_domain = check_X_domain(
+            X,
+            sample_domain,
+            allow_multi_source=True,
+            allow_multi_target=True
+        )
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+
+        self.source_weights_ = self._weights_optimization(X_source, X_target)
+        self.X_source_ = X_source
+
+        return self
+
+    def _weights_optimization(self, X_source, X_target):
+        """Weight optimization"""
+        Kss = pairwise_kernels(X_source,
+                               metric=self.kernel,
+                               filter_params=True,
+                               gamma=self.gamma,
+                               degree=self.degree,
+                               coef0=self.coef0)
+        Kst = pairwise_kernels(X_source,
+                               X_target,
+                               metric=self.kernel,
+                               filter_params=True,
+                               gamma=self.gamma,
+                               degree=self.degree,
+                               coef0=self.coef0)
+        Ns = Kss.shape[0]
+        kappa = Ns * Kst.mean(axis=1)
+
+        if self.eps is None:
+            eps = (np.sqrt(Ns) - 1) / np.sqrt(Ns)
+        else:
+            eps = self.eps
+
+        A = np.stack([np.ones(Ns), -np.ones(Ns)], axis=0)
+        b = np.array([Ns*(1+eps), -Ns*(1-eps)])
+
+        weights, _ = qp_solve(Kss, -kappa, A, b,
+                              lb=np.zeros(Ns),
+                              ub=np.ones(Ns)*self.B,
+                              tol=self.tol,
+                              max_iter=self.max_iter)
+
+        weights = np.array(weights).ravel()
+        return weights
+
+    def adapt(self, X, y=None, sample_domain=None, **kwargs):
+        """Predict adaptation (weights, sample or labels).
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        X_t : array-like, shape (n_samples, n_components)
+            The data (same as X).
+        y_t : array-like, shape (n_samples,)
+            The labels (same as y).
+        weights : array-like, shape (n_samples,)
+            The weights of the samples.
+        """
+        X, sample_domain = check_X_domain(
+            X,
+            sample_domain
+        )
+
+        source_idx = extract_source_indices(sample_domain)
+
+        if source_idx.sum() > 0:
+            if (np.array_equal(self.X_source_, X[source_idx])
+               and not self.smooth_weights):
+                source_weights = self.source_weights_
+            else:
+                K = pairwise_kernels(X[source_idx], self.X_source_,
+                                     metric=self.kernel, filter_params=True,
+                                     gamma=self.gamma, degree=self.degree,
+                                     coef0=self.coef0)
+                source_weights = K.dot(self.source_weights_)
+            source_idx = np.where(source_idx)
+            weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
+            weights[source_idx] = source_weights
+        else:
+            weights = None
+        return AdaptationOutput(X=X, sample_weight=weights)
+
+
+def KMM(
+    base_estimator=None,
+    kernel="rbf",
+    gamma=None,
+    degree=3,
+    coef0=1,
+    B=1000.,
+    eps=None,
+    tol=1e-6,
+    max_iter=1000,
+    smooth_weights=False,
+):
+    """KMM pipeline adapter and estimator.
+
+    see [1]_ for details.
+
+    Parameters
+    ----------
+    base_estimator : sklearn estimator, default=LogisticRegression()
+        estimator used for fitting and prediction
+    kernel : str, default="rbf"
+        Kernel
+    gamma : float, None
+        Parameters for the kernels.
+    degree : int, 3
+        Parameters for the kernels.
+    coef0 : float, default
+        Parameters for the kernels.
+    B : float, default=1000.
+        Weight upper bound.
+    eps : float, default=None
+        KMM tolerance parameter. If `None`, eps is set to
+        (sqrt(n_samples_source) - 1) / sqrt(n_samples_source).
+    tol : float, default=1e-6
+        Tolerance for the stopping criterion in the optimization.
+    max_iter : int, default=100
+        Number of maximum iteration before stopping the optimization.
+    smooth_weights : bool, default=False
+        If True, the weights are "smoothed" using the kernel function.
+
+    Returns
+    -------
+    pipeline : sklearn pipeline
+        Pipeline containing the KMM adapter and the base estimator.
+
+    References
+    ----------
+    .. [1] J. Huang, A. Gretton, K. Borgwardt, B. Schölkopf and A. J. Smola.
+           'Correcting sample selection bias by unlabeled data.'
+           In NIPS, 2007.
+    """
+    if base_estimator is None:
+        base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
+    return make_da_pipeline(
+        KMMAdapter(
+            kernel=kernel,
+            gamma=gamma,
+            degree=degree,
+            coef0=coef0,
+            B=B,
+            eps=eps,
+            tol=tol,
+            max_iter=max_iter,
+            smooth_weights=smooth_weights
         ),
         base_estimator,
     )
