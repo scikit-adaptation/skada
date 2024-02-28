@@ -44,8 +44,8 @@ ylim = (-1, 1.3)
 # ------------------------------------------
 #
 # We generate a simple 2D dataset from moon distribution, where source and target
-# are not taken from the same location in the moons. This dataset present a covariate
-# shift.
+# are not taken from the same location in the moons. This dataset thus present
+# covariate shift.
 
 X, y, sample_domain = make_dataset_from_moons_distribution(
     pos_source=[0.1, 0.2, 0.3, 0.4],
@@ -183,7 +183,7 @@ for i in list(range(0, len(estimator.estimators), K)) + [-1]:
         i = len(estimator.estimators)
     axis[j].set_title(f"predictions at step {i}")
 
-figure.suptitle("evolutions of predictions", fontsize=20)
+figure.suptitle("evolutions of the predictions", fontsize=20)
 
 margin_line = mlines.Line2D(
     [], [], color='black', marker='_', markersize=15, label='margin')
