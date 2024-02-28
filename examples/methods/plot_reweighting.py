@@ -112,7 +112,7 @@ ax.scatter(
     cmap=colormap,
     alpha=0.5,
 )
-figure.suptitle("Plot of the dataset")
+figure.suptitle("Plot of the dataset", fontsize=16, y=1)
 ax.set_xticks(()), ax.set_yticks(())
 ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
 
@@ -174,7 +174,7 @@ def plots_for(
 
     ax.set_xticks(()), ax.set_yticks(())
     ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
-    ax.set_title(f"decision_boundaries for {name}")
+    ax.set_title(f"Decision boundaries for {name}")
     ax.text(
         x_max - 0.3,
         y_min + 0.3,
