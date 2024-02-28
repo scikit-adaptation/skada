@@ -808,7 +808,7 @@ class KMMAdapter(BaseAdapter):
         A = np.stack([np.ones(Ns), -np.ones(Ns)], axis=0)
         Aub = np.array([Ns*(1+eps), -Ns*(1-eps)])
 
-        weights, _ = qp_solve(Kss, -kappa, A, Aub=b,
+        weights, _ = qp_solve(Kss, -kappa, A, Aub=Aub,
                               lb=np.zeros(Ns),
                               ub=np.ones(Ns)*self.B,
                               tol=self.tol,
