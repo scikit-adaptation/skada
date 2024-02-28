@@ -7,6 +7,8 @@
 
 import pytest
 
+import numbers
+
 import numpy as np
 from numpy.testing import assert_almost_equal
 
@@ -21,20 +23,19 @@ from skada.utils import check_X_y_domain, source_target_split
 
 
 @pytest.mark.parametrize(
-    "noise",
-    [None, 1, "array"],
+    "pos_source, pos_target, noise",
+    [(pos_source, pos_target, noise) 
+    for pos_source in [0.1, [0.1, 0.3]]
+    for pos_target in [0.9, [0.7, 0.9]]
+    for noise in [None, 1, [0, 1]]],
 )
-def test_make_dataset_from_moons_distribution(noise):
-    if noise == "array":
-        Noise = (0, 1)
-    else:
-        Noise = noise
+def test_make_dataset_from_moons_distribution(pos_source, pos_target, noise):
     X, y, sample_domain = make_dataset_from_moons_distribution(
         n_samples_source=50,
         n_samples_target=20,
-        noise=Noise,
-        pos_source=0.1,
-        pos_target=0.9,
+        noise=noise,
+        pos_source=pos_source,
+        pos_target=pos_target,
         random_state=0,
         return_X_y=True,
         return_dataset=False,
@@ -44,62 +45,21 @@ def test_make_dataset_from_moons_distribution(noise):
         X, y, sample_domain=sample_domain
     )
 
-    assert X_source.shape == (2 * 50, 2), "X source shape mismatch"
-    assert y_source.shape == (2 * 50,), "y source shape mismatch"
+    pos_source_size = (
+        1 if isinstance(pos_source, numbers.Real) else len(pos_source))
+    pos_target_size = (
+        1 if isinstance(pos_target, numbers.Real) else len(pos_target))
+    assert X_source.shape == (pos_source_size * 2 * 50, 2), "X source shape mismatch"
+    assert y_source.shape == (pos_source_size * 2 * 50,), "y source shape mismatch"
     assert np.unique(y_source).shape == (2,), "Unexpected number of cluster"
-    assert X_target.shape == (2 * 20, 2), "X target shape mismatch"
-    assert y_target.shape == (2 * 20,), "y target shape mismatch"
+    assert X_target.shape == (pos_target_size * 2 * 20, 2), "X target shape mismatch"
+    assert y_target.shape == (pos_target_size * 2 * 20,), "y target shape mismatch"
     assert np.unique(y_target).shape == (2,), "Unexpected number of cluster"
 
     dataset = make_dataset_from_moons_distribution(
         n_samples_source=50,
         n_samples_target=20,
-        noise=Noise,
-        pos_source=0.1,
-        pos_target=0.9,
-        random_state=0,
-        return_X_y=True,
-        return_dataset=True,
-    )
-    assert isinstance(dataset, DomainAwareDataset), \
-        "return_dataset=True but a dataset has not been returned"
-
-
-@pytest.mark.parametrize(
-    "noise",
-    [None, 1, "array"],
-)
-def test_make_dataset_from_moons_distribution_array_pos(noise):
-    if noise == "array":
-        Noise = (0, 1)
-    else:
-        Noise = noise
-    X, y, sample_domain = make_dataset_from_moons_distribution(
-        n_samples_source=50,
-        n_samples_target=20,
-        noise=Noise,
-        pos_source=[0.1, 0.4],
-        pos_target=[0.7, 0.9],
-        random_state=0,
-        return_X_y=True,
-        return_dataset=False,
-    )
-    X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
-    X_source, X_target, y_source, y_target = source_target_split(
-        X, y, sample_domain=sample_domain
-    )
-
-    assert X_source.shape == (4 * 50, 2), "X source shape mismatch"
-    assert y_source.shape == (4 * 50,), "y source shape mismatch"
-    assert np.unique(y_source).shape == (2,), "Unexpected number of cluster"
-    assert X_target.shape == (4 * 20, 2), "X target shape mismatch"
-    assert y_target.shape == (4 * 20,), "y target shape mismatch"
-    assert np.unique(y_target).shape == (2,), "Unexpected number of cluster"
-
-    dataset = make_dataset_from_moons_distribution(
-        n_samples_source=50,
-        n_samples_target=20,
-        noise=Noise,
+        noise=noise,
         pos_source=0.1,
         pos_target=0.9,
         random_state=0,
@@ -158,20 +118,16 @@ def test_make_dataset_from_multi_moons_distribution():
 
 @pytest.mark.parametrize(
     "noise",
-    [None, 1, "array"],
+    [None, 1, [0, 1]],
 )
 def test_make_shifted_blobs(noise):
-    if noise == "array":
-        Noise = (0, 1)
-    else:
-        Noise = noise
     cluster_stds = np.array([0.05, 0.2, 0.4])
     cluster_centers = np.array([[0.0, 0.0], [1.0, 1.0], [0.0, 1.0]])
     X, y, sample_domain = make_shifted_blobs(
         n_samples=50,
         n_features=2,
         shift=0.10,
-        noise=Noise,
+        noise=noise,
         centers=cluster_centers,
         cluster_std=cluster_stds,
         random_state=None,
@@ -196,7 +152,7 @@ def test_make_shifted_blobs(noise):
         n_samples=50,
         n_features=2,
         shift=0.10,
-        noise=Noise,
+        noise=noise,
         centers=cluster_centers,
         cluster_std=cluster_stds,
         random_state=None,
@@ -210,18 +166,14 @@ def test_make_shifted_blobs(noise):
     "shift, noise",
     [(shift, noise)
         for shift in ["covariate_shift", "target_shift", "concept_drift", "subspace"]
-        for noise in [None, 1, "array"]],
+        for noise in [None, 1, [0, 1]]],
 )
 def test_make_shifted_datasets(shift, noise):
-    if noise == "array":
-        Noise = (0, 1)
-    else:
-        Noise = noise
     X, y, sample_domain = make_shifted_datasets(
         n_samples_source=10,
         n_samples_target=10,
         shift=shift,
-        noise=Noise,
+        noise=noise,
         label="binary",
         return_dataset=False,
     )
@@ -248,7 +200,7 @@ def test_make_shifted_datasets(shift, noise):
         n_samples_source=10,
         n_samples_target=10,
         shift=shift,
-        noise=Noise,
+        noise=noise,
         label="binary",
         return_dataset=True,
     )
@@ -377,16 +329,10 @@ def test_make_subspace_datasets():
 
 
 @pytest.mark.parametrize(
-    "negative_frequecies, noise",
-    [(negative_frequecies, noise)
-        for negative_frequecies in [False, True]
-        for noise in [None, 1, "array"]],
+    "noise",
+    [None, 1, [0, 1]],
 )
-def test_make_variable_frequency_dataset(negative_frequecies, noise):
-    if noise == "array":
-        Noise = (0, 1)
-    else:
-        Noise = noise
+def test_make_variable_frequency_dataset(noise):
     X, y, sample_domain = make_variable_frequency_dataset(
         n_samples_source=10,
         n_samples_target=5,
@@ -394,10 +340,9 @@ def test_make_variable_frequency_dataset(negative_frequecies, noise):
         n_classes=3,
         delta_f=1,
         band_size=1,
-        noise=Noise,
+        noise=noise,
         random_state=None,
         return_dataset=False,
-        _negative_frequecies=negative_frequecies
     )
     X, y, sample_domain = check_X_y_domain(
         X,
@@ -423,10 +368,9 @@ def test_make_variable_frequency_dataset(negative_frequecies, noise):
         n_classes=3,
         delta_f=1,
         band_size=1,
-        noise=Noise,
+        noise=noise,
         random_state=None,
         return_dataset=True,
-        _negative_frequecies=negative_frequecies
     )
     assert isinstance(dataset, DomainAwareDataset), \
         "return_dataset=True but a dataset has not been returned"
