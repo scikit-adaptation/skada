@@ -2,14 +2,15 @@
 Plot comparison of reweighting methods
 ====================================================
 
-A comparison of 1NN reweighting and no da classifications
-on a custom dataset having a covariate shift
+A comparison of some reweighting methods and classifications
+with no da on a dataset having a covariate shift
 """
 
 # Author: Ruben Bueno <ruben.bueno@polytechnique.edu>
 #
 # License: BSD 3-Clause
 
+# %% Imports
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 import numpy as np
@@ -28,9 +29,16 @@ from skada import (
     KLIEP
 )
 
-# Use same random seed for multiple calls to make_datasets to
-# ensure same distributions
-RANDOM_SEED = 1
+# %%
+#     The reweighting methods
+# ------------------------------------------
+#
+# The goal of reweighting methods is to estimate some weights for the
+# source dataset in order to then fit a estimator on the source dataset,
+# while taking those weights into account, so that the fitted estimator is
+# well suitted to predicting labels from points drawn from the target distribution.
+
+RANDOM_SEED = 42
 
 names = [
     "Without da",
@@ -58,9 +66,11 @@ classifiers = [
         laplace_smoothing=True),
 ]
 
-np.random.seed(RANDOM_SEED)
-
-# We generate a simple 2D covariate shift dataset.
+# %%
+# We generate our 2D dataset with 2 classes
+# ------------------------------------------
+#
+# We generate a simple 2D dataset with covariate shift
 
 X, y, sample_domain = make_shifted_datasets(
     n_samples_source=50,
@@ -191,3 +201,13 @@ for name, clf in zip(names, classifiers):
 figure.suptitle("Comparison of the weighting da methods")
 plt.tight_layout()
 plt.show()
+
+# %%
+#     Plots of the methods
+# ------------------------------------------
+#
+# First we plotted the dataset, and then each reweighting methods,
+# On the left part we can see the prediction made by the dapipeline (mostly
+# composed of a logistic regression classifier and the reweighting adapter).
+# And on the right plots, we have plotted the the source dataset with the weights 
+# that have been obtained by the reweighting adapter
