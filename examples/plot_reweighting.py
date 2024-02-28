@@ -38,6 +38,13 @@ from skada import (
 # source dataset in order to then fit a estimator on the source dataset,
 # while taking those weights into account, so that the fitted estimator is
 # well suitted to predicting labels from points drawn from the target distribution.
+#
+# For more details, look at: 
+#        [Sugiyama et al., 2008] Sugiyama, M., Suzuki, T., Nakajima, S., Kashima, H.,
+#             von B¨unau, P., and Kawanabe, M. (2008). Direct importance estimation for
+#             covariate shift adaptation. Annals of the Institute of Statistical Mathematics,
+#             60(4):699–746.
+#             https://www.ism.ac.jp/editsec/aism/pdf/060_4_0699.pdf
 
 # %%
 # We generate our 2D dataset with 2 classes
@@ -260,6 +267,10 @@ Plots_for(
 # %%
 #     Illustration of the Nearest Neighbor reweighting method
 # ------------------------------------------
+#
+# This method estimate weight of a point in the source dataset by
+# counting the number of points in the target set that are closer to
+# it than any other points from the source dataset
 #
 # See [3] for details:
 # [4] Loog, M. (2012).
