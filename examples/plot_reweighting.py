@@ -209,5 +209,5 @@ plt.show()
 # First we plotted the dataset, and then each reweighting methods,
 # On the left part we can see the prediction made by the dapipeline (mostly
 # composed of a logistic regression classifier and the reweighting adapter).
-# And on the right plots, we have plotted the the source dataset with the weights 
+# And on the right plots, we have plotted the the source dataset with the weights
 # that have been obtained by the reweighting adapter
