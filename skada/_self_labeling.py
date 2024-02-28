@@ -1,12 +1,8 @@
 """
-    dasvm estimator
+    DASVM estimator
 ==========================================
 
-The dsvm method comes from [1].
-
-.. [1]  Domain Adaptation Problems: A DASVM Classification
-        Technique and a Circular Validation Strategy
-        Lorenzo Bruzzone, Fellow, IEEE, and Mattia Marconcini, Member, IEEE
+The DASVM method comes from [21].
 
 """
 # Author: Ruben Bueno <ruben.bueno@polytechnique.edu>

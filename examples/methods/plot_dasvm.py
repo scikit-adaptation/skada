@@ -2,7 +2,7 @@
 DASVM classifier example
 ======================
 
-This example illustrates the dsvm method from [21].
+This example illustrates the DASVM method from [21].
 
 """
 
