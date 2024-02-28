@@ -6,7 +6,8 @@ An example of the reweighting methods on a dataset subject
 to covariate shift
 """
 
-# Author: Ruben Bueno <ruben.bueno@polytechnique.edu>
+# Author:   Ruben Bueno <ruben.bueno@polytechnique.edu>
+#           Antoine de Mathelin
 #
 # License: BSD 3-Clause
 # sphinx_gallery_thumbnail_number = 7
@@ -27,7 +28,8 @@ from skada import (
     ReweightDensity,
     GaussianReweightDensity,
     DiscriminatorReweightDensity,
-    KLIEP
+    KLIEP,
+    KMM,
 )
 
 # %%
@@ -39,11 +41,11 @@ from skada import (
 # while taking those weights into account, so that the fitted estimator is
 # well suitted to predicting labels from points drawn from the target distribution.
 #
-# For more details, look at:
+# For more details, look at: 
 #        [Sugiyama et al., 2008] Sugiyama, M., Suzuki, T., Nakajima, S., Kashima, H.,
 #             von B¨unau, P., and Kawanabe, M. (2008). Direct importance estimation for
-#             covariate shift adaptation. Annals of the Institute of Statistical
-#             Mathematics, 60(4):699–746.
+#             covariate shift adaptation. Annals of the Institute of Statistical Mathematics,
+#             60(4):699–746.
 #             https://www.ism.ac.jp/editsec/aism/pdf/060_4_0699.pdf
 
 # %%
@@ -77,7 +79,7 @@ figsize = (8, 4)
 figure, axes = plt.subplots(1, 2, figsize=figsize)
 
 cm = plt.cm.RdBu
-colormap = "cool"
+colormap = "cool_r"
 ax = axes[1]
 ax.set_title("Source data")
 # Plot the source points:
@@ -125,6 +127,8 @@ scores_dict = {}
 # data that is distributed as the target sample domain, it will thus
 # not be performing optimaly.
 
+
+base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
 
 def Plots_for(
         clf,
@@ -210,7 +214,7 @@ Plots_for(
 
 Plots_for(
     ReweightDensity(
-        base_estimator=LogisticRegression().set_fit_request(sample_weight=True),
+        base_estimator=base_estimator,
         weight_estimator=KernelDensity(bandwidth=0.5),
     ),
     "Reweight Density")
@@ -226,7 +230,7 @@ Plots_for(
 #           In Journal of Statistical Planning and Inference, 2000.
 
 Plots_for(
-    GaussianReweightDensity(LogisticRegression().set_fit_request(sample_weight=True)),
+    GaussianReweightDensity(base_estimator),
     "Gaussian Reweight Density")
 
 # %%
@@ -241,7 +245,7 @@ Plots_for(
 
 Plots_for(
     DiscriminatorReweightDensity(
-        LogisticRegression().set_fit_request(sample_weight=True)),
+        base_estimator),
     "Discr. Reweight Density")
 
 # %%
@@ -270,7 +274,7 @@ Plots_for(
 #
 # This method estimate weight of a point in the source dataset by
 # counting the number of points in the target set that are closer to
-# it than any other points from the source dataset
+# it than any other points from the source dataset.
 #
 # See [3] for details:
 # [4] Loog, M. (2012).
@@ -280,9 +284,28 @@ Plots_for(
 
 Plots_for(
     NearestNeighborReweightDensity(
-        LogisticRegression().set_fit_request(sample_weight=True),
+        base_estimator,
         laplace_smoothing=True),
     "1NN Reweight Density")
+
+# %%
+#     Illustration of the Kernel Mean Matching method
+# ------------------------------------------
+#
+# This example illustrates the use of KMM method [1] to correct covariate-shift.
+#
+#     [1] J. Huang, A. Gretton, K. Borgwardt, B. Schölkopf and A. J. Smola.
+#         Correcting sample selection bias by unlabeled data. In NIPS, 2007.
+
+Plots_for(
+    KMM(base_estimator,
+        gamma=10., max_iter=1000, smooth_weights=False),
+    "Kernel Mean Matching", suptitle="Illustration of KMM without weights smoothing")
+
+Plots_for(
+    KMM(base_estimator,
+        gamma=10., max_iter=1000, smooth_weights=True),
+    "Kernel Mean Matching", suptitle="Illustration of KMM with weights smoothing")
 
 # %%
 #     Finally we can see the resulting scores:
