@@ -131,7 +131,7 @@ scores_dict = {}
 base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
 
 
-def Plots_for(
+def plots_for(
         clf,
         name="Without da",
         suptitle=None,
@@ -202,7 +202,7 @@ def Plots_for(
     figure.suptitle(suptitle, fontsize=16, y=1)
 
 
-Plots_for(
+plots_for(
     LogisticRegression(), "Without da",
     suptitle="Illustration of the classifier with no da")
 
@@ -213,7 +213,7 @@ Plots_for(
 # Here the adapter based on re-weighting samples using
 # density estimation.
 
-Plots_for(
+plots_for(
     ReweightDensity(
         base_estimator=base_estimator,
         weight_estimator=KernelDensity(bandwidth=0.5),
@@ -230,7 +230,7 @@ Plots_for(
 #           covariate shift by weighting the log-likelihood function.
 #           In Journal of Statistical Planning and Inference, 2000.
 
-Plots_for(
+plots_for(
     GaussianReweightDensity(base_estimator),
     "Gaussian Reweight Density")
 
@@ -244,7 +244,7 @@ Plots_for(
 #            covariate shift by weighting the log-likelihood function.
 #            In Journal of Statistical Planning and Inference, 2000.
 
-Plots_for(
+plots_for(
     DiscriminatorReweightDensity(
         base_estimator),
     "Discr. Reweight Density")
@@ -263,7 +263,7 @@ Plots_for(
 #           and Its Application to Covariate Shift Adaptation.
 #           In NeurIPS, 2007.
 
-Plots_for(
+plots_for(
     KLIEP(
         LogisticRegression().set_fit_request(
             sample_weight=True), gamma=[1, 0.1, 0.001]),
@@ -283,7 +283,7 @@ Plots_for(
 #           In 2012 IEEE International Workshop on Machine
 #           Learning for Signal Processing, pages 1–6. IEEE
 
-Plots_for(
+plots_for(
     NearestNeighborReweightDensity(
         base_estimator,
         laplace_smoothing=True),
@@ -298,12 +298,12 @@ Plots_for(
 #     [1] J. Huang, A. Gretton, K. Borgwardt, B. Schölkopf and A. J. Smola.
 #         Correcting sample selection bias by unlabeled data. In NIPS, 2007.
 
-Plots_for(
+plots_for(
     KMM(base_estimator,
         gamma=10., max_iter=1000, smooth_weights=False),
     "Kernel Mean Matching", suptitle="Illustration of KMM without weights smoothing")
 
-Plots_for(
+plots_for(
     KMM(base_estimator,
         gamma=10., max_iter=1000, smooth_weights=True),
     "Kernel Mean Matching", suptitle="Illustration of KMM with weights smoothing")
