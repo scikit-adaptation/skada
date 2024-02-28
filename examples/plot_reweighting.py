@@ -1,9 +1,9 @@
 """
-Plot comparison of reweighting methods
+Reweighting method example on covariate shift dataset
 ====================================================
 
-A comparison of some reweighting methods and classifications
-with no da on a dataset having a covariate shift
+An example of the reweighting methods on a dataset subject
+to covariate shift
 """
 
 # Author: Ruben Bueno <ruben.bueno@polytechnique.edu>
@@ -40,32 +40,6 @@ from skada import (
 
 RANDOM_SEED = 42
 
-names = [
-    "Without da",
-    "Reweight Density",
-    "Gaussian Reweight Density",
-    "Discr. Reweight Density",
-    "KLIEP",
-    "1NN Reweight Density",
-]
-
-classifiers = [
-    LogisticRegression(),
-    ReweightDensity(
-        base_estimator=LogisticRegression().set_fit_request(sample_weight=True),
-        weight_estimator=KernelDensity(bandwidth=0.5),
-    ),
-    GaussianReweightDensity(LogisticRegression().set_fit_request(sample_weight=True)),
-    DiscriminatorReweightDensity(
-        LogisticRegression().set_fit_request(sample_weight=True)),
-    KLIEP(
-        LogisticRegression().set_fit_request(
-            sample_weight=True), gamma=[1, 0.1, 0.001]),
-    NearestNeighborReweightDensity(
-        LogisticRegression().set_fit_request(sample_weight=True),
-        laplace_smoothing=True),
-]
-
 # %%
 # We generate our 2D dataset with 2 classes
 # ------------------------------------------
@@ -83,93 +57,101 @@ Xs, Xt, ys, yt = source_target_split(
     X, y, sample_domain=sample_domain
 )
 
+# %%
+# Plot of the dataset:
+# ------------------------------------------
+
 x_min, x_max = -2.5, 4.5
 y_min, y_max = -1.5, 4.5
 
-figure, axes = plt.subplots(len(classifiers) + 1, 2, figsize=(7, 21))
 
-# just plot the dataset first
+figsize = (8, 4)
+figure, axes = plt.subplots(1, 2, figsize=figsize)
+
 cm = plt.cm.RdBu
-cm_bright = ListedColormap(["#FF0000", "#0000FF"])
-ax = axes[0, 1]
-ax.set_ylabel("Source data")
-# Plot the source points
+colormap = ListedColormap(["#FF0000", "#0000FF"])
+ax = axes[1]
+ax.set_title("Source data")
+# Plot the source points:
 ax.scatter(
     Xs[:, 0],
     Xs[:, 1],
     c=ys,
-    cmap=cm_bright,
+    cmap=colormap,
     alpha=0.5,
 )
 
-ax.set_xticks(())
-ax.set_yticks(())
-ax.set_xlim(x_min, x_max)
-ax.set_ylim(y_min, y_max)
+ax.set_xticks(()), ax.set_yticks(())
+ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
 
-ax = axes[0, 0]
+ax = axes[0]
 
-ax.set_ylabel("Target data")
-# Plot the target points
+ax.set_title("Target data")
+# Plot the target points:
 ax.scatter(
     Xt[:, 0],
     Xt[:, 1],
     c=ys,
-    cmap=cm_bright,
+    cmap=colormap,
     alpha=0.1,
 )
 ax.scatter(
     Xt[:, 0],
     Xt[:, 1],
     c=yt,
-    cmap=cm_bright,
+    cmap=colormap,
     alpha=0.5,
 )
-ax.set_xlim(x_min, x_max)
-ax.set_ylim(y_min, y_max)
-ax.set_xticks(())
-ax.set_yticks(())
+figure.suptitle("Plot of the dataset")
+ax.set_xticks(()), ax.set_yticks(())
+ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
 
-# iterate over classifiers
-i = 1
-for name, clf in zip(names, classifiers):
-    print(name, clf)
-    ax = axes[i, 0]
+# We create a dict to store scores:
+Scores = {}
+def Create_section(
+        clf,
+        name="Without da",
+        suptitle=None,
+        ):
+    if suptitle is None:
+        suptitle = f"Illustration of the {name} method"
+    figure, axes = plt.subplots(1, 2, figsize=figsize)
+    ax = axes[0]
     if name == "Without da":
         clf.fit(Xs, ys)
     else:
         clf.fit(X, y, sample_domain=sample_domain)
     score = clf.score(Xt, yt)
     DecisionBoundaryDisplay.from_estimator(
-        clf, Xs, cmap=cm, alpha=0.4, ax=ax, eps=0.5, response_method="predict",
+        clf, Xs, cmap=ListedColormap(["w", "k"]), alpha=1, ax=ax, eps=0.5,
+        response_method="predict", plot_method='contour',
     )
 
     if name != "Without da":
+        # We get the weights
         keys = list(clf.named_steps.keys())
         weight_estimator = clf.named_steps[
             keys[0]].base_estimator
         weight_estimator.fit(X, sample_domain=sample_domain)
         idx = sample_domain > 0
-        size = 1 + 10*weight_estimator.adapt(
+        size = 1 + 8*weight_estimator.adapt(
                 X, sample_domain=sample_domain
                 ).sample_weight[idx]
     else:
-        size = np.array([20]*Xs.shape[0])
+        size = np.array([16]*Xs.shape[0])
 
-    # Plot the target points
+    # Plot the target points:
     ax.scatter(
         Xt[:, 0],
         Xt[:, 1],
         c=yt,
-        cmap=cm_bright,
+        cmap=colormap,
         alpha=0.5,
     )
 
-    ax.set_xlim(x_min, x_max)
-    ax.set_ylim(y_min, y_max)
-    ax.set_xticks(())
-    ax.set_yticks(())
-    ax.set_ylabel(name)
+    ax.set_xticks(()), ax.set_yticks(())
+    ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
+    ax.set_title(f"decision_boundaries for {name}")
     ax.text(
         x_max - 0.3,
         y_min + 0.3,
@@ -178,27 +160,114 @@ for name, clf in zip(names, classifiers):
         horizontalalignment="right",
     )
 
-    ax = axes[i, 1]
+    ax = axes[1]
 
-    # Plot the target points
+    # Plot the source points:
     ax.scatter(
         Xs[:, 0],
         Xs[:, 1],
         c=ys,
-        cmap=cm_bright,
+        cmap=colormap,
         alpha=0.5,
         s=size
     )
 
-    ax.set_xlim(x_min, x_max)
-    ax.set_ylim(y_min, y_max)
-    ax.set_xticks(())
-    ax.set_yticks(())
-    ax.set_ylabel("obtained weights")
+    ax.set_xticks(()), ax.set_yticks(())
+    ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
+    ax.set_title("obtained weights")
+    figure.suptitle(suptitle)
 
-    i += 1
+# %%
+#     Illustration of the problem with no domain adaptation
+# ------------------------------------------
+#
+# When not using domain adaptatiion, the classifier won't train on
+# data that is distributed as the target sample domain, it will thus
+# not be performing optimaly.
 
-figure.suptitle("Comparison of the weighting da methods")
+Create_section(
+    LogisticRegression(), "Without da",
+    suptitle="Illustration of the classifier with no da")
+
+# %%
+#     Illustration of the Reweight Density method
+# ------------------------------------------
+#
+# Here the adapter based on re-weighting samples using
+# density estimation.
+
+Create_section(
+    ReweightDensity(
+        base_estimator=LogisticRegression().set_fit_request(sample_weight=True),
+        weight_estimator=KernelDensity(bandwidth=0.5),
+    ),
+    "Reweight Density")
+
+# %%
+#     Illustration of the Gaussian reweighting method
+# ------------------------------------------
+#
+# See [1] for details:
+#
+# [1]  Hidetoshi Shimodaira. Improving predictive inference under
+#           covariate shift by weighting the log-likelihood function.
+#           In Journal of Statistical Planning and Inference, 2000.
+
+Create_section(
+    GaussianReweightDensity(LogisticRegression().set_fit_request(sample_weight=True)),
+    "Gaussian Reweight Density")
+
+# %%
+#     Illustration of the Discr. reweighting method
+# ------------------------------------------
+#
+# See [2] for details:
+#
+# [2] Hidetoshi Shimodaira. Improving predictive inference under
+#            covariate shift by weighting the log-likelihood function.
+#            In Journal of Statistical Planning and Inference, 2000.
+
+Create_section(
+    DiscriminatorReweightDensity(
+        LogisticRegression().set_fit_request(sample_weight=True)),
+    "Discr. Reweight Density")
+
+# %%
+#     Illustration of the KLIEP method
+# ------------------------------------------
+#
+# The idea of KLIEP is to find an importance estimate w(x) such that
+# the Kullback-Leibler (KL) divergence between the source input density
+# p_source(x) to its estimate p_target(x) = w(x)p_source(x) is minimized.
+#
+# See [3] for details:
+#
+# [3] Masashi Sugiyama et. al. Direct Importance Estimation with Model Selection
+#           and Its Application to Covariate Shift Adaptation.
+#           In NeurIPS, 2007.
+
+Create_section(
+    KLIEP(
+        LogisticRegression().set_fit_request(
+            sample_weight=True), gamma=[1, 0.1, 0.001]),
+    "KLIEP")
+
+# %%
+#     Illustration of the Nearest Neighbor reweighting method
+# ------------------------------------------
+#
+# See [3] for details:
+# [4] Loog, M. (2012).
+#           Nearest neighbor-based importance weighting.
+#           In 2012 IEEE International Workshop on Machine
+#           Learning for Signal Processing, pages 1–6. IEEE
+
+Create_section(
+    NearestNeighborReweightDensity(
+        LogisticRegression().set_fit_request(sample_weight=True),
+        laplace_smoothing=True),
+    "1NN Reweight Density")
+
 plt.tight_layout()
 plt.show()
 
