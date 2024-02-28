@@ -707,16 +707,23 @@ class NearestNeighborDensityAdapter(BaseAdapter):
             n_jobs=None,
             laplace_smoothing=False):
         super().__init__()
+        self.weights = weights
+        self.algorithm = algorithm
+        self.leaf_size = leaf_size
+        self.p = p
+        self.metric = metric
+        self.metric_params = metric_params
+        self.n_jobs = n_jobs
         self.laplace_smoothing = laplace_smoothing
         self.base_estimator = KNeighborsClassifier(
             n_neighbors=1,
-            weights=weights,
-            algorithm=algorithm,
-            leaf_size=leaf_size,
-            p=p,
-            metric=metric,
-            metric_params=metric_params,
-            n_jobs=n_jobs)
+            weights=self.weights,
+            algorithm=self.algorithm,
+            leaf_size=self.leaf_size,
+            p=self.p,
+            metric=self.metric,
+            metric_params=self.metric_params,
+            n_jobs=self.n_jobs)
 
     def fit(self, X, y=None, sample_domain=None):
         """Fit adaptation parameters.
@@ -903,8 +910,14 @@ def NearestNeighborReweightDensity(
 
     return make_da_pipeline(
         NearestNeighborDensityAdapter(
-            base_estimator=weight_estimator,
-            laplace_smoothing=laplace_smoothing),
+            laplace_smoothing=laplace_smoothing,
+            weights='uniform',
+            algorithm='auto',
+            leaf_size=30,
+            p=2,
+            metric='minkowski',
+            metric_params=None,
+            n_jobs=None),
         base_estimator,
     )
 
