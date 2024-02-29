@@ -179,7 +179,7 @@ def create_plots(
 
     ax.set_xticks(()), ax.set_yticks(())
     ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
-    ax.set_title("Decision boundaries", fontsize=12)
+    ax.set_title("Accuracy on target", fontsize=12)
     ax.text(
         x_max - 0.3,
         y_min + 0.3,
@@ -201,9 +201,14 @@ def create_plots(
         s=size
     )
 
+    DecisionBoundaryDisplay.from_estimator(
+        clf, Xs, cmap=ListedColormap(["w", "k"]), alpha=1, ax=ax, eps=0.5,
+        response_method="predict", plot_method='contour',
+    )
+
     ax.set_xticks(()), ax.set_yticks(())
     ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
-    ax.set_title("Reweighted data", fontsize=12)
+    ax.set_title("Training with rewegihted data", fontsize=12)
     figure.suptitle(suptitle, fontsize=16, y=1)
 
 
@@ -229,11 +234,11 @@ create_plots(
 #     Illustration of the Gaussian reweighting method
 # ------------------------------------------
 #
-# See [1] for details:
+# See [1] for details.
 #
-# [1]  Hidetoshi Shimodaira. Improving predictive inference under
-#           **covariate shift by weighting the log-likelihood function.**
-#           **In Journal of Statistical Planning and Inference, 2000.**
+# .. [1]  Hidetoshi Shimodaira. Improving predictive inference under
+#         covariate shift by weighting the log-likelihood function.
+#         In Journal of Statistical Planning and Inference, 2000.
 
 create_plots(
     GaussianReweightDensity(base_classifier),
@@ -243,11 +248,11 @@ create_plots(
 #     Illustration of the Discr. reweighting method
 # ------------------------------------------
 #
-# See [2] for details:
+# See [2] for details.
 #
-# [2] Hidetoshi Shimodaira. Improving predictive inference under
-#            **covariate shift by weighting the log-likelihood function.**
-#            **In Journal of Statistical Planning and Inference, 2000.**
+# .. [2]    Hidetoshi Shimodaira. Improving predictive inference under
+#           covariate shift by weighting the log-likelihood function.
+#           In Journal of Statistical Planning and Inference, 2000.
 
 create_plots(
     DiscriminatorReweightDensity(
@@ -263,11 +268,11 @@ create_plots(
 # :math:`p_{source}(x)` to its estimate :math:`p_{target}(x) = w(x)p_{source}(x)`
 # is minimized.
 #
-# See [3] for details:
+# See [3] for details.
 #
-# [3] Masashi Sugiyama et. al. Direct Importance Estimation with Model Selection
-#           **and Its Application to Covariate Shift Adaptation.**
-#           **In NeurIPS, 2007.**
+# .. [3] Masashi Sugiyama et. al. Direct Importance Estimation with Model Selection
+#        and Its Application to Covariate Shift Adaptation.
+#        In NeurIPS, 2007.
 
 create_plots(
     KLIEP(
@@ -283,11 +288,11 @@ create_plots(
 # counting the number of points in the target set that are closer to
 # it than any other points from the source dataset.
 #
-# See [4] for details:
-# [4] Loog, M. (2012).
-#           **Nearest neighbor-based importance weighting.**
-#           **In 2012 IEEE International Workshop on Machine**
-#           **Learning for Signal Processing, pages 1–6. IEEE**
+# See [4] for details.
+# .. [4] Loog, M. (2012).
+#        Nearest neighbor-based importance weighting.
+#        In 2012 IEEE International Workshop on Machine
+#        Learning for Signal Processing, pages 1–6. IEEE
 
 create_plots(
     NearestNeighborReweightDensity(
@@ -301,9 +306,9 @@ create_plots(
 #
 # This example illustrates the use of KMM method [5] to correct covariate-shift.
 #
-# See [5] for details:
-# [5] J. Huang, A. Gretton, K. Borgwardt, B. Schölkopf and A. J. Smola.
-#         **Correcting sample selection bias by unlabeled data. In NIPS, 2007.**
+# See [5] for details.
+# .. [5] J. Huang, A. Gretton, K. Borgwardt, B. Schölkopf and A. J. Smola.
+#        Correcting sample selection bias by unlabeled data. In NIPS, 2007.
 
 create_plots(
     KMM(base_classifier,
@@ -316,7 +321,7 @@ create_plots(
     "Kernel Mean Matching", suptitle="Illustration of KMM with weights smoothing")
 
 # %%
-#     Finally we can see the resulting scores:
+#     omparisaon of score between reweighting methods:
 # ------------------------------------------
 
 
