@@ -3,18 +3,11 @@
 #
 # License: BSD 3-Clause
 
-
 from abc import abstractmethod
 
-try:
-    import torch
-    from torch.utils.data import DataLoader, Sampler
-    from skorch import NeuralNetClassifier
-
-except ModuleNotFoundError as e:
-    raise ModuleNotFoundError(
-        "The deep module requires torch and skorch to be installed."
-    ) from e
+import torch
+from torch.utils.data import DataLoader, Sampler
+from skorch import NeuralNetClassifier
 
 from .utils import _register_forwards_hook
 

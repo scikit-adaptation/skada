@@ -3,13 +3,8 @@
 #
 # License: BSD 3-Clause
 import numbers
-try:
-    import torch
 
-except ModuleNotFoundError as e:
-    raise ModuleNotFoundError(
-        "The deep module requires torch and skorch to be installed."
-    ) from e
+import torch
 
 
 def _get_intermediate_layers(intermediate_layers, layer_name):

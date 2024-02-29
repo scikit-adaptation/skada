@@ -2,17 +2,9 @@
 #         Remi Flamary <remi.flamary@polytechnique.edu>
 #
 # License: BSD 3-Clause
-
-
-try:
-    import torch
-    from torch import nn
-    from torch.autograd import Function
-
-except ModuleNotFoundError as e:
-    raise ModuleNotFoundError(
-        "The deep module requires torch and skorch to be installed."
-    ) from e
+import torch
+from torch import nn
+from torch.autograd import Function
 
 
 class ToyModule2D(torch.nn.Module):

@@ -10,10 +10,9 @@ try:
     import torch  # noqa: F401
     import skorch  # noqa: F401
 
-except ModuleNotFoundError as e:
-    raise ModuleNotFoundError(
-        "The deep module requires torch and skorch to be installed."
-    ) from e
+except ImportError:
+    torch = ImportError("PyTorch is not installed.")
+    skorch = ImportError("Skorch is not installed.")
 
 from ._divergence import DeepCoral, DeepCoralLoss
 from ._optimal_transport import DeepJDOT, DeepJDOTLoss
@@ -21,7 +20,6 @@ from ._adversarial import DANN, CDAN, DANNLoss, CDANLoss
 
 from . import losses
 from . import modules
-
 
 __all__ = [
     'losses',

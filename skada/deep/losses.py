@@ -3,14 +3,8 @@
 #
 # License: BSD 3-Clause
 
-try:
-    import torch  # noqa: F401
-    import skorch  # noqa: F401
-
-except ModuleNotFoundError as e:
-    raise ModuleNotFoundError(
-        "The deep module requires torch and skorch to be installed."
-    ) from e
+import torch  # noqa: F401
+import skorch  # noqa: F401
 
 import ot
 
