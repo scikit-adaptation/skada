@@ -39,14 +39,45 @@ from skada import (
 # The goal of reweighting methods is to estimate some weights for the
 # source dataset in order to then fit a estimator on the source dataset,
 # while taking those weights into account, so that the fitted estimator is
-# well suitted to predicting labels from points drawn from the target distribution.
+# well suited to predicting labels from points drawn from the target distribution.
 #
 # For more details, look at:
 #        [Sugiyama et al., 2008] Sugiyama, M., Suzuki, T., Nakajima, S., Kashima, H.,
-#             von B¨unau, P., and Kawanabe, M. (2008). Direct importance estimation for
+#             von Bünau, P., and Kawanabe, M. (2008). Direct importance estimation for
 #             covariate shift adaptation. Annals of the Institute of Statistical
 #             Mathematics, 60(4):699–746.
 #             https://www.ism.ac.jp/editsec/aism/pdf/060_4_0699.pdf
+
+# %%
+# Here is a table with all the methods we will be using:
+# ------------------------------------------
+
+base_classifier = LogisticRegression().set_fit_request(sample_weight=True)
+
+methods = {
+    "Without da": "No additionnal parameters",
+    "Reweight Density method": "weight_estimator=KernelDensity(bandwidth=0.5)",
+    "Gaussian reweighting method": "No additionnal parameters",
+    "Discriminator reweighting method": "No additionnal parameters",
+    "KLIEP": "gamma=[1, 0.1, 0.001]",
+    "Nearest Neighbor reweighting method": "laplace_smoothing=True",
+    "Kernel Mean Matching method": "gamma=10., max_iter=1000, smooth_weights=False",
+    "Kernel Mean Matching method": "gamma=10., max_iter=1000, smooth_weights=True",
+}
+
+def print_table(methods, title=""):
+    keys = list(methods.keys())
+    lenghts = [len(k) for k in keys]
+    max_lenght = max(lenghts)
+    print(f"  {title}")
+    print("-" * (max_lenght + 3))
+    for k in keys:
+        print(f"{k}{' '*(max_lenght - len(k))} | ", end="")
+        print(f"{methods[k]}")
+
+print(f"Will be using {base_classifier} as base classifier", end="\n\n")
+
+print_table(methods, "Illustrated methods")
 
 # %%
 # We generate our 2D dataset with 2 classes
@@ -79,7 +110,7 @@ figsize = (8, 4)
 figure, axes = plt.subplots(1, 2, figsize=figsize)
 
 cm = plt.cm.RdBu
-colormap = "cool_r"
+colormap = ListedColormap(["#FFA056", "#6C4C7C"])
 ax = axes[1]
 ax.set_title("Source data")
 # Plot the source points:
@@ -88,7 +119,7 @@ ax.scatter(
     Xs[:, 1],
     c=ys,
     cmap=colormap,
-    alpha=0.5,
+    alpha=0.7,
 )
 
 ax.set_xticks(()), ax.set_yticks(())
@@ -110,7 +141,7 @@ ax.scatter(
     Xt[:, 1],
     c=yt,
     cmap=colormap,
-    alpha=0.5,
+    alpha=0.7,
 )
 figure.suptitle("Plot of the dataset", fontsize=16, y=1)
 ax.set_xticks(()), ax.set_yticks(())
@@ -123,15 +154,11 @@ scores_dict = {}
 #     Illustration of the problem with no domain adaptation
 # ------------------------------------------
 #
-# When not using domain adaptatiion, the classifier won't train on
+# When not using domain adaptation, the classifier won't train on
 # data that is distributed as the target sample domain, it will thus
 # not be performing optimaly.
 
-
-base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
-
-
-def plots_for(
+def create_plots(
         clf,
         name="Without da",
         suptitle=None,
@@ -169,7 +196,7 @@ def plots_for(
         Xt[:, 1],
         c=yt,
         cmap=colormap,
-        alpha=0.5,
+        alpha=0.7,
     )
 
     ax.set_xticks(()), ax.set_yticks(())
@@ -192,7 +219,7 @@ def plots_for(
         Xs[:, 1],
         c=ys,
         cmap=colormap,
-        alpha=0.5,
+        alpha=0.7,
         s=size
     )
 
@@ -202,7 +229,7 @@ def plots_for(
     figure.suptitle(suptitle, fontsize=16, y=1)
 
 
-plots_for(
+create_plots(
     LogisticRegression(), "Without da",
     suptitle="Illustration of the classifier with no da")
 
@@ -213,9 +240,9 @@ plots_for(
 # Here the adapter based on re-weighting samples using
 # density estimation.
 
-plots_for(
+create_plots(
     ReweightDensity(
-        base_estimator=base_estimator,
+        base_estimator=base_classifier,
         weight_estimator=KernelDensity(bandwidth=0.5),
     ),
     "Reweight Density")
@@ -230,8 +257,8 @@ plots_for(
 #           covariate shift by weighting the log-likelihood function.
 #           In Journal of Statistical Planning and Inference, 2000.
 
-plots_for(
-    GaussianReweightDensity(base_estimator),
+create_plots(
+    GaussianReweightDensity(base_classifier),
     "Gaussian Reweight Density")
 
 # %%
@@ -244,9 +271,9 @@ plots_for(
 #            covariate shift by weighting the log-likelihood function.
 #            In Journal of Statistical Planning and Inference, 2000.
 
-plots_for(
+create_plots(
     DiscriminatorReweightDensity(
-        base_estimator),
+        base_classifier),
     "Discr. Reweight Density")
 
 # %%
@@ -263,7 +290,7 @@ plots_for(
 #           and Its Application to Covariate Shift Adaptation.
 #           In NeurIPS, 2007.
 
-plots_for(
+create_plots(
     KLIEP(
         LogisticRegression().set_fit_request(
             sample_weight=True), gamma=[1, 0.1, 0.001]),
@@ -283,9 +310,9 @@ plots_for(
 #           In 2012 IEEE International Workshop on Machine
 #           Learning for Signal Processing, pages 1–6. IEEE
 
-plots_for(
+create_plots(
     NearestNeighborReweightDensity(
-        base_estimator,
+        base_classifier,
         laplace_smoothing=True),
     "1NN Reweight Density")
 
@@ -298,13 +325,13 @@ plots_for(
 #     [1] J. Huang, A. Gretton, K. Borgwardt, B. Schölkopf and A. J. Smola.
 #         Correcting sample selection bias by unlabeled data. In NIPS, 2007.
 
-plots_for(
-    KMM(base_estimator,
+create_plots(
+    KMM(base_classifier,
         gamma=10., max_iter=1000, smooth_weights=False),
     "Kernel Mean Matching", suptitle="Illustration of KMM without weights smoothing")
 
-plots_for(
-    KMM(base_estimator,
+create_plots(
+    KMM(base_classifier,
         gamma=10., max_iter=1000, smooth_weights=True),
     "Kernel Mean Matching", suptitle="Illustration of KMM with weights smoothing")
 
@@ -313,7 +340,7 @@ plots_for(
 # ------------------------------------------
 
 
-def print_as_table(scores):
+def print_scores_as_table(scores):
     keys = list(scores.keys())
     lenghts = [len(k) for k in keys]
     max_lenght = max(lenghts)
@@ -322,6 +349,6 @@ def print_as_table(scores):
         print(f"{scores[k]*100}{' '*(6-len(str(scores[k]*100)))}%")
 
 
-print_as_table(scores_dict)
+print_scores_as_table(scores_dict)
 
 plt.show()
