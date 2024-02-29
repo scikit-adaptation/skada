@@ -73,12 +73,14 @@ def load_mnist_usps(n_classes=5, return_X_y=True, return_dataset=False, train=Fa
 
     dataset = DomainAwareDataset(
         domains=[
-            (mnist_data, mnist_target, "s"),
-            (usps_data, usps_target, "t"),
+            (mnist_data, mnist_target, "mnist"),
+            (usps_data, usps_target, "usps"),
         ]
     )
 
     if return_dataset:
         return dataset
     else:
-        return dataset.pack(as_sources=["s"], as_targets=["t"], return_X_y=return_X_y)
+        return dataset.pack(
+            as_sources=["mnist"], as_targets=["usps"], return_X_y=return_X_y
+        )
