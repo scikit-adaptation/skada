@@ -204,7 +204,7 @@ def create_plots(
 
     ax.set_xticks(()), ax.set_yticks(())
     ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
-    ax.set_title(f"Decision boundaries for {name}")
+    ax.set_title(f"Decision boundaries for {name}", fontsize=10)
     ax.text(
         x_max - 0.3,
         y_min + 0.3,
@@ -229,7 +229,7 @@ def create_plots(
     ax.set_xticks(()), ax.set_yticks(())
     ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
     ax.set_title("obtained weights")
-    figure.suptitle(suptitle, fontsize=16, y=1)
+    figure.suptitle(suptitle, fontsize=14, y=1)
 
 
 create_plots(
@@ -285,7 +285,7 @@ create_plots(
 #
 # The idea of KLIEP is to find an importance estimate w(x) such that
 # the Kullback-Leibler (KL) divergence between the source input density
-# p_source(x) to its estimate p_target(x) = w(x)p_source(x) is minimized.
+# $p_{source}(x)$ to its estimate $p_{target}(x) = w(x)p{_source}(x)$ is minimized.
 #
 # See [3] for details:
 #
