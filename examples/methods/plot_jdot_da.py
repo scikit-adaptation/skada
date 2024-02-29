@@ -11,7 +11,7 @@ JDOTRegressor on the same task and illustrate the learned decision boundary and
 the OT plan between samples estimated by JDOT.
 
 .. [10] Courty, N., Flamary, R., Habrard, A., & Rakotomamonjy, A. (2017). Joint
-        distribution optimal transportation for domain adaptation. Advances in 
+        distribution optimal transportation for domain adaptation. Advances in
         neural information processing systems, 30.
 
 """
