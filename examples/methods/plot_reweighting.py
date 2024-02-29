@@ -137,14 +137,14 @@ scores_dict = {}
 
 def create_plots(
         clf,
-        name="Without da",
+        name="Without DA",
         suptitle=None,
         ):
     if suptitle is None:
         suptitle = f"Illustration of the {name} method"
     figure, axes = plt.subplots(1, 2, figsize=figsize)
     ax = axes[1]
-    if name == "Without da":
+    if name == "Without DA":
         clf.fit(Xs, ys)
     else:
         clf.fit(X, y, sample_domain=sample_domain)
@@ -154,7 +154,7 @@ def create_plots(
         response_method="predict", plot_method='contour',
     )
 
-    if name != "Without da":
+    if name != "Without DA":
         # We get the weights
         keys = list(clf.named_steps.keys())
         weight_estimator = clf.named_steps[
@@ -179,7 +179,7 @@ def create_plots(
 
     ax.set_xticks(()), ax.set_yticks(())
     ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
-    ax.set_title(f"Decision boundaries", fontsize=14)
+    ax.set_title("Decision boundaries", fontsize=14)
     ax.text(
         x_max - 0.3,
         y_min + 0.3,
@@ -208,8 +208,8 @@ def create_plots(
 
 
 create_plots(
-    LogisticRegression(), "Without da",
-    suptitle="Illustration of the classifier with no da")
+    LogisticRegression(), "Without DA",
+    suptitle="Illustration of the classifier with no DA")
 
 # %%
 #     Illustration of the Reweight Density method
@@ -260,7 +260,8 @@ create_plots(
 #
 # The idea of KLIEP is to find an importance estimate :math:`w(x)` such that
 # the Kullback-Leibler (KL) divergence between the source input density
-# :math:`p_{source}(x)` to its estimate :math:`p_{target}(x) = w(x)p_{source}(x)` is minimized.
+# :math:`p_{source}(x)` to its estimate :math:`p_{target}(x) = w(x)p_{source}(x)`
+# is minimized.
 #
 # See [3] for details:
 #
