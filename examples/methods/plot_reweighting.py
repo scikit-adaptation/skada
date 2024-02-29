@@ -61,9 +61,10 @@ methods = {
     "Discriminator reweighting method": "No additionnal parameters",
     "KLIEP": "gamma=[1, 0.1, 0.001]",
     "Nearest Neighbor reweighting method": "laplace_smoothing=True",
-    "Kernel Mean Matching method": "gamma=10., max_iter=1000, smooth_weights=False",
-    "Kernel Mean Matching method": "gamma=10., max_iter=1000, smooth_weights=True",
+    "Kernel Mean Matching method 1": "gamma=10., max_iter=1000, smooth_weights=False",
+    "Kernel Mean Matching method 2": "gamma=10., max_iter=1000, smooth_weights=True",
 }
+
 
 def print_table(methods, title=""):
     keys = list(methods.keys())
@@ -74,6 +75,7 @@ def print_table(methods, title=""):
     for k in keys:
         print(f"{k}{' '*(max_lenght - len(k))} | ", end="")
         print(f"{methods[k]}")
+
 
 print(f"Will be using {base_classifier} as base classifier", end="\n\n")
 
@@ -157,6 +159,7 @@ scores_dict = {}
 # When not using domain adaptation, the classifier won't train on
 # data that is distributed as the target sample domain, it will thus
 # not be performing optimaly.
+
 
 def create_plots(
         clf,
