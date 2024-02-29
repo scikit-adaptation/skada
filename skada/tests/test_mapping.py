@@ -29,7 +29,6 @@ from skada import (
     source_target_split
 )
 from skada.datasets import DomainAwareDataset
-from skada.utils import source_target_split
 
 import pytest
 
