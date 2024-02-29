@@ -143,7 +143,8 @@ def test_missing_num_features():
 
 def test_return_features():
     num_features = 10
-    module = ToyModule2D(num_features=num_features)
+    n_classes = 2
+    module = ToyModule2D(num_features=num_features, n_classes=n_classes)
     module.eval()
 
     n_samples = 20
@@ -160,7 +161,7 @@ def test_return_features():
         ToyModule2D(),
         reg=1,
         domain_classifier=None,
-        num_features=20,
+        num_features=num_features*n_classes,
         domain_criterion=BCELoss(),
         layer_name="dropout",
         batch_size=10,

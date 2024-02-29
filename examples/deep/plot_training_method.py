@@ -86,7 +86,7 @@ model.fit(dataset, y=None, sample_domain=None)
 model = DomainAwareModule(MNISTtoUSPSNet(), layer_name="fc1").to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 dataloader = DomainBalancedDataLoader(dataset, batch_size=batch_size)
-loss_fn = DomainAwareCriterion(torch.nn.CrossEntropyLoss(), DeepCoralLoss(reg=1))
+loss_fn = DomainAwareCriterion(torch.nn.CrossEntropyLoss(), DeepCoralLoss(), reg=reg)
 
 # Training loop
 for epoch in range(max_epochs):
