@@ -43,43 +43,14 @@ from skada import (
 #
 # For more details, look at:
 #        [Sugiyama et al., 2008] Sugiyama, M., Suzuki, T., Nakajima, S., Kashima, H.,
-#             von Bünau, P., and Kawanabe, M. (2008). Direct importance estimation for
-#             covariate shift adaptation. Annals of the Institute of Statistical
-#             Mathematics, 60(4):699–746.
-#             https://www.ism.ac.jp/editsec/aism/pdf/060_4_0699.pdf
-
-# %%
-# Here is a table with all the methods we will be using:
-# ------------------------------------------
+#             *von Bünau, P., and Kawanabe, M. (2008). Direct importance estimation for*
+#             *covariate shift adaptation. Annals of the Institute of Statistical*
+#             *Mathematics, 60(4):699–746.*
+#             *https://www.ism.ac.jp/editsec/aism/pdf/060_4_0699.pdf*
 
 base_classifier = LogisticRegression().set_fit_request(sample_weight=True)
 
-methods = {
-    "Without da": "No additionnal parameters",
-    "Reweight Density method": "weight_estimator=KernelDensity(bandwidth=0.5)",
-    "Gaussian reweighting method": "No additionnal parameters",
-    "Discriminator reweighting method": "No additionnal parameters",
-    "KLIEP": "gamma=[1, 0.1, 0.001]",
-    "Nearest Neighbor reweighting method": "laplace_smoothing=True",
-    "Kernel Mean Matching method 1": "gamma=10., max_iter=1000, smooth_weights=False",
-    "Kernel Mean Matching method 2": "gamma=10., max_iter=1000, smooth_weights=True",
-}
-
-
-def print_table(methods, title=""):
-    keys = list(methods.keys())
-    lenghts = [len(k) for k in keys]
-    max_lenght = max(lenghts)
-    print(f"  {title}")
-    print("-" * (max_lenght + 3))
-    for k in keys:
-        print(f"{k}{' '*(max_lenght - len(k))} | ", end="")
-        print(f"{methods[k]}")
-
-
 print(f"Will be using {base_classifier} as base classifier", end="\n\n")
-
-print_table(methods, "Illustrated methods")
 
 # %%
 # We generate our 2D dataset with 2 classes
@@ -113,7 +84,7 @@ figure, axes = plt.subplots(1, 2, figsize=figsize)
 
 cm = plt.cm.RdBu
 colormap = ListedColormap(["#FFA056", "#6C4C7C"])
-ax = axes[1]
+ax = axes[0]
 ax.set_title("Source data")
 # Plot the source points:
 ax.scatter(
@@ -122,12 +93,13 @@ ax.scatter(
     c=ys,
     cmap=colormap,
     alpha=0.7,
+    s=[15]
 )
 
 ax.set_xticks(()), ax.set_yticks(())
 ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
 
-ax = axes[0]
+ax = axes[1]
 
 ax.set_title("Target data")
 # Plot the target points:
@@ -137,6 +109,7 @@ ax.scatter(
     c=ys,
     cmap=colormap,
     alpha=0.1,
+    s=[15]
 )
 ax.scatter(
     Xt[:, 0],
@@ -144,6 +117,7 @@ ax.scatter(
     c=yt,
     cmap=colormap,
     alpha=0.7,
+    s=[15]
 )
 figure.suptitle("Plot of the dataset", fontsize=16, y=1)
 ax.set_xticks(()), ax.set_yticks(())
@@ -169,7 +143,7 @@ def create_plots(
     if suptitle is None:
         suptitle = f"Illustration of the {name} method"
     figure, axes = plt.subplots(1, 2, figsize=figsize)
-    ax = axes[0]
+    ax = axes[1]
     if name == "Without da":
         clf.fit(Xs, ys)
     else:
@@ -205,7 +179,7 @@ def create_plots(
 
     ax.set_xticks(()), ax.set_yticks(())
     ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
-    ax.set_title(f"Decision boundaries for {name}", fontsize=10)
+    ax.set_title(f"Decision boundaries", fontsize=14)
     ax.text(
         x_max - 0.3,
         y_min + 0.3,
@@ -215,7 +189,7 @@ def create_plots(
     )
     scores_dict[name] = score
 
-    ax = axes[1]
+    ax = axes[0]
 
     # Plot the source points:
     ax.scatter(
@@ -229,7 +203,7 @@ def create_plots(
 
     ax.set_xticks(()), ax.set_yticks(())
     ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
-    ax.set_title("obtained weights")
+    ax.set_title("Reweighted data")
     figure.suptitle(suptitle, fontsize=14, y=1)
 
 
@@ -258,8 +232,8 @@ create_plots(
 # See [1] for details:
 #
 # [1]  Hidetoshi Shimodaira. Improving predictive inference under
-#           covariate shift by weighting the log-likelihood function.
-#           In Journal of Statistical Planning and Inference, 2000.
+#           **covariate shift by weighting the log-likelihood function.**
+#           **In Journal of Statistical Planning and Inference, 2000.**
 
 create_plots(
     GaussianReweightDensity(base_classifier),
@@ -272,8 +246,8 @@ create_plots(
 # See [2] for details:
 #
 # [2] Hidetoshi Shimodaira. Improving predictive inference under
-#            covariate shift by weighting the log-likelihood function.
-#            In Journal of Statistical Planning and Inference, 2000.
+#            **covariate shift by weighting the log-likelihood function.**
+#            **In Journal of Statistical Planning and Inference, 2000.**
 
 create_plots(
     DiscriminatorReweightDensity(
@@ -286,13 +260,13 @@ create_plots(
 #
 # The idea of KLIEP is to find an importance estimate :math:`w(x)` such that
 # the Kullback-Leibler (KL) divergence between the source input density
-# :math:`p_{source}(x)` to its estimate :math:`p_{target}(x) = w(x)p{_source}(x)` is minimized.
+# :math:`p_{source}(x)` to its estimate :math:`p_{target}(x) = w(x)p_{source}(x)` is minimized.
 #
 # See [3] for details:
 #
 # [3] Masashi Sugiyama et. al. Direct Importance Estimation with Model Selection
-#           and Its Application to Covariate Shift Adaptation.
-#           In NeurIPS, 2007.
+#           **and Its Application to Covariate Shift Adaptation.**
+#           **In NeurIPS, 2007.**
 
 create_plots(
     KLIEP(
@@ -310,9 +284,9 @@ create_plots(
 #
 # See [4] for details:
 # [4] Loog, M. (2012).
-#           Nearest neighbor-based importance weighting.
-#           In 2012 IEEE International Workshop on Machine
-#           Learning for Signal Processing, pages 1–6. IEEE
+#           **Nearest neighbor-based importance weighting.**
+#           **In 2012 IEEE International Workshop on Machine**
+#           **Learning for Signal Processing, pages 1–6. IEEE**
 
 create_plots(
     NearestNeighborReweightDensity(
@@ -326,8 +300,9 @@ create_plots(
 #
 # This example illustrates the use of KMM method [5] to correct covariate-shift.
 #
-#     [5] J. Huang, A. Gretton, K. Borgwardt, B. Schölkopf and A. J. Smola.
-#         Correcting sample selection bias by unlabeled data. In NIPS, 2007.
+# See [5] for details:
+# [5] J. Huang, A. Gretton, K. Borgwardt, B. Schölkopf and A. J. Smola.
+#         **Correcting sample selection bias by unlabeled data. In NIPS, 2007.**
 
 create_plots(
     KMM(base_classifier,
