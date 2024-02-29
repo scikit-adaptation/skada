@@ -90,6 +90,10 @@ def get_data_jdot_class(Xt, Yth, labels, thr_weights=1e-6):
         Target domain samples.
     Yth : array-like of shape (n_samples,n_classes)
         Transported source domain labels one hot encoded.
+    labels : array-like of shape (n_classes,)
+        The labels of the classification problem.
+    thr_weights : float, default=1e-6
+        The relative threshold for the weights
 
     Returns
     -------
@@ -190,7 +194,15 @@ def get_tgt_loss_jdot_class(Xh, yh, wh, estimator, metric='multinomial'):
 
 def solve_jdot_regression(base_estimator, Xs, ys, Xt, alpha=0.5, ws=None, wt=None,
                           n_iter_max=100, tol=1e-5, verbose=False, **kwargs):
-    """Solve the joint distribution optimal transport regression problem
+    """Solve the joint distribution optimal transport regression problem [10]
+
+    .. warning::
+        This estimator assumes that the loss function optimized by the base
+        estimator is the quadratic loss. For instance, the base estimator should
+        optimize and L2 loss (e.g. LinearRegression() or Ridge() or even
+        MLPRegressor ()). While any estimator providing the necessary prediction
+        functions can be used, the convergence of the fixed point is not guaranteed
+        and behavior can be unpredictable.
 
     Parameters
     ----------
@@ -314,8 +326,20 @@ def solve_jdot_regression(base_estimator, Xs, ys, Xt, alpha=0.5, ws=None, wt=Non
 
 def solve_jdot_classification(base_estimator, Xs, ys, Xt, alpha=0.5, ws=None, wt=None,
                               metric='multinomial',
-                              n_iter_max=100, tol=1e-5, verbose=False, **kwargs):
-    """Solve the joint distribution optimal transport classification problem
+                              n_iter_max=100, tol=1e-5, verbose=False,
+                              thr_weights=1e-6, **kwargs):
+    """Solve the joint distribution optimal transport classification problem [10]
+
+    .. warning::
+        This estimator assumes that the loss function optimized by the base
+        estimator is compatible with the given metric. For instance, if the
+        metric is 'multinomial', the base estimator should optimize a
+        cross-entropy loss (e.g. LogisticRegression with multi_class='multinomial')
+        or a hinge loss (e.g. SVC with kernel='linear' and one versus rest) if the
+        metric is 'hinge'. While any estimator providing the necessary prediction
+        functions can be used, the convergence of the fixed point is not guaranteed
+        and behavior can be unpredictable.
+
 
     Parameters
     ----------
@@ -336,12 +360,18 @@ def solve_jdot_classification(base_estimator, Xs, ys, Xt, alpha=0.5, ws=None, wt
         Source domain weights (will ne normalized to sum to 1).
     wt : array-like of shape (m_samples,)
         Target domain weights (will ne normalized to sum to 1).
+    metric : str, default='multinomial'
+        The metric to use for the cost matrix. Can be 'multinomial' for
+        cross-entropy cost/ multinomial logistic regression or 'hinge' for
+        hinge cost (SVM/SVC).
     n_iter_max: int
-        Max number of JDOT alternat optimization iterations.
+        Max number of JDOT alternate optimization iterations.
     tol: float>0
         Tolerance for loss variations (OT and mse) stopping iterations.
     verbose: bool
         Print loss along iterations if True.as_integer_ratio
+    thr_weights : float, default=1e-6
+        The relative threshold for the weights
     kwargs : dict
         Additional parameters to be passed to the base estimator.
 
@@ -411,7 +441,7 @@ def solve_jdot_classification(base_estimator, Xs, ys, Xt, alpha=0.5, ws=None, wt
         Yth = T.T.dot(Ys) * nt  # not normalized because weights used in fit
 
         # cerate reweighted taregt data for classification
-        Xh, yh, wh = get_data_jdot_class(Xt, Yth, labels)
+        Xh, yh, wh = get_data_jdot_class(Xt, Yth, labels, thr_weights=thr_weights)
 
         # fit the estimator
         estimator.fit(Xh, yh, sample_weight=wh, **kwargs)
@@ -442,7 +472,16 @@ def solve_jdot_classification(base_estimator, Xs, ys, Xt, alpha=0.5, ws=None, wt
 
 
 class JDOTRegressor(DAEstimator):
-    """Joint Distribution Optimal Transport Regressor
+    """Joint Distribution Optimal Transport Regressor proposed in [10]
+
+    .. warning::
+        This estimator assumes that the loss function optimized by the base
+        estimator is the quadratic loss. For instance, the base estimator should
+        optimize and L2 loss (e.g. LinearRegression() or Ridge() or even
+        MLPRegressor ()). While any estimator providing the necessary prediction
+        functions can be used, the convergence of the fixed point is not guaranteed
+        and behavior can be unpredictable.
+
 
     Parameters
     ----------
@@ -528,27 +567,41 @@ class JDOTRegressor(DAEstimator):
 
 
 class JDOTClassifier(DAEstimator):
-    """Joint Distribution Optimal Transport Classifier
+    """Joint Distribution Optimal Transport Classifier proposed in [10]
+
+    .. warning::
+        This estimator assumes that the loss function optimized by the base
+        estimator is compatible with the given metric. For instance, if the
+        metric is 'multinomial', the base estimator should optimize a
+        cross-entropy loss (e.g. LogisticRegression with multi_class='multinomial')
+        or a hinge loss (e.g. SVC with kernel='linear' and one versus rest) if the
+        metric is 'hinge'. While any estimator providing the necessary prediction
+        functions can be used, the convergence of the fixed point is not guaranteed
+        and behavior can be unpredictable.
+
 
     Parameters
     ----------
     base_estimator : object
-        The base estimator to be used for the classification task. This estimator
-        should solve a classification problem to correspond to JDOT theoretical
-        classification problem but other approaches can be used with the risk
-        that the fixed point might not converge. default value is
-        LogisticRegression(() from scikit-learn.
+        The base estimator to be used for the classification task. This
+        estimator should solve a classification problem to correspond to JDOT
+        theoretical classification problem but other approaches can be used with
+        the risk that the fixed point might not converge. default value is
+        LogisticRegression() from scikit-learn.
     alpha : float, default=0.5
         The trade-off parameter between the feature and label loss in OT metric
-    metric : str, default='mutlinomial'
-        The metric to use for the cost matrix. Can be 'mutlinomial' for cross-entropy
-        cost/ multinonial logistic regression or 'hinge' for hinge cost (SVM/SVC).
+    metric : str, default='multinomial'
+        The metric to use for the cost matrix. Can be 'multinomial' for
+        cross-entropy cost/ multinomial logistic regression or 'hinge' for hinge
+        cost (SVM/SVC).
     n_iter_max: int
         Max number of JDOT alternat optimization iterations.
     tol: float>0
         Tolerance for loss variations (OT and mse) stopping iterations.
     verbose: bool
         Print loss along iterations if True.as_integer_ratio
+    thr_weights : float, default=1e-6
+        The relative threshold for the weights
 
     Attributes
     ----------
@@ -570,7 +623,7 @@ class JDOTClassifier(DAEstimator):
     """
 
     def __init__(self, base_estimator=None, alpha=0.5, metric='multinomial',
-                 n_iter_max=100, tol=1e-5, verbose=False, **kwargs):
+                 n_iter_max=100, tol=1e-5, verbose=False, thr_weights=1e-6, **kwargs):
         if base_estimator is None:
             base_estimator = LogisticRegression(multi_class='multinomial')
         else:
@@ -585,6 +638,7 @@ class JDOTClassifier(DAEstimator):
         self.n_iter_max = n_iter_max
         self.tol = tol
         self.verbose = verbose
+        self.thr_weights = thr_weights
 
     def fit(self, X, y=None, sample_domain=None, *, sample_weight=None):
         """Fit adaptation parameters"""
@@ -604,6 +658,7 @@ class JDOTClassifier(DAEstimator):
             n_iter_max=self.n_iter_max,
             tol=self.tol,
             verbose=self.verbose,
+            thr_weights=self.thr_weights,
             **self.kwargs)
 
         self.estimator_, self.lst_loss_ot_, self.lst_loss_tgt_labels_, self.sol_ = res

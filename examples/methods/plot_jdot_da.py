@@ -210,7 +210,6 @@ plt.axis(ax)
 # the target domain due to the shift. We also plot the decision boundary
 
 
-clf = SVC(kernel='rbf', C=1)
 clf = LogisticRegression()
 clf.fit(Xs, ys)
 
