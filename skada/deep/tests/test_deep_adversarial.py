@@ -4,10 +4,6 @@
 
 import numpy as np
 
-import pytest
-
-torch = pytest.importorskip("torch")
-
 from skada.deep import DANN, CDAN
 from skada.deep.modules import ToyModule2D, DomainClassifier
 from skada.datasets import make_shifted_datasets

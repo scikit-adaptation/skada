@@ -5,7 +5,7 @@ import pytest
 
 import numpy as np
 
-torch = pytest.importorskip("torch")
+import torch
 
 from skada.deep.base import (
     DomainAwareModule,
@@ -17,7 +17,6 @@ from skada.deep.base import (
 from skada.deep.modules import ToyModule2D
 from skada.datasets import make_shifted_datasets
 from skorch.dataset import Dataset
-
 
 
 def test_domainawaretraining():

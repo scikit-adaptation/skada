@@ -2,10 +2,6 @@
 #
 # License: BSD 3-Clause
 
-import pytest
-
-torch = pytest.importorskip("torch")
-
 import numpy as np
 
 from skada.deep import DeepCoral

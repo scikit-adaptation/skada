@@ -1,6 +1,5 @@
-import pytest
 
-torch = pytest.importorskip("torch")
+import torch
 
 from skada.deep.utils import check_generator
 
