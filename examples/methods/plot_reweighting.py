@@ -42,6 +42,7 @@ from skada import (
 # well suited to predicting labels from points drawn from the target distribution.
 #
 # For more details, look at [0].
+#
 # .. [0] [Sugiyama et al., 2008] Sugiyama, M., Suzuki, T., Nakajima, S., Kashima, H.,
 #        von Bünau, P., and Kawanabe, M. (2008). Direct importance estimation for
 #        covariate shift adaptation. Annals of the Institute of Statistical
