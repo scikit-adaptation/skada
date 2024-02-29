@@ -13,6 +13,11 @@ See detailed description of each shift in [1]_.
        A unifying view on dataset shift in classification.
        Pattern recognition, 45(1):521-530.
 """
+
+# Author: Ruben Bueno <ruben.bueno@polytechnique.edu>
+#
+# License: BSD 3-Clause
+
 # %% Imports
 
 import matplotlib.pyplot as plt
