@@ -8,13 +8,13 @@ from torch.autograd import Function
 
 
 class ToyModule2D(torch.nn.Module):
-    def __init__(self, n_classes=2, num_units=10, nonlin=torch.nn.ReLU()):
+    def __init__(self, n_classes=2, num_features=10, nonlin=torch.nn.ReLU()):
         super(ToyModule2D, self).__init__()
 
-        self.dense0 = torch.nn.Linear(2, num_units)
+        self.dense0 = torch.nn.Linear(2, num_features)
         self.nonlin = nonlin
         self.dropout = torch.nn.Dropout(0.5)
-        self.dense1 = torch.nn.Linear(num_units, n_classes)
+        self.dense1 = torch.nn.Linear(num_features, n_classes)
 
     def forward(
         self,

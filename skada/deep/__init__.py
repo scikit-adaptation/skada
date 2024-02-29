@@ -14,7 +14,7 @@ except ImportError:
     torch = ImportError("PyTorch is not installed.")
     skorch = ImportError("Skorch is not installed.")
 
-from ._divergence import DeepCoral, DeepCoralLoss
+from ._divergence import DeepCoral, DeepCoralLoss, DANLoss, DAN
 from ._optimal_transport import DeepJDOT, DeepJDOTLoss
 from ._adversarial import DANN, CDAN, DANNLoss, CDANLoss
 
@@ -26,6 +26,8 @@ __all__ = [
     'modules',
     'DeepCoralLoss',
     'DeepCoral',
+    'DANLoss',
+    'DAN',
     'DeepJDOTLoss',
     'DeepJDOT',
     'DANNLoss',

@@ -116,12 +116,7 @@ class DomainBalancedSampler(Sampler):
         negative_iter = iter(negative_sampler)
 
         for _ in range(self.num_samples):
-            try:
-                pos_idx = self.positive_indices[next(positive_iter)]
-            except StopIteration:
-                positive_iter = iter(positive_sampler)
-                pos_idx = self.positive_indices[next(positive_iter)]
-
+            pos_idx = self.positive_indices[next(positive_iter)]
             try:
                 neg_idx = self.negative_indices[next(negative_iter)]
             except StopIteration:
@@ -131,7 +126,7 @@ class DomainBalancedSampler(Sampler):
             yield neg_idx
 
     def __len__(self):
-        return self.num_samples
+        return 2 * self.num_samples
 
 
 class DomainBalancedDataLoader(DataLoader):
@@ -205,7 +200,7 @@ class DomainAwareModule(torch.nn.Module):
             self.module_, self.intermediate_layers, [self.layer_name]
         )
 
-    def forward(self, X, sample_domain, is_fit=False, return_features=False):
+    def forward(self, X, sample_domain=None, is_fit=False, return_features=False):
         if is_fit:
             X_s = X[sample_domain > 0]
             X_t = X[sample_domain < 0]
@@ -391,7 +386,7 @@ class DomainAwareNet(NeuralNetClassifier):
             sample.
             If X is a dataset, the dataset should return a dict..
         """
-        _, features = self.module_(
+        _, features = self.module(
             X, sample_domain=None, is_fit=False, return_features=True
         )
         return features
