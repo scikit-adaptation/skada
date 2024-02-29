@@ -11,6 +11,10 @@ from skorch import NeuralNetClassifier
 
 from .utils import _register_forwards_hook
 
+from skada.utils import extract_source_indices
+
+from skada.base import _DAMetadataRequesterMixin
+
 
 class DomainAwareCriterion(torch.nn.Module):
     """Criterion for domain aware loss
@@ -39,24 +43,25 @@ class DomainAwareCriterion(torch.nn.Module):
         y_true,
     ):
         y_pred, domain_pred, features, sample_domain = y_pred  # unpack
-        y_pred_s = y_pred[sample_domain > 0]
-        y_pred_t = y_pred[sample_domain < 0]
+        source_idx = extract_source_indices(sample_domain)
+        y_pred_s = y_pred[source_idx]
+        y_pred_t = y_pred[~source_idx]
 
         if domain_pred is not None:
-            domain_pred_s = domain_pred[sample_domain > 0]
-            domain_pred_t = domain_pred[sample_domain < 0]
+            domain_pred_s = domain_pred[source_idx]
+            domain_pred_t = domain_pred[~source_idx]
         else:
             domain_pred_s = None
             domain_pred_t = None
 
-        features_s = features[sample_domain > 0]
-        features_t = features[sample_domain < 0]
+        features_s = features[source_idx]
+        features_t = features[~source_idx]
 
         # predict
         return self.criterion(
-            y_pred_s, y_true[sample_domain > 0]
+            y_pred_s, y_true[source_idx]
         ) + self.reg * self.adapt_criterion(
-            y_true[sample_domain > 0],
+            y_true[source_idx],
             y_pred_s,
             y_pred_t,
             domain_pred_s,
@@ -202,8 +207,10 @@ class DomainAwareModule(torch.nn.Module):
 
     def forward(self, X, sample_domain=None, is_fit=False, return_features=False):
         if is_fit:
-            X_s = X[sample_domain > 0]
-            X_t = X[sample_domain < 0]
+            source_idx = extract_source_indices(sample_domain)
+
+            X_s = X[source_idx]
+            X_t = X[~source_idx]
             # predict
             y_pred_s = self.module_(X_s)
             features_s = self.intermediate_layers[self.layer_name]
@@ -214,18 +221,18 @@ class DomainAwareModule(torch.nn.Module):
                 domain_pred_s = self.domain_classifier_(features_s)
                 domain_pred_t = self.domain_classifier_(features_t)
                 domain_pred = torch.empty((len(sample_domain)))
-                domain_pred[sample_domain > 0] = domain_pred_s
-                domain_pred[sample_domain < 0] = domain_pred_t
+                domain_pred[source_idx] = domain_pred_s
+                domain_pred[~source_idx] = domain_pred_t
             else:
                 domain_pred = None
 
             y_pred = torch.empty((len(sample_domain), y_pred_s.shape[1]))
-            y_pred[sample_domain > 0] = y_pred_s
-            y_pred[sample_domain < 0] = y_pred_t
+            y_pred[source_idx] = y_pred_s
+            y_pred[~source_idx] = y_pred_t
 
             features = torch.empty((len(sample_domain), features_s.shape[1]))
-            features[sample_domain > 0] = features_s
-            features[sample_domain < 0] = features_t
+            features[source_idx] = features_s
+            features[~source_idx] = features_t
 
             return (
                 y_pred,
@@ -240,7 +247,7 @@ class DomainAwareModule(torch.nn.Module):
                 return self.module_(X)
 
 
-class DomainAwareNet(NeuralNetClassifier):
+class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
     """Domain aware net
 
     A wrapper for NeuralNetClassifier to give a dict as input to the fit.

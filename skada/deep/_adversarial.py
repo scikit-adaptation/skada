@@ -19,6 +19,8 @@ from .modules import DomainClassifier
 
 from .utils import check_generator
 
+from skada.utils import extract_source_indices
+
 
 class DANNLoss(BaseDALoss):
     """Loss DANN.
@@ -27,9 +29,9 @@ class DANNLoss(BaseDALoss):
 
     Parameters
     ----------
-    target_criterion : torch criterion (class)
-        The uninitialized criterion (loss) used to compute the
-        DANN loss. The criterion should support reduction='none'.
+    target_criterion : torch criterion (class), default=None
+        The initialized criterion (loss) used to compute the
+        DANN loss. If None, a BCELoss is used.
 
     References
     ----------
@@ -97,9 +99,9 @@ def DANN(
         collected during the training.
     reg : float, default=1
         Regularization parameter.
-    domain_classifier : torch module
+    domain_classifier : torch module, default=None
         A PyTorch :class:`~torch.nn.Module` used to classify the
-        domain.
+        domain. If None, a domain classifier is created following [1]_.
     num_features : int, default=None
         Size of the input of domain classifier,
         e.g size of the last layer of
@@ -146,9 +148,9 @@ class CDANLoss(BaseDALoss):
     ----------
     reg : float, default=1
         Regularization parameter.
-    target_criterion : torch criterion (class)
-        The uninitialized criterion (loss) used to compute the
-        CDAN loss.
+    target_criterion : torch criterion (class), default=None
+        The initialized criterion (loss) used to compute the
+        CDAN loss. If None, a BCELoss is used.
 
     References
     ----------
@@ -226,8 +228,10 @@ class CDANModule(DomainAwareModule):
 
     def forward(self, X, sample_domain=None, is_fit=False, return_features=False):
         if is_fit:
-            X_t = X[sample_domain < 0]
-            X_s = X[sample_domain > 0]
+            source_idx = extract_source_indices(sample_domain)
+
+            X_t = X[~source_idx]
+            X_s = X[source_idx]
             # predict
             y_pred_s = self.module_(X_s)
             features_s = self.intermediate_layers[self.layer_name]
@@ -266,16 +270,16 @@ class CDANModule(DomainAwareModule):
             domain_pred_s = self.domain_classifier_(multilinear_map)
             domain_pred_t = self.domain_classifier_(multilinear_map_target)
             domain_pred = torch.empty((len(sample_domain)))
-            domain_pred[sample_domain > 0] = domain_pred_s
-            domain_pred[sample_domain < 0] = domain_pred_t
+            domain_pred[source_idx] = domain_pred_s
+            domain_pred[~source_idx] = domain_pred_t
 
             y_pred = torch.empty((len(sample_domain), y_pred_s.shape[1]))
-            y_pred[sample_domain > 0] = y_pred_s
-            y_pred[sample_domain < 0] = y_pred_t
+            y_pred[source_idx] = y_pred_s
+            y_pred[~source_idx] = y_pred_t
 
             features = torch.empty((len(sample_domain), features_s.shape[1]))
-            features[sample_domain > 0] = features_s
-            features[sample_domain < 0] = features_t
+            features[source_idx] = features_s
+            features[~source_idx] = features_t
 
             return (
                 y_pred,
@@ -319,9 +323,9 @@ def CDAN(
         Maximum size of the input for the domain classifier.
         4096 is the largest number of units in typical deep network
         according to [1]_.
-    domain_classifier : torch module
+    domain_classifier : torch module, default=None
         A PyTorch :class:`~torch.nn.Module` used to classify the
-        domain.
+        domain. If None, a domain classifier is created following [1]_.
     num_features : int, default=None
         Size of the input of domain classifier,
         e.g size of the last layer of

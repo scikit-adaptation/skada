@@ -20,28 +20,29 @@ from skada.datasets import make_shifted_datasets
 from skorch.dataset import Dataset
 
 
+class TestLoss(BaseDALoss):
+    """Test Loss to check the deep API"""
+
+    def __init__(
+        self,
+    ):
+        super(TestLoss, self).__init__()
+
+    def forward(
+        self,
+        y_s,
+        y_pred_s,
+        y_pred_t,
+        domain_pred_s,
+        domain_pred_t,
+        features_s,
+        features_t,
+    ):
+        """Compute the domain adaptation loss"""
+        return 0
+
+
 def test_domainawaretraining():
-
-    class TestLoss(BaseDALoss):
-        """Test Loss to check the deep API"""
-
-        def __init__(
-            self,
-        ):
-            super(TestLoss, self).__init__()
-
-        def forward(
-            self,
-            y_s,
-            y_pred_s,
-            y_pred_t,
-            domain_pred_s,
-            domain_pred_t,
-            features_s,
-            features_t,
-        ):
-            """Compute the domain adaptation loss"""
-            return 0
 
     module = ToyModule2D()
     module.eval()
@@ -55,7 +56,6 @@ def test_domainawaretraining():
         random_state=42,
         return_dataset=True,
     )
-
     method = DomainAwareNet(
         DomainAwareModule(module, "dropout"),
         iterator_train=DomainBalancedDataLoader,
@@ -71,7 +71,7 @@ def test_domainawaretraining():
     X_test = X_test.astype(np.float32)
 
     # without dict
-    method.fit(X, y, sample_domain)
+    method.fit(X, y, sample_domain=sample_domain)
 
     y_pred = method.predict(X_test, sample_domain_test)
     method.score(X_test, y_test, sample_domain_test)
