@@ -284,9 +284,9 @@ create_plots(
 #     Illustration of the KLIEP method
 # ------------------------------------------
 #
-# The idea of KLIEP is to find an importance estimate w(x) such that
+# The idea of KLIEP is to find an importance estimate :math:`w(x)` such that
 # the Kullback-Leibler (KL) divergence between the source input density
-# $p_{source}(x)$ to its estimate $p_{target}(x) = w(x)p{_source}(x)$ is minimized.
+# :math:`p_{source}(x)` to its estimate :math:`p_{target}(x) = w(x)p{_source}(x)` is minimized.
 #
 # See [3] for details:
 #
