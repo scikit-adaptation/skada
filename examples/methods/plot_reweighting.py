@@ -290,6 +290,7 @@ create_plots(
 # it than any other points from the source dataset.
 #
 # See [4] for details.
+#
 # .. [4] Loog, M. (2012).
 #        Nearest neighbor-based importance weighting.
 #        In 2012 IEEE International Workshop on Machine
@@ -308,6 +309,7 @@ create_plots(
 # This example illustrates the use of KMM method [5] to correct covariate-shift.
 #
 # See [5] for details.
+#
 # .. [5] J. Huang, A. Gretton, K. Borgwardt, B. Schölkopf and A. J. Smola.
 #        Correcting sample selection bias by unlabeled data. In NIPS, 2007.
 
