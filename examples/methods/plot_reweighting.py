@@ -179,7 +179,7 @@ def create_plots(
 
     ax.set_xticks(()), ax.set_yticks(())
     ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
-    ax.set_title("Decision boundaries", fontsize=14)
+    ax.set_title("Decision boundaries", fontsize=12)
     ax.text(
         x_max - 0.3,
         y_min + 0.3,
@@ -203,8 +203,8 @@ def create_plots(
 
     ax.set_xticks(()), ax.set_yticks(())
     ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
-    ax.set_title("Reweighted data")
-    figure.suptitle(suptitle, fontsize=14, y=1)
+    ax.set_title("Reweighted data", fontsize=12)
+    figure.suptitle(suptitle, fontsize=16, y=1)
 
 
 create_plots(
