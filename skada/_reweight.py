@@ -805,9 +805,9 @@ class KMMAdapter(BaseAdapter):
             eps = self.eps
 
         A = np.stack([np.ones(Ns), -np.ones(Ns)], axis=0)
-        Aub = np.array([Ns*(1+eps), -Ns*(1-eps)])
+        b = np.array([Ns*(1+eps), -Ns*(1-eps)])
 
-        weights, _ = qp_solve(Kss, -kappa, A, Aub=Aub,
+        weights, _ = qp_solve(Kss, -kappa, A, b,
                               lb=np.zeros(Ns),
                               ub=np.ones(Ns)*self.B,
                               tol=self.tol,
@@ -1013,19 +1013,22 @@ class MMDTarSReweightAdapter(BaseAdapter):
         B_beta = 10
         eps = B_beta / (4 * np.sqrt(m))
 
-        A = np.vstack([R, np.sum(R, axis=0, keepdims=True)])
-        lb = np.concatenate([
-            np.zeros((R.shape[0])),
-            [m * (1 - eps)]
+        A = np.vstack([
+            -R,
+            -np.sum(R, axis=0, keepdims=True),
+            R,
+            np.sum(R, axis=0, keepdims=True)
         ])
-        ub = np.concatenate([
+        b = np.concatenate([
+            np.zeros((R.shape[0])),
+            -np.array([m * (1 - eps)]),
             B_beta * np.ones((R.shape[0])),
-            [m * (1 + eps)]
+            np.array([m * (1 + eps)])
         ])
 
         outputs = qp_solve(
             Q=P, c=q,
-            A=A, Alb=lb, Aub=ub,
+            A=A, b=b,
             tol=self.tol, max_iter=self.max_iter
         )
         alpha = outputs[0]

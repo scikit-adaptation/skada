@@ -464,7 +464,7 @@ def test_qp_solve():
     beq = np.array([1.])
 
     A = -np.eye(2)
-    Aub = np.zeros(2)
+    b = np.zeros(2)
 
     lb = np.array([0., 0.])
     ub = np.array([0., 0.])
@@ -480,10 +480,7 @@ def test_qp_solve():
     res = qp_solve(Q, c, Aeq=Aeq, beq=beq, lb=lb, x0=x0)
     assert np.allclose(res[0], sol1)
 
-    res = qp_solve(Q, c, A, Aub=Aub, Aeq=Aeq, beq=beq)
-    assert np.allclose(res[0], sol1)
-
-    res = qp_solve(Q, c, A=Aeq, Alb=beq, Aub=beq, x0=x0)
+    res = qp_solve(Q, c, A, b, Aeq=Aeq, beq=beq)
     assert np.allclose(res[0], sol1)
 
     res = qp_solve(Q, c)
