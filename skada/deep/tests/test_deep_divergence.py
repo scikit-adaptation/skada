@@ -1,6 +1,7 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #
 # License: BSD 3-Clause
+import pytest
 
 import numpy as np
 
@@ -46,7 +47,8 @@ def test_deepcoral():
     assert history[0]["train_loss"] > history[-1]["train_loss"]
 
 
-def test_dan():
+@pytest.mark.parametrize("sigmas", [[0.1, 0.2], None,])
+def test_dan(sigmas):
     module = ToyModule2D()
     module.eval()
 
@@ -63,6 +65,7 @@ def test_dan():
     method = DAN(
         ToyModule2D(),
         reg=1,
+        sigmas=sigmas,
         layer_name="dropout",
         batch_size=10,
         max_epochs=10,

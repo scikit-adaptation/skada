@@ -82,6 +82,10 @@ class DANLoss(BaseDALoss):
 
     From [1]_.
 
+    Parameters
+    ----------
+    sigmas : array-like, optional (default=None)
+        The sigmas for the Gaussian kernel.
 
     References
     ----------
@@ -89,8 +93,9 @@ class DANLoss(BaseDALoss):
             Features with Deep Adaptation Networks.
             In ICML, 2015.
     """
-    def __init__(self,):
+    def __init__(self, sigmas=None):
         super(DANLoss, self).__init__()
+        self.sigmas = sigmas
 
     def forward(
         self,
@@ -103,11 +108,11 @@ class DANLoss(BaseDALoss):
         features_t,
     ):
         """Compute the domain adaptation loss"""
-        loss = dan_loss(features_s, features_t)
+        loss = dan_loss(features_s, features_t, sigmas=self.sigmas)
         return loss
 
 
-def DAN(module, layer_name, reg=1, **kwargs):
+def DAN(module, layer_name, reg=1, sigmas=None, **kwargs):
     """DAN domain adaptation method.
 
     From [1]_.
@@ -121,6 +126,8 @@ def DAN(module, layer_name, reg=1, **kwargs):
         collected during the training for the adaptation.
     reg : float, optional (default=1)
         The regularization parameter of the covariance estimator.
+    sigmas : array-like, optional (default=None)
+        The sigmas for the Gaussian kernel.
 
     References
     ----------
@@ -132,7 +139,7 @@ def DAN(module, layer_name, reg=1, **kwargs):
         DomainAwareModule(module, layer_name),
         iterator_train=DomainBalancedDataLoader,
         criterion=DomainAwareCriterion(
-            torch.nn.CrossEntropyLoss(), DANLoss(), reg=reg
+            torch.nn.CrossEntropyLoss(), DANLoss(sigmas=sigmas), reg=reg
         ),
         **kwargs
     )
