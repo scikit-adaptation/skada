@@ -35,6 +35,7 @@ from skada import (
     ClassRegularizerOTMapping,
     LinearOTMapping,
     CORAL,
+    JDOTClassifier,
     MMDLSConSMapping
 )
 from skada.datasets import make_shifted_datasets
@@ -46,16 +47,17 @@ RANDOM_SEED = 42
 names = [
     "Without da",
     "Reweight Density",
-    "Gaussian Reweight Density",
-    "Discr. Reweight Density",
+    "Gaussian Reweight",
+    "Discr. Reweight",
     "KLIEP",
     "Subspace Alignment",
     "TCA",
     "OT mapping",
     "Entropic OT mapping",
-    "Class Regularizer OT mapping",
+    "Class Reg. OT mapping",
     "Linear OT mapping",
     "CORAL",
+    "JDOT",
     "MMD Loc-Scale mapping"
 ]
 
@@ -75,6 +77,7 @@ classifiers = [
     ClassRegularizerOTMapping(base_estimator=SVC()),
     LinearOTMapping(base_estimator=SVC()),
     CORAL(base_estimator=SVC()),
+    JDOTClassifier(base_estimator=SVC(), metric='hinge'),
     MMDLSConSMapping(base_estimator=SVC())
 ]
 
@@ -171,13 +174,15 @@ for ds_cnt, ds in enumerate(datasets):
     for name, clf in zip(names, classifiers):
         print(name, clf)
         ax = axes[i, ds_cnt]
+        ax.set_xlim(x_min, x_max)
+        ax.set_ylim(y_min, y_max)
         if name == "Without da":
             clf.fit(Xs, ys)
         else:
             clf.fit(X, y, sample_domain=sample_domain)
         score = clf.score(Xt, yt)
         DecisionBoundaryDisplay.from_estimator(
-            clf, Xs, cmap=cm, alpha=0.8, ax=ax, eps=0.5, response_method="predict",
+            clf, X, cmap=cm, alpha=0.8, ax=ax, eps=0.5, response_method="predict",
         )
 
         # Plot the target points

@@ -12,7 +12,6 @@ try:
 except ImportError:
     torch = False
 
-from skada.datasets import DomainAwareDataset
 from skada import (
     CORALAdapter,
     CORAL,
@@ -29,6 +28,8 @@ from skada import (
     make_da_pipeline,
     source_target_split
 )
+from skada.datasets import DomainAwareDataset
+from skada.utils import source_target_split
 
 import pytest
 
@@ -68,8 +69,11 @@ import pytest
         )
     ]
 )
-def test_mapping_estimator(estimator, tmp_da_dataset):
-    X_source, y_source, X_target, y_target = tmp_da_dataset
+def test_mapping_estimator(estimator, da_blobs_dataset):
+    X, y, sample_domain = da_blobs_dataset
+    X_source, X_target, y_source, y_target = source_target_split(
+        X, y, sample_domain=sample_domain
+    )
 
     # Just scale some feature to avoid having an identity cov matrix
     X_scaled = np.copy(X_source)

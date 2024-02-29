@@ -24,7 +24,7 @@ The following algorithms are currently implemented.
 
 - Sample reweighting methods (Gaussian [1], Discriminant [2], KLIEP [3],
   DensityRatio [4])
-- Sample mapping methods (CORAL [5], Optimal Transport DA OTDA [6], LinearMonge [7], LS-ConS [21])
+- Sample mapping methods (CORAL [5], Optimal Transport DA OTDA [6], LinearMonge [7], LS-ConS [22])
 - Subspace methods (SubspaceAlignment [8], TCA [9])
 - Other methods (JDOT [10], DASVM [11])
 
@@ -142,6 +142,7 @@ This toolbox has been created and is maintained by the SKADA team that includes 
 * [Antoine Collas](https://www.antoinecollas.fr/)
 * [Yanis Lalou](https://github.com/YanisLalou)
 * [Antoine de Mathelin](https://scholar.google.com/citations?user=h79bffAAAAAJ&hl=fr)
+* [Ruben Bueno]()
 
 ## License
 
@@ -190,4 +191,7 @@ The library is distributed under the 3-Clause BSD license.
 
 [20] You, K., Wang, X., Long, M., & Jordan, M. (2019, May). [Towards accurate model selection in deep unsupervised domain adaptation](https://proceedings.mlr.press/v97/you19a/you19a.pdf). In International Conference on Machine Learning (pp. 7124-7133). PMLR.
 
-[21] Zhang, K., Schölkopf, B., Muandet, K., Wang, Z. (2013). [Domain Adaptation under Target and Conditional Shift](http://proceedings.mlr.press/v28/zhang13d.pdf). In International Conference on Machine Learning (pp. 819-827). PMLR.
+[21] Domain Adaptation Problems: A DASVM ClassificationTechnique and a Circular Validation StrategyLorenzo Bruzzone, Fellow, IEEE, and Mattia Marconcini, Member, IEEE (https://rslab.disi.unitn.it/papers/R82-PAMI.pdf)
+
+[22] Zhang, K., Schölkopf, B., Muandet, K., Wang, Z. (2013). [Domain Adaptation under Target and Conditional Shift](http://proceedings.mlr.press/v28/zhang13d.pdf). In International Conference on Machine Learning (pp. 819-827). PMLR.
+
