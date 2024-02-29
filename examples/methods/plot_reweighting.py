@@ -149,9 +149,6 @@ figure.suptitle("Plot of the dataset", fontsize=16, y=1)
 ax.set_xticks(()), ax.set_yticks(())
 ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
 
-# We create a dict to store scores:
-scores_dict = {}
-
 # %%
 #     Illustration of the problem with no domain adaptation
 # ------------------------------------------
@@ -160,6 +157,8 @@ scores_dict = {}
 # data that is distributed as the target sample domain, it will thus
 # not be performing optimaly.
 
+# We create a dict to store scores:
+scores_dict = {}
 
 def create_plots(
         clf,
@@ -200,6 +199,7 @@ def create_plots(
         c=yt,
         cmap=colormap,
         alpha=0.7,
+        s=[15],
     )
 
     ax.set_xticks(()), ax.set_yticks(())
