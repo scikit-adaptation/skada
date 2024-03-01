@@ -51,7 +51,6 @@ def _check_y_masking(y):
     """Check that labels are properly masked
     ie. labels are either -1 or >= 0
 
-
     Parameters
     ----------
     y : array-like of shape (n_samples,)
@@ -113,3 +112,50 @@ def _find_y_type(y):
         # Here y_type is 'multilabel-indicator', 'continuous-multioutput',
         # 'multiclass-multioutput' or 'unknown'
         raise ValueError(f"Uncompatible label type: {y_type}")
+
+
+def _remove_masked(X, y, params):
+    """Internal API for removing masked samples before passing them
+    to the estimator that does not accept 'sample_domain' (e.g. any
+    standard sklearn estimator).
+
+    Parameters
+    ----------
+    X : array-like of shape (n_samples, n_features)
+        Input data
+    y : array-like of shape (n_samples,)
+        Labels for the data
+    params : dict
+        Additional parameters declared in the routing
+
+    Returns
+    -------
+    X : array-like of shape (n_samples, n_features)
+        Input data
+    y : array-like of shape (n_samples,)
+        Labels for the data
+    params : dict
+        Additional parameters declared in the routing
+    """
+    # technically, `y` is optional but if we have no
+    # labels, - there are no masks
+    if y is None:
+        return X, y, params
+
+    y_type = _find_y_type(y)
+    if y_type == 'classification':
+        unmasked_idx = (y != _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL)
+    elif y_type == 'continuous':
+        unmasked_idx = np.isfinite(y)
+
+    X = X[unmasked_idx]
+    y = y[unmasked_idx]
+    params = {
+        # this is somewhat crude way to test is `v` is indexable
+        k: v[unmasked_idx] if (
+            hasattr(v, '__len__') and len(v) == len(unmasked_idx)
+        ) else v
+        for k, v
+        in params.items()
+    }
+    return X, y, params
