@@ -455,7 +455,7 @@ class CircularValidation(_BaseDomainAwareScorer):
         if not callable(source_scorer):
             raise ValueError(
                 "The source scorer should be a callable. "
-                f"The scorer {self.source_scorer!r} is not."
+                f"The scorer {source_scorer} is not."
             )
 
         self.source_scorer = source_scorer
