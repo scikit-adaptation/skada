@@ -118,6 +118,7 @@ DA metrics :py:mod:`skada.metrics`
    PredictionEntropyScorer
    DeepEmbeddedValidation
    SoftNeighborhoodDensity
+   CircularValidation
 
 
 Model Selection :py:mod:`skada.model_selection`
