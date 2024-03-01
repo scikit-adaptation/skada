@@ -23,6 +23,9 @@ from skada._utils import (
 )
 
 
+EPS = np.finfo(float).eps
+
+
 def check_X_y_domain(
     X,
     y,
@@ -629,3 +632,56 @@ def qp_solve(Q, c=None, A=None, b=None, Aeq=None, beq=None, lb=None, ub=None,
         outputs += (results,)
 
     return outputs
+
+
+def frank_wolfe(jac, c, clb=1., cub=1., x0=None, max_iter=1000):
+    r"""Frank-Wolfe algorithm for convex programming
+
+    Solve the following convex optimization problem:
+
+    .. math::
+        \min_x \quad  f(x)
+
+        lb <= \\langle x, c \\rangle <= ub
+
+        x >= 0
+
+    With d the dimension of c.
+
+    Parameters
+    ----------
+    jac : callable
+        The jacobian of f, return a vector of shape (d,).
+    c : (d,) ndarray, float64
+        Linear constraint vector.
+    lb : float64, optional, default=1.
+        Lower bound of the linear constraint.
+    ub : float64, optional, default=1.
+        Upper bound of the linear constraint.
+    max_iter : int, optional, default=1000
+        Maximum number of iterations to perform.
+
+    Returns
+    -------
+    x: (d,) ndarray
+        Optimal solution x
+    """
+    inv_c = 1. / c
+
+    if x0 is None:
+        x0 = inv_c * ((cub - clb) / 2) / c.shape[0]
+
+    x = np.copy(x0)
+
+    for k in range(1, max_iter+1):
+        grad = jac(x)
+        product = grad * inv_c
+        index = np.argmin(product)
+        vect = np.zeros(c.shape[0])
+        if product[index] >= 0:
+            vect[index] = inv_c[index] * clb
+        else:
+            vect[index] = inv_c[index] * cub
+        lr = 2. / (k + 1.)
+        x = (1 - lr) * x + lr * vect
+    return x
