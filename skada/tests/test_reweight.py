@@ -134,40 +134,9 @@ def test_reg_reweight_estimator(estimator, da_reg_dataset):
     assert score >= 0
 
 
-def test_reweight_warning(da_dataset):
-    X_train, y_train, sample_domain = da_dataset.pack_train(
-        as_sources=['s'],
-        as_targets=['t']
-    )
-    estimator = KLIEPAdapter(gamma=0.1, max_iter=0)
-    estimator.fit(X_train, y_train, sample_domain=sample_domain)
+def _base_test_new_X_adapt(estimator, da_dataset):
+    X_train, y_train, sample_domain = da_dataset
 
-    with pytest.warns(UserWarning,
-                      match="Maximum iteration reached before convergence."):
-        estimator.fit(X_train, y_train, sample_domain=sample_domain)
-
-
-def test_kmm_kernel_error():
-    with pytest.raises(ValueError, match="got 'hello'"):
-        KMMAdapter(kernel="hello")
-
-
-@pytest.mark.parametrize(
-    "estimator",
-    [
-        ReweightDensityAdapter(),
-        GaussianReweightDensityAdapter(),
-        DiscriminatorReweightDensityAdapter(),
-        KLIEPAdapter(gamma=[0.1, 1], random_state=42),
-        KMMAdapter(gamma=0.1, smooth_weights=True),
-        MMDTarSReweightAdapter(gamma=1.0),
-    ],
-)
-def test_new_X_adapt(estimator, da_dataset):
-    X_train, y_train, sample_domain = da_dataset.pack_train(
-        as_sources=['s'],
-        as_targets=['t']
-    )
     estimator.fit(X_train, y_train, sample_domain=sample_domain)
     res1 = estimator.adapt(X_train, y_train, sample_domain=sample_domain)
     idx = np.random.choice(X_train.shape[0], 10)
@@ -184,6 +153,59 @@ def test_new_X_adapt(estimator, da_dataset):
     true_weights = true_weights / np.sum(true_weights)
     res2["sample_weight"] = res2["sample_weight"] / np.sum(res2["sample_weight"])
     assert np.allclose(true_weights, res2["sample_weight"])
+
+
+@pytest.mark.parametrize(
+    "estimator",
+    [
+        ReweightDensityAdapter(),
+        GaussianReweightDensityAdapter(),
+        DiscriminatorReweightDensityAdapter(),
+        KLIEPAdapter(gamma=[0.1, 1], random_state=42),
+        KMMAdapter(gamma=0.1, smooth_weights=True),
+        MMDTarSReweightAdapter(gamma=1.0),
+    ],
+)
+def test_new_X_adapt(estimator, da_dataset, da_reg_dataset):
+    da_dataset = da_dataset.pack_train(
+        as_sources=['s'],
+        as_targets=['t']
+    )
+
+    _base_test_new_X_adapt(estimator, da_dataset)
+
+
+@pytest.mark.parametrize(
+    "estimator",
+    [
+        ReweightDensityAdapter(),
+        GaussianReweightDensityAdapter(),
+        DiscriminatorReweightDensityAdapter(),
+        KLIEPAdapter(gamma=[0.1, 1], random_state=42),
+        KMMAdapter(gamma=0.1, smooth_weights=True),
+        MMDTarSReweightAdapter(gamma=1.0),
+    ],
+)
+def test_reg_new_X_adapt(estimator, da_reg_dataset):
+    _base_test_new_X_adapt(estimator, da_reg_dataset)
+
+
+def test_reweight_warning(da_dataset):
+    X_train, y_train, sample_domain = da_dataset.pack_train(
+        as_sources=['s'],
+        as_targets=['t']
+    )
+    estimator = KLIEPAdapter(gamma=0.1, max_iter=0)
+    estimator.fit(X_train, y_train, sample_domain=sample_domain)
+
+    with pytest.warns(UserWarning,
+                      match="Maximum iteration reached before convergence."):
+        estimator.fit(X_train, y_train, sample_domain=sample_domain)
+
+
+def test_kmm_kernel_error():
+    with pytest.raises(ValueError, match="got 'hello'"):
+        KMMAdapter(kernel="hello")
 
 
 # KMM.adapt behavior should be the same when smooth weights is True or
