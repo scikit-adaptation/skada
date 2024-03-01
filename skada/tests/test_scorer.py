@@ -213,6 +213,9 @@ def test_circular_validation(da_dataset):
     )
     estimator_regression.fit(X, y, sample_domain=sample_domain)
 
-    scorer = CircularValidation(source_scorer=mean_squared_error)
+    scorer = CircularValidation(
+        source_scorer=mean_squared_error,
+        greater_is_better=False
+    )
     score = scorer._score(estimator_regression, X, y, sample_domain=sample_domain)
     assert ~np.isnan(score), "the score is computed"
