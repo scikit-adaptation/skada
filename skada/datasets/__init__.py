@@ -27,6 +27,10 @@ from ._samples_generator import (
     make_dataset_from_moons_distribution,
     make_variable_frequency_dataset,
 )
+from ._nhanes_lead import (
+    fetch_nhanes_lead,
+    fetch_domain_aware_nhanes_lead
+)
 
 __all__ = [
     'DomainAwareDataset',
@@ -42,4 +46,6 @@ __all__ = [
     'make_dataset_from_moons_distribution',
     'make_variable_frequency_dataset',
     'select_domain',
+    'fetch_nhanes_lead',
+    'fetch_domain_aware_nhanes_lead'
 ]
