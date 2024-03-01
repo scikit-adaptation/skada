@@ -21,7 +21,7 @@ from sklearn.utils.metaestimators import available_if
 from sklearn.utils.validation import check_is_fitted
 
 from skada.utils import check_X_domain
-from skada._utils import _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL, _find_y_type
+from skada._utils import _remove_masked
 
 
 def _estimator_has(attr):
@@ -300,6 +300,13 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
                     params[k] = v
         else:
             X_out = X_input
+
+        X_out, sample_domain = check_X_domain(
+            X_out,
+            sample_domain=params.get('sample_domain')
+        )
+        params['sample_domain'] = sample_domain
+
         try:
             routed_params = routing_request._route_params(params=params)
         except UnsetMetadataPassedError as e:
@@ -320,39 +327,6 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
             raise e
         return X_out, routed_params
 
-    def _remove_masked(self, X, y, routed_params):
-        """Internal API for removing masked samples before passing them
-        to the final estimator. Only applicable for the final estimator
-        within the Pipeline.
-        Exception: if the final estimator has a transform method, we don't
-        need to do anything.
-        """
-        # If the estimator is not final, we don't need to do anything
-        # If the estimator has a transform method, we don't need to do anything
-        if not self._is_final or hasattr(self, 'transform'):
-            return X, y, routed_params
-
-        # in case the estimator is marked as final in the pipeline,
-        # the selector is responsible for removing masked labels
-        # from the targets
-        y_type = _find_y_type(y)
-        if y_type == 'classification':
-            unmasked_idx = (y != _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL)
-        elif y_type == 'continuous':
-            unmasked_idx = np.isfinite(y)
-
-        X = X[unmasked_idx]
-        y = y[unmasked_idx]
-        routed_params = {
-            # this is somewhat crude way to test is `v` is indexable
-            k: v[unmasked_idx] if (
-                hasattr(v, '__len__') and len(v) == len(unmasked_idx)
-            ) else v
-            for k, v
-            in routed_params.items()
-        }
-        return X, y, routed_params
-
 
 class Shared(BaseSelector):
 
@@ -364,11 +338,12 @@ class Shared(BaseSelector):
     def fit(self, X, y, **params):
         routing = get_routing_for_object(self.base_estimator)
         X, routed_params = self._route_and_merge_params(routing.fit, X, params)
-        X, y, routed_params = self._remove_masked(X, y, routed_params)
+        if 'sample_domain' not in routed_params:
+            X, y, routed_params = _remove_masked(X, y, routed_params)
         estimator = clone(self.base_estimator)
         estimator.fit(X, y, **routed_params)
         self.base_estimator_ = estimator
-        self.routing_ = get_routing_for_object(estimator)
+        self.routing_ = routing
         return self
 
     # xxx(okachaiev): check if underlying estimator supports 'fit_transform'
@@ -405,11 +380,11 @@ class PerDomain(BaseSelector):
         return self.estimators_[domain_label]
 
     def fit(self, X, y, **params):
-        # xxx(okachaiev): use check_*_domain to derive default domain labels
         sample_domain = params['sample_domain']
         routing = get_routing_for_object(self.base_estimator)
         X, routed_params = self._route_and_merge_params(routing.fit, X, params)
-        X, y, routed_params = self._remove_masked(X, y, routed_params)
+        if 'sample_domain' not in routed_params:
+            X, y, routed_params = _remove_masked(X, y, routed_params)
         estimators = {}
         for domain_label in np.unique(sample_domain):
             idx, = np.where(sample_domain == domain_label)
@@ -431,7 +406,6 @@ class PerDomain(BaseSelector):
         # xxx(okachaiev): use check_*_domain to derive default domain labels
         sample_domain = params['sample_domain']
         output = None
-        # xxx(okachaiev): maybe return_index?
         for domain_label in np.unique(sample_domain):
             # xxx(okachaiev): fail if unknown domain is given
             method = getattr(self.estimators_[domain_label], method_name)
