@@ -23,7 +23,7 @@ from .utils import (
     source_target_split, extract_source_indices,
     qp_solve
 )
-from ._utils import _find_y_type, _estimate_covariance
+from ._utils import _find_y_type, _estimate_covariance, Y_Type
 from ._pipeline import make_da_pipeline
 
 
@@ -935,7 +935,7 @@ def KMM(
 
 
 class MMDTarSReweightAdapter(BaseAdapter):
-    """MMDTarSReweight adapter.
+    """Target shift reweighting using MMD.
 
     The idea of MMDTarSReweight is to find an importance estimate \beta(y) such that
     the Maximum Mean Discrepancy (MMD) divergence between the source input density
@@ -963,6 +963,8 @@ class MMDTarSReweightAdapter(BaseAdapter):
     ----------
     `source_weights_` : array-like, shape (n_samples,)
         The learned source weights.
+    `alpha_` : array-like, shape (n_classes,) or (n_samples,)
+        The learned kernel weights.
     `X_source_` : array-like, shape (n_samples, n_features)
         The source data.
 
@@ -984,7 +986,7 @@ class MMDTarSReweightAdapter(BaseAdapter):
         m, n = X_source.shape[0], X_target.shape[0]
 
         # check y is discrete or continuous
-        discrete = _find_y_type(y_source) == "classification"
+        self.discrete_ = discrete = _find_y_type(y_source) == Y_Type.DISCRETE
 
         # compute A
         L = pairwise_kernels(y_source.reshape(-1, 1), metric="rbf", gamma=self.gamma)
@@ -1038,7 +1040,7 @@ class MMDTarSReweightAdapter(BaseAdapter):
 
         weights = (R @ alpha).flatten()
 
-        return weights
+        return weights, alpha
 
     def fit(self, X, y, sample_domain=None, **kwargs):
         """Fit adaptation parameters.
@@ -1063,7 +1065,8 @@ class MMDTarSReweightAdapter(BaseAdapter):
         )
         self.X_source_ = X_source
 
-        self.source_weights_ = self._weights_optimization(X_source, X_target, y_source)
+        self.source_weights_, self.alpha_ = self._weights_optimization(
+            X_source, X_target, y_source)
 
         return self
 
@@ -1100,10 +1103,21 @@ class MMDTarSReweightAdapter(BaseAdapter):
             if np.array_equal(self.X_source_, X[source_idx]):
                 source_weights = self.source_weights_
             else:
-                # get the nearest neighbor in the source domain
-                C = pairwise_distances(X[source_idx], self.X_source_)
-                idx = np.argmin(C, axis=1)
-                source_weights = self.source_weights_[idx]
+                if self.discrete_:
+                    # assign the classes weights to the source samples
+                    X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+                    source_idx = extract_source_indices(sample_domain)
+                    y_source = y[source_idx]
+                    classes = np.unique(y_source)
+                    R = np.zeros((source_idx.sum(), len(classes)))
+                    for i, c in enumerate(classes):
+                        R[:, i] = (y_source == c).astype(int)
+                    source_weights = R @ self.alpha_
+                else:
+                    # assign the nearest neighbor's weights to the source samples
+                    C = pairwise_distances(X[source_idx], self.X_source_)
+                    idx = np.argmin(C, axis=1)
+                    source_weights = self.source_weights_[idx]
             source_idx = np.where(source_idx)
             weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
             weights[source_idx] = source_weights
@@ -1120,7 +1134,7 @@ def MMDTarSReweight(
     tol=1e-6,
     max_iter=1000,
 ):
-    """MMDTarSReweight adapter and estimator.
+    """Target shift reweighting using MMD.
 
     See Section 3 of [4]_ for details.
 
