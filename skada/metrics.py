@@ -5,6 +5,7 @@
 # License: BSD 3-Clause
 
 from abc import abstractmethod
+import warnings
 import numpy as np
 
 from sklearn.base import clone
@@ -16,8 +17,14 @@ from sklearn.preprocessing import Normalizer
 from sklearn.utils import check_random_state
 from sklearn.utils.extmath import softmax
 from sklearn.utils.metadata_routing import _MetadataRequester, get_routing_for_object
+from sklearn.metrics import balanced_accuracy_score
 
 from .utils import check_X_y_domain, extract_source_indices, source_target_split
+from ._utils import _find_y_type
+from ._utils import (
+    _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
+    _DEFAULT_MASKED_TARGET_REGRESSION_LABEL
+)
 
 
 # xxx(okachaiev): maybe it would be easier to reuse _BaseScorer?
@@ -413,3 +420,104 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         var_w = np.var(weights, ddof=1)
         eta = -cov / var_w
         return self._sign * (np.mean(weighted_error) + eta * np.mean(weights) - eta)
+
+
+class CircularValidation(_BaseDomainAwareScorer):
+    """Score based on a circular validation strategy.
+
+    See [1]_ for details.
+
+    Parameters
+    ----------
+    source_scorer : callable, default = `sklearn.metrics.balanced_accuracy_score`
+        Scorer used on the source domain samples.
+        It should be a callable of the form `source_scorer(y, y_pred)`.
+    greater_is_better : bool, default=False
+        Whether `scorer` is a score function (default), meaning high is
+        good, or a loss function, meaning low is good. In the latter case, the
+        scorer object will sign-flip the outcome of the `scorer`.
+
+    References
+    ----------
+    .. [1]  Lorenzo Bruzzone. Domain Adaptation Problems:
+            A DASVM Classification Technique and a Circular Validation Strategy
+            IEEE, 2010.
+    """
+
+    def __init__(
+        self,
+        source_scorer=balanced_accuracy_score,
+        random_state=None,
+        greater_is_better=True,
+    ):
+        super().__init__()
+        if not callable(source_scorer):
+            raise ValueError(
+                "The source scorer should be a callable. "
+                f"The scorer {self.source_scorer!r} is not."
+            )
+
+        self.source_scorer = source_scorer
+        self.random_state = random_state
+        self._sign = 1 if greater_is_better else -1
+
+    def _score(self, estimator, X, y, sample_domain=None):
+        """
+        Compute the score based on a circular validation strategy.
+
+        Parameters
+        ----------
+        estimator : object
+            A trained estimator.
+        X : array-like or sparse matrix
+            The input samples.
+        y : array-like
+            The true labels.
+        sample_domain : array-like, default=None
+            Domain labels for each sample.
+
+        Returns
+        -------
+        float
+            The computed score.
+        """
+        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        source_idx = extract_source_indices(sample_domain)
+
+        backward_estimator = clone(estimator)
+
+        y_pred_target = estimator.predict(X[~source_idx])
+
+        if len(np.unique(y_pred_target)) == 1:
+            warnings.warn(
+                "The predicted target domain labels"
+                "are all the same. "
+                "The score will be 0."
+            )
+            # Otherwise, we can get ValueError exceptions
+            # when fitting the backward estimator
+            # (happened with SVC)
+            return 0
+
+        backward_sample_domain = -sample_domain
+
+        backward_y = np.zeros_like(y)
+        backward_y[~source_idx] = y_pred_target
+
+        y_type = _find_y_type(y[source_idx])
+        if y_type == 'classification':
+            backward_y[source_idx] = _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
+        else:
+            backward_y[source_idx] = _DEFAULT_MASKED_TARGET_REGRESSION_LABEL
+
+        print(np.unique(backward_y))
+        print(np.unique(backward_y[source_idx]))
+        print(np.unique(backward_y[~source_idx]))
+        print(np.unique(backward_sample_domain[source_idx]))
+        print(np.unique(backward_sample_domain[~source_idx]))
+        backward_estimator.fit(X, backward_y, sample_domain=backward_sample_domain)
+        y_pred_source = backward_estimator.predict(X[source_idx])
+
+        score = self.source_scorer(y[source_idx], y_pred_source)
+
+        return self._sign * score

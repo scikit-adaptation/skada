@@ -20,6 +20,7 @@ from skada.metrics import (
     ImportanceWeightedScorer,
     PredictionEntropyScorer,
     SoftNeighborhoodDensity,
+    CircularValidation,
 )
 
 import pytest
@@ -31,6 +32,7 @@ import pytest
         ImportanceWeightedScorer(),
         PredictionEntropyScorer(),
         SoftNeighborhoodDensity(),
+        CircularValidation(),
     ],
 )
 def test_generic_scorer(scorer, da_dataset):
