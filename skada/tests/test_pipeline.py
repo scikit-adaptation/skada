@@ -63,11 +63,11 @@ def test_per_domain_selector():
     scaler.fit(X, None, sample_domain=sample_domain)
     assert_array_equal(
         np.array([[-3., 1.]]),
-        scaler.transform(np.array([[-1., 1.]]), sample_domain=[1])
+        scaler.transform(np.array([[-1., 1.]]), sample_domain=np.array([1]))
     )
     assert_array_equal(
         np.array([[-1., -0.75]]),
-        scaler.transform(np.array([[-1., 1.]]), sample_domain=[2])
+        scaler.transform(np.array([[-1., 1.]]), sample_domain=np.array([2]))
     )
 
 
