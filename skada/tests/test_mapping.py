@@ -5,8 +5,8 @@
 # License: BSD 3-Clause
 
 import numpy as np
-from sklearn.linear_model import LogisticRegression
-from sklearn.svm import SVC, SVR
+from sklearn.linear_model import LogisticRegression, Ridge
+from sklearn.svm import SVC
 try:
     import torch
 except ImportError:
@@ -34,7 +34,8 @@ import pytest
 
 
 @pytest.mark.parametrize(
-    "estimator", [
+    "estimator",
+    [
         make_da_pipeline(OTMappingAdapter(), LogisticRegression()),
         OTMapping(),
         make_da_pipeline(EntropicOTMappingAdapter(), LogisticRegression()),
@@ -97,13 +98,22 @@ def test_mapping_estimator(estimator, da_blobs_dataset):
 
 
 @pytest.mark.parametrize(
-    "estimator", [
+    "estimator",
+    [
+        make_da_pipeline(OTMappingAdapter(), Ridge()),
+        OTMapping(Ridge()),
+        make_da_pipeline(EntropicOTMappingAdapter(), Ridge()),
+        EntropicOTMapping(Ridge()),
+        make_da_pipeline(LinearOTMappingAdapter(), Ridge()),
+        LinearOTMapping(Ridge()),
+        make_da_pipeline(CORALAdapter(), Ridge()),
+        CORAL(Ridge()),
         pytest.param(
-            make_da_pipeline(MMDLSConSMappingAdapter(gamma=1e-3), SVR()),
+            make_da_pipeline(MMDLSConSMappingAdapter(gamma=1e-3), Ridge()),
             marks=pytest.mark.skipif(not torch, reason="PyTorch not installed")
         ),
         pytest.param(
-            MMDLSConSMapping(SVR()),
+            MMDLSConSMapping(Ridge()),
             marks=pytest.mark.skipif(not torch, reason="PyTorch not installed")
         )
     ]
@@ -114,3 +124,74 @@ def test_reg_mapping_estimator(estimator, da_reg_dataset):
     estimator.fit(X, y, sample_domain=sample_domain)
     score = estimator.score(Xt, yt)
     assert score >= 0
+
+
+@pytest.mark.parametrize(
+    "estimator",
+    [
+        OTMappingAdapter(),
+        EntropicOTMappingAdapter(),
+        ClassRegularizerOTMappingAdapter(norm="lpl1"),
+        ClassRegularizerOTMappingAdapter(norm="l1l2"),
+        LinearOTMappingAdapter(),
+        CORALAdapter(),
+        pytest.param(
+            MMDLSConSMappingAdapter(gamma=1e-3),
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed")
+        ),
+    ]
+)
+def test_new_X_adapt(estimator, da_dataset):
+    X_train, y_train, sample_domain = da_dataset.pack_train(
+        as_sources=['s'],
+        as_targets=['t']
+    )
+
+    estimator.fit(X_train, y_train, sample_domain=sample_domain)
+    X_adapt = estimator.adapt(X_train, y_train, sample_domain=sample_domain)
+
+    idx = np.random.choice(len(X_train), len(X_train) // 5, replace=False)
+    true_X_adapt = X_adapt[idx]
+
+    # Adapt with new X, i.e. same domain, different samples
+    X_adapt = estimator.adapt(
+        X_train[idx] + 1e-8,
+        y_train[idx],
+        sample_domain=sample_domain[idx]
+    )
+
+    # Check that the adapted data are the same
+    assert np.allclose(true_X_adapt, X_adapt)
+
+
+@pytest.mark.parametrize(
+    "estimator",
+    [
+        OTMappingAdapter(),
+        EntropicOTMappingAdapter(),
+        LinearOTMappingAdapter(),
+        CORALAdapter(),
+        pytest.param(
+            MMDLSConSMappingAdapter(gamma=1e-3),
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed")
+        ),
+    ]
+)
+def test_reg_new_X_adapt(estimator, da_reg_dataset):
+    X_train, y_train, sample_domain = da_reg_dataset
+
+    estimator.fit(X_train, y_train, sample_domain=sample_domain)
+    X_adapt = estimator.adapt(X_train, y_train, sample_domain=sample_domain)
+
+    idx = np.random.choice(len(X_train), len(X_train) // 5, replace=False)
+    true_X_adapt = X_adapt[idx]
+
+    # Adapt with new X, i.e. same domain, different samples
+    X_adapt = estimator.adapt(
+        X_train[idx] + 1e-8,
+        y_train[idx],
+        sample_domain=sample_domain[idx]
+    )
+
+    # Check that the adapted data are the same
+    assert np.allclose(true_X_adapt, X_adapt)
