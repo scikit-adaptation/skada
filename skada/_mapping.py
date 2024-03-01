@@ -8,6 +8,7 @@ from abc import abstractmethod
 
 import numpy as np
 from ot import da
+from sklearn.metrics.pairwise import pairwise_distances
 from sklearn.svm import SVC
 import warnings
 
@@ -15,12 +16,14 @@ from .base import BaseAdapter, clone
 from .utils import (
     check_X_domain,
     check_X_y_domain,
+    extract_source_indices,
     source_target_split,
     source_target_merge
 )
 from ._utils import (
     _estimate_covariance,
-    _find_y_type
+    _find_y_type,
+    Y_Type
 )
 
 from ._pipeline import make_da_pipeline
@@ -727,6 +730,12 @@ class MMDLSConSMappingAdapter(BaseAdapter):
         The scaling matrix.
     `B_` : array-like, shape (n_samples, n_features)
         The bias matrix.
+    `G_` : array-like, shape (n_classes, n_features) or (n_samples, n_features)
+        The learned kernel scaling matrix.
+    `H_` : array-like, shape (n_classes, n_features) or (n_samples, n_features)
+        The learned kernel bias matrix.
+    `X_source_` : array-like, shape (n_samples, n_features)
+        The source data.
 
     References
     ----------
@@ -754,7 +763,7 @@ class MMDLSConSMappingAdapter(BaseAdapter):
             )
 
         # check y is discrete or continuous
-        discrete = _find_y_type(y_source) == "classification"
+        self.discrete_ = discrete = _find_y_type(y_source) == Y_Type.DISCRETE
 
         # convert to pytorch tensors
         X_source = torch.tensor(X_source, dtype=torch.float64)
@@ -824,10 +833,11 @@ class MMDLSConSMappingAdapter(BaseAdapter):
                 f"Final gradient infinite norm: {grad_norm:.2e}"
             )
 
-        W = R.numpy() @ G.detach().numpy()
-        B = R.numpy() @ H.detach().numpy()
+        R, G, H = R.detach().numpy(), G.detach().numpy(), H.detach().numpy()
+        W = R @ G
+        B = R @ H
 
-        return W, B
+        return W, B, G, H
 
     def fit(self, X, y, sample_domain=None, **kwargs):
         """Fit adaptation parameters.
@@ -852,7 +862,10 @@ class MMDLSConSMappingAdapter(BaseAdapter):
             y,
             sample_domain=sample_domain
         )
-        self.W_, self.B_ = self._mapping_optimization(X_source, X_target, y_source)
+        self.X_source_ = X_source
+
+        self.W_, self.B_, self.G_, self.H_ = self._mapping_optimization(
+            X_source, X_target, y_source)
 
         return self
 
@@ -881,10 +894,30 @@ class MMDLSConSMappingAdapter(BaseAdapter):
             X,
             sample_domain
         )
-        X_source, X_target, = source_target_split(X, sample_domain=sample_domain)
 
-        if X_source.shape[0] > 0:
-            X_source_adapt = self.W_ * X_source + self.B_
+        source_idx = extract_source_indices(sample_domain)
+        X_source, X_target = X[source_idx], X[~source_idx]
+
+        if source_idx.sum() > 0:
+            if np.array_equal(self.X_source_, X[source_idx]):
+                W, B = self.W_, self.B_
+            else:
+                if self.discrete_:
+                    # recompute the mapping
+                    X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+                    source_idx = extract_source_indices(sample_domain)
+                    y_source = y[source_idx]
+                    classes = np.unique(y_source)
+                    R = np.zeros((source_idx.sum(), len(classes)))
+                    for i, c in enumerate(classes):
+                        R[:, i] = (y_source == c).astype(int)
+                    W, B = R @ self.G_, R @ self.H_
+                else:
+                    # assign the nearest neighbor's mapping to the source samples
+                    C = pairwise_distances(X[source_idx], self.X_source_)
+                    idx = np.argmin(C, axis=1)
+                    W, B = self.W_[idx], self.B_[idx]
+            X_source_adapt = W * X_source + B
             X_adapt, _ = source_target_merge(
                 X_source_adapt, X_target, sample_domain=sample_domain
             )
