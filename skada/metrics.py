@@ -490,30 +490,36 @@ class CircularValidation(_BaseDomainAwareScorer):
         y_pred_target = estimator.predict(X[~source_idx])
 
         if len(np.unique(y_pred_target)) == 1:
-            warnings.warn(
-                "The predicted target domain labels"
-                "are all the same. "
-                "The score will be 0."
-            )
             # Otherwise, we can get ValueError exceptions
             # when fitting the backward estimator
             # (happened with SVC)
-            return 0
+            warnings.warn(
+                "The predicted target domain labels"
+                "are all the same. "
+            )
 
-        backward_sample_domain = -sample_domain
-
-        backward_y = np.zeros_like(y)
-        backward_y[~source_idx] = y_pred_target
-
-        y_type = _find_y_type(y[source_idx])
-        if y_type == 'classification':
-            backward_y[source_idx] = _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
+            # Here we assume that the backward_estimator trained on
+            # the target domain will predict the same label for all
+            # the source domain samples
+            score = self.source_scorer(
+                y[source_idx],
+                np.ones_like(y[source_idx])*y_pred_target[0]
+            )
         else:
-            backward_y[source_idx] = _DEFAULT_MASKED_TARGET_REGRESSION_LABEL
+            backward_sample_domain = -sample_domain
 
-        backward_estimator.fit(X, backward_y, sample_domain=backward_sample_domain)
-        y_pred_source = backward_estimator.predict(X[source_idx])
+            backward_y = np.zeros_like(y)
+            backward_y[~source_idx] = y_pred_target
 
-        score = self.source_scorer(y[source_idx], y_pred_source)
+            y_type = _find_y_type(y[source_idx])
+            if y_type == 'classification':
+                backward_y[source_idx] = _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
+            else:
+                backward_y[source_idx] = _DEFAULT_MASKED_TARGET_REGRESSION_LABEL
+
+            backward_estimator.fit(X, backward_y, sample_domain=backward_sample_domain)
+            y_pred_source = backward_estimator.predict(X[source_idx])
+
+            score = self.source_scorer(y[source_idx], y_pred_source)
 
         return self._sign * score
