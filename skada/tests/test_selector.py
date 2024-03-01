@@ -21,6 +21,7 @@ from skada.utils import extract_source_indices
 from skada._utils import (
     _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
     _DEFAULT_MASKED_TARGET_REGRESSION_LABEL,
+    _remove_masked,
 )
 
 import pytest
@@ -59,12 +60,7 @@ def test_base_selector_remove_masked():
         random_state=42,
     )
 
-    pipe = make_da_pipeline(
-        LogisticRegression(),
-    )
-
-    selector = pipe['logisticregression']
-    X_output, y_output, _ = selector._remove_masked(X, y, {})
+    X_output, y_output, _ = _remove_masked(X, y, {})
 
     assert X_output.shape[0] == 2 * n_samples * 8, "X output shape mismatch"
     assert X_output.shape[0] == y_output.shape[0]
@@ -72,7 +68,7 @@ def test_base_selector_remove_masked():
     source_idx = extract_source_indices(sample_domain)
     # mask target labels
     y[~source_idx] = _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
-    X_output, y_output, _ = selector._remove_masked(X, y, {})
+    X_output, y_output, _ = _remove_masked(X, y, {})
 
     assert X_output.shape[0] == n_samples * 8, "X output shape mismatch"
     assert X_output.shape[0] == y_output.shape[0]
@@ -104,12 +100,6 @@ def test_base_selector_remove_masked_continuous():
         random_state=42
     )
 
-    pipe = make_da_pipeline(
-        LogisticRegression(),
-    )
-
-    selector = pipe['logisticregression']
-
     # randomly designate each sample as source (True) or target (False)
     rng = np.random.default_rng(42)
     source_idx = rng.choice([False, True], size=n_samples)
@@ -117,7 +107,7 @@ def test_base_selector_remove_masked_continuous():
     y[~source_idx] = _DEFAULT_MASKED_TARGET_REGRESSION_LABEL
     assert np.any(~np.isfinite(y)), 'at least one label is masked'
 
-    X_output, y_output, _ = selector._remove_masked(X, y, {})
+    X_output, y_output, _ = _remove_masked(X, y, {})
     assert np.all(np.isfinite(y_output)), 'masks are removed'
 
     n_source_samples = np.sum(source_idx)
@@ -134,7 +124,7 @@ def test_selector_inherits_routing(estimator_cls):
 
 
 def test_selector_rejects_incompatible_adaptation_output():
-    X = AdaptationOutput(np.ones(10), sample_weight=np.zeros(10))
+    X = AdaptationOutput(np.ones((10, 2)), sample_weight=np.zeros(10))
     y = np.zeros(10)
     estimator = Shared(LogisticRegression())
 

@@ -105,7 +105,7 @@ class ReweightDensityAdapter(BaseAdapter):
             ws = self.weight_estimator_source_.score_samples(X[source_idx])
             wt = self.weight_estimator_target_.score_samples(X[source_idx])
             source_weights = np.exp(wt - ws)
-            source_weights /= source_weights.sum()
+            source_weights /= source_weights.mean()
             weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
             weights[source_idx] = source_weights
         else:
@@ -371,7 +371,10 @@ class DiscriminatorReweightDensityAdapter(BaseAdapter):
         # xxx(okachaiev): move this to API
         if source_idx.sum() > 0:
             source_idx, = np.where(source_idx)
-            source_weights = self.domain_classifier_.predict_proba(X[source_idx])[:, 1]
+            probas = self.domain_classifier_.predict_proba(X[source_idx])[:, 1]
+            probas = np.clip(probas, EPS, 1.)
+            source_weights = (1 - probas) / probas
+            source_weights /= source_weights.mean()
             weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
             weights[source_idx] = source_weights
         else:
