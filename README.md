@@ -192,8 +192,6 @@ The library is distributed under the 3-Clause BSD license.
 
 [20] You, K., Wang, X., Long, M., & Jordan, M. (2019, May). [Towards accurate model selection in deep unsupervised domain adaptation](https://proceedings.mlr.press/v97/you19a/you19a.pdf). In International Conference on Machine Learning (pp. 7124-7133). PMLR.
 
-[21] Domain Adaptation Problems: A DASVM ClassificationTechnique and a Circular Validation StrategyLorenzo Bruzzone, Fellow, IEEE, and Mattia Marconcini, Member, IEEE (https://rslab.disi.unitn.it/papers/R82-PAMI.pdf)
-
 [21] Bruzzone, Lorenzo & Marconcini, Mattia. (2010). [Domain Adaptation Problems: A DASVM Classification Technique and a Circular Validation Strategy](https://rslab.disi.unitn.it/papers/R82-PAMI.pdf). IEEE transactions on pattern analysis and machine intelligence. 32. 770-87. 10.1109/TPAMI.2009.57. 
 
 [22] Zhang, K., Schölkopf, B., Muandet, K., Wang, Z. (2013). [Domain Adaptation under Target and Conditional Shift](http://proceedings.mlr.press/v28/zhang13d.pdf). In International Conference on Machine Learning (pp. 819-827). PMLR.
