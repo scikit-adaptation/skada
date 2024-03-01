@@ -54,6 +54,7 @@ import pytest
         ),
         KMM(),
         KMM(eps=0.1),
+        KMM(solver="frank-wolfe"),
     ],
 )
 def test_reweight_estimator(estimator, da_dataset):
@@ -85,6 +86,8 @@ def test_reweight_warning(da_dataset):
 def test_kmm_kernel_error():
     with pytest.raises(ValueError, match="got 'hello'"):
         KMMAdapter(kernel="hello")
+    with pytest.raises(ValueError, match="got 'hello'"):
+        KMMAdapter(solver="hello")
 
 
 # KMM.adapt behavior should be the same when smooth weights is True or

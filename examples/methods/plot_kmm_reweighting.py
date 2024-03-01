@@ -13,6 +13,8 @@ This example illustrates the use of KMM method [1] to correct covariate-shift.
 # sphinx_gallery_thumbnail_number = 1
 
 # %%
+import time
+
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 from sklearn.linear_model import LogisticRegression
@@ -24,7 +26,7 @@ from skada.datasets import make_shifted_datasets
 # Generate sample bias dataset
 # ----------------------------
 ds = make_shifted_datasets(
-        n_samples_source=12,
+        n_samples_source=20,
         n_samples_target=3,
         shift="covariate_shift",
         label="binary",
@@ -39,18 +41,24 @@ Xt, yt = ds.get_domain("t")
 # %%
 # Illustration of Importance Weighting
 # ------------------------------------
-for smooth in [False, True]:
+params_list = [dict(solver="qp_scipy", smooth_weights=False),
+               dict(solver="qp_scipy", smooth_weights=True),
+               dict(solver="frank-wolfe", smooth_weights=False),
+               dict(solver="frank-wolfe", smooth_weights=True)]
+
+for params in params_list:
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
 
     cm = ListedColormap(["w", "k"])
 
+    t0 = time.time()
     base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
-    kmm = KMM(base_estimator, gamma=10., max_iter=1000,
-              smooth_weights=smooth)
+    kmm = KMM(base_estimator, gamma=1., max_iter=1000, eps=None, **params)
     kmm.fit(X, y, sample_domain=sample_domain)
     weights = kmm[0].transform(X, sample_domain=sample_domain,
                                allow_source=True)
     weights = weights["sample_weight"]
+    t1 = time.time()
 
     src_weights = weights[sample_domain == 1]
     src_weights /= src_weights.mean()
@@ -58,6 +66,7 @@ for smooth in [False, True]:
 
     base_estimator.fit(Xs, ys)
     acc = base_estimator.score(Xt, yt)
+    delta_time = t1 - t0
 
     ax1.scatter(Xs[ys == 0, 0], Xs[ys == 0, 1],
                 color="C0", label="Source 1", edgecolor="b")
@@ -103,5 +112,7 @@ for smooth in [False, True]:
 
     ax1.tick_params(direction="in", labelleft=False, labelbottom=False)
     ax2.tick_params(direction="in", labelleft=False, labelbottom=False)
-    plt.suptitle("Smooth Weights = %s" % str(smooth), fontsize=16, color="b")
+    plt.suptitle("Solver = %s, Smooth Weights = %s - Exec. Time: %.3f sec" %
+                 (params["solver"], params["smooth_weights"], delta_time),
+                 y=0.98, fontsize=16, color="b")
     plt.show()

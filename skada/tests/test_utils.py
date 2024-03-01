@@ -16,7 +16,8 @@ from skada.utils import (
     source_target_split,
     extract_domains_indices,
     source_target_merge,
-    qp_solve
+    qp_solve,
+    frank_wolfe,
 )
 from skada._utils import _check_y_masking
 
@@ -504,3 +505,24 @@ def test_qp_solve():
     with pytest.warns(UserWarning,
                       match="Iteration limit reached"):
         qp_solve(Q, c, Aeq=Aeq, beq=beq, lb=lb, max_iter=1)
+
+
+def test_frank_wolfe():
+    Q = np.array([[2., .5],
+                  [.5, 1.]])
+    c = np.array([1., 1.])
+
+    Aeq = np.array([1., 1.])
+
+    sol = np.array([0.25, 0.75])
+
+    jac = lambda x: Q @ x + c
+
+    x1 = frank_wolfe(jac, Aeq, 1., 1., max_iter=1000)
+    assert np.abs(x1 - sol).sum() < 0.01
+
+    x2 = frank_wolfe(jac, Aeq, 1., 1., max_iter=10000)
+    assert np.abs(x2 - sol).sum() < np.abs(x1 - sol).sum()
+
+    x1 = frank_wolfe(jac, Aeq, .5, 1., max_iter=1000)
+    assert np.abs(x1 - sol/2).sum() < 0.01

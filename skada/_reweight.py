@@ -16,7 +16,13 @@ from sklearn.utils import check_random_state
 from sklearn.utils.validation import check_is_fitted
 
 from .base import AdaptationOutput, BaseAdapter, clone
-from .utils import check_X_domain, source_target_split, extract_source_indices, qp_solve
+from .utils import (
+    check_X_domain,
+    source_target_split,
+    extract_source_indices,
+    qp_solve,
+    frank_wolfe
+)
 from ._utils import _estimate_covariance
 from ._pipeline import make_da_pipeline
 
@@ -691,6 +697,8 @@ class KMMAdapter(BaseAdapter):
         Parameters for the kernels.
     coef0 : float, default
         Parameters for the kernels.
+    solver : string, default='qp_scipy'
+        Available solvers : ['frank-wolfe', 'qp_scipy'].
     B : float, default=1000.
         Weight upper bound.
     eps : float, default=None
@@ -723,6 +731,7 @@ class KMMAdapter(BaseAdapter):
         gamma=None,
         degree=3,
         coef0=1,
+        solver='qp_scipy',
         B=1000.,
         eps=None,
         tol=1e-6,
@@ -734,6 +743,7 @@ class KMMAdapter(BaseAdapter):
         self.gamma = gamma
         self.degree = degree
         self.coef0 = coef0
+        self.solver = solver
         self.B = B
         self.eps = eps
         self.tol = tol
@@ -744,6 +754,11 @@ class KMMAdapter(BaseAdapter):
             kernel_list = str(list(KERNEL_PARAMS.keys()))
             raise ValueError("`kernel` argument should be included in %s,"
                              " got '%s'" % (kernel_list, str(kernel)))
+
+        solver_list = ["qp_scipy", "frank-wolfe"]
+        if solver not in solver_list:
+            raise ValueError("`solver` argument should be included in %s,"
+                             " got '%s'" % (solver_list, str(solver)))
 
     def fit(self, X, y=None, sample_domain=None, **kwargs):
         """Fit adaptation parameters.
@@ -801,11 +816,19 @@ class KMMAdapter(BaseAdapter):
         A = np.stack([np.ones(Ns), -np.ones(Ns)], axis=0)
         b = np.array([Ns*(1+eps), -Ns*(1-eps)])
 
-        weights, _ = qp_solve(Kss, -kappa, A, b,
-                              lb=np.zeros(Ns),
-                              ub=np.ones(Ns)*self.B,
-                              tol=self.tol,
-                              max_iter=self.max_iter)
+        if self.solver == "frank-wolfe":
+            weights = frank_wolfe(lambda w: Kss @ w - kappa,
+                                  c=np.ones(Ns),
+                                  clb=Ns*(1-eps),
+                                  cub=Ns*(1+eps),
+                                  x0=np.ones(Ns),
+                                  max_iter=self.max_iter)
+        else:
+            weights, _ = qp_solve(Kss, -kappa, A, b,
+                                  lb=np.zeros(Ns),
+                                  ub=np.ones(Ns)*self.B,
+                                  tol=self.tol,
+                                  max_iter=self.max_iter)
 
         weights = np.array(weights).ravel()
         return weights
@@ -862,6 +885,7 @@ def KMM(
     gamma=None,
     degree=3,
     coef0=1,
+    solver='qp_scipy',
     B=1000.,
     eps=None,
     tol=1e-6,
@@ -884,6 +908,8 @@ def KMM(
         Parameters for the kernels.
     coef0 : float, default
         Parameters for the kernels.
+    solver : string, default='qp_scipy'
+        Available solvers : ['frank-wolfe', 'qp_scipy'].
     B : float, default=1000.
         Weight upper bound.
     eps : float, default=None
@@ -915,6 +941,7 @@ def KMM(
             gamma=gamma,
             degree=degree,
             coef0=coef0,
+            solver=solver,
             B=B,
             eps=eps,
             tol=tol,
