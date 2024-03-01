@@ -427,7 +427,13 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
 class CircularValidation(_BaseDomainAwareScorer):
     """Score based on a circular validation strategy.
 
-    See [1]_ for details.
+    This scorer retrain the estimator, with the exact same parameters,
+    on the predicted target domain samples. Then, the retrained estimator
+    is used to predict the source domain labels. The score is then
+    computed using the source_scorer between the true source labels and
+    the predicted source labels.
+
+    See [21]_ for details.
 
     Parameters
     ----------
@@ -441,7 +447,7 @@ class CircularValidation(_BaseDomainAwareScorer):
 
     References
     ----------
-    .. [1]  Bruzzone, Lorenzo & Marconcini, Mattia.
+    .. [21]  Bruzzone, Lorenzo & Marconcini, Mattia.
             Domain Adaptation Problems: A DASVM Classification Technique
             and a Circular Validation Strategy. IEEE, 2010.
     """
@@ -449,7 +455,6 @@ class CircularValidation(_BaseDomainAwareScorer):
     def __init__(
         self,
         source_scorer=balanced_accuracy_score,
-        random_state=None,
         greater_is_better=True,
     ):
         super().__init__()
@@ -460,7 +465,6 @@ class CircularValidation(_BaseDomainAwareScorer):
             )
 
         self.source_scorer = source_scorer
-        self.random_state = random_state
         self._sign = 1 if greater_is_better else -1
 
     def _score(self, estimator, X, y, sample_domain=None):
