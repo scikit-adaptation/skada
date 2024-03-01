@@ -380,3 +380,33 @@ def TransferComponentAnalysis(
         ),
         base_estimator,
     )
+
+
+class GeodesicFlowKernelAdapter(BaseAdapter):
+    """
+    Geodesic Flow Kernel
+    """
+    def __init__(self):
+        super().__init__()
+
+    def adapt(self, X, y=None, sample_domain=None, **kwargs):
+        pass
+
+    def fit(self, X, y=None, sample_domain=None, **kwargs):
+        pass
+
+
+class GeodesicFlowKernel(
+    base_estimator=None,
+):
+    """
+    Geodesic Flow Kernel
+    """
+    if base_estimator is None:
+        base_estimator = SVC()
+    
+    return make_da_pipeline(
+        GeodesicFlowKernelAdapter(
+        ),
+        base_estimator,
+    )
