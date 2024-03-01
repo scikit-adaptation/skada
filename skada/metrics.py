@@ -1,6 +1,7 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Remi Flamary <remi.flamary@polytechnique.edu>
 #         Oleksii Kachaiev <kachayev@gmail.com>
+#         Yanis Lalou <yanis.lalou@polytechnique.edu>
 #
 # License: BSD 3-Clause
 
@@ -439,9 +440,9 @@ class CircularValidation(_BaseDomainAwareScorer):
 
     References
     ----------
-    .. [1]  Lorenzo Bruzzone. Domain Adaptation Problems:
-            A DASVM Classification Technique and a Circular Validation Strategy
-            IEEE, 2010.
+    .. [1]  Bruzzone, Lorenzo & Marconcini, Mattia.
+            Domain Adaptation Problems: A DASVM Classification Technique
+            and a Circular Validation Strategy. IEEE, 2010.
     """
 
     def __init__(
