@@ -24,7 +24,8 @@ from .utils import check_X_y_domain, extract_source_indices, source_target_split
 from ._utils import _find_y_type
 from ._utils import (
     _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
-    _DEFAULT_MASKED_TARGET_REGRESSION_LABEL
+    _DEFAULT_MASKED_TARGET_REGRESSION_LABEL,
+    Y_Type,
 )
 
 
@@ -512,7 +513,7 @@ class CircularValidation(_BaseDomainAwareScorer):
             backward_y[~source_idx] = y_pred_target
 
             y_type = _find_y_type(y[source_idx])
-            if y_type == 'classification':
+            if y_type == Y_Type.DISCRETE:
                 backward_y[source_idx] = _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
             else:
                 backward_y[source_idx] = _DEFAULT_MASKED_TARGET_REGRESSION_LABEL
