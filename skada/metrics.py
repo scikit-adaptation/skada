@@ -510,11 +510,6 @@ class CircularValidation(_BaseDomainAwareScorer):
         else:
             backward_y[source_idx] = _DEFAULT_MASKED_TARGET_REGRESSION_LABEL
 
-        print(np.unique(backward_y))
-        print(np.unique(backward_y[source_idx]))
-        print(np.unique(backward_y[~source_idx]))
-        print(np.unique(backward_sample_domain[source_idx]))
-        print(np.unique(backward_sample_domain[~source_idx]))
         backward_estimator.fit(X, backward_y, sample_domain=backward_sample_domain)
         y_pred_source = backward_estimator.predict(X[source_idx])
 
