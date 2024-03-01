@@ -37,7 +37,7 @@ _DEFAULT_MASKED_TARGET_REGRESSION_LABEL = np.nan
 
 class Y_Type(Enum):
     CONTINUOUS = 'continuous'
-    CLASSIFICATION = 'classification'
+    DISCRETE = 'discrete'
 
 
 def _estimate_covariance(X, shrinkage):
@@ -73,7 +73,7 @@ def _check_y_masking(y):
             raise ValueError("For a regression task, "
                              "masked labels should be, "
                              f"{_DEFAULT_MASKED_TARGET_REGRESSION_LABEL}")
-    elif y_type == Y_Type.CLASSIFICATION:
+    elif y_type == Y_Type.DISCRETE:
         if (np.any(y < _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL) or
                 not np.any(y == _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL)):
             raise ValueError("For a classification task, "
@@ -114,7 +114,7 @@ def _find_y_type(y):
     if y_type == 'continuous':
         return Y_Type.CONTINUOUS
     elif y_type == 'binary' or y_type == 'multiclass':
-        return Y_Type.CLASSIFICATION
+        return Y_Type.DISCRETE
     else:
         # Here y_type is 'multilabel-indicator', 'continuous-multioutput',
         # 'multiclass-multioutput' or 'unknown'
@@ -150,7 +150,7 @@ def _remove_masked(X, y, params):
         return X, y, params
 
     y_type = _find_y_type(y)
-    if y_type == Y_Type.CLASSIFICATION:
+    if y_type == Y_Type.DISCRETE:
         unmasked_idx = (y != _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL)
     elif y_type == Y_Type.CONTINUOUS:
         unmasked_idx = np.isfinite(y)
