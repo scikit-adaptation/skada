@@ -93,18 +93,13 @@ def make_da_pipeline(
                 if name is not None:
                     nested_name = f"{name}__{nested_name}"
                 names.append(nested_name)
-                # the final mark is gonna be added later
-                # overall, if we have marked as final estimator as it is not
-                # the final one in the unrolled (un-nested) pipeline, we are
-                # likely doing something wrong
-                estimators.append(nested_selector._unmark_as_final())
+                estimators.append(nested_selector)
         else:
             names.append(name)
             estimators.append(estimator)
 
     wrapped_estimators = _wrap_with_selectors(estimators, default_selector)
     steps = _name_estimators(wrapped_estimators)
-    steps[-1][1]._mark_as_final()
     named_steps = [
         (auto_name, step) if user_name is None else (user_name, step)
         for user_name, (auto_name, step) in zip(names, steps)
