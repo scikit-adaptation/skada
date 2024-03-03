@@ -151,7 +151,6 @@ The library is distributed under the 3-Clause BSD license.
 
 ## References
 
-
 [1] Shimodaira Hidetoshi. ["Improving predictive inference under covariate shift by weighting the log-likelihood function."](https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=235723a15c86c369c99a42e7b666dfe156ad2cba) Journal of statistical planning and inference 90, no. 2 (2000): 227-244.
 
 [2] Sugiyama Masashi, Taiji Suzuki, and Takafumi Kanamori. ["Density-ratio matching under the Bregman divergence: a unified framework of density-ratio estimation."](https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=f1467208a75def8b2e52a447ab83644db66445ea) Annals of the Institute of Statistical Mathematics 64 (2012): 1009-1044.
