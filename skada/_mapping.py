@@ -8,20 +8,17 @@ from abc import abstractmethod
 
 import numpy as np
 from ot import da
+from sklearn.svm import SVC
 
+from ._pipeline import make_da_pipeline
+from ._utils import _estimate_covariance
 from .base import BaseAdapter, clone
 from .utils import (
     check_X_domain,
     check_X_y_domain,
+    source_target_merge,
     source_target_split,
-    source_target_merge
 )
-from ._utils import (
-    _estimate_covariance
-)
-
-from ._pipeline import make_da_pipeline
-from sklearn.svm import SVC
 
 
 class BaseOTMappingAdapter(BaseAdapter):
@@ -80,10 +77,7 @@ class BaseOTMappingAdapter(BaseAdapter):
         """
         # xxx(okachaiev): implement auto-infer for sample_domain
         X, sample_domain = check_X_domain(
-            X,
-            sample_domain,
-            allow_multi_source=True,
-            allow_multi_target=True
+            X, sample_domain, allow_multi_source=True, allow_multi_target=True
         )
         X_source, X_target = source_target_split(X, sample_domain=sample_domain)
         # in case of prediction we would get only target samples here,
@@ -146,12 +140,7 @@ class OTMappingAdapter(BaseOTMappingAdapter):
         )
 
 
-def OTMapping(
-    base_estimator=None,
-    metric="sqeuclidean",
-    norm=None,
-    max_iter=100000
-):
+def OTMapping(base_estimator=None, metric="sqeuclidean", norm=None, max_iter=100000):
     """OTmapping pipeline with adapter and estimator.
 
     see [1]_ for details.
@@ -223,7 +212,7 @@ class EntropicOTMappingAdapter(BaseOTMappingAdapter):
 
     def __init__(
         self,
-        reg_e=1.,
+        reg_e=1.0,
         metric="sqeuclidean",
         norm=None,
         max_iter=1000,
@@ -251,7 +240,7 @@ def EntropicOTMapping(
     metric="sqeuclidean",
     norm=None,
     max_iter=1000,
-    reg_e=1.,
+    reg_e=1.0,
     tol=1e-8,
 ):
     """EntropicOTMapping pipeline with adapter and estimator.
@@ -292,11 +281,7 @@ def EntropicOTMapping(
 
     return make_da_pipeline(
         EntropicOTMappingAdapter(
-            metric=metric,
-            norm=norm,
-            max_iter=max_iter,
-            reg_e=reg_e,
-            tol=tol
+            metric=metric, norm=norm, max_iter=max_iter, reg_e=reg_e, tol=tol
         ),
         base_estimator,
     )
@@ -341,7 +326,7 @@ class ClassRegularizerOTMappingAdapter(BaseOTMappingAdapter):
 
     def __init__(
         self,
-        reg_e=1.,
+        reg_e=1.0,
         reg_cl=0.1,
         norm="lpl1",
         metric="sqeuclidean",
@@ -381,7 +366,7 @@ def ClassRegularizerOTMapping(
     norm="lpl1",
     max_iter=10,
     max_inner_iter=200,
-    reg_e=1.,
+    reg_e=1.0,
     reg_cl=0.1,
     tol=1e-8,
 ):
@@ -430,7 +415,7 @@ def ClassRegularizerOTMapping(
             max_inner_iter=max_inner_iter,
             reg_e=reg_e,
             reg_cl=reg_cl,
-            tol=tol
+            tol=tol,
         ),
         base_estimator,
     )
@@ -466,7 +451,7 @@ class LinearOTMappingAdapter(BaseOTMappingAdapter):
 
 def LinearOTMapping(
     base_estimator=None,
-    reg=1.,
+    reg=1.0,
     bias=True,
 ):
     """Returns a the linear OT mapping method with adapter and estimator.
@@ -554,7 +539,7 @@ def _invsqrtm(C):
         Matrix inverse square root of C.
     """
     eigvals, eigvecs = np.linalg.eigh(C)
-    return (eigvecs * 1. / np.sqrt(eigvals)) @ eigvecs.T
+    return (eigvecs * 1.0 / np.sqrt(eigvals)) @ eigvecs.T
 
 
 class CORALAdapter(BaseAdapter):
@@ -584,7 +569,7 @@ class CORALAdapter(BaseAdapter):
            In Advances in Computer Vision and Pattern Recognition, 2017.
     """
 
-    def __init__(self, reg='auto'):
+    def __init__(self, reg="auto"):
         super().__init__()
         self.reg = reg
 
@@ -606,10 +591,7 @@ class CORALAdapter(BaseAdapter):
             Returns self.
         """
         X, sample_domain = check_X_domain(
-            X,
-            sample_domain,
-            allow_multi_source=True,
-            allow_multi_target=True
+            X, sample_domain, allow_multi_source=True, allow_multi_target=True
         )
         X_source, X_target = source_target_split(X, sample_domain=sample_domain)
 
@@ -641,10 +623,7 @@ class CORALAdapter(BaseAdapter):
             No weights are returned here.
         """
         X, sample_domain = check_X_domain(
-            X,
-            sample_domain,
-            allow_multi_source=True,
-            allow_multi_target=True
+            X, sample_domain, allow_multi_source=True, allow_multi_target=True
         )
         X_source, X_target = source_target_split(X, sample_domain=sample_domain)
 

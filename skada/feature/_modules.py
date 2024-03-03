@@ -26,12 +26,12 @@ class ToyCNN(nn.Module):
     def __init__(
         self, n_channels, input_size, n_classes, kernel_size=64, out_channels=10
     ):
-        super(ToyCNN, self).__init__()
+        super().__init__()
 
         self.feature_extractor = nn.Sequential(
             nn.Conv1d(n_channels, out_channels, kernel_size),
             nn.ReLU(),
-            nn.AvgPool1d(kernel_size)
+            nn.AvgPool1d(kernel_size),
         )
         self.len_last_layer = self._len_last_layer(n_channels, input_size)
         self.fc = nn.Linear(self.len_last_layer, n_classes)
@@ -44,17 +44,17 @@ class ToyCNN(nn.Module):
     def _len_last_layer(self, n_channels, input_size):
         self.feature_extractor.eval()
         with torch.no_grad():
-            out = self.feature_extractor(
-                torch.Tensor(1, n_channels, input_size))
+            out = self.feature_extractor(torch.Tensor(1, n_channels, input_size))
         self.feature_extractor.train()
         return len(out.flatten())
 
 
 class GradientReversalLayer(Function):
     """Leaves the input unchanged during forward propagation
-       and reverses the gradient by multiplying it by a
-       negative scalar during the backpropagation.
+    and reverses the gradient by multiplying it by a
+    negative scalar during the backpropagation.
     """
+
     @staticmethod
     def forward(ctx, x, alpha):
         ctx.alpha = alpha
@@ -86,25 +86,21 @@ class DomainClassifier(nn.Module):
             Research, 2016.
     """
 
-    def __init__(
-        self,
-        len_last_layer,
-        n_classes=1
-    ):
+    def __init__(self, len_last_layer, n_classes=1):
         super().__init__()
         self.classifier = nn.Sequential(
             nn.Linear(len_last_layer, 100),
             nn.BatchNorm1d(100),
             nn.ReLU(),
             nn.Linear(100, n_classes),
-            nn.Sigmoid()
+            nn.Sigmoid(),
         )
 
     def forward(self, x, alpha=None):
         """Forward pass.
 
         Parameters
-        ---------
+        ----------
         x: torch.Tensor
             Batch of EEG windows of shape (batch_size, n_channels, n_times).
         alpha: float

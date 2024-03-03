@@ -3,19 +3,17 @@
 #
 # License: BSD 3-Clause
 
+from functools import partial
+
+import ot
 import torch
 from torch import nn
 from torch.autograd import Function
 from torch.utils.data import Dataset
 
-import ot
-
-from functools import partial
-
 
 def deepcoral_loss(cov, cov_target):
-    """Estimate the Frobenius norm divide by 4*n**2
-       for DeepCORAL method [1]_.
+    """Estimate the Frobenius norm divide by 4*n**2 for DeepCORAL method [1]_.
 
     Parameters
     ----------
@@ -104,15 +102,11 @@ def deepjdot_loss(
     # Compute the loss
     if sample_weights is None:
         sample_weights = torch.full(
-            (len(embedd),),
-            1.0 / len(embedd),
-            device=embedd.device
+            (len(embedd),), 1.0 / len(embedd), device=embedd.device
         )
     if target_sample_weights is None:
         target_sample_weights = torch.full(
-            (len(embedd_target),),
-            1.0 / len(embedd_target),
-            device=embedd_target.device
+            (len(embedd_target),), 1.0 / len(embedd_target), device=embedd_target.device
         )
     loss = ot.emd2(sample_weights, target_sample_weights, M)
 
@@ -122,7 +116,7 @@ def deepjdot_loss(
 def _gaussian_kernel(x, y, sigmas):
     """Computes multi gaussian kernel between each pair of the two vectors."""
     sigmas = sigmas.view(sigmas.shape[0], 1)
-    beta = 1. / sigmas
+    beta = 1.0 / sigmas
     dist = torch.cdist(x, y)
     dist_ = dist.view(1, -1)
     s = torch.matmul(beta, dist_)
@@ -131,8 +125,9 @@ def _gaussian_kernel(x, y, sigmas):
 
 
 def _maximum_mean_discrepancy(x, y, kernel):
-    """Computes the maximum mean discrepency between the vectors
-       using the given kernel."""
+    """Computes the maximum mean discrepancy between the vectors
+    using the given kernel.
+    """
     cost = torch.mean(kernel(x, x))
     cost += torch.mean(kernel(y, y))
     cost -= 2 * torch.mean(kernel(x, y))
@@ -168,15 +163,16 @@ def dan_loss(source_features, target_features, sigmas=None):
         median_pairwise_distance = torch.median(
             torch.cdist(source_features, source_features)
         )
-        sigmas = torch.tensor(
-            [2**(-8) * 2**(i*1/2) for i in range(33)]
-        ).to(source_features.device) * median_pairwise_distance
+        sigmas = (
+            torch.tensor([2 ** (-8) * 2 ** (i * 1 / 2) for i in range(33)]).to(
+                source_features.device
+            )
+            * median_pairwise_distance
+        )
     else:
         sigmas = torch.tensor(sigmas).to(source_features.device)
 
-    gaussian_kernel = partial(
-        _gaussian_kernel, sigmas=sigmas
-    )
+    gaussian_kernel = partial(_gaussian_kernel, sigmas=sigmas)
 
     loss = _maximum_mean_discrepancy(
         source_features, target_features, kernel=gaussian_kernel
@@ -189,12 +185,12 @@ class NeuralNetwork(nn.Module):
     def __init__(
         self, n_channels, input_size, n_classes, kernel_size=64, out_channels=10
     ):
-        super(NeuralNetwork, self).__init__()
+        super().__init__()
 
         self.feature_extractor = nn.Sequential(
             nn.Conv1d(n_channels, out_channels, kernel_size),
             nn.ReLU(),
-            nn.AvgPool1d(kernel_size)
+            nn.AvgPool1d(kernel_size),
         )
         self.len_last_layer = self._len_last_layer(n_channels, input_size)
         self.fc = nn.Linear(self.len_last_layer, n_classes)
@@ -207,8 +203,7 @@ class NeuralNetwork(nn.Module):
     def _len_last_layer(self, n_channels, input_size):
         self.feature_extractor.eval()
         with torch.no_grad():
-            out = self.feature_extractor(
-                torch.Tensor(1, n_channels, input_size))
+            out = self.feature_extractor(torch.Tensor(1, n_channels, input_size))
         self.feature_extractor.train()
         return len(out.flatten())
 
@@ -236,7 +231,7 @@ class CustomDataset(Dataset):
 
 class MNISTtoUSPSNet(nn.Module):
     def __init__(self):
-        super(MNISTtoUSPSNet, self).__init__()
+        super().__init__()
         self.conv1 = nn.Conv2d(1, 32, 3, 1)
         self.conv2 = nn.Conv2d(32, 64, 3, 1)
         self.dropout1 = nn.Dropout(0.25)
@@ -262,7 +257,6 @@ class MNISTtoUSPSNet(nn.Module):
 
 
 class ReverseLayerF(Function):
-
     @staticmethod
     def forward(ctx, x, reg):
         ctx.reg = reg
@@ -278,6 +272,7 @@ class ReverseLayerF(Function):
 
 class DomainClassifier(nn.Module):
     """Classifier Architecture for DANN method.
+
     Parameters
     ----------
     n_channels : int
@@ -300,25 +295,21 @@ class DomainClassifier(nn.Module):
         Dropout rate before the output dense layer.
     """
 
-    def __init__(
-        self,
-        len_last_layer,
-        dropout=0.25,
-        n_classes=1
-    ):
+    def __init__(self, len_last_layer, dropout=0.25, n_classes=1):
         super().__init__()
         self.classifier = nn.Sequential(
             nn.Linear(len_last_layer, 100),
             nn.BatchNorm1d(100),
             nn.ReLU(),
             nn.Linear(100, n_classes),
-            nn.Sigmoid()
+            nn.Sigmoid(),
         )
 
     def forward(self, x, reg=None):
         """Forward pass.
+
         Parameters
-        ---------
+        ----------
         x: torch.Tensor
             Batch of EEG windows of shape (batch_size, n_channels, n_times).
         lamb: float

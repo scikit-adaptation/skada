@@ -2,9 +2,8 @@
 #         Remi Flamary <remi.flamary@polytechnique.edu>
 #
 # License: BSD 3-Clause
-from torch import nn
-
 from skorch.utils import to_tensor
+from torch import nn
 
 from . import deepjdot_loss
 from .base import BaseDANetwork
@@ -55,11 +54,9 @@ class DeepJDOT(BaseDANetwork):
         reg_d=1,
         reg_cl=1,
         target_criterion=nn.CrossEntropyLoss,
-        **kwargs
+        **kwargs,
     ):
-        super().__init__(
-            module, criterion, layer_names, **kwargs
-        )
+        super().__init__(module, criterion, layer_names, **kwargs)
         self.reg_d = reg_d
         self.reg_cl = reg_cl
         self.target_criterion = target_criterion
@@ -71,9 +68,9 @@ class DeepJDOT(BaseDANetwork):
         will be left as is.
 
         """
-        kwargs = self.get_params_for('target_criterion')
-        kwargs['reduction'] = 'none'
-        target_criterion = self.initialized_instance(self.target_criterion,  kwargs)
+        kwargs = self.get_params_for("target_criterion")
+        kwargs["reduction"] = "none"
+        target_criterion = self.initialized_instance(self.target_criterion, kwargs)
         self.target_criterion_ = target_criterion
         return super().initialize_criterion()
 
@@ -85,7 +82,7 @@ class DeepJDOT(BaseDANetwork):
         embedd_target,
         X=None,
         y_pred_target=None,
-        training=True
+        training=True,
     ):
         """Compute the domain adaptation loss"""
         y_true = to_tensor(y_true, device=self.device)

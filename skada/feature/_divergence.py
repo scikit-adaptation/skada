@@ -3,7 +3,6 @@
 #
 # License: BSD 3-Clause
 import torch
-
 from skorch.utils import to_tensor
 
 from . import dan_loss, deepcoral_loss
@@ -39,18 +38,8 @@ class DAN(BaseDANetwork):
             In ICML, 2015.
     """
 
-    def __init__(
-        self,
-        module,
-        criterion,
-        layer_names,
-        reg=1,
-        sigmas=None,
-        **kwargs
-    ):
-        super().__init__(
-            module, criterion, layer_names, **kwargs
-        )
+    def __init__(self, module, criterion, layer_names, reg=1, sigmas=None, **kwargs):
+        super().__init__(module, criterion, layer_names, **kwargs)
         self.reg = reg
         self.sigmas = sigmas
 
@@ -62,16 +51,14 @@ class DAN(BaseDANetwork):
         embedd_target,
         X=None,
         y_pred_target=None,
-        training=True
+        training=True,
     ):
         """Compute the domain adaptation loss"""
         y_true = to_tensor(y_true, device=self.device)
 
         loss_dan = 0
         for i in range(len(embedd)):
-            loss_dan += (
-                self.reg * dan_loss(embedd[i], embedd_target[i], self.sigmas)
-            )
+            loss_dan += self.reg * dan_loss(embedd[i], embedd_target[i], self.sigmas)
 
         loss_classif = self.criterion_(y_pred, y_true)
         return loss_classif + loss_dan, loss_classif, loss_dan
@@ -106,17 +93,8 @@ class DeepCORAL(BaseDANetwork):
             adaptation. In ECCV Workshops, 2016.
     """
 
-    def __init__(
-        self,
-        module,
-        criterion,
-        layer_names,
-        reg=1,
-        **kwargs
-    ):
-        super().__init__(
-            module, criterion, layer_names, **kwargs
-        )
+    def __init__(self, module, criterion, layer_names, reg=1, **kwargs):
+        super().__init__(module, criterion, layer_names, **kwargs)
         self.reg = reg
 
     def _get_loss_da(
@@ -127,7 +105,7 @@ class DeepCORAL(BaseDANetwork):
         embedd_target,
         X=None,
         y_pred_target=None,
-        training=True
+        training=True,
     ):
         """Compute the domain adaptation loss"""
         y_true = to_tensor(y_true, device=self.device)

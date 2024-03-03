@@ -20,8 +20,8 @@ from sklearn.utils.metadata_routing import (
 from sklearn.utils.metaestimators import available_if
 from sklearn.utils.validation import check_is_fitted
 
-from skada.utils import check_X_domain
 from skada._utils import _remove_masked
+from skada.utils import check_X_domain
 
 
 def _estimator_has(attr):

@@ -5,9 +5,8 @@
 import math
 
 import torch
-from torch import nn
-
 from skorch.utils import to_tensor
+from torch import nn
 
 from .base import BaseDANetwork
 from .utils import check_generator
@@ -54,11 +53,9 @@ class BaseAdversarial(BaseDANetwork):
         layer_names,
         domain_classifier,
         domain_criterion=torch.nn.BCELoss,
-        **kwargs
+        **kwargs,
     ):
-        super().__init__(
-            module, criterion, layer_names, **kwargs
-        )
+        super().__init__(module, criterion, layer_names, **kwargs)
         self.domain_classifier = domain_classifier
         self.domain_criterion = domain_criterion
 
@@ -69,7 +66,7 @@ class BaseAdversarial(BaseDANetwork):
         will be left as is.
 
         """
-        kwargs = self.get_params_for('domain_criterion')
+        kwargs = self.get_params_for("domain_criterion")
         domain_criterion = self.initialized_instance(self.domain_criterion, kwargs)
         self.domain_criterion_ = domain_criterion
         return super().initialize_criterion()
@@ -80,7 +77,7 @@ class BaseAdversarial(BaseDANetwork):
         If the module is already initialized and no parameter was changed, it
         will be left as is.
         """
-        kwargs = self.get_params_for('domain_classifier')
+        kwargs = self.get_params_for("domain_classifier")
         domain_classifier = self.initialized_instance(self.domain_classifier, kwargs)
         self.domain_classifier_ = domain_classifier
 
@@ -129,7 +126,7 @@ class DANN(BaseAdversarial):
         domain_classifier,
         domain_criterion=torch.nn.BCELoss,
         reg=1,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(
             module,
@@ -137,7 +134,7 @@ class DANN(BaseAdversarial):
             layer_names,
             domain_classifier,
             domain_criterion,
-            **kwargs
+            **kwargs,
         )
         self.reg = reg
 
@@ -150,7 +147,7 @@ class DANN(BaseAdversarial):
         X=None,
         X_target=None,
         y_pred_target=None,
-        training=True
+        training=True,
     ):
         """Compute the domain adaptation loss"""
         y_true = to_tensor(y_true, device=self.device)
@@ -172,10 +169,9 @@ class DANN(BaseAdversarial):
             output_domain_target = self.domain_classifier_.forward(
                 embedd_target[i], self.reg
             ).flatten()
-            loss_DANN += (
-                self.domain_criterion_(output_domain, domain_label) +
-                self.domain_criterion_(output_domain_target, domain_label_target)
-            )
+            loss_DANN += self.domain_criterion_(
+                output_domain, domain_label
+            ) + self.domain_criterion_(output_domain_target, domain_label_target)
         loss_classif = self.criterion_(y_pred, y_true)
 
         return loss_classif + loss_DANN, loss_classif, loss_DANN
@@ -195,7 +191,7 @@ class _RandomLayer(nn.Module):
     """
 
     def __init__(self, random_state, input_dims, output_dim=4096):
-        super(_RandomLayer, self).__init__()
+        super().__init__()
         gen = check_generator(random_state)
         self.output_dim = output_dim
         self.random_matrix = [
@@ -209,8 +205,8 @@ class _RandomLayer(nn.Module):
             torch.mm(input_list[i], self.random_matrix[i].to(device))
             for i in range(len(input_list))
         ]
-        return_tensor = (
-            return_list[0] / math.pow(float(self.output_dim), 1.0/len(input_list))
+        return_tensor = return_list[0] / math.pow(
+            float(self.output_dim), 1.0 / len(input_list)
         )
         for single in return_list[1:]:
             return_tensor = torch.mul(return_tensor, single)
@@ -218,7 +214,7 @@ class _RandomLayer(nn.Module):
 
 
 class CDAN(BaseAdversarial):
-    """Conditional Domain Adversarial Networks (CDAN).
+    r"""Conditional Domain Adversarial Networks (CDAN).
 
     From [1]_.
 
@@ -269,7 +265,7 @@ class CDAN(BaseAdversarial):
         reg=1,
         max_features=4096,
         random_state=None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(
             module,
@@ -277,7 +273,7 @@ class CDAN(BaseAdversarial):
             layer_names,
             domain_classifier,
             domain_criterion,
-            **kwargs
+            **kwargs,
         )
         self.reg = reg
         self.max_features = max_features
@@ -292,7 +288,7 @@ class CDAN(BaseAdversarial):
         X=None,
         X_target=None,
         y_pred_target=None,
-        training=True
+        training=True,
     ):
         """Compute the domain adaptation loss"""
         y_true = to_tensor(y_true, device=self.device)
@@ -306,30 +302,32 @@ class CDAN(BaseAdversarial):
                 random_layer = _RandomLayer(
                     gen,
                     input_dims=[n_features, n_classes],
-                    output_dim=self.max_features
+                    output_dim=self.max_features,
                 )
             else:
                 random_layer = None
 
             # Compute the input for the domain classifier
             if random_layer is None:
-                multilinear_map = torch.bmm(
-                    y_pred.unsqueeze(2), embedd[i].unsqueeze(1))
+                multilinear_map = torch.bmm(y_pred.unsqueeze(2), embedd[i].unsqueeze(1))
                 multilinear_map_target = torch.bmm(
-                    y_pred_target.unsqueeze(2), embedd_target[i].unsqueeze(1))
+                    y_pred_target.unsqueeze(2), embedd_target[i].unsqueeze(1)
+                )
 
                 multilinear_map = multilinear_map.view(-1, n_features * n_classes)
                 multilinear_map_target = multilinear_map_target.view(
-                        -1, n_features * n_classes)
+                    -1, n_features * n_classes
+                )
 
             else:
                 multilinear_map = random_layer.forward([embedd[i], y_pred])
                 multilinear_map_target = random_layer.forward(
-                    [embedd_target[i], y_pred_target])
+                    [embedd_target[i], y_pred_target]
+                )
 
             # Compute the output of the domain classifier
             output_domain = self.domain_classifier_.forward(
-               multilinear_map, self.reg
+                multilinear_map, self.reg
             ).flatten()
             output_domain_target = self.domain_classifier_.forward(
                 multilinear_map_target, self.reg
@@ -344,10 +342,9 @@ class CDAN(BaseAdversarial):
             )
 
             # update classification function
-            loss_CDAN += (
-                self.domain_criterion_(output_domain, domain_label) +
-                self.domain_criterion_(output_domain_target, domain_label_target)
-            )
+            loss_CDAN += self.domain_criterion_(
+                output_domain, domain_label
+            ) + self.domain_criterion_(output_domain_target, domain_label_target)
 
         loss_classif = self.criterion_(y_pred, y_true)
         return loss_classif + loss_CDAN, loss_classif, loss_CDAN

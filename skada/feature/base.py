@@ -4,14 +4,12 @@
 # License: BSD 3-Clause
 
 from abc import abstractmethod
-from skorch import NeuralNetClassifier
-from skorch.dataset import unpack_data
-from skorch.dataset import get_len
-from skorch.utils import TeeGenerator
-
-import torch
 
 import numpy as np
+import torch
+from skorch import NeuralNetClassifier
+from skorch.dataset import get_len, unpack_data
+from skorch.utils import TeeGenerator
 
 from .utils import _register_forwards_hook
 
@@ -238,6 +236,7 @@ class BaseDANetwork(NeuralNetClassifier):
         self, iterator, training, prefix, step_fn, iterator_target=None, **fit_params
     ):
         """Compute a single epoch of train or validation.
+
         Parameters
         ----------
         iterator : torch DataLoader or None

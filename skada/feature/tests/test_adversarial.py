@@ -3,13 +3,12 @@
 #
 # License: BSD 3-Clause
 
+import pytest
 import torch
 from torch import nn
 
-import pytest
-
-from skada.feature import DANN, CDAN
-from skada.feature._modules import ToyCNN, DomainClassifier
+from skada.feature import CDAN, DANN
+from skada.feature._modules import DomainClassifier, ToyCNN
 
 
 @pytest.mark.parametrize(

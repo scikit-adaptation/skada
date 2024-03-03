@@ -1,4 +1,5 @@
 import torch
+
 from skada.feature.utils import check_generator
 
 

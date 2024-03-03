@@ -3,10 +3,9 @@
 #
 # License: BSD 3-Clause
 
+import pytest
 import torch
 from torch import nn
-
-import pytest
 
 from skada.feature import DeepJDOT
 from skada.feature._modules import ToyCNN
