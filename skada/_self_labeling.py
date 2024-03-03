@@ -67,18 +67,18 @@ class DASVMClassifier(DAEstimator):
         # We should take k points for each of the c classes,
         # depending on the values of d
         condition = np.logical_and(~indices_list, cond_array)
-        for j in range(min(self.k, math.ceil(sum(condition)/self.n_class))):
-            I = np.unique(np.argmax(d[condition], axis=0))
+        for _ in range(min(self.k, math.ceil(sum(condition)/self.n_class))):
+            idx = np.unique(np.argmax(d[condition], axis=0))
             # We need to get all those indices to be take into account
             # the fact that the some previous points weren't in the list
-            for l in range(condition.shape[0]):
-                if ~condition[l]:
-                    I[I >= l] += 1
+            for ll in range(condition.shape[0]):
+                if ~condition[ll]:
+                    idx[idx >= ll] += 1
 
             # We finally only need to change the list
-            for l in I:
+            for ll in idx:
                 # indices_list[l] is False at that point
-                indices_list[l] = True
+                indices_list[ll] = True
 
     def _get_X_y(
             self, new_estimator, index_target_added, index_source_deleted, Xs, Xt, ys
