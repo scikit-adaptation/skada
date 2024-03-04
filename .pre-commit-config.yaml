@@ -48,4 +48,4 @@ repos:
       - id: rstcheck
         additional_dependencies:
           - tomli
-        files: ^docs/.*\.(rst|inc)$
+        files: ^docs/source/.*\.(rst|inc)$
