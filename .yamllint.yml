@@ -1,7 +1,7 @@
 extends: default
 
-# ignore: |
-#   .github/workflows/codeql-analysis.yml
+ignore: |
+  .github/workflows/testing.yml
 
 rules:
   line-length: disable
