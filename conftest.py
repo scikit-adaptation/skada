@@ -11,7 +11,7 @@ collect_ignore_glob = []
 try:
     import torch  # noqa
 except ImportError:
-    collect_ignore_glob.append('deep/*.py')
+    collect_ignore_glob.append('skada/deep/*.py')
 
 
 @pytest.fixture(scope='function', autouse=True)
