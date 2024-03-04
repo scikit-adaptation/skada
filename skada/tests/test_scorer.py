@@ -1,25 +1,29 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Remi Flamary <remi.flamary@polytechnique.edu>
 #         Oleksii Kachaiev <kachayev@gmail.com>
+#         Yanis Lalou <yanis.lalou@polytechnique.edu>
 #
 # License: BSD 3-Clause
 
 import numpy as np
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression, LinearRegression
+from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import ShuffleSplit, cross_validate
 from sklearn.svm import SVC
+from sklearn.dummy import DummyRegressor
 
 from skada import (
     ReweightDensityAdapter,
     SubspaceAlignmentAdapter,
     make_da_pipeline,
 )
-from skada.datasets import DomainAwareDataset
+from skada.datasets import DomainAwareDataset, make_shifted_datasets
 from skada.metrics import (
     SupervisedScorer,
     ImportanceWeightedScorer,
     PredictionEntropyScorer,
     SoftNeighborhoodDensity,
+    CircularValidation,
 )
 
 import pytest
@@ -31,6 +35,7 @@ import pytest
         ImportanceWeightedScorer(),
         PredictionEntropyScorer(),
         SoftNeighborhoodDensity(),
+        CircularValidation(),
     ],
 )
 def test_generic_scorer(scorer, da_dataset):
@@ -163,3 +168,54 @@ def test_prediction_entropy_scorer_reduction(da_dataset):
         scorer = PredictionEntropyScorer(reduction='none')
         scorer.reduction = 'WRONG_REDUCTION'
         scorer._score(estimator, X, y, sample_domain=sample_domain)
+
+
+def test_circular_validation(da_dataset):
+    X, y, sample_domain = da_dataset.pack_train(as_sources=['s'], as_targets=['t'])
+    estimator = make_da_pipeline(
+        ReweightDensityAdapter(),
+        LogisticRegression().set_fit_request(
+            sample_weight=True
+        ),
+    )
+
+    estimator.fit(X, y, sample_domain=sample_domain)
+
+    scorer = CircularValidation()
+    score = scorer._score(estimator, X, y, sample_domain=sample_domain)
+    assert ~np.isnan(score), "the score is computed"
+
+    # Test not callable source_scorer
+    with pytest.raises(ValueError):
+        scorer = CircularValidation(source_scorer=None)
+
+    # Test unique y_pred_target
+    estimator_dummy = make_da_pipeline(
+        DummyRegressor(strategy="constant", constant=1),
+    )
+    estimator_dummy.fit(X, y, sample_domain=sample_domain)
+    scorer = CircularValidation()
+    score = scorer._score(estimator_dummy, X, y, sample_domain=sample_domain)
+    assert ~np.isnan(score), "the score is computed"
+
+    # Test regression task
+    X, y, sample_domain = make_shifted_datasets(
+        n_samples_source=10,
+        n_samples_target=10,
+        noise=None,
+        label="regression",
+    )
+    estimator_regression = make_da_pipeline(
+        ReweightDensityAdapter(),
+        LinearRegression().set_fit_request(
+            sample_weight=True
+        ),
+    )
+    estimator_regression.fit(X, y, sample_domain=sample_domain)
+
+    scorer = CircularValidation(
+        source_scorer=mean_squared_error,
+        greater_is_better=False
+    )
+    score = scorer._score(estimator_regression, X, y, sample_domain=sample_domain)
+    assert ~np.isnan(score), "the score is computed"

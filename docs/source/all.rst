@@ -24,6 +24,7 @@ Sample reweighting DA methods
    GaussianReweightDensity
    DiscriminatorReweightDensity
    KLIEP
+   MMDTarSReweight
 
 Sample mapping and alignment DA methods
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -121,6 +122,7 @@ DA metrics :py:mod:`skada.metrics`
    PredictionEntropyScorer
    DeepEmbeddedValidation
    SoftNeighborhoodDensity
+   CircularValidation
 
 
 Model Selection :py:mod:`skada.model_selection`
