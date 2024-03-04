@@ -27,6 +27,7 @@ from ._samples_generator import (
     make_dataset_from_moons_distribution,
     make_variable_frequency_dataset,
 )
+from ._mnist_usps import load_mnist_usps
 
 __all__ = [
     'DomainAwareDataset',
@@ -42,4 +43,5 @@ __all__ = [
     'make_dataset_from_moons_distribution',
     'make_variable_frequency_dataset',
     'select_domain',
+    'load_mnist_usps',
 ]

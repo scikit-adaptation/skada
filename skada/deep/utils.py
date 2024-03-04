@@ -3,6 +3,7 @@
 #
 # License: BSD 3-Clause
 import numbers
+
 import torch
 
 
@@ -28,6 +29,7 @@ def _register_forwards_hook(module, intermediate_layers, layer_names):
 
 def check_generator(seed):
     """Turn seed into a torch.Generator instance.
+
     Parameters
     ----------
     seed : None, int or instance of Generator

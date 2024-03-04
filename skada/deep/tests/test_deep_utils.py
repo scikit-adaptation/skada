@@ -1,5 +1,7 @@
+
 import torch
-from skada.feature.utils import check_generator
+
+from skada.deep.utils import check_generator
 
 
 def test_check_generator():
