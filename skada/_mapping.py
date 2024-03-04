@@ -703,7 +703,7 @@ def CORAL(
 
 
 class MMDLSConSMappingAdapter(BaseAdapter):
-    """MMDLSConSMapping adapter.
+    """Location-Scale mapping minimizing the MMD with a Gaussian kernel.
 
     MMDLSConSMapping finds a linear transformation that minimizes the Maximum Mean
     Discrepancy (MMD) between the source and target domains, such that
@@ -715,7 +715,7 @@ class MMDLSConSMappingAdapter(BaseAdapter):
     Parameters
     ----------
     gamma : float
-        Parameter for the kernels.
+        Parameter for the Gaussian kernel.
     reg_k : float, default=1e-10
         Regularization parameter for the labels kernel matrix.
     reg_m : float, default=1e-10
@@ -945,7 +945,7 @@ def MMDLSConSMapping(
     base_estimator : object, optional (default=None)
         The base estimator to fit on the target dataset.
     gamma : float
-        Parameter for the kernels.
+        Parameter for the Gaussian kernel.
     reg_k : float, default=1e-10
         Regularization parameter for the labels kernel matrix.
     reg_m : float, default=1e-10
