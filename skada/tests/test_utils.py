@@ -1,4 +1,5 @@
 # Author: Yanis Lalou <yanis.lalou@polytechnique.edu>
+#         Antoine Collas <contact@antoinecollas.fr>
 #
 # License: BSD 3-Clause
 
@@ -16,9 +17,14 @@ from skada.utils import (
     source_target_split,
     extract_domains_indices,
     source_target_merge,
-    qp_solve
+    qp_solve,
+    torch_minimize
 )
 from skada._utils import _check_y_masking
+try:
+    import torch
+except ImportError:
+    torch = False
 
 
 def test_check_y_masking_classification():
@@ -504,3 +510,45 @@ def test_qp_solve():
     with pytest.warns(UserWarning,
                       match="Iteration limit reached"):
         qp_solve(Q, c, Aeq=Aeq, beq=beq, lb=lb, max_iter=1)
+
+
+@pytest.mark.skipif(not torch, reason="PyTorch not installed")
+def test_torch_minimize():
+    A = torch.tensor([[5., 2.], [2., 5.]], dtype=torch.float64)
+    true_eigval, true_eigvec = np.linalg.eigh(A)
+    true_eigval = true_eigval[0]
+    true_eigvec = true_eigvec[:, 0].reshape(-1, 1)
+
+    # Rayleigh quotient
+    def loss(x):
+        return (x.T @ A @ x) / (x.T @ x)
+
+    # test optimization
+    x0 = np.array([[-0.2], [0.1]])
+
+    eigvec, min_eigval = torch_minimize(loss, x0, max_iter=100, tol=1e-6)
+    eigvec = eigvec / np.linalg.norm(eigvec)
+
+    assert np.allclose(min_eigval, true_eigval)
+    assert np.allclose(eigvec, true_eigvec)
+
+    # test optimization with torch tensor as initial guess
+    x0_torch = torch.tensor(x0)
+
+    eigvec, min_eigval = torch_minimize(loss, x0_torch, max_iter=100, tol=1e-6)
+    eigvec = eigvec / np.linalg.norm(eigvec)
+
+    assert np.allclose(min_eigval, true_eigval)
+    assert np.allclose(eigvec, true_eigvec)
+
+    # test optimization with list of variables as initial guess
+    x0 = [x0]
+    (eigvec), min_eigval = torch_minimize(loss, x0, max_iter=100, tol=1e-6)
+    eigvec = eigvec / np.linalg.norm(eigvec)
+
+    assert np.allclose(min_eigval, true_eigval)
+    assert np.allclose(eigvec, true_eigvec)
+
+    # test warning when convergence is not reached
+    with pytest.warns(UserWarning):
+        torch_minimize(loss, x0, max_iter=1, tol=0)

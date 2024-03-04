@@ -36,7 +36,8 @@ from skada import (
     ClassRegularizerOTMapping,
     LinearOTMapping,
     CORAL,
-    JDOTClassifier
+    JDOTClassifier,
+    MMDLSConSMapping
 )
 from skada.datasets import make_shifted_datasets
 
@@ -58,7 +59,8 @@ names = [
     "Class Reg. OT mapping",
     "Linear OT mapping",
     "CORAL",
-    "JDOT"
+    "JDOT",
+    "MMD Loc-Scale mapping"
 ]
 
 classifiers = [
@@ -78,7 +80,8 @@ classifiers = [
     ClassRegularizerOTMapping(base_estimator=SVC()),
     LinearOTMapping(base_estimator=SVC()),
     CORAL(base_estimator=SVC()),
-    JDOTClassifier(base_estimator=SVC(), metric='hinge')
+    JDOTClassifier(base_estimator=SVC(), metric='hinge'),
+    MMDLSConSMapping(base_estimator=SVC())
 ]
 
 datasets = [

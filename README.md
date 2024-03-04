@@ -24,7 +24,7 @@ The following algorithms are currently implemented.
 
 - Sample reweighting methods (Gaussian [1], Discriminant [2], KLIEP [3],
   DensityRatio [4], TarS [22])
-- Sample mapping methods (CORAL [5], Optimal Transport DA OTDA [6], LinearMonge [7])
+- Sample mapping methods (CORAL [5], Optimal Transport DA OTDA [6], LinearMonge [7], LS-ConS [22])
 - Subspace methods (SubspaceAlignment [8], TCA [9])
 - Other methods (JDOT [10], DASVM [11])
 
