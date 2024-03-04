@@ -22,8 +22,8 @@ from skada.utils import source_target_split
 
 
 @pytest.mark.skipif(not torchvision, reason="torchvision is not installed")
-@pytest.mark.parametrize("n_classes", [2, 5,],)
-def test_make_dataset_from_moons_distribution(n_classes):
+@pytest.mark.parametrize("n_classes", [2, 3,],)
+def test_mnist_usps(n_classes):
     X, y, sample_domain = load_mnist_usps(
         n_classes=n_classes,
         return_X_y=True,
@@ -60,3 +60,36 @@ def test_make_dataset_from_moons_distribution(n_classes):
     assert np.unique(y_source).shape == (n_classes,), "Unexpected number of cluster"
     assert X_target.shape[1:] == (1, 28, 28), "X target shape mismatch"
     assert np.unique(y_target).shape == (n_classes,), "Unexpected number of cluster"
+
+
+@pytest.mark.skipif(not torchvision, reason="torchvision is not installed")
+def test_mnist_usps_n_samples():
+    X, _, _ = load_mnist_usps(
+        n_samples=0.2,
+        n_classes=2,
+        return_X_y=True,
+        return_dataset=False,
+    )
+
+    X_big, _, _ = load_mnist_usps(
+        n_samples=0.7,
+        n_classes=2,
+        return_X_y=True,
+        return_dataset=False,
+    )
+    assert len(X) < len(X_big)
+
+    with pytest.raises(ValueError):
+        X, _, _ = load_mnist_usps(
+            n_samples=3,
+            n_classes=2,
+            return_X_y=True,
+            return_dataset=False,
+        )
+    with pytest.raises(ValueError):
+        X, _, _ = load_mnist_usps(
+            n_samples=-1,
+            n_classes=2,
+            return_X_y=True,
+            return_dataset=False,
+        )
