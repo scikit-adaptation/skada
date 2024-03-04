@@ -10,7 +10,9 @@ try:
     import torch  # noqa: F401
     import skorch  # noqa: F401
 except ImportError as e:
-    raise ImportError("torch and skorch are required for importing deep's method.") from e
+    raise ImportError(
+        "torch and skorch are required for importing deep's method."
+    ) from e
 
 from ._divergence import DeepCoral, DeepCoralLoss, DANLoss, DAN
 from ._optimal_transport import DeepJDOT, DeepJDOTLoss
