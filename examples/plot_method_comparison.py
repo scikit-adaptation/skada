@@ -1,5 +1,5 @@
 """
-Plot comparison of DA methods
+Comparison of DA classification methods
 ====================================================
 
 A comparison of a several methods of DA in skada on
@@ -26,7 +26,8 @@ from skada import (
     ReweightDensity,
     GaussianReweightDensity,
     DiscriminatorReweightDensity,
-    KLIEP
+    KLIEP,
+    MMDTarSReweight
 )
 from skada import SubspaceAlignment, TransferComponentAnalysis
 from skada import (
@@ -34,10 +35,10 @@ from skada import (
     EntropicOTMapping,
     ClassRegularizerOTMapping,
     LinearOTMapping,
-    CORAL
+    CORAL,
+    JDOTClassifier
 )
 from skada.datasets import make_shifted_datasets
-from skada import source_target_split
 
 # Use same random seed for multiple calls to make_datasets to
 # ensure same distributions
@@ -46,27 +47,30 @@ RANDOM_SEED = 42
 names = [
     "Without da",
     "Reweight Density",
-    "Gaussian Reweight Density",
-    "Discr. Reweight Density",
+    "Gaussian Reweight",
+    "Discr. Reweight",
     "KLIEP",
+    "MMD TarS",
     "Subspace Alignment",
     "TCA",
     "OT mapping",
     "Entropic OT mapping",
-    "Class Regularizer OT mapping",
+    "Class Reg. OT mapping",
     "Linear OT mapping",
-    "CORAL"
+    "CORAL",
+    "JDOT"
 ]
 
 classifiers = [
     SVC(),
     ReweightDensity(
-        base_estimator=SVC(),
+        base_estimator=SVC().set_fit_request(sample_weight=True),
         weight_estimator=KernelDensity(bandwidth=0.5),
     ),
-    GaussianReweightDensity(base_estimator=SVC()),
-    DiscriminatorReweightDensity(base_estimator=SVC()),
-    KLIEP(base_estimator=SVC(), gamma=[1, 0.1, 0.001]),
+    GaussianReweightDensity(SVC().set_fit_request(sample_weight=True)),
+    DiscriminatorReweightDensity(SVC().set_fit_request(sample_weight=True)),
+    KLIEP(SVC().set_fit_request(sample_weight=True), gamma=[1, 0.1, 0.001]),
+    MMDTarSReweight(SVC().set_fit_request(sample_weight=True), gamma=1),
     SubspaceAlignment(base_estimator=SVC(), n_components=1),
     TransferComponentAnalysis(base_estimator=SVC(), n_components=1, mu=0.5),
     OTMapping(base_estimator=SVC()),
@@ -74,6 +78,7 @@ classifiers = [
     ClassRegularizerOTMapping(base_estimator=SVC()),
     LinearOTMapping(base_estimator=SVC()),
     CORAL(base_estimator=SVC()),
+    JDOTClassifier(base_estimator=SVC(), metric='hinge')
 ]
 
 datasets = [
@@ -83,7 +88,8 @@ datasets = [
         shift="covariate_shift",
         label="binary",
         noise=0.4,
-        random_state=RANDOM_SEED
+        random_state=RANDOM_SEED,
+        return_dataset=True
     ),
     make_shifted_datasets(
         n_samples_source=20,
@@ -91,7 +97,8 @@ datasets = [
         shift="target_shift",
         label="binary",
         noise=0.4,
-        random_state=RANDOM_SEED
+        random_state=RANDOM_SEED,
+        return_dataset=True
     ),
     make_shifted_datasets(
         n_samples_source=20,
@@ -99,7 +106,8 @@ datasets = [
         shift="concept_drift",
         label="binary",
         noise=0.4,
-        random_state=RANDOM_SEED
+        random_state=RANDOM_SEED,
+        return_dataset=True
     ),
     make_shifted_datasets(
         n_samples_source=20,
@@ -107,7 +115,8 @@ datasets = [
         shift="subspace",
         label="binary",
         noise=0.4,
-        random_state=RANDOM_SEED
+        random_state=RANDOM_SEED,
+        return_dataset=True
     ),
 ]
 
@@ -115,9 +124,9 @@ figure, axes = plt.subplots(len(classifiers) + 2, len(datasets), figsize=(9, 27)
 # iterate over datasets
 for ds_cnt, ds in enumerate(datasets):
     # preprocess dataset, split into training and test part
-    X, y, sample_domain = ds
-
-    Xs, ys, Xt, yt = source_target_split(X, y, sample_domain=sample_domain)
+    X, y, sample_domain = ds.pack_train(as_sources=['s'], as_targets=['t'])
+    Xs, ys = ds.get_domain("s")
+    Xt, yt = ds.get_domain("t")
 
     x_min, x_max = X[:, 0].min() - 0.5, X[:, 0].max() + 0.5
     y_min, y_max = X[:, 1].min() - 0.5, X[:, 1].max() + 0.5
@@ -165,13 +174,15 @@ for ds_cnt, ds in enumerate(datasets):
     for name, clf in zip(names, classifiers):
         print(name, clf)
         ax = axes[i, ds_cnt]
+        ax.set_xlim(x_min, x_max)
+        ax.set_ylim(y_min, y_max)
         if name == "Without da":
             clf.fit(Xs, ys)
         else:
             clf.fit(X, y, sample_domain=sample_domain)
         score = clf.score(Xt, yt)
         DecisionBoundaryDisplay.from_estimator(
-            clf, Xs, cmap=cm, alpha=0.8, ax=ax, eps=0.5, response_method="predict",
+            clf, X, cmap=cm, alpha=0.8, ax=ax, eps=0.5, response_method="predict",
         )
 
         # Plot the target points

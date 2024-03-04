@@ -1,269 +1,197 @@
+# SKADA - Domain Adaptation with scikit-learn and PyTorch
+
+[![PyPI version](https://badge.fury.io/py/skada.svg)](https://badge.fury.io/py/skada)
+[![Build Status](https://github.com/scikit-adaptation/skada/actions/workflows/testing.yml/badge.svg)](https://github.com/scikit-adaptation/skada/actions)
+[![Codecov Status](https://codecov.io/gh/scikit-adaptation/skada/branch/main/graph/badge.svg)](https://codecov.io/gh/scikit-adaptation/skada)
+[![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
+
 > [!WARNING]
 > This library is currently in a phase of active development. All features are subject to change without prior notice. If you are interested in collaborating, please feel free to reach out by opening an issue or starting a discussion.
 
-# Domain Aware API
+SKADA is a library for domain adaptation (DA) with a scikit-learn and PyTorch/skorch
+compatible API with the following features:
 
-The core concept introduced with this API are the following:
-* `sample_domain` labels
-* `DomainAwareDataset` API
-* `Adapter` interface
-* Pipeline, `make_da_pipeline` and selectors
-* Model selection (model scoring, splitters)
+- DA estimators with a scikit-learn compatible API (fit, transform, predict).
+- PyTorch/skorch API for deep learning DA algorithms.
+- Classifier/Regressor and data Adapter DA algorithms compatible with scikit-learn pipelines.
+- Compatible with scikit-learn validation loops (cross_val_score, GridSearchCV, etc).
 
-The are a few test suites available to see examples, specifically
-* `tests/test_mapping.py`
-* `tests/test_reweight.py`
-* `tests/test_subspace.py`
-* `tests/test_pipeline.py`
-* `tests/test_scorer.py`
-* `tests/test_cv.py`
-* `datasets/tests/test_samples_generator.py`
-* `datasets/tests/test_office.py`
+## Implemented algorithms
 
-To run all tests, simply execute
+The following algorithms are currently implemented.
 
-```shell
-pytest skada/ --ignore=skada/feature
-```
+### Domain adaptation algorithms
 
-A test suite for new datasets API is on its way. A separate test suite for new `Office31` dataset is already in there (note, it take a bit longer to run compared to other tests as it has to fetch datasets first).
+- Sample reweighting methods (Gaussian [1], Discriminant [2], KLIEP [3],
+  DensityRatio [4], TarS [22])
+- Sample mapping methods (CORAL [5], Optimal Transport DA OTDA [6], LinearMonge [7])
+- Subspace methods (SubspaceAlignment [8], TCA [9])
+- Other methods (JDOT [10], DASVM [11])
 
-## Sample Domain
+Any methods that can be cast as an adaptation of the input data can be used as a
+scikit-learn transformer (Adapter) provides both a full Classifier/Regressor
+estimator and an `Adapter` that can be used in a DA pipeline with
+`make_da_pipeline`. Refer to the examples below and visit [the gallery](https://scikit-adaptation.github.io/auto_examples/index.html)for more details.
 
-Typically, in supervised learning we deal with samples (`X`) and labels (`y`). Like that:
+### Deep learning domain adaptation algorithms
 
-```python
-model = LogisticRegression()
-model.fit(X_train, y_train)
-model.score(X_test, y_test)
-```
+- Deep Correlation alignment (DeepCORAL [12])
+- Deep joint distribution optimal (DeepJDOT [13])
+- Divergence minimization (MMD/DAN [14])
+- Adversarial/discriminator based DA (DANN [15], CDAN [16])
 
-With domain adaptation it's a bit more complicated as we have multiple `(X, y)` pairs originating from different domains. A core theme of the new API is an explicit labeling of domains per each sample: all methods (like `fit`, `predict`, `score`, `adapt` and others) takes additional argument `sample_domain`. Each domain is assigned with an integer label. When passing into processing, source domains are marked with positive labels and target as negatives. A bunch of helpers are available to make work with domain labeling simple and straightforward. Common use case looks like
+### DA metrics
 
-```python
-model = DomainAwareEstimator(CORALAdapter(n_components=5), LogisticRegression())
-model.fit(X_train, y_train, sample_domain=sample_domain_train)
-model.score(X_test, y_test, sample_domain=sample_domain_test)
-```
+- Importance Weighted [17]
+- Prediction entropy [18]
+- Soft neighborhood density [19]
+- Deep Embedded Validation (DEV) [20]
+- Circular Validation [21]
 
-`sample_domain` could be skipped if a) there's a single source and single target domain, b) target labels are masked with the special value `-1`. In such a case, `sample_domain` would be automatically derived. In other scenarios, `sample_domain` is required.
 
-## Dataset
+## Installation
 
-New `skada.datasets.DomainAwareDataset` class to act as a container for all domains with the API built around `add_domain` and `pack` methods:
+The library is not yet available on PyPI. You can install it from the source code.
 
-```python
-datasets = DomainAwareDataset()
-datasets.add_domain(X_subj1, y_subj1, domain_name="subj_1")
-datasets.add_domain(X_subj3, y_subj3, domain_name="subj_3")
-datasets.add_domain(X_subj12, y_subj12, domain_name="subj_12")
-X, y, sample_domain = datasets.pack(as_sources=['subj_12', 'subj_1'], as_targets=['subj_3'])
-```
 
-should be also compatible for fetchers, like
+## Short examples
+
+We provide here a few examples to illustrate the use of the library. For more
+details, please refer to this [example](https://scikit-adaptation.github.io/auto_examples/plot_how_to_use_skada.html), the [quick start guide](https://scikit-adaptation.github.io/quickstart.html) and the [gallery](https://scikit-adaptation.github.io/auto_examples/index.html).
+
+First, the DA data in the SKADA API is stored in the following format:
 
 ```python
-office31 = fetch_office31_surf_all()
-X, y, sample_domain = office31.pack(as_sources=['amazon', 'dslr'], as_targets=['webcam'])
+X, y, sample_domain 
 ```
 
-Method `pack` also accepts optional `return_X_y` argument (defaults to `True`). When this argument is set to `False`, the method returns `Bunch` object with the following set of keys: 
+Where `X` is the input data, `y` is the target labels and `sample_domain` is the
+domain labels (positive for source and negative for target domains). We provide
+below an exmaple ho how to fit a DA estimator:
 
 ```python
->>> office31 = fetch_all_office31_surf()
->>> data = office31.pack(as_sources=['amazon', 'dslr'], as_targets=['webcam'], return_X_y=False)
->>> data.keys()
-dict_keys(['X', 'y', 'sample_domain', 'domain_names'])
+from skada import CORAL
+
+da = CORAL()
+da.fit(X, y, sample_domain=sample_domain) # sample_domain passed by name
+
+ypred = da.predict(Xt) # predict on test data
 ```
 
-This is mostly to cover use cases where you need access to `'domain_names'` labels. Domain labels are assigned following the convention that source gets non-negative integer (1,2,..) and target always gets negative (-1,-2,...). Labels are assigned in the order that datasets are provided, should make it easier to "reconstruct" labels even working with tuple output (without access to `Bunch` object). Absolute value of the label is always static for a given domain name, for example if "amazon" domain gets index 2 it will be included in `sample_domain` as 2 when included as source and -2 when included as target. Such convention is required to avoid fluctuations of domain labels (otherwise multi-estimator API won't be possible).
-
-Considering different scenarios, the dataset provides the following helpers:
-
-* `pack_train` masks labels for domains designated for being used as targets
-* `pack_test` packs requested targets
-
-Working with an estimator with a new API would look like the following:
+One can also use `Adapter` classes to create a full pipeline with DA:
 
 ```python
-office31 = fetch_office31_surf_all()
-X_train, y_train, sample_domain = office31.pack_train(as_sources=['amazon', 'dslr'], as_targets=['webcam'])
+from skada import CORALAdapter, make_da_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
 
-estimator = make_da_pipeline(CORALAdapter(n_components=5, random_state=0),LogisticRegression())
-estimator.fit(X_train, y_train, sample_domain=sample_domain)
+pipe = make_da_pipeline(StandardScaler(), CORALAdapter(), LogisticRegression())
 
-# predict and score on target domain
-X_test, y_test, sample_domain = office31.pack_test(as_targets=['webcam'])
-webcam_idx = office31.select_domain(sample_domain, 'webcam')
-y_target = estimator.predict(X_test,[webcam_idx], sample_domain=sample_domain[webcam_idx])
-score = estimator.score(X_test[webcam_idx], y=y_test[webcam_idx], sample_domain=sample_domain[webcam_idx])
-
-# pick multiple domains
-source_idx = office31.select_domain(sample_domain, ('amazon', 'dslr'))
-
-# or using markers from `DomainAware*` API (see description below)
-target_idx = office31.select_domain(sample_domain, DomainAwareEstimator.INCLUDE_ALL_TARGETS)
-
-# generic helper to simplify flow when the dataset is created "on the fly"
-from skada.datasets import select_domain
-source_idx = select_domain(office31.domain_names, sample_domain, ('amazon', 'dslr'))
+pipe.fit(X, y, sample_domain=sample_domain) # sample_domain passed by name
 ```
 
-## Adapters and Estimators
-
-### Adapter
-
-The next building block for domain adaptation API is "Adapter" (see `skada.base.BaseAdapter` for details). The job of the adapter is to transform source and target samples (and, possibly, labels or weights) into the output space where estimator is going to be defined.  "Adapter" is defined by providing `fit` and `adapt` methods (the closest analogy for adapters is `sklearn` transformers, typical workflow is also similar).
-
-The list of adapters that were moved to a new API:
-* `ClassRegularizerOTMappingAdapter`
-* `CORALAdapter`
-* `EntropicOTMappingAdapter`
-* `LinearOTMappingAdapter`
-* `OTMappingAdapter`
-* `DiscriminatorReweightDensityAdapter`
-* `GaussianReweightDensityAdapter`
-* `KLIEPAdapter`
-* `ReweightDensityAdapter`
-* `SubspaceAlignmentAdapter`
-* `TransferComponentAnalysisAdapter`
-
-### Pipeline
-
-You can create a domain aware estimator as the pipeline that combines together adapter of your choice (to perform transformation) and the estimator (well, as an estimator):
+Please note that for `Adapter` classes that implement sample reweighting, the 
+subsequent classifier/regressor must require sample_weights as input. This is
+done with the `set_fit_requires` method. For instance, with `LogisticRegression`, you
+would use `LogisticRegression().set_fit_requires('sample_weight')`:
 
 ```python
-from skada import make_da_pipeline
-
-estimator = make_da_pipeline(
-    CORALAdapter(n_components=5, random_state=0),
-    LogisticRegression()
-)
-estimator.fit(X_train, y_train, sample_domain=sample_domain)
+from skada import GaussianReweightDensityAdapter, make_da_pipeline
+pipe = make_da_pipeline(GaussianReweightDensityAdapter(),
+                        LogisticRegression().set_fit_request(sample_weight=True))
 ```
 
-The helper function `make_da_pipeline` creates a built-in `sklearn.pipeline.Pipeline` meta-estimator, which exposes all estimator-related calls (like `fit` and `predict`), it also defines additional methods based on the functionality provided in the base estimator (like `predict_proba` or `score`). It also has a special method `adapt` to perform transformation without passing it into estimator.
-
-Feel free to stack more transformers as necessary:
+Finally SKADA can be used for estimating cross validation scores and parameter
+selection :
 
 ```python
-estimator = make_da_pipeline(
-    StandardScaler(),
-    PCA(),
-    CORALAdapter(n_components=5, random_state=0),
-    LogisticRegression()
-)
-estimator.fit(X_train, y_train, sample_domain=sample_domain)
+from sklearn.model_selection import cross_val_score, GridSearchCV
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+
+from skada import CORALAdapter, make_da_pipeline
+from skada.model_selection import SourceTargetShuffleSplit
+from skada.metrics import PredictionEntropyScorer
+
+# make pipeline
+pipe = make_da_pipeline(StandardScaler(), CORALAdapter(), LogisticRegression())
+
+# split and score
+cv = SourceTargetShuffleSplit()
+scorer = PredictionEntropyScorer()
+
+# cross val score
+scores = cross_val_score(pipe, X, y, params={'sample_domain': sample_domain}, 
+                         cv=cv, scoring=scorer)
+
+# grid search
+param_grid = {'coraladapter__reg': [0.1, 0.5, 0.9]}
+grid_search = GridSearchCV(estimator=pipe,
+                           param_grid=param_grid,
+                           cv=cv, scoring=scorer)
+
+grid_search.fit(X, y, sample_domain=sample_domain)
 ```
 
-### Selector
+## Acknowledgements
 
-`Shared` is a simplest select that always returns the same entity (note that `BaseAdapter` is also sklearn estimator for additional conveniences). Also note, that a single adapter and/or estimator would still work on multiple domains by concatenating them. Other selectors available:
-* `PerDomainSelector` (single base adapter/estimator, cloned and fitted per each domain)
-* `SourceTargetSelector` (one adapter/estimator for all sources, one for all targets)
+This toolbox has been created and is maintained by the SKADA team that includes the following members:
 
-Even though, as of now, we don't have any adapters that would be reasonable to split per domain, - when they are ready, the usage would look as follows:
+* [Théo Gnassounou](https://tgnassou.github.io/)
+* [Oleksii Kachaiev](https://kachayev.github.io/talks/)
+* [Rémi Flamary](https://remi.flamary.com/)
+* [Antoine Collas](https://www.antoinecollas.fr/)
+* [Yanis Lalou](https://github.com/YanisLalou)
+* [Antoine de Mathelin](https://scholar.google.com/citations?user=h79bffAAAAAJ&hl=fr)
+* [Ruben Bueno]()
 
-```python
-estimator = make_da_pipeline(
-    OTMappingAdapter(reg=0.1),
-    PerDomain(LogisticRegression())
-)
-estimator.fit(X_train, y_train, sample_domain)
-```
-
-If you have the scenario that fits neither, low-level API is available at your convenience (see the section below).
-
-### Test-time Domain Adaptation
-
-When working with multiple domains, `predict` only respects domains that were seen during the fitting. For doing test-time domain adaptation (when new adapter or estimator is fit at a test time) `update` and `update_predict` methods are available. Those work the same way as `fit` and `fit_predict` with the only difference that they take in new domains (previously unseen).
-
-## Model Selection
-
-The implementation is largely compatible with scikit-learn's model selection tools, such as `cross_validate` and `GridSearchCV`. When using these tools, the `sample_domain` should be included in the `params` dictionary passed to the respective method. For practical usage examples, refer to the tests in `skada/tests/test_cv.py`, which showcase how to integrate these splitters with scikit-learn's model selection framework effectively.
-
-### Scoring
-
-The library ships a few scorers for domain adaptation models. The following scorers are plug-and-play compatible:
-
-* `ImportanceWeightedScorer`
-* `PredictionEntropyScorer`
-* `SoftNeighborhoodDensity`
-
-See API usage examples in `skada/tests/test_scorer.py`.
-
-The `SupervisedScorer` is a unique scorer that necessitates special consideration. Since it requires access to target labels, which are masked during the dataset packing process for training, this scorer mandates an additional key to be passed within the `params`. The usage is as follows:
-
-```python
-X, y, sample_domain = da_dataset.pack_train(as_sources=['s'], as_targets=['t'])
-estimator = make_da_pipeline(
-    ReweightDensityAdapter(),
-    LogisticRegression().set_score_request(sample_weight=True),
-)
-cv = ShuffleSplit(n_splits=3, test_size=0.3, random_state=0)
-_, target_labels, _ = da_dataset.pack(as_sources=['s'], as_targets=['t'], train=False)
-scoring = SupervisedScorer()
-scores = cross_validate(
-    estimator,
-    X,
-    y,
-    cv=cv,
-    params={'sample_domain': sample_domain, 'target_labels': target_labels},
-    scoring=scoring,
-)
-```
-
-The code fails if the validation uses `SupervisedScorer` but `target_labels` are not provided.
-
-### Splitters
-
-The library includes a range of splitters designed specifically for domain adaptation scenarios.
-
-`skada.model_selection.SourceTargetShuffleSplit`: This splitter functions similarly to the standard `ShuffleSplit` but takes into account the distinct separation between source and target domains. It follows the standard API structure:
-
-```python
-X, y, sample_domain = da_dataset.pack_train(as_sources=['s', 's2'], as_targets=['t', 't2'])
-pipe = make_da_pipeline(
-    SubspaceAlignmentAdapter(n_components=2),
-    LogisticRegression(),
-)
-pipe.fit(X, y, sample_domain=sample_domain)
-n_splits = 4
-cv = SourceTargetShuffleSplit(n_splits=n_splits, test_size=0.3, random_state=0)
-scores = cross_validate(
-    pipe,
-    X,
-    y,
-    cv=cv,
-    params={'sample_domain': sample_domain},
-    scoring=PredictionEntropyScorer(),
-)
-```
-
-`skada.model_selection.LeaveOneDomainOut` is a cross-validator that, in each iteration, randomly selects a single domain to serve as the target. After this selection, the train/test split is performed using the `ShuffleSplit` algorithm. The `max_n_splits` parameter limits the number of splits; in its absence, each domain is used as a target exactly once.
-
-This splitter requires the dataset to be specially prepared so that each domain is represented as both a source and a target simultaneously. This preparation can be achieved using the `pack_lodo` method. An example is provided below for clarity:
-
-```python
-X, y, sample_domain = da_dataset.pack_lodo()
-pipe = make_da_pipeline(
-    SubspaceAlignmentAdapter(n_components=2),
-    LogisticRegression(),
-)
-pipe.fit(X, y, sample_domain=sample_domain)
-cv = LeaveOneDomainOut(max_n_splits=max_n_splits, test_size=0.3, random_state=0)
-scores = cross_validate(
-    pipe,
-    X,
-    y,
-    cv=cv,
-    params={'sample_domain': sample_domain},
-    scoring=PredictionEntropyScorer(),
-)
-```
-
-More examples demonstrating the usage of splitters and scorers can be found in the  `skada/tests/test_cv.py` test suite. 
-
-# License
+## License
 
 The library is distributed under the 3-Clause BSD license.
+
+## References
+
+
+[1] Shimodaira Hidetoshi. ["Improving predictive inference under covariate shift by weighting the log-likelihood function."](https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=235723a15c86c369c99a42e7b666dfe156ad2cba) Journal of statistical planning and inference 90, no. 2 (2000): 227-244.
+
+[2] Sugiyama Masashi, Taiji Suzuki, and Takafumi Kanamori. ["Density-ratio matching under the Bregman divergence: a unified framework of density-ratio estimation."](https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=f1467208a75def8b2e52a447ab83644db66445ea) Annals of the Institute of Statistical Mathematics 64 (2012): 1009-1044.
+
+[3] Sugiyama Masashi, Taiji Suzuki, Shinichi Nakajima, Hisashi Kashima, Paul Von Bünau, and Motoaki Kawanabe. ["Direct importance estimation for covariate shift adaptation."](https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=af14e09a9f829b9f0952eac244b0ac0c8bda2ca8) Annals of the Institute of Statistical Mathematics 60 (2008): 699-746.
+
+[4] Sugiyama Masashi, and Klaus-Robert Müller. ["Input-dependent estimation of generalization error under covariate shift."](https://web.archive.org/web/20070221112234id_/http://sugiyama-www.cs.titech.ac.jp:80/~sugi/2005/IWSIC.pdf) (2005): 249-279.
+
+[5] Sun Baochen, Jiashi Feng, and Kate Saenko. ["Correlation alignment for unsupervised domain adaptation."](https://arxiv.org/pdf/1612.01939.pdf) Domain adaptation in computer vision applications (2017): 153-171.
+
+[6] Courty Nicolas, Flamary Rémi, Tuia Devis, and Alain Rakotomamonjy. ["Optimal transport for domain adaptation."](https://arxiv.org/pdf/1507.00504.pdf) IEEE Trans. Pattern Anal. Mach. Intell 1, no. 1-40 (2016): 2.
+
+[7] Flamary, R., Lounici, K., & Ferrari, A. (2019). [Concentration bounds for linear monge mapping estimation and optimal transport domain adaptation](https://arxiv.org/pdf/1905.10155.pdf). arXiv preprint arXiv:1905.10155.
+
+[8] Fernando, B., Habrard, A., Sebban, M., & Tuytelaars, T. (2013). [Unsupervised visual domain adaptation using subspace alignment](https://openaccess.thecvf.com/content_iccv_2013/papers/Fernando_Unsupervised_Visual_Domain_2013_ICCV_paper.pdf). In Proceedings of the IEEE international conference on computer vision (pp. 2960-2967).
+
+[9] Pan, S. J., Tsang, I. W., Kwok, J. T., & Yang, Q. (2010). [Domain adaptation via transfer component analysis](https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=4823e52161ec339d4d3526099a5477321f6a9a0f). IEEE transactions on neural networks, 22(2), 199-210.
+
+[10] Courty, N., Flamary, R., Habrard, A., & Rakotomamonjy, A. (2017). [Joint distribution optimal transportation for domain adaptation](https://proceedings.neurips.cc/paper_files/paper/2017/file/0070d23b06b1486a538c0eaa45dd167a-Paper.pdf). Advances in neural information processing systems, 30.
+
+[11] Bruzzone, L., & Marconcini, M. (2009). [Domain adaptation problems: A DASVM classification technique and a circular validation strategy.](https://ieeexplore.ieee.org/document/4803844) IEEE transactions on pattern analysis and machine intelligence, 32(5), 770-787.
+
+[12] Sun, B., & Saenko, K. (2016). [Deep coral: Correlation alignment for deep domain adaptation](https://arxiv.org/pdf/1607.01719.pdf). In Computer Vision–ECCV 2016 Workshops: Amsterdam, The Netherlands, October 8-10 and 15-16, 2016, Proceedings, Part III 14 (pp. 443-450). Springer International Publishing.
+
+[13] Damodaran, B. B., Kellenberger, B., Flamary, R., Tuia, D., & Courty, N. (2018). [Deepjdot: Deep joint distribution optimal transport for unsupervised domain adaptation](https://openaccess.thecvf.com/content_ECCV_2018/papers/Bharath_Bhushan_Damodaran_DeepJDOT_Deep_Joint_ECCV_2018_paper.pdf). In Proceedings of the European conference on computer vision (ECCV) (pp. 447-463).
+
+[14] Long, M., Cao, Y., Wang, J., & Jordan, M. (2015, June). [Learning transferable features with deep adaptation networks](https://proceedings.mlr.press/v37/long15.pdf). In International conference on machine learning (pp. 97-105). PMLR.
+
+[15] Ganin, Y., Ustinova, E., Ajakan, H., Germain, P., Larochelle, H., Laviolette, F., ... & Lempitsky, V. (2016). [Domain-adversarial training of neural networks](https://www.jmlr.org/papers/volume17/15-239/15-239.pdf). Journal of machine learning research, 17(59), 1-35.
+
+[16] Long, M., Cao, Z., Wang, J., & Jordan, M. I. (2018). [Conditional adversarial domain adaptation](https://proceedings.neurips.cc/paper_files/paper/2018/file/ab88b15733f543179858600245108dd8-Paper.pdf). Advances in neural information processing systems, 31.
+
+[17] Sugiyama, M., Krauledat, M., & Müller, K. R. (2007). [Covariate shift adaptation by importance weighted cross validation](https://www.jmlr.org/papers/volume8/sugiyama07a/sugiyama07a.pdf). Journal of Machine Learning Research, 8(5).
+
+[18] Morerio, P., Cavazza, J., & Murino, V. (2017).[ Minimal-entropy correlation alignment for unsupervised deep domain adaptation](https://arxiv.org/pdf/1711.10288.pdf). arXiv preprint arXiv:1711.10288.
+
+[19] Saito, K., Kim, D., Teterwak, P., Sclaroff, S., Darrell, T., & Saenko, K. (2021). [Tune it the right way: Unsupervised validation of domain adaptation via soft neighborhood density](https://openaccess.thecvf.com/content/ICCV2021/papers/Saito_Tune_It_the_Right_Way_Unsupervised_Validation_of_Domain_Adaptation_ICCV_2021_paper.pdf). In Proceedings of the IEEE/CVF International Conference on Computer Vision (pp. 9184-9193).
+
+[20] You, K., Wang, X., Long, M., & Jordan, M. (2019, May). [Towards accurate model selection in deep unsupervised domain adaptation](https://proceedings.mlr.press/v97/you19a/you19a.pdf). In International Conference on Machine Learning (pp. 7124-7133). PMLR.
+
+[21] Bruzzone, Lorenzo & Marconcini, Mattia. (2010). [Domain Adaptation Problems: A DASVM Classification Technique and a Circular Validation Strategy](https://rslab.disi.unitn.it/papers/R82-PAMI.pdf). IEEE transactions on pattern analysis and machine intelligence. 32. 770-87. 10.1109/TPAMI.2009.57. 
+
+[22] Zhang, K., Schölkopf, B., Muandet, K., Wang, Z. (2013). [Domain Adaptation under Target and Conditional Shift](http://proceedings.mlr.press/v28/zhang13d.pdf). In International Conference on Machine Learning (pp. 819-827). PMLR.

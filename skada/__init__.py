@@ -29,8 +29,12 @@ from ._reweight import (
     GaussianReweightDensity,
     KLIEPAdapter,
     KLIEP,
+    KMMAdapter,
+    KMM,
     ReweightDensityAdapter,
     ReweightDensity,
+    MMDTarSReweightAdapter,
+    MMDTarSReweight
 )
 from ._subspace import (
     SubspaceAlignmentAdapter,
@@ -38,8 +42,14 @@ from ._subspace import (
     TransferComponentAnalysisAdapter,
     TransferComponentAnalysis,
 )
+from ._ot import (
+    solve_jdot_regression,
+    JDOTRegressor,
+    solve_jdot_classification,
+    JDOTClassifier)
+from ._self_labeling import DASVMClassifier
 from ._pipeline import make_da_pipeline
-from ._utils import source_target_split
+from .utils import source_target_split
 
 
 # make sure that the usage of the library is not possible
@@ -71,13 +81,23 @@ __all__ = [
     "GaussianReweightDensity",
     "KLIEPAdapter",
     "KLIEP",
+    "KMMAdapter",
+    "KMM",
     "ReweightDensityAdapter",
     "ReweightDensity",
+    "MMDTarSReweightAdapter",
+    "MMDTarSReweight",
 
     "SubspaceAlignmentAdapter",
     "SubspaceAlignment",
     "TransferComponentAnalysisAdapter",
     "TransferComponentAnalysis",
+
+    "DASVMClassifier",
+    "solve_jdot_regression",
+    "JDOTRegressor",
+    "solve_jdot_classification",
+    "JDOTClassifier",
 
     "make_da_pipeline",
 

@@ -4,11 +4,13 @@
 #
 # License: BSD 3-Clause
 
+from collections import defaultdict
+
 from typing import Callable, Optional, Union
 
 from joblib import Memory
 from sklearn.base import BaseEstimator
-from sklearn.pipeline import Pipeline, _name_estimators
+from sklearn.pipeline import Pipeline
 
 from .base import BaseSelector, PerDomain, Shared
 
@@ -79,10 +81,25 @@ def make_da_pipeline(
     """
     # note that we generate names before wrapping estimators into the selector
     # xxx(okachaiev): unwrap from the selector when passed explicitly
-    names = [step[0] if isinstance(step, tuple) else None for step in steps]
-    estimators = [step[1] if isinstance(step, tuple) else step for step in steps]
-    steps = _wrap_with_selectors(_name_estimators(estimators), default_selector)
-    steps[-1][1]._mark_as_final()
+    if not steps:
+        raise TypeError("Missing 1 required positional argument: 'steps'")
+
+    names, estimators = [], []
+    for step in steps:
+        name, estimator = step if isinstance(step, tuple) else (None, step)
+        if isinstance(estimator, Pipeline) and isinstance(estimator[0], BaseSelector):
+            # this means we got DA pipeline as a step in the pipeline
+            for nested_name, nested_selector in estimator.steps:
+                if name is not None:
+                    nested_name = f"{name}__{nested_name}"
+                names.append(nested_name)
+                estimators.append(nested_selector)
+        else:
+            names.append(name)
+            estimators.append(estimator)
+
+    wrapped_estimators = _wrap_with_selectors(estimators, default_selector)
+    steps = _name_estimators(wrapped_estimators)
     named_steps = [
         (auto_name, step) if user_name is None else (user_name, step)
         for user_name, (auto_name, step) in zip(names, steps)
@@ -107,15 +124,49 @@ def _wrap_with_selector(
                                  f"Use one of {_DEFAULT_SELECTORS.keys().join(', ')}")
             estimator = selector_cls(estimator)
         else:
-            raise ValueError("Unsupported `default_selector` type: {type(selector)}")
+            raise ValueError(f"Unsupported `default_selector` type: {type(selector)}")
     return estimator
 
 
 def _wrap_with_selectors(
-    steps: [(str, BaseEstimator)],
+    estimators: [BaseEstimator],
     default_selector: Union[str, Callable[[BaseEstimator], BaseSelector]]
-) -> [(str, BaseEstimator)]:
+) -> [BaseEstimator]:
     return [
-        (name, _wrap_with_selector(estimator, default_selector))
-        for (name, estimator) in steps
+        (_wrap_with_selector(estimator, default_selector))
+        for estimator in estimators
     ]
+
+
+def _name_estimators(estimators):
+    """Generate names for estimators."""
+    # From scikit-learn: https://github.com/scikit-learn/scikit-learn
+    # Author: Edouard Duchesnay
+    #         Gael Varoquaux
+    #         Virgile Fritsch
+    #         Alexandre Gramfort
+    #         Lars Buitinck
+    # License: BSD
+    names = []
+
+    for estimator in estimators:
+        name = type(estimator.base_estimator).__name__.lower()
+        if isinstance(estimator, PerDomain):
+            name = 'perdomain_' + name
+        names.append(name)
+
+    namecount = defaultdict(int)
+    for est, name in zip(estimators, names):
+        namecount[name] += 1
+
+    for k, v in list(namecount.items()):
+        if v == 1:
+            del namecount[k]
+
+    for i in reversed(range(len(estimators))):
+        name = names[i]
+        if name in namecount:
+            names[i] += "-%d" % namecount[name]
+            namecount[name] -= 1
+
+    return list(zip(names, estimators))

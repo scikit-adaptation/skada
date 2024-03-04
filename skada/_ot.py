@@ -1,0 +1,682 @@
+# Author: Remi Flamary <remi.flamary@polytechnique.edu>
+#
+# License: BSD 3-Clause
+
+
+import numpy as np
+from sklearn.base import clone
+from sklearn.utils.validation import check_is_fitted
+from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.preprocessing import OneHotEncoder
+from .base import DAEstimator
+from .utils import source_target_split
+import ot
+import warnings
+
+
+def get_jdot_class_cost_matrix(Ys, Xt, estimator=None, metric='multinomial'):
+    """Compute the cost matrix for the joint distribution optimal transport
+    classification problem.
+
+    Parameters
+    ----------
+    Ys : array-like of shape (n_samples,n_classes)
+        Source domain labels one hot encoded.
+    Xt : array-like of shape (m_samples, n_features)
+        Target domain samples.
+    estimator : object
+        The already fitted estimator to be used for the classification task. This
+        estimator should optimize a classification loss coresponding to the
+        given metric and provide compatible predict method (decision_function of
+        predict_proba). If None, a constant prediction is used.
+    metric : str, default='multinomial'
+        The metric to use for the cost matrix. Can be 'multinomial' for cross-entropy
+        cost/ multinomial logistic regression or 'hinge' for hinge cost (SVM/SVC).
+
+    Returns
+    -------
+    M : array-like of shape (n_samples, m_samples)
+        The cost matrix.
+
+    References
+    ----------
+    [10] N. Courty, R. Flamary, A. Habrard, A. Rakotomamonjy, Joint Distribution
+         Optimal Transportation for Domain Adaptation, Neural Information Processing
+         Systems (NIPS), 2017.
+
+    """
+
+    if estimator is None:
+        M = np.ones((Ys.shape[0], Xt.shape[0]))*10
+        return M
+
+    if metric == 'multinomial':
+        if hasattr(estimator, 'predict_log_proba'):
+            Yt_pred = estimator.predict_log_proba(Xt)
+            M = - np.sum(Ys[:, None, :]*Yt_pred[None, :, :], 2)
+        elif hasattr(estimator, 'predict_proba'):
+            Yt_pred = estimator.predict_proba(Xt)
+            M = - np.sum(Ys[:, None, :]*np.log(Yt_pred[None, :, :]+1e-16), 2)
+        else:
+            raise ValueError(
+                'Estimator must have predict_proba or predict_log_proba'
+                ' method for cce loss')
+
+    elif metric == 'hinge':
+        Ys = 2 * Ys - 1  # make Y -1/1 for hinge loss
+
+        if hasattr(estimator, 'decision_function'):
+            Yt_pred = estimator.decision_function(Xt)
+            if len(Yt_pred.shape) == 1:
+                Yt_pred = np.repeat(Yt_pred.reshape(-1, 1), 2, axis=1)
+            M = np.maximum(0, 1 - Ys[:, None, :] * Yt_pred[None, :, :]).sum(2)
+        else:
+            raise ValueError(
+                'Estimator must have decision_function method for hinge loss')
+    else:
+        raise ValueError('Unknown metric')
+
+    return M
+
+
+def get_data_jdot_class(Xt, Yth, labels, thr_weights=1e-6):
+    """Get the data for the joint distribution optimal transport
+    classification problem. This function will repeat sample to allow for
+    training on uncertain labels.
+
+    Parameters
+    ----------
+    Xt : array-like of shape (m_samples, n_features)
+        Target domain samples.
+    Yth : array-like of shape (n_samples,n_classes)
+        Transported source domain labels one hot encoded.
+    labels : array-like of shape (n_classes,)
+        The labels of the classification problem.
+    thr_weights : float, default=1e-6
+        The relative threshold for the weights
+
+    Returns
+    -------
+    Xh : array-like of shape (n_samples, n_features)
+        The transported source domain samples.
+    yh : array-like of shape (n_samples,)
+        The transported source domain labels.
+    wh : array-like of shape (n_samples,)
+        The transported source domain weights.
+
+    References
+    ----------
+    [10] N. Courty, R. Flamary, A. Habrard, A. Rakotomamonjy, Joint Distribution
+         Optimal Transportation for Domain Adaptation, Neural Information Processing
+         Systems (NIPS), 2017.
+
+    """
+    thr = thr_weights*np.max(Yth)
+
+    Xh = np.repeat(Xt, Yth.shape[1], axis=0)
+    yh = np.tile(labels, Yth.shape[0])
+    wh = Yth.flatten()
+
+    # remove samples with low weights
+    ind = wh > thr
+    Xh = Xh[ind]
+    yh = yh[ind]
+    wh = wh[ind]
+
+    return Xh, yh, wh
+
+
+def get_tgt_loss_jdot_class(Xh, yh, wh, estimator, metric='multinomial'):
+    """ Compute the target loss for the joint distribution optimal transport
+    classification problem.
+
+    Parameters
+    ----------
+
+    Xh : array-like of shape (n_samples, n_features)
+        The transported source domain samples.
+    yh : array-like of shape (n_samples,)
+        The transported source domain labels.
+    wh : array-like of shape (n_samples,)
+        The transported source domain weights.
+    estimator : object
+        The already fitted estimator to be used for the classification task. This
+        estimator should optimize a classification loss coresponding to the
+        given metric and provide compatible predict method (decision_function of
+        predict_proba).
+    metric : str, default='multinomial'
+        The metric to use for the cost matrix. Can be 'multinomial' for cross-entropy
+        cost/ multinomial logistic regression or 'hinge' for hinge cost
+        (SVM/SVC).
+
+    Returns
+    -------
+
+    loss : float
+        The target labels losses.
+
+    References
+    ----------
+    [10] N. Courty, R. Flamary, A. Habrard, A. Rakotomamonjy, Joint Distribution
+         Optimal Transportation for Domain Adaptation, Neural Information Processing
+         Systems (NIPS), 2017.
+
+    """
+
+    if metric == 'multinomial':
+        if hasattr(estimator, 'predict_log_proba'):
+            Yh_pred = estimator.predict_log_proba(Xh)
+            loss = - np.sum(yh*Yh_pred, 1).dot(wh)
+        elif hasattr(estimator, 'predict_proba'):
+            Yh_pred = estimator.predict_proba(Xh)
+            loss = - np.sum(yh*np.log(Yh_pred+1e-16), 1).dot(wh)
+        else:
+            raise ValueError(
+                'Estimator must have predict_proba or predict_log_proba method'
+                ' for multinomial loss')
+
+    elif metric == 'hinge':
+        yh = 2 * yh - 1  # make Y -1/1 for hinge loss
+
+        if hasattr(estimator, 'decision_function'):
+            Yh_pred = estimator.decision_function(Xh)
+            if len(Yh_pred.shape) == 1:  # handle binary classification
+                Yh_pred = np.repeat(Yh_pred.reshape(-1, 1), 2, axis=1)
+            loss = np.sum(np.maximum(0, 1 - yh * Yh_pred), 1).dot(wh)
+        else:
+            raise ValueError(
+                'Estimator must have decision_function method for hinge loss')
+    else:
+        raise ValueError('Unknown metric')
+
+    return loss
+
+
+def solve_jdot_regression(base_estimator, Xs, ys, Xt, alpha=0.5, ws=None, wt=None,
+                          n_iter_max=100, tol=1e-5, verbose=False, **kwargs):
+    """Solve the joint distribution optimal transport regression problem [10]
+
+    .. warning::
+        This estimator assumes that the loss function optimized by the base
+        estimator is the quadratic loss. For instance, the base estimator should
+        optimize and L2 loss (e.g. LinearRegression() or Ridge() or even
+        MLPRegressor ()). While any estimator providing the necessary prediction
+        functions can be used, the convergence of the fixed point is not guaranteed
+        and behavior can be unpredictable.
+
+    Parameters
+    ----------
+    base_estimator : object
+        The base estimator to be used for the regression task. This estimator
+        should solve a least squares regression problem (regularized or not)
+        to correspond to JDOT theoretical regression problem but other
+        approaches can be used with the risk that the fixed point might not converge.
+    Xs : array-like of shape (n_samples, n_features)
+        Source domain samples.
+    ys : array-like of shape (n_samples,)
+        Source domain labels.
+    Xt : array-like of shape (m_samples, n_features)
+        Target domain samples.
+    alpha : float, default=0.5
+        The trade-off parameter between the feature and label loss in OT metric
+    ws : array-like of shape (n_samples,)
+        Source domain weights (will ne normalized to sum to 1).
+    wt : array-like of shape (m_samples,)
+        Target domain weights (will ne normalized to sum to 1).
+    n_iter_max: int
+        Max number of JDOT alternat optimization iterations.
+    tol: float>0
+        Tolerance for loss variations (OT and mse) stopping iterations.
+    verbose: bool
+        Print loss along iterations if True.as_integer_ratio
+    kwargs : dict
+        Additional parameters to be passed to the base estimator.
+
+
+    Returns
+    -------
+    estimator : object
+        The fitted estimator.
+    lst_loss_ot : list
+        The list of OT losses at each iteration.
+    lst_loss_tgt_labels : list
+        The list of target labels losses at each iteration.
+    sol : object
+        The solution of the OT problem.
+
+    References
+    ----------
+    [10] N. Courty, R. Flamary, A. Habrard, A. Rakotomamonjy, Joint Distribution
+        Optimal Transportation for Domain Adaptation, Neural Information Processing
+        Systems (NIPS), 2017.
+
+    """
+
+    estimator = clone(base_estimator)
+
+    # compute feature distance matrix
+    Mf = ot.dist(Xs, Xt)
+    Mf = Mf / Mf.mean()
+
+    nt = Xt.shape[0]
+    if ws is None:
+        a = np.ones((len(ys),)) / len(ys)
+    else :
+        a = ws / ws.sum()
+    if wt is None:
+        b = np.ones((nt,)) / nt
+    else:
+        b = wt / wt.sum()
+        kwargs['sample_weight'] = wt  # add it as sample_weight for fit
+
+    lst_loss_ot = []
+    lst_loss_tgt_labels = []
+    y_pred = 0
+    Ml = ot.dist(ys.reshape(-1, 1), np.zeros((nt, 1)))
+
+    for i in range(n_iter_max):
+
+        if i > 0:
+            # update the cost matrix
+            M = (1 - alpha) * Mf + alpha * Ml
+        else:
+            M = (1 - alpha) * Mf
+
+        # sole OT problem
+        sol = ot.solve(M, a, b)
+
+        T = sol.plan
+        loss_ot = sol.value
+
+        if i == 0:
+            loss_ot += alpha * np.sum(Ml * T)
+
+        lst_loss_ot.append(loss_ot)
+
+        # compute the transported labels
+        yth = ys.T.dot(T) / b
+
+        # fit the estimator
+        estimator.fit(Xt, yth, **kwargs)
+        y_pred = estimator.predict(Xt)
+
+        Ml = ot.dist(ys.reshape(-1, 1), y_pred.reshape(-1, 1))
+
+        # compute the loss
+        loss_tgt_labels = np.mean((yth - y_pred)**2)
+        lst_loss_tgt_labels.append(loss_tgt_labels)
+
+        if verbose:
+            print(f'iter={i}, loss_ot={loss_ot}, loss_tgt_labels={loss_tgt_labels}')
+
+        # break on tol OT loss
+        if i > 0 and abs(lst_loss_ot[-1] - lst_loss_ot[-2]) < tol:
+            break
+
+        # break on tol target loss
+        if i > 0 and abs(lst_loss_tgt_labels[-1] - lst_loss_tgt_labels[-2]) < tol:
+            break
+
+        # update the cost matrix
+        if i == n_iter_max - 1:
+            warnings.warn('Maximum number of iterations reached.')
+
+    return estimator, lst_loss_ot, lst_loss_tgt_labels, sol
+
+
+def solve_jdot_classification(base_estimator, Xs, ys, Xt, alpha=0.5, ws=None, wt=None,
+                              metric='multinomial',
+                              n_iter_max=100, tol=1e-5, verbose=False,
+                              thr_weights=1e-6, **kwargs):
+    """Solve the joint distribution optimal transport classification problem [10]
+
+    .. warning::
+        This estimator assumes that the loss function optimized by the base
+        estimator is compatible with the given metric. For instance, if the
+        metric is 'multinomial', the base estimator should optimize a
+        cross-entropy loss (e.g. LogisticRegression with multi_class='multinomial')
+        or a hinge loss (e.g. SVC with kernel='linear' and one versus rest) if the
+        metric is 'hinge'. While any estimator providing the necessary prediction
+        functions can be used, the convergence of the fixed point is not guaranteed
+        and behavior can be unpredictable.
+
+
+    Parameters
+    ----------
+    base_estimator : object
+        The base estimator to be used for the classification task. This estimator
+        should solve a classification problem to correspond to JDOT theoretical
+        classification problem but other approaches can be used with the risk
+        that the fixed point might not converge.
+    Xs : array-like of shape (n_samples, n_features)
+        Source domain samples.
+    ys : array-like of shape (n_samples,)
+        Source domain labels.
+    Xt : array-like of shape (m_samples, n_features)
+        Target domain samples.
+    alpha : float, default=0.5
+        The trade-off parameter between the feature and label loss in OT metric
+    ws : array-like of shape (n_samples,)
+        Source domain weights (will ne normalized to sum to 1).
+    wt : array-like of shape (m_samples,)
+        Target domain weights (will ne normalized to sum to 1).
+    metric : str, default='multinomial'
+        The metric to use for the cost matrix. Can be 'multinomial' for
+        cross-entropy cost/ multinomial logistic regression or 'hinge' for
+        hinge cost (SVM/SVC).
+    n_iter_max: int
+        Max number of JDOT alternate optimization iterations.
+    tol: float>0
+        Tolerance for loss variations (OT and mse) stopping iterations.
+    verbose: bool
+        Print loss along iterations if True.as_integer_ratio
+    thr_weights : float, default=1e-6
+        The relative threshold for the weights
+    kwargs : dict
+        Additional parameters to be passed to the base estimator.
+
+    Returns
+    -------
+    estimator : object
+        The fitted estimator.
+    lst_loss_ot : list
+        The list of OT losses at each iteration.
+    lst_loss_tgt_labels : list
+        The list of target labels losses at each iteration.
+    sol : object
+        The solution of the OT problem.
+
+    References
+    ----------
+    [10] N. Courty, R. Flamary, A. Habrard, A. Rakotomamonjy, Joint Distribution
+         Optimal Transportation for Domain Adaptation, Neural Information Processing
+         Systems (NIPS), 2017.
+
+    """
+
+    estimator = clone(base_estimator)
+
+    # compute feature distance matrix
+    Mf = ot.dist(Xs, Xt)
+    Mf = Mf / Mf.mean()
+
+    nt = Xt.shape[0]
+    if ws is None:
+        a = np.ones((len(ys),)) / len(ys)
+    else :
+        a = ws / ws.sum()
+    if wt is None:
+        b = np.ones((nt,)) / nt
+    else:
+        b = wt / wt.sum()
+
+    encoder = OneHotEncoder(sparse_output=False)
+    Ys = encoder.fit_transform(ys.reshape(-1, 1))
+    labels = encoder.categories_[0]
+
+    lst_loss_ot = []
+    lst_loss_tgt_labels = []
+    Ml = get_jdot_class_cost_matrix(ys, Xt, None, metric=metric)
+
+    for i in range(n_iter_max):
+
+        if i > 0:
+            # update the cost matrix
+            M = (1 - alpha) * Mf + alpha * Ml
+        else:
+            M = (1 - alpha) * Mf
+
+        # sole OT problem
+        sol = ot.solve(M, a, b)
+
+        T = sol.plan
+        loss_ot = sol.value
+
+        if i == 0:
+            loss_ot += alpha * np.sum(Ml * T)
+
+        lst_loss_ot.append(loss_ot)
+
+        # compute the transported labels
+        Yth = T.T.dot(Ys) * nt  # not normalized because weights used in fit
+
+        # cerate reweighted taregt data for classification
+        Xh, yh, wh = get_data_jdot_class(Xt, Yth, labels, thr_weights=thr_weights)
+
+        # fit the estimator
+        estimator.fit(Xh, yh, sample_weight=wh, **kwargs)
+
+        Ml = get_jdot_class_cost_matrix(Ys, Xt, estimator, metric=metric)
+
+        # compute the losses
+        loss_tgt_labels = get_tgt_loss_jdot_class(
+            Xh, encoder.transform(yh[:, None]), wh, estimator, metric=metric)/nt
+        lst_loss_tgt_labels.append(loss_tgt_labels)
+
+        if verbose:
+            print(f'iter={i}, loss_ot={loss_ot}, loss_tgt_labels={loss_tgt_labels}')
+
+        # break on tol OT loss
+        if i > 0 and abs(lst_loss_ot[-1] - lst_loss_ot[-2]) < tol:
+            break
+
+        # break on tol target loss
+        if i > 0 and abs(lst_loss_tgt_labels[-1] - lst_loss_tgt_labels[-2]) < tol:
+            break
+
+        # update the cost matrix
+        if i == n_iter_max - 1:
+            warnings.warn('Maximum number of iterations reached.')
+
+    return estimator, lst_loss_ot, lst_loss_tgt_labels, sol
+
+
+class JDOTRegressor(DAEstimator):
+    """Joint Distribution Optimal Transport Regressor proposed in [10]
+
+    .. warning::
+        This estimator assumes that the loss function optimized by the base
+        estimator is the quadratic loss. For instance, the base estimator should
+        optimize and L2 loss (e.g. LinearRegression() or Ridge() or even
+        MLPRegressor ()). While any estimator providing the necessary prediction
+        functions can be used, the convergence of the fixed point is not guaranteed
+        and behavior can be unpredictable.
+
+
+    Parameters
+    ----------
+    base_estimator : object
+        The base estimator to be used for the regression task. This estimator
+        should solve a least squares regression problem (regularized or not)
+        to correspond to JDOT theoretical regression problem but other
+        approaches can be used with the risk that the fixed point might not
+        converge. default value is LinearRegression() from scikit-learn.
+    alpha : float, default=0.5
+        The trade-off parameter between the feature and label loss in OT metric
+    n_iter_max: int
+        Max number of JDOT alternat optimization iterations.
+    tol: float>0
+        Tolerance for loss variations (OT and mse) stopping iterations.
+    verbose: bool
+        Print loss along iterations if True.as_integer_ratio
+
+    Attributes
+    ----------
+    estimator_ : object
+        The fitted estimator.
+    lst_loss_ot_ : list
+        The list of OT losses at each iteration.
+    lst_loss_tgt_labels_ : list
+        The list of target labels losses at each iteration.
+    sol_ : object
+        The solution of the OT problem.
+
+    References
+    ----------
+    [10] N. Courty, R. Flamary, A. Habrard, A. Rakotomamonjy, Joint Distribution
+         Optimal Transportation for Domain Adaptation, Neural Information
+         Processing Systems (NIPS), 2017.
+
+    """
+
+    def __init__(self, base_estimator=None, alpha=0.5, n_iter_max=100,
+                 tol=1e-5, verbose=False, **kwargs):
+        if base_estimator is None:
+            base_estimator = LinearRegression()
+        else:
+            if not hasattr(base_estimator, 'fit') or not hasattr(
+                    base_estimator, 'predict'):
+                raise ValueError('base_estimator must be a regressor with'
+                                 ' fit and predict methods')
+        self.base_estimator = base_estimator
+        self.kwargs = kwargs
+        self.alpha = alpha
+        self.n_iter_max = n_iter_max
+        self.tol = tol
+        self.verbose = verbose
+
+    def fit(self, X, y=None, sample_domain=None, *, sample_weight=None):
+        """Fit adaptation parameters"""
+
+        Xs, Xt, ys, yt, ws, wt = source_target_split(
+            X, y, sample_weight, sample_domain=sample_domain)
+
+        res = solve_jdot_regression(self.base_estimator, Xs, ys, Xt, ws=ws, wt=wt,
+                                    alpha=self.alpha, n_iter_max=self.n_iter_max,
+                                    tol=self.tol, verbose=self.verbose, **self.kwargs)
+
+        self.estimator_, self.lst_loss_ot_, self.lst_loss_tgt_labels_, self.sol_ = res
+
+    def predict(self, X, sample_domain=None, *, sample_weight=None):
+        """Predict using the model"""
+        check_is_fitted(self)
+        if sample_domain is not None and np.any(sample_domain >= 0):
+            warnings.warn(
+                'Source domain detected. Predictor is trained on target'
+                'and prediction might be biased.')
+        return self.estimator_.predict(X)
+
+    def score(self, X, y, sample_domain=None, *, sample_weight=None):
+        """Return the coefficient of determination R^2 of the prediction"""
+        check_is_fitted(self)
+        if sample_domain is not None and np.any(sample_domain >= 0):
+            warnings.warn(
+                'Source domain detected. Predictor is trained on target'
+                'and score might be biased.')
+        return self.estimator_.score(X, y, sample_weight=sample_weight)
+
+
+class JDOTClassifier(DAEstimator):
+    """Joint Distribution Optimal Transport Classifier proposed in [10]
+
+    .. warning::
+        This estimator assumes that the loss function optimized by the base
+        estimator is compatible with the given metric. For instance, if the
+        metric is 'multinomial', the base estimator should optimize a
+        cross-entropy loss (e.g. LogisticRegression with multi_class='multinomial')
+        or a hinge loss (e.g. SVC with kernel='linear' and one versus rest) if the
+        metric is 'hinge'. While any estimator providing the necessary prediction
+        functions can be used, the convergence of the fixed point is not guaranteed
+        and behavior can be unpredictable.
+
+
+    Parameters
+    ----------
+    base_estimator : object
+        The base estimator to be used for the classification task. This
+        estimator should solve a classification problem to correspond to JDOT
+        theoretical classification problem but other approaches can be used with
+        the risk that the fixed point might not converge. default value is
+        LogisticRegression() from scikit-learn.
+    alpha : float, default=0.5
+        The trade-off parameter between the feature and label loss in OT metric
+    metric : str, default='multinomial'
+        The metric to use for the cost matrix. Can be 'multinomial' for
+        cross-entropy cost/ multinomial logistic regression or 'hinge' for hinge
+        cost (SVM/SVC).
+    n_iter_max: int
+        Max number of JDOT alternat optimization iterations.
+    tol: float>0
+        Tolerance for loss variations (OT and mse) stopping iterations.
+    verbose: bool
+        Print loss along iterations if True.as_integer_ratio
+    thr_weights : float, default=1e-6
+        The relative threshold for the weights
+
+    Attributes
+    ----------
+    estimator_ : object
+        The fitted estimator.
+    lst_loss_ot_ : list
+        The list of OT losses at each iteration.
+    lst_loss_tgt_labels_ : list
+        The list of target labels losses at each iteration.
+    sol_ : object
+        The solution of the OT problem.
+
+    References
+    ----------
+    [10] N. Courty, R. Flamary, A. Habrard, A. Rakotomamonjy, Joint Distribution
+         Optimal Transportation for Domain Adaptation, Neural Information
+         Processing Systems (NIPS), 2017.
+
+    """
+
+    def __init__(self, base_estimator=None, alpha=0.5, metric='multinomial',
+                 n_iter_max=100, tol=1e-5, verbose=False, thr_weights=1e-6, **kwargs):
+        if base_estimator is None:
+            base_estimator = LogisticRegression(multi_class='multinomial')
+        else:
+            if not hasattr(base_estimator, 'fit') or not hasattr(
+                    base_estimator, 'predict'):
+                raise ValueError('base_estimator must be a regressor with'
+                                 ' fit and predict methods')
+        self.base_estimator = base_estimator
+        self.kwargs = kwargs
+        self.alpha = alpha
+        self.metric = metric
+        self.n_iter_max = n_iter_max
+        self.tol = tol
+        self.verbose = verbose
+        self.thr_weights = thr_weights
+
+    def fit(self, X, y=None, sample_domain=None, *, sample_weight=None):
+        """Fit adaptation parameters"""
+
+        Xs, Xt, ys, yt, ws, wt = source_target_split(
+            X, y, sample_weight, sample_domain=sample_domain)
+
+        res = solve_jdot_classification(
+            self.base_estimator,
+            Xs,
+            ys,
+            Xt,
+            ws=ws,
+            wt=wt,
+            alpha=self.alpha,
+            metric=self.metric,
+            n_iter_max=self.n_iter_max,
+            tol=self.tol,
+            verbose=self.verbose,
+            thr_weights=self.thr_weights,
+            **self.kwargs)
+
+        self.estimator_, self.lst_loss_ot_, self.lst_loss_tgt_labels_, self.sol_ = res
+
+    def predict(self, X, sample_domain=None, *, sample_weight=None):
+        """Predict using the model"""
+        check_is_fitted(self)
+        if sample_domain is not None and np.any(sample_domain >= 0):
+            warnings.warn(
+                'Source domain detected. Predictor is trained on target'
+                'and prediction might be biased.')
+        return self.estimator_.predict(X)
+
+    def score(self, X, y, sample_domain=None, *, sample_weight=None):
+        """Return the scores of the prediction"""
+        check_is_fitted(self)
+        if sample_domain is not None and np.any(sample_domain >= 0):
+            warnings.warn(
+                'Source domain detected. Predictor is trained on target'
+                'and score might be biased.')
+        return self.estimator_.score(X, y, sample_weight=sample_weight)
