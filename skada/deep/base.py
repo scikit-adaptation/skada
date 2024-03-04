@@ -102,7 +102,25 @@ class BaseDALoss(torch.nn.Module):
         features_s,
         features_t,
     ):
-        """Compute the domain adaptation loss"""
+        """Compute the domain adaptation loss
+
+        Parameters
+        ----------
+        y_s :
+            The true labels for source.
+        y_pred_s :
+            Predictions of the source domain.
+        y_pred_t :
+            Predictions of the target domain.
+        domain_pred_s :
+            Domain predictions of the source domain.
+        domain_pred_t :
+            Domain predictions of the source domain.
+        features_s :
+            Features of the chosen layer of source domain.
+        features_t :
+            Features of the chosen layer of target domain.
+        """
         pass
 
 
