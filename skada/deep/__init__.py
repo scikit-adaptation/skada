@@ -11,8 +11,7 @@ try:
     import skorch  # noqa: F401
 
 except ImportError:
-    torch = ImportError("PyTorch is not installed.")
-    skorch = ImportError("Skorch is not installed.")
+    raise ImportError("torch and skorch are required for importing deep's method.")
 
 from ._divergence import DeepCoral, DeepCoralLoss, DANLoss, DAN
 from ._optimal_transport import DeepJDOT, DeepJDOTLoss
