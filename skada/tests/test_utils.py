@@ -18,7 +18,7 @@ from skada.utils import (
     extract_domains_indices,
     source_target_merge,
     qp_solve,
-    torch_solve
+    torch_minimize
 )
 from skada._utils import _check_y_masking
 try:
@@ -513,7 +513,7 @@ def test_qp_solve():
 
 
 @pytest.mark.skipif(not torch, reason="PyTorch not installed")
-def test_torch_solve():
+def test_torch_minimize():
     A = torch.tensor([[5., 2.], [2., 5.]], dtype=torch.float64)
     true_eigval, true_eigvec = np.linalg.eigh(A)
     true_eigval = true_eigval[0]
@@ -526,7 +526,7 @@ def test_torch_solve():
     # test optimization
     x0 = np.array([[-0.2], [0.1]])
 
-    eigvec, min_eigval = torch_solve(loss, x0, max_iter=100, tol=1e-6)
+    eigvec, min_eigval = torch_minimize(loss, x0, max_iter=100, tol=1e-6)
     eigvec = eigvec / np.linalg.norm(eigvec)
 
     assert np.allclose(min_eigval, true_eigval)
@@ -535,7 +535,7 @@ def test_torch_solve():
     # test optimization with torch tensor as initial guess
     x0_torch = torch.tensor(x0)
 
-    eigvec, min_eigval = torch_solve(loss, x0_torch, max_iter=100, tol=1e-6)
+    eigvec, min_eigval = torch_minimize(loss, x0_torch, max_iter=100, tol=1e-6)
     eigvec = eigvec / np.linalg.norm(eigvec)
 
     assert np.allclose(min_eigval, true_eigval)
@@ -543,7 +543,7 @@ def test_torch_solve():
 
     # test optimization with list of variables as initial guess
     x0 = [x0]
-    (eigvec), min_eigval = torch_solve(loss, x0, max_iter=100, tol=1e-6)
+    (eigvec), min_eigval = torch_minimize(loss, x0, max_iter=100, tol=1e-6)
     eigvec = eigvec / np.linalg.norm(eigvec)
 
     assert np.allclose(min_eigval, true_eigval)
@@ -551,4 +551,4 @@ def test_torch_solve():
 
     # test warning when convergence is not reached
     with pytest.warns(UserWarning):
-        torch_solve(loss, x0, max_iter=1, tol=0)
+        torch_minimize(loss, x0, max_iter=1, tol=0)

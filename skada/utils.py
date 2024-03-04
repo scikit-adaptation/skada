@@ -632,7 +632,7 @@ def qp_solve(Q, c=None, A=None, b=None, Aeq=None, beq=None, lb=None, ub=None,
     return outputs
 
 
-def torch_solve(loss, x0, tol=1e-6, max_iter=1000):
+def torch_minimize(loss, x0, tol=1e-6, max_iter=1000):
     r""" Solves unconstrained optimization problem using pytorch
 
     Solve the following optimization problem:

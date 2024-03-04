@@ -19,7 +19,7 @@ from .utils import (
     extract_source_indices,
     source_target_split,
     source_target_merge,
-    torch_solve
+    torch_minimize
 )
 from ._utils import (
     _estimate_covariance,
@@ -813,7 +813,7 @@ class MMDLSConSMappingAdapter(BaseAdapter):
         G = torch.ones((k, d), dtype=torch.float64, requires_grad=True)
         H = torch.zeros((k, d), dtype=torch.float64, requires_grad=True)
 
-        (G, H), _ = torch_solve(func, (G, H), tol=self.tol, max_iter=self.max_iter)
+        (G, H), _ = torch_minimize(func, (G, H), tol=self.tol, max_iter=self.max_iter)
 
         R = R.detach().numpy()
         W = R @ G
