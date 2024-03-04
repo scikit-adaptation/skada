@@ -42,6 +42,20 @@ class DomainAwareCriterion(torch.nn.Module):
         y_pred,
         y_true,
     ):
+        """
+        Parameters
+        ----------
+        y_pred : tuple
+            This tuple comprises all the different data
+            needed to compute DA loss:
+                - y_pred : prediction of the source and target domains
+                - domain_pred : prediction of domain classifier if given
+                - features :  features of the chosen layer
+                  of source and target domains
+                - sample_domain : giving the domain of each samples
+        y_true :
+            The true labels. Available for source, masked for target.
+        """
         y_pred, domain_pred, features, sample_domain = y_pred  # unpack
         source_idx = extract_source_indices(sample_domain)
         y_pred_s = y_pred[source_idx]
