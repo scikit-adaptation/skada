@@ -11,7 +11,6 @@ import numpy as np
 from ot import da
 from sklearn.metrics.pairwise import pairwise_distances
 from sklearn.svm import SVC
-import warnings
 
 from .base import BaseAdapter, clone
 from .utils import (
@@ -19,7 +18,8 @@ from .utils import (
     check_X_y_domain,
     extract_source_indices,
     source_target_split,
-    source_target_merge
+    source_target_merge,
+    torch_solve
 )
 from ._utils import (
     _estimate_covariance,
@@ -809,32 +809,13 @@ class MMDLSConSMappingAdapter(BaseAdapter):
 
             return J_cons + self.reg_m * J_reg
 
-        # optimize using LBFGS solver
+        # optimize using torch solver
         G = torch.ones((k, d), dtype=torch.float64, requires_grad=True)
         H = torch.zeros((k, d), dtype=torch.float64, requires_grad=True)
-        optimizer = torch.optim.LBFGS(
-            [G, H],
-            max_iter=self.max_iter,
-            tolerance_grad=self.tol,
-            line_search_fn="strong_wolfe"
-        )
 
-        def closure():
-            optimizer.zero_grad()
-            loss = func(G, H)
-            loss.backward()
-            return loss
+        (G, H), _ = torch_solve(func, (G, H), tol=self.tol, max_iter=self.max_iter)
 
-        optimizer.step(closure)
-        grad_norm = torch.cat([G.grad.flatten(), H.grad.flatten()]).abs().max()
-
-        if grad_norm > self.tol:
-            warnings.warn(
-                "Optimization did not converge. "
-                f"Final gradient infinite norm: {grad_norm:.2e}"
-            )
-
-        R, G, H = R.detach().numpy(), G.detach().numpy(), H.detach().numpy()
+        R = R.detach().numpy()
         W = R @ G
         B = R @ H
 

@@ -1,4 +1,5 @@
 # Author: Yanis Lalou <yanis.lalou@polytechnique.edu>
+#         Antoine Collas <contact@antoinecollas.fr>
 #
 # License: BSD 3-Clause
 
@@ -627,5 +628,68 @@ def qp_solve(Q, c=None, A=None, b=None, Aeq=None, beq=None, lb=None, ub=None,
 
     if log:
         outputs += (results,)
+
+    return outputs
+
+
+def torch_solve(loss, x0, tol=1e-6, max_iter=1000):
+    r""" Solves unconstrained optimization problem using pytorch
+
+    Solve the following optimization problem:
+
+    .. math::
+        \min_x \quad loss(x)
+
+    Parameters
+    ----------
+    loss : callable
+        Objective function to be minimized.
+    x0 : list of ndarrays or torch.Tensor
+        Initialization.
+    tol : float, optional
+        Tolerance on the gradient for termination.
+    max_iter : int, optional
+        Maximum number of iterations to perform.
+
+    Returns
+    -------
+    x: list of ndarrays
+        Optimal solution x
+    val: float
+        final value of the objective
+    """
+    try:
+        import torch
+    except ImportError:
+        raise ImportError("solve_torch requires pytorch to be installed")
+
+    if type(x0) not in (list, tuple):
+        x0 = [x0]
+    x0 = [torch.tensor(x, requires_grad=True, dtype=torch.float64) for x in x0]
+
+    optimizer = torch.optim.LBFGS(
+        x0,
+        max_iter=max_iter,
+        tolerance_grad=tol,
+        line_search_fn="strong_wolfe"
+    )
+
+    def closure():
+        optimizer.zero_grad()
+        loss_value = loss(*x0)
+        loss_value.backward()
+        return loss_value
+
+    optimizer.step(closure)
+
+    grad_norm = torch.cat([x.grad.flatten() for x in x0]).abs().max()
+
+    if grad_norm > tol:
+        warnings.warn(
+            "Optimization did not converge. "
+            f"Final gradient maximum value: {grad_norm:.2e} > {tol:.2e}"
+        )
+
+    outputs = ([x.detach().numpy() for x in x0], loss(*x0).detach().numpy())
 
     return outputs
