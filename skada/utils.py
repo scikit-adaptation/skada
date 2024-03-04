@@ -653,7 +653,7 @@ def torch_solve(loss, x0, tol=1e-6, max_iter=1000):
 
     Returns
     -------
-    x: list of ndarrays
+    x: ndarray or list of ndarrays
         Optimal solution x
     val: float
         final value of the objective
@@ -690,6 +690,9 @@ def torch_solve(loss, x0, tol=1e-6, max_iter=1000):
             f"Final gradient maximum value: {grad_norm:.2e} > {tol:.2e}"
         )
 
-    outputs = ([x.detach().numpy() for x in x0], loss(*x0).detach().numpy())
+    solution = [x.detach().numpy() for x in x0]
+    if len(solution) == 1:
+        solution = solution[0]
+    loss_val = loss(*x0).item()
 
-    return outputs
+    return solution, loss_val
