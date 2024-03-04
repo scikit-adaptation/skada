@@ -155,7 +155,7 @@ def _base_test_new_X_adapt(estimator, da_dataset):
     res2["sample_weight"] = res2["sample_weight"] / np.sum(res2["sample_weight"])
     assert np.allclose(true_weights, res2["sample_weight"])
 
-    # Check it adapts even if target classes are not present in the new X
+    # Check it adapts even if some target classes are not present in the new X
     classes = np.unique(y_train)[::2]
     mask = np.isin(y_train, classes)
     X_train = X_train[mask]
