@@ -1,13 +1,12 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #
 # License: BSD 3-Clause
+import numpy as np
 import pytest
 
-import numpy as np
-
-from skada.deep import DeepCoral, DAN
-from skada.deep.modules import ToyModule2D
 from skada.datasets import make_shifted_datasets
+from skada.deep import DAN, DeepCoral
+from skada.deep.modules import ToyModule2D
 
 
 def test_deepcoral():
@@ -30,7 +29,7 @@ def test_deepcoral():
         layer_name="dropout",
         batch_size=10,
         max_epochs=10,
-        train_split=None
+        train_split=None,
     )
 
     X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
@@ -47,7 +46,13 @@ def test_deepcoral():
     assert history[0]["train_loss"] > history[-1]["train_loss"]
 
 
-@pytest.mark.parametrize("sigmas", [[0.1, 0.2], None,])
+@pytest.mark.parametrize(
+    "sigmas",
+    [
+        [0.1, 0.2],
+        None,
+    ],
+)
 def test_dan(sigmas):
     module = ToyModule2D()
     module.eval()
@@ -69,7 +74,7 @@ def test_dan(sigmas):
         layer_name="dropout",
         batch_size=10,
         max_epochs=10,
-        train_split=None
+        train_split=None,
     )
 
     X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])

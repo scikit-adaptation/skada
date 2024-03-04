@@ -14,15 +14,14 @@ on a simple image classification task.
 import torch
 from skorch.dataset import Dataset
 
-from skada.deep import DeepCoral, DeepCoralLoss
-from skada.deep.modules import MNISTtoUSPSNet
 from skada.datasets import load_mnist_usps
-
+from skada.deep import DeepCoral, DeepCoralLoss
 from skada.deep.base import (
-    DomainAwareModule,
     DomainAwareCriterion,
+    DomainAwareModule,
     DomainBalancedDataLoader,
 )
+from skada.deep.modules import MNISTtoUSPSNet
 
 # %%
 # Load the image datasets

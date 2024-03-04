@@ -31,6 +31,7 @@ from skada import (
     GaussianReweightDensity,
     JDOTClassifier,
     LinearOTMapping,
+    MMDLSConSMapping,
     MMDTarSReweight,
     OTMapping,
     ReweightDensity,
@@ -58,6 +59,7 @@ names = [
     "Linear OT mapping",
     "CORAL",
     "JDOT",
+    "MMD Loc-Scale mapping",
 ]
 
 classifiers = [
@@ -78,6 +80,7 @@ classifiers = [
     LinearOTMapping(base_estimator=SVC()),
     CORAL(base_estimator=SVC()),
     JDOTClassifier(base_estimator=SVC(), metric="hinge"),
+    MMDLSConSMapping(base_estimator=SVC()),
 ]
 
 datasets = [

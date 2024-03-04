@@ -3,12 +3,11 @@
 #
 # License: BSD 3-Clause
 
-import torch  # noqa: F401
-import skorch  # noqa: F401
+from functools import partial
 
 import ot
-
-from functools import partial
+import skorch  # noqa: F401
+import torch  # noqa: F401
 
 
 def deepcoral_loss(cov, cov_target):
@@ -99,15 +98,11 @@ def deepjdot_loss(
     # Compute the loss
     if sample_weights is None:
         sample_weights = torch.full(
-            (len(features_s),),
-            1.0 / len(features_s),
-            device=features_s.device
+            (len(features_s),), 1.0 / len(features_s), device=features_s.device
         )
     if target_sample_weights is None:
         target_sample_weights = torch.full(
-            (len(features_t),),
-            1.0 / len(features_t),
-            device=features_t.device
+            (len(features_t),), 1.0 / len(features_t), device=features_t.device
         )
     loss = ot.emd2(sample_weights, target_sample_weights, M)
 
@@ -117,7 +112,7 @@ def deepjdot_loss(
 def _gaussian_kernel(x, y, sigmas):
     """Computes multi gaussian kernel between each pair of the two vectors."""
     sigmas = sigmas.view(sigmas.shape[0], 1)
-    beta = 1. / sigmas
+    beta = 1.0 / sigmas
     dist = torch.cdist(x, y)
     dist_ = dist.view(1, -1)
     s = torch.matmul(beta, dist_)
@@ -126,8 +121,9 @@ def _gaussian_kernel(x, y, sigmas):
 
 
 def _maximum_mean_discrepancy(x, y, kernel):
-    """Computes the maximum mean discrepency between the vectors
-       using the given kernel."""
+    """Computes the maximum mean discrepancy between the vectors
+    using the given kernel.
+    """
     cost = torch.mean(kernel(x, x))
     cost += torch.mean(kernel(y, y))
     cost -= 2 * torch.mean(kernel(x, y))
@@ -160,21 +156,18 @@ def dan_loss(features_s, features_t, sigmas=None):
             In ICML, 2015.
     """
     if sigmas is None:
-        median_pairwise_distance = torch.median(
-            torch.cdist(features_s, features_s)
+        median_pairwise_distance = torch.median(torch.cdist(features_s, features_s))
+        sigmas = (
+            torch.tensor([2 ** (-8) * 2 ** (i * 1 / 2) for i in range(33)]).to(
+                features_s.device
+            )
+            * median_pairwise_distance
         )
-        sigmas = torch.tensor(
-            [2**(-8) * 2**(i*1/2) for i in range(33)]
-        ).to(features_s.device) * median_pairwise_distance
     else:
         sigmas = torch.tensor(sigmas).to(features_s.device)
 
-    gaussian_kernel = partial(
-        _gaussian_kernel, sigmas=sigmas
-    )
+    gaussian_kernel = partial(_gaussian_kernel, sigmas=sigmas)
 
-    loss = _maximum_mean_discrepancy(
-        features_s, features_t, kernel=gaussian_kernel
-    )
+    loss = _maximum_mean_discrepancy(features_s, features_t, kernel=gaussian_kernel)
 
     return loss

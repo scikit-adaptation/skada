@@ -3,10 +3,9 @@
 # License: BSD 3-Clause
 
 import numpy as np
-
 import torch
 
-from skada.deep.modules import ToyModule2D, ToyCNN, MNISTtoUSPSNet
+from skada.deep.modules import MNISTtoUSPSNet, ToyCNN, ToyModule2D
 
 
 def test_toymodule2D():

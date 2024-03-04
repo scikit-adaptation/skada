@@ -40,6 +40,7 @@ Sample mapping and alignment DA methods
    EntropicOTMapping
    ClassRegularizerOTMapping
    LinearOTMapping
+   MMDLSConSMapping
    
 Other DA methods
 ^^^^^^^^^^^^^^^^
