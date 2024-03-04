@@ -9,7 +9,7 @@ Some methods for deep domain adaptation.
 try:
     import torch  # noqa: F401
     import skorch  # noqa: F401
-except ImportError as e:
+except (ImportError, ModuleNotFoundError) as e:
     raise ImportError(
         "torch and skorch are required for importing deep's method."
     ) from e
