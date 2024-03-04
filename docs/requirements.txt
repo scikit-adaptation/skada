@@ -6,5 +6,6 @@ memory_profiler
 myst-parser
 ipython
 torch
+torchvision
 skorch
 matplotlib

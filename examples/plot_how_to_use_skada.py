@@ -8,7 +8,7 @@ on a simple dataset will illustration of the API choice specific to DA.
 
 # Author: Remi Flamary
 #
-# License: MIT License
+# License: BSD 3-Clause
 # sphinx_gallery_thumbnail_number = 1
 
 # %% imports
