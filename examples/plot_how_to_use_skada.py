@@ -12,22 +12,24 @@ on a simple dataset will illustration of the API choice specific to DA.
 # sphinx_gallery_thumbnail_number = 1
 
 # %% imports
-import numpy as np
-from sklearn.model_selection import GridSearchCV
-from skada.metrics import PredictionEntropyScorer
-from sklearn.model_selection import cross_val_score
-from sklearn.linear_model import LogisticRegression
-from skada import CORALAdapter, GaussianReweightDensityAdapter
-from skada import make_da_pipeline
-from skada.model_selection import SourceTargetShuffleSplit
-from sklearn.svm import SVC
-from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import make_pipeline
-from skada import CORAL
 import matplotlib.pyplot as plt
+import numpy as np
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import GridSearchCV, cross_val_score
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
 
-from skada import source_target_split
+from skada import (
+    CORAL,
+    CORALAdapter,
+    GaussianReweightDensityAdapter,
+    make_da_pipeline,
+    source_target_split,
+)
 from skada.datasets import make_shifted_datasets
+from skada.metrics import PredictionEntropyScorer
+from skada.model_selection import SourceTargetShuffleSplit
 
 # %%
 # DA dataset
@@ -44,7 +46,8 @@ from skada.datasets import make_shifted_datasets
 
 # Get DA dataset
 X, y, sample_domain = make_shifted_datasets(
-    20, 20, shift="concept_drift", random_state=42)
+    20, 20, shift="concept_drift", random_state=42
+)
 
 # split source and target for visualization
 Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
@@ -53,12 +56,12 @@ Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 plt.figure(1, (10, 5))
 
 plt.subplot(1, 2, 1)
-plt.scatter(Xs[:, 0], Xs[:, 1], c=ys, cmap='tab10', vmax=9, label="Source")
+plt.scatter(Xs[:, 0], Xs[:, 1], c=ys, cmap="tab10", vmax=9, label="Source")
 plt.title("Source data")
 ax = plt.axis()
 
 plt.subplot(1, 2, 2)
-plt.scatter(Xt[:, 0], Xt[:, 1], c=yt, cmap='tab10', vmax=9, label="Target")
+plt.scatter(Xt[:, 0], Xt[:, 1], c=yt, cmap="tab10", vmax=9, label="Target")
 plt.axis(ax)
 plt.title("Target data")
 
@@ -80,8 +83,8 @@ clf.fit(X, y, sample_domain=sample_domain)
 yt_pred = clf.predict(Xt)
 
 # accuracy on source and target
-print('Accuracy on source:', clf.score(Xs, ys))
-print('Accuracy on target:', clf.score(Xt, yt))
+print("Accuracy on source:", clf.score(Xs, ys))
+print("Accuracy on target:", clf.score(Xt, yt))
 
 # %% DA estimator in a pipeline
 # -----------------------------
@@ -95,7 +98,7 @@ print('Accuracy on target:', clf.score(Xt, yt))
 pipe = make_pipeline(StandardScaler(), CORAL(base_estimator=SVC()))
 pipe.fit(X, y, sample_domain=sample_domain)
 
-print('Accuracy on target:', pipe.score(Xt, yt))
+print("Accuracy on target:", pipe.score(Xt, yt))
 
 # %%
 # DA Adapter pipeline
@@ -122,15 +125,17 @@ print('Accuracy on target:', pipe.score(Xt, yt))
 pipe = make_da_pipeline(StandardScaler(), CORALAdapter(), SVC())
 pipe.fit(X, y, sample_domain=sample_domain)
 
-print('Accuracy on target:', pipe.score(Xt, yt))
+print("Accuracy on target:", pipe.score(Xt, yt))
 
 # create a DA pipeline with GaussianReweight adapter
-pipe = make_da_pipeline(StandardScaler(),
-                        GaussianReweightDensityAdapter(),
-                        LogisticRegression().set_fit_request(sample_weight=True))
+pipe = make_da_pipeline(
+    StandardScaler(),
+    GaussianReweightDensityAdapter(),
+    LogisticRegression().set_fit_request(sample_weight=True),
+)
 pipe.fit(X, y, sample_domain=sample_domain)
 
-print('Accuracy on target:', pipe.score(Xt, yt))
+print("Accuracy on target:", pipe.score(Xt, yt))
 
 # %%
 # DA estimator with cross-validation of score
@@ -150,10 +155,11 @@ scorer = PredictionEntropyScorer()
 clf = CORAL(SVC(probability=True))  # needs probability for entropy score
 
 # cross-validation
-scores = cross_val_score(clf, X, y, params={'sample_domain': sample_domain},
-                         cv=cv, scoring=scorer)
+scores = cross_val_score(
+    clf, X, y, params={"sample_domain": sample_domain}, cv=cv, scoring=scorer
+)
 
-print('Entropy score: {:1.2f} (+-{:1.2f})'.format(scores.mean(), scores.std()))
+print(f"Entropy score: {scores.mean():1.2f} (+-{scores.std():1.2f})")
 
 # %%
 # DA estimator with grid search
@@ -178,5 +184,5 @@ grid_search = GridSearchCV(
 
 grid_search.fit(X, y, sample_domain=sample_domain)
 
-print('Best regularization parameter:', grid_search.best_params_['coraladapter__reg'])
-print('Accuracy on target:', np.mean(grid_search.predict(Xt) == yt))
+print("Best regularization parameter:", grid_search.best_params_["coraladapter__reg"])
+print("Accuracy on target:", np.mean(grid_search.predict(Xt) == yt))

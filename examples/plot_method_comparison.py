@@ -15,27 +15,27 @@ training points in semi-transparent and testing points
 in solid colors. The lower right shows the classification
 accuracy on the test set.
 """
+
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
-
-from sklearn.svm import SVC
 from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.neighbors import KernelDensity
+from sklearn.svm import SVC
 
 from skada import (
-    ReweightDensity,
-    GaussianReweightDensity,
-    DiscriminatorReweightDensity,
-    KLIEP
-)
-from skada import SubspaceAlignment, TransferComponentAnalysis
-from skada import (
-    OTMapping,
-    EntropicOTMapping,
-    ClassRegularizerOTMapping,
-    LinearOTMapping,
     CORAL,
-    JDOTClassifier
+    KLIEP,
+    ClassRegularizerOTMapping,
+    DiscriminatorReweightDensity,
+    EntropicOTMapping,
+    GaussianReweightDensity,
+    JDOTClassifier,
+    LinearOTMapping,
+    MMDTarSReweight,
+    OTMapping,
+    ReweightDensity,
+    SubspaceAlignment,
+    TransferComponentAnalysis,
 )
 from skada.datasets import make_shifted_datasets
 
@@ -49,6 +49,7 @@ names = [
     "Gaussian Reweight",
     "Discr. Reweight",
     "KLIEP",
+    "MMD TarS",
     "Subspace Alignment",
     "TCA",
     "OT mapping",
@@ -56,7 +57,7 @@ names = [
     "Class Reg. OT mapping",
     "Linear OT mapping",
     "CORAL",
-    "JDOT"
+    "JDOT",
 ]
 
 classifiers = [
@@ -68,6 +69,7 @@ classifiers = [
     GaussianReweightDensity(SVC().set_fit_request(sample_weight=True)),
     DiscriminatorReweightDensity(SVC().set_fit_request(sample_weight=True)),
     KLIEP(SVC().set_fit_request(sample_weight=True), gamma=[1, 0.1, 0.001]),
+    MMDTarSReweight(SVC().set_fit_request(sample_weight=True), gamma=1),
     SubspaceAlignment(base_estimator=SVC(), n_components=1),
     TransferComponentAnalysis(base_estimator=SVC(), n_components=1, mu=0.5),
     OTMapping(base_estimator=SVC()),
@@ -75,7 +77,7 @@ classifiers = [
     ClassRegularizerOTMapping(base_estimator=SVC()),
     LinearOTMapping(base_estimator=SVC()),
     CORAL(base_estimator=SVC()),
-    JDOTClassifier(base_estimator=SVC(), metric='hinge')
+    JDOTClassifier(base_estimator=SVC(), metric="hinge"),
 ]
 
 datasets = [
@@ -86,7 +88,7 @@ datasets = [
         label="binary",
         noise=0.4,
         random_state=RANDOM_SEED,
-        return_dataset=True
+        return_dataset=True,
     ),
     make_shifted_datasets(
         n_samples_source=20,
@@ -95,7 +97,7 @@ datasets = [
         label="binary",
         noise=0.4,
         random_state=RANDOM_SEED,
-        return_dataset=True
+        return_dataset=True,
     ),
     make_shifted_datasets(
         n_samples_source=20,
@@ -104,7 +106,7 @@ datasets = [
         label="binary",
         noise=0.4,
         random_state=RANDOM_SEED,
-        return_dataset=True
+        return_dataset=True,
     ),
     make_shifted_datasets(
         n_samples_source=20,
@@ -113,7 +115,7 @@ datasets = [
         label="binary",
         noise=0.4,
         random_state=RANDOM_SEED,
-        return_dataset=True
+        return_dataset=True,
     ),
 ]
 
@@ -121,7 +123,7 @@ figure, axes = plt.subplots(len(classifiers) + 2, len(datasets), figsize=(9, 27)
 # iterate over datasets
 for ds_cnt, ds in enumerate(datasets):
     # preprocess dataset, split into training and test part
-    X, y, sample_domain = ds.pack_train(as_sources=['s'], as_targets=['t'])
+    X, y, sample_domain = ds.pack_train(as_sources=["s"], as_targets=["t"])
     Xs, ys = ds.get_domain("s")
     Xt, yt = ds.get_domain("t")
 
@@ -179,7 +181,13 @@ for ds_cnt, ds in enumerate(datasets):
             clf.fit(X, y, sample_domain=sample_domain)
         score = clf.score(Xt, yt)
         DecisionBoundaryDisplay.from_estimator(
-            clf, X, cmap=cm, alpha=0.8, ax=ax, eps=0.5, response_method="predict",
+            clf,
+            X,
+            cmap=cm,
+            alpha=0.8,
+            ax=ax,
+            eps=0.5,
+            response_method="predict",
         )
 
         # Plot the target points

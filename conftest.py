@@ -1,7 +1,7 @@
 import numpy as np
-from skada.datasets import DomainAwareDataset, make_shifted_blobs, make_shifted_datasets
-
 import pytest
+
+from skada.datasets import DomainAwareDataset, make_shifted_blobs, make_shifted_datasets
 
 
 @pytest.fixture(scope='session')
@@ -10,6 +10,7 @@ def da_reg_dataset():
         n_samples_source=20,
         n_samples_target=21,
         shift="concept_drift",
+        mean=0.5,
         noise=0.3,
         label="regression",
         random_state=42,
