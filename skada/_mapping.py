@@ -782,11 +782,12 @@ class MMDLSConSMappingAdapter(BaseAdapter):
 
         # compute R
         if discrete:
-            classes = torch.unique(y_source)
+            self.classes_ = classes = torch.unique(y_source).numpy()
             R = torch.zeros((X_target.shape[0], len(classes)), dtype=torch.float64)
             for i, c in enumerate(classes):
                 R[:, i] = (y_source == c).int()
         else:
+            self.classes_ = None
             R = L @ torch.linalg.inv(L + self.reg_k * torch.eye(m))
 
         # solve the optimization problem
@@ -889,7 +890,7 @@ class MMDLSConSMappingAdapter(BaseAdapter):
                     X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
                     source_idx = extract_source_indices(sample_domain)
                     y_source = y[source_idx]
-                    classes = np.unique(y_source)
+                    classes = self.classes_
                     R = np.zeros((source_idx.sum(), len(classes)))
                     for i, c in enumerate(classes):
                         R[:, i] = (y_source == c).astype(int)
