@@ -4,6 +4,11 @@ import pytest
 from skada.datasets import DomainAwareDataset, make_shifted_blobs, make_shifted_datasets
 
 
+@pytest.fixture(scope='function', autouse=True)
+def set_seed():
+    np.random.seed(0)
+
+
 @pytest.fixture(scope='session')
 def da_reg_dataset():
     X, y, sample_domain = make_shifted_datasets(
