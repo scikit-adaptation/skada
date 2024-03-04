@@ -36,7 +36,7 @@ import pytest
         ImportanceWeightedScorer(),
         PredictionEntropyScorer(),
         SoftNeighborhoodDensity(),
-        DeepEmbeddedValidation()
+        DeepEmbeddedValidation(),
         CircularValidation(),
     ],
 )

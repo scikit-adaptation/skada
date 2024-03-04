@@ -11,7 +11,7 @@ import numpy as np
 
 from sklearn.base import clone
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import log_loss, check_scoring
+from sklearn.metrics import check_scoring
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KernelDensity
 from sklearn.preprocessing import Normalizer
@@ -384,19 +384,14 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
              ]
          )
 
-        # return np.array(
-        #     [
-        #         log_loss(y[i : i + 1], y_pred[i : i + 1], labels=np.unique(y))
-        #         for i in range(len(y))
-        #     ]
-        # )
-
     def _fit_adapt(self, features, features_target):
         domain_classifier = self.domain_classifier
         if domain_classifier is None:
             domain_classifier = LogisticRegression()
         self.domain_classifier_ = clone(domain_classifier)
-        y_domain = np.concatenate((len(features.get('X')) * [1], len(features_target.get('X')) * [0]))
+        y_domain = np.concatenate(
+            (len(features.get('X')) * [1], len(features_target.get('X')) * [0])
+        )
         self.domain_classifier_.fit(
             np.concatenate((features.get('X'), features_target.get('X'))), y_domain
         )
@@ -408,11 +403,11 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
                 "The estimator passed should have a 'predict_proba' method. "
                 f"The estimator {estimator!r} does not."
             )
-        
+
         # We need to find the last layer of the pipeline with a transform method
-        pipeline_steps = list(estimator.named_steps.items())
-        
-        for index_transformer, (step_name, step_process) in reversed(list(enumerate(pipeline_steps))):
+        pipeline_steps = list(enumerate(estimator.named_steps.items()))
+
+        for index_transformer, (step_name, step_process) in reversed((pipeline_steps)):
             if hasattr(step_process, 'transform'):
                 break  # Stop after the first occurrence if there are multiple
         else:
@@ -420,7 +415,7 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
                 "The estimator passed should have a 'transform' method. "
                 f"The estimator {estimator!r} does not."
             )
-        
+
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
         source_idx = extract_source_indices(sample_domain)
         rng = check_random_state(self.random_state)
@@ -432,13 +427,15 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         features_train = estimator[:index_transformer+1].transform(X_train)
         features_val = estimator[:index_transformer+1].transform(X_val)
         features_target = estimator[:index_transformer+1].transform(X[~source_idx])
-        
+
         self._fit_adapt(features_train, features_target)
         N_train, N_target = len(features_train), len(features_target)
-        predictions = self.domain_classifier_.predict_proba(features_val.get('X'))
-        weights = (N_train / N_target) * predictions[:, :1] / predictions[:, 1:] 
-        
-        y_pred = estimator.predict_proba(X_val, sample_domain=sample_domain_val, allow_source=True)
+        domain_pred = self.domain_classifier_.predict_proba(features_val.get('X'))
+        weights = (N_train / N_target) * domain_pred[:, :1] / domain_pred[:, 1:]
+
+        y_pred = estimator.predict_proba(
+            X_val, sample_domain=sample_domain_val, allow_source=True
+        )
         error = self._loss_func(y_val, y_pred)
         assert weights.shape[0] == error.shape[0]
 
@@ -447,11 +444,14 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         cov = np.cov(weights_m, rowvar=False)[0, 1]
         var_w = np.var(weights, ddof=1)
         eta = -cov / var_w
-        return self._sign * (np.mean(weighted_error) + eta * np.mean(weights) - eta)    
+        return self._sign * (np.mean(weighted_error) + eta * np.mean(weights) - eta)
 
     def cross_entropy_loss(self, y_true, y_pred, epsilon=1e-15):
         """
-        Compute cross-entropy loss between true labels and predicted probability estimates.
+        Compute cross-entropy loss between true labels
+        and predicted probability estimates.
+
+        This loss allows to have a changing num_classes over the validation.
 
         Parameters:
         - y_true: true labels (integer labels).
@@ -462,10 +462,13 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         - Cross-entropy loss.
         """
         num_classes = y_pred.shape[1]
-        y_true_one_hot = np.eye(num_classes)[y_true]  # Convert integer labels to one-hot encoding
 
-        y_pred = np.clip(y_pred, epsilon, 1 - epsilon)  # Clip predicted probabilities to avoid log(0) or log(1)
-        
+        # Convert integer labels to one-hot encoding
+        y_true_one_hot = np.eye(num_classes)[y_true]
+
+        # Clip predicted probabilities to avoid log(0) or log(1)
+        y_pred = np.clip(y_pred, epsilon, 1 - epsilon)
+
         cross_entropy = -np.sum(y_true_one_hot * np.log(y_pred))
         return cross_entropy
 
