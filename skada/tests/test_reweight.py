@@ -155,6 +155,24 @@ def _base_test_new_X_adapt(estimator, da_dataset):
     res2["sample_weight"] = res2["sample_weight"] / np.sum(res2["sample_weight"])
     assert np.allclose(true_weights, res2["sample_weight"])
 
+    # Check it adapts even if some target classes are not present in the new X
+    classes = np.unique(y_train)[::2]
+    mask = np.isin(y_train, classes)
+    X_train = X_train[mask]
+    y_train = y_train[mask]
+    sample_domain = sample_domain[mask]
+    res3 = estimator.adapt(
+        X_train,
+        y_train,
+        sample_domain=sample_domain
+    )
+
+    # Check that the normalized weights are the same
+    true_weights = res1["sample_weight"][mask]
+    true_weights = true_weights / np.sum(true_weights)
+    res3["sample_weight"] = res3["sample_weight"] / np.sum(res3["sample_weight"])
+    assert np.allclose(true_weights, res3["sample_weight"])
+
 
 @pytest.mark.parametrize(
     "estimator",

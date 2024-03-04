@@ -996,11 +996,12 @@ class MMDTarSReweightAdapter(BaseAdapter):
 
         # compute R
         if discrete:
-            classes = np.unique(y_source)
+            self.classes_ = classes = np.unique(y_source)
             R = np.zeros((X_target.shape[0], len(classes)))
             for i, c in enumerate(classes):
                 R[:, i] = (y_source == c).astype(int)
         else:
+            self.classes_ = None
             R = L @ np.linalg.inv(L + self.reg * np.eye(m))
 
         # compute M
@@ -1108,7 +1109,7 @@ class MMDTarSReweightAdapter(BaseAdapter):
                     X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
                     source_idx = extract_source_indices(sample_domain)
                     y_source = y[source_idx]
-                    classes = np.unique(y_source)
+                    classes = self.classes_
                     R = np.zeros((source_idx.sum(), len(classes)))
                     for i, c in enumerate(classes):
                         R[:, i] = (y_source == c).astype(int)
