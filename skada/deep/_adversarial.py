@@ -25,7 +25,10 @@ from skada.utils import extract_source_indices
 class DANNLoss(BaseDALoss):
     """Loss DANN.
 
-    See [1]_.
+    This loss tries to minimize the divergence between features with
+    adversarial method. The weigths are updated to make harder
+    to classify domains (i.e., remove domain-specific features)
+    See [15]_.
 
     Parameters
     ----------
@@ -35,7 +38,7 @@ class DANNLoss(BaseDALoss):
 
     References
     ----------
-    .. [1]  Yaroslav Ganin et. al. Domain-Adversarial Training
+    .. [15]  Yaroslav Ganin et. al. Domain-Adversarial Training
             of Neural Networks  In Journal of Machine Learning
             Research, 2016.
     """
@@ -86,7 +89,7 @@ def DANN(
 ):
     """Domain-Adversarial Training of Neural Networks (DANN).
 
-    From [1]_.
+    From [15]_.
 
     Parameters
     ----------
@@ -114,7 +117,7 @@ def DANN(
 
     References
     ----------
-    .. [1]  Yaroslav Ganin et. al. Domain-Adversarial Training
+    .. [15]  Yaroslav Ganin et. al. Domain-Adversarial Training
             of Neural Networks  In Journal of Machine Learning
             Research, 2016.
     """
@@ -142,7 +145,12 @@ def DANN(
 class CDANLoss(BaseDALoss):
     """Conditional Domain Adversarial Networks (CDAN) loss.
 
-    From [1]_.
+    This loss tries to minimize the divergence between features with
+    adversarial method. The weigths are updated to make harder
+    to classify domains (i.e., remove domain-specific features)
+    via multilinear conditioning that captures the crosscovariance between
+    feature representations and classifier predictions
+    From [16]_.
 
     Parameters
     ----------
@@ -154,7 +162,7 @@ class CDANLoss(BaseDALoss):
 
     References
     ----------
-    .. [1]  Mingsheng Long et. al. Conditional Adversarial Domain Adaptation
+    .. [16]  Mingsheng Long et. al. Conditional Adversarial Domain Adaptation
             In NeurIPS, 2016.
     """
 
@@ -196,7 +204,7 @@ class CDANLoss(BaseDALoss):
 class CDANModule(DomainAwareModule):
     """Conditional Domain Adversarial Networks (CDAN) module.
 
-    From [1]_.
+    From [16]_.
 
     Parameters
     ----------
@@ -215,7 +223,7 @@ class CDANModule(DomainAwareModule):
 
     References
     ----------
-    .. [1]  Mingsheng Long et. al. Conditional Adversarial Domain Adaptation
+    .. [16]  Mingsheng Long et. al. Conditional Adversarial Domain Adaptation
             In NeurIPS, 2016.
     """
 

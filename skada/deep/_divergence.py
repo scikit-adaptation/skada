@@ -16,12 +16,14 @@ from .losses import deepcoral_loss, dan_loss
 class DeepCoralLoss(BaseDALoss):
     """Loss DeepCORAL
 
-    From [1]_.
+    This loss reduces the distance between covariances
+    of the source features and the target features.
+    See [12]_.
 
 
     References
     ----------
-    .. [1]  Baochen Sun and Kate Saenko. Deep coral:
+    .. [12]  Baochen Sun and Kate Saenko. Deep coral:
             Correlation alignment for deep domain
             adaptation. In ECCV Workshops, 2016.
     """
@@ -48,7 +50,7 @@ class DeepCoralLoss(BaseDALoss):
 def DeepCoral(module, layer_name, reg=1, **kwargs):
     """DeepCORAL domain adaptation method.
 
-    From [1]_.
+    From [12]_.
 
     Parameters
     ----------
@@ -62,7 +64,7 @@ def DeepCoral(module, layer_name, reg=1, **kwargs):
 
     References
     ----------
-    .. [1]  Baochen Sun and Kate Saenko. Deep coral:
+    .. [12]  Baochen Sun and Kate Saenko. Deep coral:
             Correlation alignment for deep domain
             adaptation. In ECCV Workshops, 2016.
     """
@@ -80,7 +82,9 @@ def DeepCoral(module, layer_name, reg=1, **kwargs):
 class DANLoss(BaseDALoss):
     """Loss DAN
 
-    From [1]_.
+    This loss reduces the MMD distance between
+    source features and target features.
+    From [14]_.
 
     Parameters
     ----------
@@ -89,7 +93,7 @@ class DANLoss(BaseDALoss):
 
     References
     ----------
-    .. [1]  Mingsheng Long et. al. Learning Transferable
+    .. [14]  Mingsheng Long et. al. Learning Transferable
             Features with Deep Adaptation Networks.
             In ICML, 2015.
     """
@@ -115,7 +119,7 @@ class DANLoss(BaseDALoss):
 def DAN(module, layer_name, reg=1, sigmas=None, **kwargs):
     """DAN domain adaptation method.
 
-    From [1]_.
+    See [14]_.
 
     Parameters
     ----------
@@ -131,7 +135,7 @@ def DAN(module, layer_name, reg=1, sigmas=None, **kwargs):
 
     References
     ----------
-    .. [1]  Mingsheng Long et. al. Learning Transferable
+    .. [14]  Mingsheng Long et. al. Learning Transferable
             Features with Deep Adaptation Networks.
             In ICML, 2015.
     """

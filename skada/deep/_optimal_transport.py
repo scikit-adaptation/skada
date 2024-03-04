@@ -17,7 +17,10 @@ from .losses import deepjdot_loss
 class DeepJDOTLoss(BaseDALoss):
     """Loss DeepJDOT.
 
-    See [1]_.
+    This loss reduces the distance between source and target domain
+    through a measure of discrepancy on joint deep
+    representations/labels based on optimal transport.
+    See [13]_.
 
     Parameters
     ----------
@@ -29,7 +32,7 @@ class DeepJDOTLoss(BaseDALoss):
 
     References
     ----------
-    .. [1]  Bharath Bhushan Damodaran, Benjamin Kellenberger,
+    .. [13]  Bharath Bhushan Damodaran, Benjamin Kellenberger,
             Remi Flamary, Devis Tuia, and Nicolas Courty.
             DeepJDOT: Deep Joint Distribution Optimal Transport
             for Unsupervised Domain Adaptation. In ECCV 2018
@@ -67,7 +70,7 @@ class DeepJDOTLoss(BaseDALoss):
 def DeepJDOT(module, layer_name, reg=1, reg_cl=1, target_criterion=None, **kwargs):
     """DeepJDOT.
 
-       See [1]_.
+       See [13]_.
 
     Parameters
     ----------
@@ -86,7 +89,7 @@ def DeepJDOT(module, layer_name, reg=1, reg_cl=1, target_criterion=None, **kwarg
 
     References
     ----------
-    .. [1]  Bharath Bhushan Damodaran, Benjamin Kellenberger,
+    .. [13]  Bharath Bhushan Damodaran, Benjamin Kellenberger,
             Remi Flamary, Devis Tuia, and Nicolas Courty.
             DeepJDOT: Deep Joint Distribution Optimal Transport
             for Unsupervised Domain Adaptation. In ECCV 2018
