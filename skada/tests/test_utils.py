@@ -515,15 +515,40 @@ def test_qp_solve():
 @pytest.mark.skipif(not torch, reason="PyTorch not installed")
 def test_torch_solve():
     A = torch.tensor([[5., 2.], [2., 5.]], dtype=torch.float64)
+    true_eigval, true_eigvec = np.linalg.eigh(A)
+    true_eigval = true_eigval[0]
+    true_eigvec = true_eigvec[:, 0].reshape(-1, 1)
 
+    # Rayleigh quotient
     def loss(x):
         return (x.T @ A @ x) / (x.T @ x)
 
+    # test optimization
     x0 = np.array([[-0.2], [0.1]])
 
     eigvec, min_eigval = torch_solve(loss, x0, max_iter=100, tol=1e-6)
-    true_eigval, true_eigvec = np.linalg.eigh(A)
     eigvec = eigvec / np.linalg.norm(eigvec)
 
-    assert np.allclose(min_eigval, true_eigval[0])
-    assert np.allclose(eigvec, true_eigvec[:, 0].reshape((-1, 1)))
+    assert np.allclose(min_eigval, true_eigval)
+    assert np.allclose(eigvec, true_eigvec)
+
+    # test optimization with torch tensor as initial guess
+    x0_torch = torch.tensor(x0)
+
+    eigvec, min_eigval = torch_solve(loss, x0_torch, max_iter=100, tol=1e-6)
+    eigvec = eigvec / np.linalg.norm(eigvec)
+
+    assert np.allclose(min_eigval, true_eigval)
+    assert np.allclose(eigvec, true_eigvec)
+
+    # test optimization with list of variables as initial guess
+    x0 = [x0]
+    (eigvec), min_eigval = torch_solve(loss, x0, max_iter=100, tol=1e-6)
+    eigvec = eigvec / np.linalg.norm(eigvec)
+
+    assert np.allclose(min_eigval, true_eigval)
+    assert np.allclose(eigvec, true_eigvec)
+
+    # test warning when convergence is not reached
+    with pytest.warns(UserWarning):
+        torch_solve(loss, x0, max_iter=1, tol=0)
