@@ -24,6 +24,7 @@ Sample reweighting DA methods
    GaussianReweightDensity
    DiscriminatorReweightDensity
    KLIEP
+   MMDTarSReweight
 
 Sample mapping and alignment DA methods
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
