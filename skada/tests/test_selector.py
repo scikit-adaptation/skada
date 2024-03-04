@@ -5,6 +5,7 @@
 
 import numpy as np
 import pytest
+from sklearn.base import BaseEstimator
 from sklearn.datasets import make_regression
 from sklearn.linear_model import LogisticRegression
 from sklearn.utils.metadata_routing import get_routing_for_object
@@ -48,7 +49,7 @@ def test_base_selector_estimator_fetcher():
     assert isinstance(selector.get_estimator(), LogisticRegression)
 
 
-def test_base_selector_remove_masked():
+def test_remove_masked_helper():
     n_samples = 10
     X, y, sample_domain = make_shifted_datasets(
         n_samples_source=n_samples,
@@ -73,19 +74,50 @@ def test_base_selector_remove_masked():
 
 
 @pytest.mark.parametrize("step", [SubspaceAlignmentAdapter(), LogisticRegression()])
-def test_base_selector_remove_masked_transform(step):
+def test_base_selector_remove_masked(step):
     n_samples = 10
-    X, y, sample_domain = make_shifted_datasets(
+    dataset = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=n_samples,
         shift="concept_drift",
         noise=0.1,
         random_state=42,
+        return_dataset=True,
     )
+    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
 
     pipe = make_da_pipeline(step)
     # no ValueError is raised
     pipe.fit(X=X, y=y, sample_domain=sample_domain)
+
+
+def test_base_selector_no_filtering_transformer():
+    dataset = make_shifted_datasets(
+        n_samples_source=10,
+        n_samples_target=20,
+        shift="concept_drift",
+        noise=0.1,
+        random_state=42,
+        return_dataset=True,
+    )
+    X_train, y_train, sample_domain = dataset.pack_train(
+        as_sources=["s"], as_targets=["t"]
+    )
+
+    output = {}
+
+    class FakeTransformer(BaseEstimator):
+        def fit(self, X, y=None):
+            output["n_samples"] = X.shape[0]
+            self.fitted_ = True
+
+        def transform(self, X):
+            return X
+
+    pipe = make_da_pipeline(FakeTransformer())
+    pipe.fit(X=X_train, y=y_train, sample_domain=sample_domain)
+
+    assert output["n_samples"] == X_train.shape[0]
 
 
 def test_base_selector_remove_masked_continuous():
