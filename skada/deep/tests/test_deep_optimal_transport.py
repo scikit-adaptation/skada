@@ -1,6 +1,11 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
+#         Oleksii Kachaiev <kachayev@gmail.com>
 #
 # License: BSD 3-Clause
+import pytest
+
+pytest.importorskip('torch')
+
 import numpy as np
 
 from skada.deep import DeepJDOT
