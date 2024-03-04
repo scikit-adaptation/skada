@@ -8,7 +8,7 @@ try:
     import torch
     from torchvision import transforms
 except ImportError:
-    torchvision = ImportError("The torch & torchvision packages are not installed.")
+    torchvision = False
 
 from skada.datasets import DomainAwareDataset
 
@@ -29,11 +29,11 @@ def load_mnist_usps(n_classes=5, return_X_y=True, return_dataset=False, train=Fa
         When set to `True`, the function returns
         :class:`~skada.datasets.DomainAwareDataset` object.
     """
-    if isinstance(torchvision, ImportError):
+    if not torchvision:
         raise ImportError(
-            "torchvision & torch are needed to use the Foo class. "
+            "torchvision & torch are needed to use the load_mnist_usps function. "
             "It should be installed with `pip install torch torchvision`."
-        ) from torchvision
+        )
     transform = transforms.Compose(
         [
             transforms.ToTensor(),
