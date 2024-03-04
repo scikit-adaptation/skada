@@ -3,14 +3,15 @@ from skada.datasets import DomainAwareDataset, make_shifted_blobs, make_shifted_
 
 import pytest
 
-collect_ignore = []
+
+collect_ignore_glob = []
 
 # if 'torch' is not installed, we should not attempt
 # to run 'collect' for skada/deep modules
 try:
     import torch  # noqa
 except ImportError:
-    collect_ignore.append('deep/*.py')
+    collect_ignore_glob.append('deep/*.py')
 
 
 @pytest.fixture(scope='function', autouse=True)
