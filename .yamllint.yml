@@ -2,6 +2,7 @@ extends: default
 
 ignore: |
   .github/workflows/testing.yml
+  .circleci/config.yml
 
 rules:
   line-length: disable
