@@ -146,11 +146,6 @@ def _remove_masked(X, y, params):
     params : dict
         Additional parameters declared in the routing
     """
-    # technically, `y` is optional but if we have no
-    # labels, - there are no masks
-    if y is None:
-        return X, y, params
-
     y_type = _find_y_type(y)
     if y_type == Y_Type.DISCRETE:
         unmasked_idx = y != _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL

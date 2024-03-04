@@ -307,6 +307,46 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
             raise e
         return X_out, routed_params
 
+    def _remove_masked(self, X, y, routed_params):
+        """Removes masked inputs before passing them to a downstream (base) estimator,
+        ensuring their compatibility with the DA pipeline, particularly for estimators
+        that do not natively support DA setups, such as those from scikit-learn.
+
+        Masked inputs are removed under the following conditions:
+        - Labels `y` are provided (necessary for mask detection).
+        - The estimator is not a transformer (i.e., does not define a
+          'transform' function).
+        - The estimator does not accept a `sample_domain` parameter
+          through routing.
+
+        In scenarios not meeting these criteria, masked input samples are retained.
+
+        Note: This API is intended for internal use.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Input data
+        y : array-like of shape (n_samples,)
+            Labels for the data
+        params : dict
+            Additional parameters declared in the routing
+
+        Returns
+        -------
+        X : array-like of shape (n_samples, n_features)
+            Input data
+        y : array-like of shape (n_samples,)
+            Labels for the data
+        params : dict
+            Additional parameters declared in the routing
+        """
+        if (y is not None
+                and not hasattr(self.base_estimator, 'transform')
+                and 'sample_domain' not in routed_params):
+            X, y, routed_params = _remove_masked(X, y, routed_params)
+        return X, y, routed_params
+
 
 class Shared(BaseSelector):
 
@@ -318,8 +358,7 @@ class Shared(BaseSelector):
     def fit(self, X, y, **params):
         routing = get_routing_for_object(self.base_estimator)
         X, routed_params = self._route_and_merge_params(routing.fit, X, params)
-        if 'sample_domain' not in routed_params:
-            X, y, routed_params = _remove_masked(X, y, routed_params)
+        X, y, routed_params = self._remove_masked(X, y, routed_params)
         estimator = clone(self.base_estimator)
         estimator.fit(X, y, **routed_params)
         self.base_estimator_ = estimator
@@ -363,8 +402,7 @@ class PerDomain(BaseSelector):
         sample_domain = params['sample_domain']
         routing = get_routing_for_object(self.base_estimator)
         X, routed_params = self._route_and_merge_params(routing.fit, X, params)
-        if 'sample_domain' not in routed_params:
-            X, y, routed_params = _remove_masked(X, y, routed_params)
+        X, y, routed_params = self._remove_masked(X, y, routed_params)
         estimators = {}
         for domain_label in np.unique(sample_domain):
             idx, = np.where(sample_domain == domain_label)
