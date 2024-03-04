@@ -33,6 +33,8 @@ from ._reweight import (
     KMM,
     ReweightDensityAdapter,
     ReweightDensity,
+    MMDTarSReweightAdapter,
+    MMDTarSReweight
 )
 from ._subspace import (
     SubspaceAlignmentAdapter,
@@ -83,6 +85,8 @@ __all__ = [
     "KMM",
     "ReweightDensityAdapter",
     "ReweightDensity",
+    "MMDTarSReweightAdapter",
+    "MMDTarSReweight",
 
     "SubspaceAlignmentAdapter",
     "SubspaceAlignment",

@@ -1,11 +1,13 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Remi Flamary <remi.flamary@polytechnique.edu>
 #         Oleksii Kachaiev <kachayev@gmail.com>
+#         Yanis Lalou <yanis.lalou@polytechnique.edu>
 #
 # License: BSD 3-Clause
 
 import logging
 from numbers import Real
+from enum import Enum
 
 import numpy as np
 
@@ -33,6 +35,11 @@ _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL = -1
 _DEFAULT_MASKED_TARGET_REGRESSION_LABEL = np.nan
 
 
+class Y_Type(Enum):
+    CONTINUOUS = 'continuous'
+    DISCRETE = 'discrete'
+
+
 def _estimate_covariance(X, shrinkage):
     if shrinkage is None:
         s = empirical_covariance(X)
@@ -51,7 +58,6 @@ def _check_y_masking(y):
     """Check that labels are properly masked
     ie. labels are either -1 or >= 0
 
-
     Parameters
     ----------
     y : array-like of shape (n_samples,)
@@ -60,14 +66,14 @@ def _check_y_masking(y):
     # Find the type of the labels, continuous or classification
     y_type = _find_y_type(y)
 
-    if y_type == 'continuous':
+    if y_type == Y_Type.CONTINUOUS:
         if np.any(np.isnan(y)):
             return y_type
         else:
             raise ValueError("For a regression task, "
                              "masked labels should be, "
                              f"{_DEFAULT_MASKED_TARGET_REGRESSION_LABEL}")
-    elif y_type == 'classification':
+    elif y_type == Y_Type.DISCRETE:
         if (np.any(y < _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL) or
                 not np.any(y == _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL)):
             raise ValueError("For a classification task, "
@@ -100,16 +106,63 @@ def _find_y_type(y):
             raise ValueError("For a regression task, "
                              "more than 1D labels are not supported")
         else:
-            return 'continuous'
+            return Y_Type.CONTINUOUS
 
     # Check if the target is a classification or regression target.
     y_type = type_of_target(y)
 
     if y_type == 'continuous':
-        return 'continuous'
+        return Y_Type.CONTINUOUS
     elif y_type == 'binary' or y_type == 'multiclass':
-        return 'classification'
+        return Y_Type.DISCRETE
     else:
         # Here y_type is 'multilabel-indicator', 'continuous-multioutput',
         # 'multiclass-multioutput' or 'unknown'
         raise ValueError(f"Uncompatible label type: {y_type}")
+
+
+def _remove_masked(X, y, params):
+    """Internal API for removing masked samples before passing them
+    to the estimator that does not accept 'sample_domain' (e.g. any
+    standard sklearn estimator).
+
+    Parameters
+    ----------
+    X : array-like of shape (n_samples, n_features)
+        Input data
+    y : array-like of shape (n_samples,)
+        Labels for the data
+    params : dict
+        Additional parameters declared in the routing
+
+    Returns
+    -------
+    X : array-like of shape (n_samples, n_features)
+        Input data
+    y : array-like of shape (n_samples,)
+        Labels for the data
+    params : dict
+        Additional parameters declared in the routing
+    """
+    # technically, `y` is optional but if we have no
+    # labels, - there are no masks
+    if y is None:
+        return X, y, params
+
+    y_type = _find_y_type(y)
+    if y_type == Y_Type.DISCRETE:
+        unmasked_idx = (y != _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL)
+    elif y_type == Y_Type.CONTINUOUS:
+        unmasked_idx = np.isfinite(y)
+
+    X = X[unmasked_idx]
+    y = y[unmasked_idx]
+    params = {
+        # this is somewhat crude way to test is `v` is indexable
+        k: v[unmasked_idx] if (
+            hasattr(v, '__len__') and len(v) == len(unmasked_idx)
+        ) else v
+        for k, v
+        in params.items()
+    }
+    return X, y, params
