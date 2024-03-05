@@ -84,7 +84,8 @@ class SubspaceAlignmentAdapter(BaseAdapter):
             allow_multi_source=True,
             allow_multi_target=True,
         )
-        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+        X_source, X_target = source_target_split(
+            X, sample_domain=sample_domain)
 
         if X_source.shape[0]:
             X_source = np.dot(self.pca_source_.transform(X_source), self.M_)
