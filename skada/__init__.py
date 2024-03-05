@@ -19,6 +19,8 @@ from ._mapping import (
     EntropicOTMapping,
     LinearOTMappingAdapter,
     LinearOTMapping,
+    MMDLSConSMappingAdapter,
+    MMDLSConSMapping,
     OTMappingAdapter,
     OTMapping,
 )
@@ -74,6 +76,8 @@ __all__ = [
     "EntropicOTMapping",
     "LinearOTMappingAdapter",
     "LinearOTMapping",
+    "MMDLSConSMappingAdapter",
+    "MMDLSConSMapping",
     "OTMappingAdapter",
     "OTMapping",
 

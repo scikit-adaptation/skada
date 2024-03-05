@@ -13,25 +13,18 @@ to covariate shift
 
 # %% Imports
 import matplotlib.pyplot as plt
-from matplotlib.colors import ListedColormap
 import numpy as np
-
+from matplotlib.colors import ListedColormap
 from sklearn.inspection import DecisionBoundaryDisplay
-from skada.datasets import make_shifted_datasets
-
-from sklearn.neighbors import KernelDensity
 from sklearn.linear_model import LogisticRegression
-from skada._subspace import TJM
+
 from skada import (
-    source_target_split,
-    ReweightDensity,
-    GaussianReweightDensity,
-    DiscriminatorReweightDensity,
-    KLIEP,
-    KMM,
-    TransferComponentAnalysis,
     SubspaceAlignment,
+    TransferComponentAnalysis,
+    source_target_split,
 )
+from skada._subspace import TJM
+from skada.datasets import make_shifted_datasets
 
 # %%
 #     The subspaces methods
@@ -58,9 +51,7 @@ X, y, sample_domain = make_shifted_datasets(
     shift="subspace",
 )
 
-Xs, Xt, ys, yt = source_target_split(
-    X, y, sample_domain=sample_domain
-)
+Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 
 # %%
 # Plot of the dataset:
@@ -78,14 +69,7 @@ colormap = ListedColormap(["#FFA056", "#6C4C7C"])
 ax = axes[0]
 ax.set_title("Source data")
 # Plot the source points:
-ax.scatter(
-    Xs[:, 0],
-    Xs[:, 1],
-    c=ys,
-    cmap=colormap,
-    alpha=0.7,
-    s=[15]
-)
+ax.scatter(Xs[:, 0], Xs[:, 1], c=ys, cmap=colormap, alpha=0.7, s=[15])
 
 ax.set_xticks(()), ax.set_yticks(())
 ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
@@ -94,22 +78,8 @@ ax = axes[1]
 
 ax.set_title("Target data")
 # Plot the target points:
-ax.scatter(
-    Xt[:, 0],
-    Xt[:, 1],
-    c=ys,
-    cmap=colormap,
-    alpha=0.1,
-    s=[15]
-)
-ax.scatter(
-    Xt[:, 0],
-    Xt[:, 1],
-    c=yt,
-    cmap=colormap,
-    alpha=0.7,
-    s=[15]
-)
+ax.scatter(Xt[:, 0], Xt[:, 1], c=ys, cmap=colormap, alpha=0.1, s=[15])
+ax.scatter(Xt[:, 0], Xt[:, 1], c=yt, cmap=colormap, alpha=0.7, s=[15])
 figure.suptitle("Plot of the dataset", fontsize=16, y=1)
 ax.set_xticks(()), ax.set_yticks(())
 ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
@@ -127,11 +97,11 @@ scores_dict = {}
 
 
 def create_plots(
-        clf,
-        name="Without DA",
-        suptitle=None,
-        ):
-    size = np.array([16]*Xs.shape[0])
+    clf,
+    name="Without DA",
+    suptitle=None,
+):
+    size = np.array([16] * Xs.shape[0])
 
     if suptitle is None:
         suptitle = f"Illustration of the {name} method"
@@ -143,7 +113,12 @@ def create_plots(
         clf.fit(X, y, sample_domain=sample_domain)
     score = clf.score(Xt, yt)
     DecisionBoundaryDisplay.from_estimator(
-        clf, Xs, cmap=colormap, alpha=0.1, ax=ax, eps=0.5,
+        clf,
+        Xs,
+        cmap=colormap,
+        alpha=0.1,
+        ax=ax,
+        eps=0.5,
         response_method="predict",
     )
 
@@ -172,14 +147,7 @@ def create_plots(
     ax = axes[0]
 
     # Plot the source points:
-    ax.scatter(
-        Xs[:, 0],
-        Xs[:, 1],
-        c=ys,
-        cmap=colormap,
-        alpha=0.7,
-        s=size
-    )
+    ax.scatter(Xs[:, 0], Xs[:, 1], c=ys, cmap=colormap, alpha=0.7, s=size)
 
     ax.set_xticks(()), ax.set_yticks(())
     ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
@@ -187,8 +155,7 @@ def create_plots(
     if name != "Without DA":
         ax = axes[2]
         keys = list(clf.named_steps.keys())
-        subspace_estimator = clf.named_steps[
-                keys[0]].base_estimator
+        subspace_estimator = clf.named_steps[keys[0]].base_estimator
         subspace_estimator.fit(X, sample_domain=sample_domain)
         ax.scatter(
             subspace_estimator.adapt(Xs),
@@ -196,7 +163,7 @@ def create_plots(
             c=ys,
             cmap=colormap,
             alpha=0.5,
-            s=size
+            s=size,
         )
         ax.set_title("Subspace")
 
@@ -204,17 +171,15 @@ def create_plots(
 
 
 create_plots(
-    base_classifier, "Without DA",
-    suptitle="Illustration of the classifier with no DA")
+    base_classifier, "Without DA", suptitle="Illustration of the classifier with no DA"
+)
 
 
 # Subspace#     Illustration of the subspace Alignment method
 # ------------------------------------------
 #
 
-create_plots(
-    SubspaceAlignment(base_classifier, n_components=1),
-    "Subspace Alignment")
+create_plots(SubspaceAlignment(base_classifier, n_components=1), "Subspace Alignment")
 
 # %%
 #     Illustration of the Transfer Component Analysis method
@@ -222,18 +187,14 @@ create_plots(
 #
 # The TCA ...
 
-create_plots(
-    TransferComponentAnalysis(base_classifier, n_components=1),
-    "tca")
+create_plots(TransferComponentAnalysis(base_classifier, n_components=1), "tca")
 
 # %%
 #     Illustration of the TJM method
 # ------------------------------------------
 #
 
-create_plots(
-    TJM(base_classifier, l=2, k=1, max_iter=100),
-    "TJM")
+create_plots(TJM(base_classifier, l=2, k=1, max_iter=100), "TJM")
 
 
 # %%
@@ -243,8 +204,8 @@ create_plots(
 
 def print_scores_as_table(scores):
     keys = list(scores.keys())
-    lenghts = [len(k) for k in keys]
-    max_lenght = max(lenghts)
+    lengths = [len(k) for k in keys]
+    max_lenght = max(lengths)
     for k in keys:
         print(f"{k}{' '*(max_lenght - len(k))} | ", end="")
         print(f"{scores[k]*100}{' '*(6-len(str(scores[k]*100)))}%")

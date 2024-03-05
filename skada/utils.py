@@ -1,25 +1,24 @@
 # Author: Yanis Lalou <yanis.lalou@polytechnique.edu>
+#         Antoine Collas <contact@antoinecollas.fr>
 #
 # License: BSD 3-Clause
 
-from typing import Optional, Set, Sequence
-
 import warnings
+from itertools import chain
+from typing import Optional, Sequence, Set
 
 import numpy as np
-from itertools import chain
-
+from scipy.optimize import LinearConstraint, minimize
 from sklearn.utils import check_array, check_consistent_length
 from sklearn.utils.multiclass import type_of_target
-from scipy.optimize import minimize, LinearConstraint
 
-from skada._utils import _check_y_masking
 from skada._utils import (
+    _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
+    _DEFAULT_MASKED_TARGET_REGRESSION_LABEL,
     _DEFAULT_SOURCE_DOMAIN_LABEL,
     _DEFAULT_TARGET_DOMAIN_LABEL,
-    _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
     _DEFAULT_TARGET_DOMAIN_ONLY_LABEL,
-    _DEFAULT_MASKED_TARGET_REGRESSION_LABEL
+    _check_y_masking,
 )
 
 
@@ -39,7 +38,7 @@ def check_X_y_domain(
     If we work in single-source and single target mode, return source and target
     separately to avoid additional scan for 'sample_domain' array.
 
-    Parameters:
+    Parameters
     ----------
     X : array-like of shape (n_samples, n_features)
         Input features
@@ -60,8 +59,8 @@ def check_X_y_domain(
     allow_nd : bool, optional (default=False)
         Allow X and y to be N-dimensional arrays.
 
-    Returns:
-    ----------
+    Returns
+    -------
     X : array
         Input features
     y : array
@@ -69,7 +68,6 @@ def check_X_y_domain(
     sample_domain : array
         Array specifying the domain labels for each sample.
     """
-
     X = check_array(X, input_name='X', allow_nd=allow_nd)
     y = check_array(y, force_all_finite=True, ensure_2d=False, input_name='y')
     check_consistent_length(X, y)
@@ -129,7 +127,7 @@ def check_X_domain(
     If we work in single-source and single target mode, return source and target
     separately to avoid additional scan for 'sample_domain' array.
 
-    Parameters:
+    Parameters
     ----------
     X : array-like of shape (n_samples, n_features)
         Input features.
@@ -148,8 +146,8 @@ def check_X_domain(
     allow_auto_sample_domain : bool, optional (default=True)
         Allow automatic generation of sample_domain if not provided.
 
-    Returns:
-    ----------
+    Returns
+    -------
     X : array
         Input features.
     sample_domain : array
@@ -200,13 +198,13 @@ def check_X_domain(
 def extract_source_indices(sample_domain):
     """Extract the indices of the source samples.
 
-    Parameters:
+    Parameters
     ----------
     sample_domain : array-like of shape (n_samples,)
         Array specifying the domain labels for each sample.
 
-    Returns:
-    ----------
+    Returns
+    -------
     source_idx : array
         Boolean array indicating source indices.
     """
@@ -225,15 +223,15 @@ def extract_domains_indices(sample_domain, split_source_target=False):
     """Extract the indices of the specific
     domain samples.
 
-    Parameters:
+    Parameters
     ----------
     sample_domain : array-like of shape (n_samples,)
         Array specifying the domain labels for each sample.
     split_source_target : bool, optional (default=False)
         Whether to split the source and target domains.
 
-    Returns:
-    ----------
+    Returns
+    -------
     domains_idx : dict
         A dictionary where keys are unique domain labels
         and values are indexes of the samples belonging to
@@ -268,7 +266,7 @@ def source_target_split(
     *arrays,
     sample_domain
 ):
-    r""" Split data into source and target domains
+    r"""Split data into source and target domains
 
     Parameters
     ----------
@@ -285,7 +283,6 @@ def source_target_split(
     splits : list, length=2 * len(arrays)
         List containing source-target split of inputs.
     """
-
     if len(arrays) == 0:
         raise ValueError("At least one array required as input")
 
@@ -412,7 +409,7 @@ def source_target_merge(
         ))
 
     # To test afterward if the number of samples in source-target arrays
-    # and the number infered in the sample_domain are consistent
+    # and the number inferred in the sample_domain are consistent
     source_indices = extract_source_indices(sample_domain)
     source_samples = np.count_nonzero(source_indices)
     target_samples = np.count_nonzero(~source_indices)
@@ -453,7 +450,7 @@ def source_target_merge(
             )
 
         # Check consistent number of samples in source-target arrays
-        # and the number infered in the sample_domain
+        # and the number inferred in the sample_domain
         if (sample_domain is not None) and (sample_domain.shape[0] != 0):
             if (
                 (arrays[i].shape[0] != source_samples) or
@@ -461,7 +458,7 @@ def source_target_merge(
             ):
                 raise ValueError(
                     "Inconsistent number of samples in source-target arrays "
-                    "and the number infered in the sample_domain"
+                    "and the number inferred in the sample_domain"
                 )
 
         merges.append(
@@ -492,7 +489,6 @@ def _merge_arrays(
     merge : sequence of array-like of identical number of samples
         (n_samples_source + n_samples_target, n_features)
     """
-
     if array_source.shape[0] > 0 and array_target.shape[0] > 0:
         output = np.zeros_like(
             np.concatenate((array_source, array_target)), dtype=array_source.dtype
@@ -517,7 +513,7 @@ def _merge_arrays(
 
 def qp_solve(Q, c=None, A=None, b=None, Aeq=None, beq=None, lb=None, ub=None,
              x0=None, tol=1e-6, max_iter=1000, verbose=False, log=False):
-    r""" Solves a standard quadratic program
+    r"""Solves a standard quadratic program
 
     Solve the following optimization problem:
 
@@ -531,7 +527,7 @@ def qp_solve(Q, c=None, A=None, b=None, Aeq=None, beq=None, lb=None, ub=None,
 
         A_{eq} x = b_{eq}
 
-    Return val as None if optmization failed.
+    Return val as None if optimization failed.
 
     All constraint parameters are optional, they will be ignore is left at
     default value None.
@@ -561,9 +557,9 @@ def qp_solve(Q, c=None, A=None, b=None, Aeq=None, beq=None, lb=None, ub=None,
     max_iter : int, optional
         Maximum number of iterations to perform.
     verbose : boolean, optional
-        Print optimization informations.
+        Print optimization information.
     log : boolean, optional
-        Return a dictionary with optim informations in adition to x and val
+        Return a dictionary with optim information in addition to x and val
 
     Returns
     -------
@@ -629,3 +625,69 @@ def qp_solve(Q, c=None, A=None, b=None, Aeq=None, beq=None, lb=None, ub=None,
         outputs += (results,)
 
     return outputs
+
+
+def torch_minimize(loss, x0, tol=1e-6, max_iter=1000):
+    r""" Solves unconstrained optimization problem using pytorch
+
+    Solve the following optimization problem:
+
+    .. math::
+        \min_x \quad loss(x)
+
+    Parameters
+    ----------
+    loss : callable
+        Objective function to be minimized.
+    x0 : list of ndarrays or torch.Tensor
+        Initialization.
+    tol : float, optional
+        Tolerance on the gradient for termination.
+    max_iter : int, optional
+        Maximum number of iterations to perform.
+
+    Returns
+    -------
+    x: ndarray or list of ndarrays
+        Optimal solution x
+    val: float
+        final value of the objective
+    """
+    try:
+        import torch
+    except ImportError:
+        raise ImportError("solve_torch requires pytorch to be installed")
+
+    if type(x0) not in (list, tuple):
+        x0 = [x0]
+    x0 = [torch.tensor(x, requires_grad=True, dtype=torch.float64) for x in x0]
+
+    optimizer = torch.optim.LBFGS(
+        x0,
+        max_iter=max_iter,
+        tolerance_grad=tol,
+        line_search_fn="strong_wolfe"
+    )
+
+    def closure():
+        optimizer.zero_grad()
+        loss_value = loss(*x0)
+        loss_value.backward()
+        return loss_value
+
+    optimizer.step(closure)
+
+    grad_norm = torch.cat([x.grad.flatten() for x in x0]).abs().max()
+
+    if grad_norm > tol:
+        warnings.warn(
+            "Optimization did not converge. "
+            f"Final gradient maximum value: {grad_norm:.2e} > {tol:.2e}"
+        )
+
+    solution = [x.detach().numpy() for x in x0]
+    if len(solution) == 1:
+        solution = solution[0]
+    loss_val = loss(*x0).item()
+
+    return solution, loss_val

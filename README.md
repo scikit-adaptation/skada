@@ -24,7 +24,7 @@ The following algorithms are currently implemented.
 
 - Sample reweighting methods (Gaussian [1], Discriminant [2], KLIEP [3],
   DensityRatio [4], TarS [22])
-- Sample mapping methods (CORAL [5], Optimal Transport DA OTDA [6], LinearMonge [7])
+- Sample mapping methods (CORAL [5], Optimal Transport DA OTDA [6], LinearMonge [7], LS-ConS [22])
 - Subspace methods (SubspaceAlignment [8], TCA [9])
 - Other methods (JDOT [10], DASVM [11])
 
@@ -67,7 +67,7 @@ X, y, sample_domain
 
 Where `X` is the input data, `y` is the target labels and `sample_domain` is the
 domain labels (positive for source and negative for target domains). We provide
-below an exmaple ho how to fit a DA estimator:
+below an example ho how to fit a DA estimator:
 
 ```python
 from skada import CORAL
@@ -150,7 +150,6 @@ This toolbox has been created and is maintained by the SKADA team that includes 
 The library is distributed under the 3-Clause BSD license.
 
 ## References
-
 
 [1] Shimodaira Hidetoshi. ["Improving predictive inference under covariate shift by weighting the log-likelihood function."](https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=235723a15c86c369c99a42e7b666dfe156ad2cba) Journal of statistical planning and inference 90, no. 2 (2000): 227-244.
 

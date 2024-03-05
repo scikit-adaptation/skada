@@ -7,16 +7,14 @@
 
 import numpy as np
 from scipy.linalg import eig
-
 from sklearn.decomposition import PCA
 from sklearn.metrics.pairwise import pairwise_kernels
-from sklearn.utils import check_random_state
 from sklearn.svm import SVC
+from sklearn.utils import check_random_state
 
-from .base import BaseAdapter
-from .utils import check_X_domain, source_target_split
-from .utils import source_target_merge
 from ._pipeline import make_da_pipeline
+from .base import BaseAdapter
+from .utils import check_X_domain, source_target_merge, source_target_split
 
 
 class SubspaceAlignmentAdapter(BaseAdapter):
@@ -133,10 +131,9 @@ class SubspaceAlignmentAdapter(BaseAdapter):
         self.pca_source_ = PCA(n_components, random_state=self.random_state_).fit(
             X_source
         )
-        self.pca_target_ = PCA(
-            n_components,
-            random_state=self.random_state_
-        ).fit(X_target)
+        self.pca_target_ = PCA(n_components, random_state=self.random_state_).fit(
+            X_target
+        )
         self.n_components_ = n_components
         self.M_ = np.dot(self.pca_source_.components_, self.pca_target_.components_.T)
         return self
@@ -224,12 +221,7 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
            on Neural Networks, 2011.
     """
 
-    def __init__(
-        self,
-        kernel='rbf',
-        n_components=None,
-        mu=0.1
-    ):
+    def __init__(self, kernel="rbf", n_components=None, mu=0.1):
         super().__init__()
         self.kernel = kernel
         self.n_components = n_components
@@ -259,8 +251,7 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
             allow_multi_target=True,
         )
         self.X_source_, self.X_target_ = source_target_split(
-            X,
-            sample_domain=sample_domain
+            X, sample_domain=sample_domain
         )
 
         Kss = pairwise_kernels(self.X_source_, metric=self.kernel)
@@ -271,12 +262,12 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
 
         ns = self.X_source_.shape[0]
         nt = self.X_target_.shape[0]
-        Lss = 1/ns**2 * np.ones((ns, ns))
-        Ltt = 1/nt**2 * np.ones((nt, nt))
-        Lst = -1/(ns*nt) * np.ones((ns, nt))
+        Lss = 1 / ns**2 * np.ones((ns, ns))
+        Ltt = 1 / nt**2 * np.ones((nt, nt))
+        Lst = -1 / (ns * nt) * np.ones((ns, nt))
         L = np.block([[Lss, Lst], [Lst.T, Ltt]])
 
-        H = np.eye(ns+nt) - 1/(ns + nt) * np.ones((ns + nt, ns + nt))
+        H = np.eye(ns + nt) - 1 / (ns + nt) * np.ones((ns + nt, ns + nt))
 
         A = np.eye(ns + nt) + self.mu * K @ L @ K
         B = K @ H @ K
@@ -325,20 +316,17 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
         if np.array_equal(X_source, self.X_source_) and np.array_equal(
             X_target, self.X_target_
         ):
-            X_ = (self.K_ @ self.eigvects_)[:X.shape[0]]
+            X_ = (self.K_ @ self.eigvects_)[: X.shape[0]]
         else:
             Ks = pairwise_kernels(X, self.X_source_, metric=self.kernel)
             Kt = pairwise_kernels(X, self.X_target_, metric=self.kernel)
             K = np.concatenate((Ks, Kt), axis=1)
-            X_ = (K @ self.eigvects_)[:X.shape[0]]
+            X_ = (K @ self.eigvects_)[: X.shape[0]]
         return X_
 
 
 def TransferComponentAnalysis(
-    base_estimator=None,
-    kernel='rbf',
-    n_components=None,
-    mu=0.1
+    base_estimator=None, kernel="rbf", n_components=None, mu=0.1
 ):
     """Domain Adaptation Using Transfer Component Analysis.
 
@@ -374,9 +362,7 @@ def TransferComponentAnalysis(
 
     return make_da_pipeline(
         TransferComponentAnalysisAdapter(
-            kernel=kernel,
-            n_components=n_components,
-            mu=mu
+            kernel=kernel, n_components=n_components, mu=mu
         ),
         base_estimator,
     )
@@ -389,15 +375,22 @@ class TJMAdapter(BaseAdapter):
 
     Parameters
     ----------
-    
+    base_estimator : object, default=None
+        estimator used for fitting and prediction
+    kernel : kernel object, default='rbf'
+        The kernel computed between data.
+    n_components : int, default=None
+        The numbers of components to learn with PCA.
+        Should be less or equal to the number of samples
+        of the source and target data.
 
     Attributes
     ----------
-    
+    None
 
     References
     ----------
-    .. [1] 
+    .. [1]
         [Long et al., 2014] Long, M., Wang, J., Ding, G., Sun, J., and Yu, P.
         (2014). Transfer joint matching for unsupervised domain adaptation.
         In IEEE Conference on Computer Vision and Pattern Recognition (CVPR),
@@ -407,20 +400,20 @@ class TJMAdapter(BaseAdapter):
 
     def __init__(
         self,
-        k=None,
+        n_components=None,
         random_state=None,
-        l=0,
+        regularizer=0,
         max_iter=100,
-        kernel='rbf',
-        tol=0.05
+        kernel="rbf",
+        tol=0.05,
     ):
         super().__init__()
-        self.k = k
-        self.l = l
+        self.n_components = n_components
+        self.regularizer = regularizer
         self.random_state = random_state
         self.kernel = kernel
         self.max_iter = max_iter
-        self.tol=tol
+        self.tol = tol
 
     def adapt(self, X, y=None, sample_domain=None, **kwargs):
         """Predict adaptation (weigts, sample or labels).
@@ -458,21 +451,20 @@ class TJMAdapter(BaseAdapter):
             X_target, self.X_target_
         ):
             K = self._get_kernel_matrix(X_source, X_target)
-            X_ = (K @ self.A_)
+            X_ = K @ self.A_
         else:
             Ks = pairwise_kernels(X, self.X_source_, metric=self.kernel)
             Kt = pairwise_kernels(X, self.X_target_, metric=self.kernel)
             K = np.concatenate((Ks, Kt), axis=1)
-            X_ = (K @ self.A_)
+            X_ = K @ self.A_
         return X_
 
     def _get_mmd_matrix(self, ns, nt, sample_domain):
-        Mss = 1/ns**2 * np.ones((ns, ns))
-        Mtt = 1/nt**2 * np.ones((nt, nt))
-        Mst = -1/(ns*nt) * np.ones((ns, nt))
+        Mss = 1 / ns**2 * np.ones((ns, ns))
+        Mtt = 1 / nt**2 * np.ones((nt, nt))
+        Mst = -1 / (ns * nt) * np.ones((ns, nt))
         M = np.block([[Mss, Mst], [Mst.T, Mtt]])
         return M
-            
 
     def _get_kernel_matrix(self, X_source, X_target):
         Kss = pairwise_kernels(X_source, metric=self.kernel)
@@ -482,7 +474,7 @@ class TJMAdapter(BaseAdapter):
         return K
 
     def frobenius_norm(self, M):
-        return np.sqrt(np.trace(M@M.T))
+        return np.sqrt(np.trace(M @ M.T))
 
     def l21_norm(self, A):
         norm = 0
@@ -515,31 +507,30 @@ class TJMAdapter(BaseAdapter):
         )
         X_source, X_target = source_target_split(X, sample_domain=sample_domain)
 
-        if self.k is None:
-            k = min(min(X_source.shape), min(X_target.shape))
+        if self.n_components is None:
+            n_components = min(min(X_source.shape), min(X_target.shape))
         else:
-            k = self.k
+            n_components = self.n_components
         self.random_state_ = check_random_state(self.random_state)
 
         n = X.shape[0]
-        ns = (sample_domain>0).shape[0]
-        H = np.identity(n) - 1/n * np.ones((n, n))
-        M = self._get_mmd_matrix(
-            X_source.shape[0], X_target.shape[0], sample_domain)
+        ns = (sample_domain > 0).shape[0]
+        H = np.identity(n) - 1 / n * np.ones((n, n))
+        M = self._get_mmd_matrix(X_source.shape[0], X_target.shape[0], sample_domain)
         self.X_source_ = X_source
         self.X_target_ = X_target
         K = self._get_kernel_matrix(X_source, X_target)
         M = M / self.frobenius_norm(M)
         G = np.identity(n)
 
-        self.A_ = np.identity(n)[:, n-k:]
+        self.A_ = np.identity(n)[:, n - n_components :]
         for i in range(self.max_iter):
-            B = self.l * G + K @ M @ K
-            C = (K @ H @ K)
+            B = self.regularizer * G + K @ M @ K
+            C = K @ H @ K
             phi, A = eig(B, C)
             indices = np.argsort(np.abs(phi))
             A = A[indices]
-            A = np.real(A[:, n-k:])
+            A = np.real(A[:, n - n_components :])
             for j in range(n):
                 if sample_domain[j] < 0:
                     G[j, j] = 1
@@ -552,7 +543,7 @@ class TJMAdapter(BaseAdapter):
             self.A_ = A
             l21 = self.l21_norm(A[:ns])
             f = self.frobenius_norm(A[ns:])
-            c = np.trace(A.T@K@M@K@A) + self.l*(l21 +  f**2)
+            c = np.trace(A.T @ K @ M @ K @ A) + self.regularizer * (l21 + f**2)
             print(c)
 
         return self
@@ -561,16 +552,23 @@ class TJMAdapter(BaseAdapter):
 def TJM(
     base_estimator=None,
     random_state=None,
-    k=1,
-    l=0,
-    kernel='rbf',
+    n_components=1,
+    regularizer=0,
+    kernel="rbf",
     max_iter=10,
 ):
     """
 
     Parameters
     ----------
-
+    base_estimator : object, default=None
+        estimator used for fitting and prediction
+    kernel : kernel object, default='rbf'
+        The kernel computed between data.
+    n_components : int, default=None
+        The numbers of components to learn with PCA.
+        Should be less or equal to the number of samples
+        of the source and target data.
 
     Returns
     -------
@@ -591,8 +589,8 @@ def TJM(
     return make_da_pipeline(
         TJMAdapter(
             random_state=random_state,
-            l=l,
-            k=k,
+            regularizer=regularizer,
+            n_components=n_components,
             kernel=kernel,
             max_iter=max_iter,
         ),
