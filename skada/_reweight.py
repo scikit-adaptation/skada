@@ -916,13 +916,13 @@ def NearestNeighborReweightDensity(
     return make_da_pipeline(
         NearestNeighborDensityAdapter(
             laplace_smoothing=laplace_smoothing,
-            weights="uniform",
-            algorithm="auto",
-            leaf_size=30,
-            p=2,
-            metric="minkowski",
-            metric_params=None,
-            n_jobs=None,
+            weights=weights,
+            algorithm=algorithm,
+            leaf_size=leaf_size,
+            p=p,
+            metric=metric,
+            metric_params=metric_params,
+            n_jobs=n_jobs,
         ),
         base_estimator,
     )
@@ -1164,6 +1164,11 @@ def KMM(
         Number of maximum iteration before stopping the optimization.
     smooth_weights : bool, default=False
         If True, the weights are "smoothed" using the kernel function.
+        Pipeline containing the KMM adapter and the base estimator.
+
+    Returns
+    -------
+    pipeline : sklearn pipeline
         Pipeline containing the KMM adapter and the base estimator.
 
     References
