@@ -11,8 +11,7 @@ from . import model_selection
 from . import metrics
 from .base import BaseAdapter, PerDomain, Shared
 from ._mapping import (
-    ClassRegularizerOTMappingAdapter,
-    ClassRegularizerOTMapping,
+    ClassRegularizerOTMappingAdapter,    ClassRegularizerOTMapping,
     CORALAdapter,
     CORAL,
     EntropicOTMappingAdapter,

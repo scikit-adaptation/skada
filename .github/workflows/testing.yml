@@ -14,6 +14,39 @@ on:  # yamllint disable-line rule:truthy
       - '**'
 
 jobs:
+
+  Lint:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+
+    # Install skada
+    - name: Checking Out Repository
+      uses: actions/checkout@v2
+    # Cache 'skada' datasets
+    - name: Create/Restore Skada Data Cache
+      id: cache-skada_datasets
+      uses: actions/cache@v2
+      with:
+        path: ~/skada_datasets
+        key: ${{ runner.os }}-v3
+    # Install Python & Packages
+    - uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+    - run: which python
+    - name: Lint with pre-commit
+      run: |
+        pip install pre-commit
+        pre-commit install --install-hooks
+        pre-commit run --all-files
+
+
+
   Test-minimal:
     runs-on: ubuntu-latest
     strategy:
@@ -43,11 +76,6 @@ jobs:
         python -m pip install --user --upgrade --progress-bar off pip
         python -m pip install --user -r requirements.txt
         python -m pip install --user --upgrade pytest pytest-cov codecov
-    - name: pre-commit
-      run: |
-        pip install pre-commit
-        pre-commit install --install-hooks
-        pre-commit run --all-files
     - name: Install 'skada' package
       run: |
         python -m pip install --user -e .
