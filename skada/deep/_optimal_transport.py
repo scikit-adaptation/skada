@@ -4,11 +4,11 @@
 from torch import nn
 
 from skada.deep.base import (
-    DomainAwareModule,
-    DomainAwareCriterion,
-    DomainBalancedDataLoader,
-    DomainAwareNet,
     BaseDALoss,
+    DomainAwareCriterion,
+    DomainAwareModule,
+    DomainAwareNet,
+    DomainBalancedDataLoader,
 )
 
 from .losses import deepjdot_loss
@@ -41,7 +41,7 @@ class DeepJDOTLoss(BaseDALoss):
     """
 
     def __init__(self, reg_cl=1, target_criterion=None):
-        super(DeepJDOTLoss, self).__init__()
+        super().__init__()
         self.reg_cl = reg_cl
         self.criterion_ = target_criterion
 
@@ -96,13 +96,12 @@ def DeepJDOT(module, layer_name, reg=1, reg_cl=1, target_criterion=None, **kwarg
             15th European Conference on Computer Vision,
             September 2018. Springer.
     """
-
     net = DomainAwareNet(
         DomainAwareModule(module, layer_name),
         iterator_train=DomainBalancedDataLoader,
         criterion=DomainAwareCriterion(
             nn.CrossEntropyLoss(), DeepJDOTLoss(reg_cl, target_criterion), reg=reg
         ),
-        **kwargs
+        **kwargs,
     )
     return net

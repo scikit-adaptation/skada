@@ -5,19 +5,18 @@
 #
 # License: BSD 3-Clause
 
-import pytest
-
 import numbers
 
 import numpy as np
+import pytest
 from numpy.testing import assert_almost_equal
 
 from skada.datasets import (
+    DomainAwareDataset,
     make_dataset_from_moons_distribution,
     make_shifted_blobs,
     make_shifted_datasets,
     make_variable_frequency_dataset,
-    DomainAwareDataset
 )
 from skada.utils import check_X_y_domain, source_target_split
 
@@ -28,7 +27,8 @@ from skada.utils import check_X_y_domain, source_target_split
         (pos_source, pos_target, noise)
         for pos_source in [0.1, [0.1, 0.3]]
         for pos_target in [0.9, [0.7, 0.9]]
-        for noise in [None, 1, [0, 1]]],
+        for noise in [None, 1, [0, 1]]
+    ],
 )
 def test_make_dataset_from_moons_distribution(pos_source, pos_target, noise):
     X, y, sample_domain = make_dataset_from_moons_distribution(
@@ -46,10 +46,8 @@ def test_make_dataset_from_moons_distribution(pos_source, pos_target, noise):
         X, y, sample_domain=sample_domain
     )
 
-    pos_source_size = (
-        1 if isinstance(pos_source, numbers.Real) else len(pos_source))
-    pos_target_size = (
-        1 if isinstance(pos_target, numbers.Real) else len(pos_target))
+    pos_source_size = 1 if isinstance(pos_source, numbers.Real) else len(pos_source)
+    pos_target_size = 1 if isinstance(pos_target, numbers.Real) else len(pos_target)
     assert X_source.shape == (pos_source_size * 2 * 50, 2), "X source shape mismatch"
     assert y_source.shape == (pos_source_size * 2 * 50,), "y source shape mismatch"
     assert np.unique(y_source).shape == (2,), "Unexpected number of cluster"
@@ -67,8 +65,9 @@ def test_make_dataset_from_moons_distribution(pos_source, pos_target, noise):
         return_X_y=True,
         return_dataset=True,
     )
-    assert isinstance(dataset, DomainAwareDataset), \
-        "return_dataset=True but a dataset has not been returned"
+    assert isinstance(
+        dataset, DomainAwareDataset
+    ), "return_dataset=True but a dataset has not been returned"
 
 
 # xxx(okachaiev): find out why this one doesn't work
@@ -113,8 +112,9 @@ def test_make_dataset_from_multi_moons_distribution():
         return_X_y=True,
         return_dataset=True,
     )
-    assert isinstance(dataset, DomainAwareDataset), \
-        "return_dataset=True but a dataset has not been returned"
+    assert isinstance(
+        dataset, DomainAwareDataset
+    ), "return_dataset=True but a dataset has not been returned"
 
 
 @pytest.mark.parametrize(
@@ -159,15 +159,18 @@ def test_make_shifted_blobs(noise):
         random_state=None,
         return_dataset=True,
     )
-    assert isinstance(dataset, DomainAwareDataset), \
-        "return_dataset=True but a dataset has not been returned"
+    assert isinstance(
+        dataset, DomainAwareDataset
+    ), "return_dataset=True but a dataset has not been returned"
 
 
 @pytest.mark.parametrize(
     "shift, noise",
-    [(shift, noise)
+    [
+        (shift, noise)
         for shift in ["covariate_shift", "target_shift", "concept_drift", "subspace"]
-        for noise in [None, 1, [0, 1]]],
+        for noise in [None, 1, [0, 1]]
+    ],
 )
 def test_make_shifted_datasets(shift, noise):
     X, y, sample_domain = make_shifted_datasets(
@@ -192,7 +195,7 @@ def test_make_shifted_datasets(shift, noise):
     if shift == "subspace":
         assert X_target.shape == (10 * 8 // 2, 2), "X target shape mismatch"
         assert y_target.shape == (10 * 8 // 2,), "y target shape mismatch"
-    else :
+    else:
         assert X_target.shape == (10 * 8, 2), "X target shape mismatch"
         assert y_target.shape == (10 * 8,), "y target shape mismatch"
     assert np.unique(y_target).shape == (2,), "Unexpected number of cluster"
@@ -205,8 +208,9 @@ def test_make_shifted_datasets(shift, noise):
         label="binary",
         return_dataset=True,
     )
-    assert isinstance(dataset, DomainAwareDataset), \
-        "return_dataset=True but a dataset has not been returned"
+    assert isinstance(
+        dataset, DomainAwareDataset
+    ), "return_dataset=True but a dataset has not been returned"
 
 
 @pytest.mark.parametrize(
@@ -238,7 +242,7 @@ def test_make_multi_source_shifted_datasets(shift):
     if shift == "subspace":
         assert X_target.shape == (10 * 8 // 2, 2), "X target shape mismatch"
         assert y_target.shape == (10 * 8 // 2,), "y target shape mismatch"
-    else :
+    else:
         assert X_target.shape == (10 * 8, 2), "X target shape mismatch"
         assert y_target.shape == (10 * 8,), "y target shape mismatch"
     assert np.unique(y_target).shape[0] <= 5, "Unexpected number of cluster"
@@ -251,8 +255,9 @@ def test_make_multi_source_shifted_datasets(shift):
         label="multiclass",
         return_dataset=True,
     )
-    assert isinstance(dataset, DomainAwareDataset), \
-        "return_dataset=True but a dataset has not been returned"
+    assert isinstance(
+        dataset, DomainAwareDataset
+    ), "return_dataset=True but a dataset has not been returned"
 
 
 @pytest.mark.parametrize(
@@ -269,7 +274,8 @@ def test_make_shifted_datasets_regression(shift):
     )
     X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
     X_source, X_target, y_source, y_target = source_target_split(
-                X, y, sample_domain=sample_domain)
+        X, y, sample_domain=sample_domain
+    )
 
     if shift == "subspace":
         assert X_source.shape == (10 * 8 // 2, 2), "X source shape mismatch"
@@ -292,8 +298,9 @@ def test_make_shifted_datasets_regression(shift):
         label="regression",
         return_dataset=True,
     )
-    assert isinstance(dataset, DomainAwareDataset), \
-        "return_dataset=True but a dataset has not been returned"
+    assert isinstance(
+        dataset, DomainAwareDataset
+    ), "return_dataset=True but a dataset has not been returned"
 
 
 def test_make_subspace_datasets():
@@ -303,7 +310,7 @@ def test_make_subspace_datasets():
         shift="subspace",
         noise=None,
         label="binary",
-        return_dataset=False
+        return_dataset=False,
     )
     X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
     X_source, X_target, y_source, y_target = source_target_split(
@@ -323,10 +330,11 @@ def test_make_subspace_datasets():
         shift="subspace",
         noise=None,
         label="binary",
-        return_dataset=True
+        return_dataset=True,
     )
-    assert isinstance(dataset, DomainAwareDataset), \
-        "return_dataset=True but a dataset has not been returned"
+    assert isinstance(
+        dataset, DomainAwareDataset
+    ), "return_dataset=True but a dataset has not been returned"
 
 
 @pytest.mark.parametrize(
@@ -345,12 +353,7 @@ def test_make_variable_frequency_dataset(noise):
         random_state=None,
         return_dataset=False,
     )
-    X, y, sample_domain = check_X_y_domain(
-        X,
-        y,
-        sample_domain,
-        allow_nd=True
-    )
+    X, y, sample_domain = check_X_y_domain(X, y, sample_domain, allow_nd=True)
     X_source, X_target, y_source, y_target = source_target_split(
         X, y, sample_domain=sample_domain
     )
@@ -373,8 +376,9 @@ def test_make_variable_frequency_dataset(noise):
         random_state=None,
         return_dataset=True,
     )
-    assert isinstance(dataset, DomainAwareDataset), \
-        "return_dataset=True but a dataset has not been returned"
+    assert isinstance(
+        dataset, DomainAwareDataset
+    ), "return_dataset=True but a dataset has not been returned"
 
 
 @pytest.mark.parametrize(
@@ -407,5 +411,5 @@ def test_invalid_label_value(shift):
             n_samples_target=10,
             noise=None,
             label=invalid_label,
-            shift=shift
+            shift=shift,
         )

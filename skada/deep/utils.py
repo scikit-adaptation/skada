@@ -17,8 +17,8 @@ def _get_intermediate_layers(intermediate_layers, layer_name):
 def _register_forwards_hook(module, intermediate_layers, layer_names):
     """Add hook to chosen layers.
 
-       The hook returns the output of intermediate layers
-       in order to compute the domain adaptation loss.
+    The hook returns the output of intermediate layers
+    in order to compute the domain adaptation loss.
     """
     for layer_name, layer_module in module.named_modules():
         if layer_name in layer_names:
@@ -37,6 +37,7 @@ def check_generator(seed):
         If seed is an int, return a new Generator instance seeded with seed.
         If seed is already a Generator instance, return it.
         Otherwise raise ValueError.
+
     Returns
     -------
     :class:`torch:torch.Generator`

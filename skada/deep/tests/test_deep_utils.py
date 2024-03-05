@@ -1,4 +1,3 @@
-
 import torch
 
 from skada.deep.utils import check_generator

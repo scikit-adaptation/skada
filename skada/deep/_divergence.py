@@ -3,14 +3,16 @@
 #
 # License: BSD 3-Clause
 import torch
+
 from skada.deep.base import (
-    DomainAwareModule,
-    DomainAwareCriterion,
-    DomainBalancedDataLoader,
-    DomainAwareNet,
     BaseDALoss,
+    DomainAwareCriterion,
+    DomainAwareModule,
+    DomainAwareNet,
+    DomainBalancedDataLoader,
 )
-from .losses import deepcoral_loss, dan_loss
+
+from .losses import dan_loss, deepcoral_loss
 
 
 class DeepCoralLoss(BaseDALoss):
@@ -27,8 +29,11 @@ class DeepCoralLoss(BaseDALoss):
             Correlation alignment for deep domain
             adaptation. In ECCV Workshops, 2016.
     """
-    def __init__(self,):
-        super(DeepCoralLoss, self).__init__()
+
+    def __init__(
+        self,
+    ):
+        super().__init__()
 
     def forward(
         self,
@@ -74,7 +79,7 @@ def DeepCoral(module, layer_name, reg=1, **kwargs):
         criterion=DomainAwareCriterion(
             torch.nn.CrossEntropyLoss(), DeepCoralLoss(), reg=reg
         ),
-        **kwargs
+        **kwargs,
     )
     return net
 
@@ -97,8 +102,9 @@ class DANLoss(BaseDALoss):
             Features with Deep Adaptation Networks.
             In ICML, 2015.
     """
+
     def __init__(self, sigmas=None):
-        super(DANLoss, self).__init__()
+        super().__init__()
         self.sigmas = sigmas
 
     def forward(
@@ -145,6 +151,6 @@ def DAN(module, layer_name, reg=1, sigmas=None, **kwargs):
         criterion=DomainAwareCriterion(
             torch.nn.CrossEntropyLoss(), DANLoss(sigmas=sigmas), reg=reg
         ),
-        **kwargs
+        **kwargs,
     )
     return net

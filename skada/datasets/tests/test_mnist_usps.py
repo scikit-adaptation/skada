@@ -15,14 +15,20 @@ except ImportError:
 import numpy as np
 
 from skada.datasets import (
-    load_mnist_usps,
     DomainAwareDataset,
+    load_mnist_usps,
 )
 from skada.utils import source_target_split
 
 
 @pytest.mark.skipif(not torchvision, reason="torchvision is not installed")
-@pytest.mark.parametrize("n_classes", [2, 3,],)
+@pytest.mark.parametrize(
+    "n_classes",
+    [
+        2,
+        3,
+    ],
+)
 def test_mnist_usps(n_classes):
     X, y, sample_domain = load_mnist_usps(
         n_classes=n_classes,

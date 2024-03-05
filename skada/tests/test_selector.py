@@ -4,13 +4,18 @@
 # License: BSD 3-Clause
 
 import numpy as np
-
+import pytest
 from sklearn.base import BaseEstimator
 from sklearn.datasets import make_regression
 from sklearn.linear_model import LogisticRegression
 from sklearn.utils.metadata_routing import get_routing_for_object
 
 from skada import SubspaceAlignmentAdapter, make_da_pipeline
+from skada._utils import (
+    _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
+    _DEFAULT_MASKED_TARGET_REGRESSION_LABEL,
+    _remove_masked,
+)
 from skada.base import (
     AdaptationOutput,
     IncompatibleMetadataError,
@@ -19,13 +24,6 @@ from skada.base import (
 )
 from skada.datasets import make_shifted_datasets
 from skada.utils import extract_source_indices
-from skada._utils import (
-    _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
-    _DEFAULT_MASKED_TARGET_REGRESSION_LABEL,
-    _remove_masked,
-)
-
-import pytest
 
 
 def test_base_selector_estimator_fetcher():
@@ -33,7 +31,7 @@ def test_base_selector_estimator_fetcher():
     X, y, sample_domain = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=n_samples,
-        shift='concept_drift',
+        shift="concept_drift",
         noise=0.1,
         random_state=42,
     )
@@ -56,7 +54,7 @@ def test_remove_masked_helper():
     X, y, sample_domain = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=n_samples,
-        shift='concept_drift',
+        shift="concept_drift",
         noise=0.1,
         random_state=42,
     )
@@ -75,18 +73,18 @@ def test_remove_masked_helper():
     assert X_output.shape[0] == y_output.shape[0]
 
 
-@pytest.mark.parametrize('step', [SubspaceAlignmentAdapter(), LogisticRegression()])
+@pytest.mark.parametrize("step", [SubspaceAlignmentAdapter(), LogisticRegression()])
 def test_base_selector_remove_masked(step):
     n_samples = 10
     dataset = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=n_samples,
-        shift='concept_drift',
+        shift="concept_drift",
         noise=0.1,
         random_state=42,
         return_dataset=True,
     )
-    X, y, sample_domain = dataset.pack_train(as_sources=['s'], as_targets=['t'])
+    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
 
     pipe = make_da_pipeline(step)
     # no ValueError is raised
@@ -97,22 +95,20 @@ def test_base_selector_no_filtering_transformer():
     dataset = make_shifted_datasets(
         n_samples_source=10,
         n_samples_target=20,
-        shift='concept_drift',
+        shift="concept_drift",
         noise=0.1,
         random_state=42,
         return_dataset=True,
     )
     X_train, y_train, sample_domain = dataset.pack_train(
-        as_sources=['s'],
-        as_targets=['t']
+        as_sources=["s"], as_targets=["t"]
     )
 
     output = {}
 
     class FakeTransformer(BaseEstimator):
-
         def fit(self, X, y=None):
-            output['n_samples'] = X.shape[0]
+            output["n_samples"] = X.shape[0]
             self.fitted_ = True
 
         def transform(self, X):
@@ -121,31 +117,26 @@ def test_base_selector_no_filtering_transformer():
     pipe = make_da_pipeline(FakeTransformer())
     pipe.fit(X=X_train, y=y_train, sample_domain=sample_domain)
 
-    assert output['n_samples'] == X_train.shape[0]
+    assert output["n_samples"] == X_train.shape[0]
 
 
 def test_base_selector_remove_masked_continuous():
     # Same as `test_base_selector_remove_masked` but with continuous labels
     n_samples = 10
-    X, y = make_regression(
-        n_samples=n_samples,
-        n_features=2,
-        noise=1,
-        random_state=42
-    )
+    X, y = make_regression(n_samples=n_samples, n_features=2, noise=1, random_state=42)
 
     # randomly designate each sample as source (True) or target (False)
     rng = np.random.default_rng(42)
     source_idx = rng.choice([False, True], size=n_samples)
     # mask target labels
     y[~source_idx] = _DEFAULT_MASKED_TARGET_REGRESSION_LABEL
-    assert np.any(~np.isfinite(y)), 'at least one label is masked'
+    assert np.any(~np.isfinite(y)), "at least one label is masked"
 
     X_output, y_output, _ = _remove_masked(X, y, {})
-    assert np.all(np.isfinite(y_output)), 'masks are removed'
+    assert np.all(np.isfinite(y_output)), "masks are removed"
 
     n_source_samples = np.sum(source_idx)
-    assert X_output.shape[0] == n_source_samples, 'X output shape mismatch'
+    assert X_output.shape[0] == n_source_samples, "X output shape mismatch"
     assert X_output.shape[0] == y_output.shape[0]
 
 
@@ -154,7 +145,7 @@ def test_selector_inherits_routing(estimator_cls):
     lr = LogisticRegression().set_fit_request(sample_weight=True)
     estimator = estimator_cls(lr)
     routing = get_routing_for_object(estimator)
-    assert 'sample_weight' in routing.consumes('fit', ['sample_weight'])
+    assert "sample_weight" in routing.consumes("fit", ["sample_weight"])
 
 
 def test_selector_rejects_incompatible_adaptation_output():

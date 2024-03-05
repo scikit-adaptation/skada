@@ -3,7 +3,7 @@ JDOT Regressor and Classifier examples
 ======================================
 
 This example shows how to use the JDOTRegressor [10] to learn a regression model
-from source to target domain on a simple concept drift 2D exemple. We use a
+from source to target domain on a simple concept drift 2D example. We use a
 simple Kernel Ridge Regression (KRR) as base estimator.
 
 We compare the performance of the KRR on the source and target domain, and the
@@ -21,20 +21,16 @@ the OT plan between samples estimated by JDOT.
 # License: BSD 3-Clause
 # sphinx_gallery_thumbnail_number = 4
 
-
 # %% Imports
-from sklearn.linear_model import LogisticRegression
-from sklearn.svm import SVC
-import numpy as np
 import matplotlib.pyplot as plt
-
-from sklearn.metrics import mean_squared_error
+import numpy as np
 from sklearn.kernel_ridge import KernelRidge
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import mean_squared_error
+from sklearn.svm import SVC
 
-from skada import JDOTRegressor, JDOTClassifier
+from skada import JDOTClassifier, JDOTRegressor, source_target_split
 from skada.datasets import make_shifted_datasets
-from skada import source_target_split
-
 
 # %%
 # Generate concept drift regression dataset and plot it
@@ -43,15 +39,15 @@ from skada import source_target_split
 # We generate a simple 2D concept drift dataset.
 
 X, y, sample_domain = make_shifted_datasets(
-        n_samples_source=20,
-        n_samples_target=20,
-        shift="concept_drift",
-        noise=0.3,
-        label="regression",
-        random_state=42,
-    )
+    n_samples_source=20,
+    n_samples_target=20,
+    shift="concept_drift",
+    noise=0.3,
+    label="regression",
+    random_state=42,
+)
 
-y = (y-y.mean())/y.std()
+y = (y - y.mean()) / y.std()
 
 Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 
@@ -77,7 +73,7 @@ plt.axis(ax)
 # boundary learned by the KRR.
 
 
-clf = KernelRidge(kernel='rbf', alpha=0.5)
+clf = KernelRidge(kernel="rbf", alpha=0.5)
 clf.fit(Xs, ys)
 
 # Compute accuracy on source and target
@@ -97,13 +93,13 @@ Z = clf.predict(np.c_[XX.ravel(), YY.ravel()]).reshape(XX.shape)
 plt.figure(2, (10, 5))
 plt.subplot(1, 2, 1)
 plt.scatter(Xs[:, 0], Xs[:, 1], c=ys, label="Prediction")
-plt.imshow(Z, extent=(ax[0], ax[1], ax[2], ax[3]), origin='lower', alpha=0.5)
+plt.imshow(Z, extent=(ax[0], ax[1], ax[2], ax[3]), origin="lower", alpha=0.5)
 plt.title(f"KRR Prediction on source (MSE={mse_s:.2f})")
 plt.axis(ax)
 
 plt.subplot(1, 2, 2)
 plt.scatter(Xt[:, 0], Xt[:, 1], c=yt, label="Prediction")
-plt.imshow(Z, extent=(ax[0], ax[1], ax[2], ax[3]), origin='lower', alpha=0.5)
+plt.imshow(Z, extent=(ax[0], ax[1], ax[2], ax[3]), origin="lower", alpha=0.5)
 plt.title(f"KRR Prediction on target (MSE={mse_t:.2f})")
 plt.axis(ax)
 
@@ -119,7 +115,7 @@ plt.axis(ax)
 # domain than with the KRR trained on source.
 
 
-jdot = JDOTRegressor(base_estimator=KernelRidge(kernel='rbf', alpha=0.5), alpha=0.01)
+jdot = JDOTRegressor(base_estimator=KernelRidge(kernel="rbf", alpha=0.5), alpha=0.01)
 
 jdot.fit(X, y, sample_domain=sample_domain)
 
@@ -137,13 +133,13 @@ print(f"JDOT MSE on target: {mse_t:.2f}")
 plt.figure(3, (10, 5))
 plt.subplot(1, 2, 1)
 plt.scatter(Xs[:, 0], Xs[:, 1], c=ys, label="Prediction")
-plt.imshow(Zjdot, extent=(ax[0], ax[1], ax[2], ax[3]), origin='lower', alpha=0.5)
+plt.imshow(Zjdot, extent=(ax[0], ax[1], ax[2], ax[3]), origin="lower", alpha=0.5)
 plt.title(f"JDOT Prediction on source (MSE={mse_s:.2f})")
 plt.axis(ax)
 
 plt.subplot(1, 2, 2)
 plt.scatter(Xt[:, 0], Xt[:, 1], c=yt, label="Prediction")
-plt.imshow(Zjdot, extent=(ax[0], ax[1], ax[2], ax[3]), origin='lower', alpha=0.5)
+plt.imshow(Zjdot, extent=(ax[0], ax[1], ax[2], ax[3]), origin="lower", alpha=0.5)
 plt.title(f"JDOT Prediction on target (MSE={mse_t:.2f})")
 plt.axis(ax)
 
@@ -156,17 +152,19 @@ plt.axis(ax)
 # is able to align the source and target samples while preserving the label.
 
 T = jdot.sol_.plan
-T = T/T.max()
+T = T / T.max()
 
 plt.figure(4, (5, 5))
 
-plt.scatter(Xs[:, 0], Xs[:, 1], c='C0', label="Source", alpha=0.7)
-plt.scatter(Xt[:, 0], Xt[:, 1], c='C1', label="Target", alpha=0.7)
+plt.scatter(Xs[:, 0], Xs[:, 1], c="C0", label="Source", alpha=0.7)
+plt.scatter(Xt[:, 0], Xt[:, 1], c="C1", label="Target", alpha=0.7)
 
 for i in range(Xs.shape[0]):
     for j in range(Xt.shape[0]):
         if T[i, j] > 0.01:
-            plt.plot([Xs[i, 0], Xt[j, 0]], [Xs[i, 1], Xt[j, 1]], 'k', alpha=T[i, j]*0.8)
+            plt.plot(
+                [Xs[i, 0], Xt[j, 0]], [Xs[i, 1], Xt[j, 1]], "k", alpha=T[i, j] * 0.8
+            )
 plt.legend()
 plt.title("OT plan between source and target")
 
@@ -178,13 +176,13 @@ plt.title("OT plan between source and target")
 # We generate a simple 2D concept drift dataset.
 
 X, y, sample_domain = make_shifted_datasets(
-        n_samples_source=20,
-        n_samples_target=20,
-        shift="concept_drift",
-        noise=0.2,
-        label="multiclass",
-        random_state=42,
-    )
+    n_samples_source=20,
+    n_samples_target=20,
+    shift="concept_drift",
+    noise=0.2,
+    label="multiclass",
+    random_state=42,
+)
 
 
 Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
@@ -192,12 +190,12 @@ Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 
 plt.figure(5, (10, 5))
 plt.subplot(1, 2, 1)
-plt.scatter(Xs[:, 0], Xs[:, 1], c=ys, cmap='tab10', vmax=9, label="Source")
+plt.scatter(Xs[:, 0], Xs[:, 1], c=ys, cmap="tab10", vmax=9, label="Source")
 plt.title("Source data")
 ax = plt.axis()
 
 plt.subplot(1, 2, 2)
-plt.scatter(Xt[:, 0], Xt[:, 1], c=yt, cmap='tab10', vmax=9, label="Target")
+plt.scatter(Xt[:, 0], Xt[:, 1], c=yt, cmap="tab10", vmax=9, label="Target")
 plt.title("Target data")
 plt.axis(ax)
 
@@ -229,35 +227,27 @@ Z = clf.predict(np.c_[XX.ravel(), YY.ravel()]).reshape(XX.shape)
 
 plt.figure(6, (10, 5))
 plt.subplot(1, 2, 1)
-plt.scatter(Xs[:, 0], Xs[:, 1], c=ys, cmap='tab10', vmax=9, label="Prediction")
+plt.scatter(Xs[:, 0], Xs[:, 1], c=ys, cmap="tab10", vmax=9, label="Prediction")
 plt.imshow(
     Z,
-    extent=(
-        ax[0],
-        ax[1],
-        ax[2],
-        ax[3]),
-    origin='lower',
+    extent=(ax[0], ax[1], ax[2], ax[3]),
+    origin="lower",
     alpha=0.5,
-    cmap='tab10',
+    cmap="tab10",
     vmax=9,
-        )
+)
 plt.title(f"SVC Prediction on source (ACC={acc_s:.2f})")
 
 plt.subplot(1, 2, 2)
-plt.scatter(Xt[:, 0], Xt[:, 1], c=yt, cmap='tab10', vmax=9, label="Prediction")
+plt.scatter(Xt[:, 0], Xt[:, 1], c=yt, cmap="tab10", vmax=9, label="Prediction")
 plt.imshow(
     Z,
-    extent=(
-        ax[0],
-        ax[1],
-        ax[2],
-        ax[3]),
-    origin='lower',
+    extent=(ax[0], ax[1], ax[2], ax[3]),
+    origin="lower",
     alpha=0.5,
-    cmap='tab10',
+    cmap="tab10",
     vmax=9,
-        )
+)
 plt.title(f"SVC Prediction on target (ACC={acc_t:.2f})")
 plt.axis(ax)
 
@@ -292,35 +282,27 @@ Z = jdot.predict(np.c_[XX.ravel(), YY.ravel()]).reshape(XX.shape)
 
 plt.figure(7, (10, 5))
 plt.subplot(1, 2, 1)
-plt.scatter(Xs[:, 0], Xs[:, 1], c=ys, cmap='tab10', vmax=9, label="Prediction")
+plt.scatter(Xs[:, 0], Xs[:, 1], c=ys, cmap="tab10", vmax=9, label="Prediction")
 plt.imshow(
     Z,
-    extent=(
-        ax[0],
-        ax[1],
-        ax[2],
-        ax[3]),
-    origin='lower',
+    extent=(ax[0], ax[1], ax[2], ax[3]),
+    origin="lower",
     alpha=0.5,
-    cmap='tab10',
+    cmap="tab10",
     vmax=9,
-        )
+)
 plt.title(f"JDOT reglog on source (ACC={acc_s:.2f})")
 
 plt.subplot(1, 2, 2)
-plt.scatter(Xt[:, 0], Xt[:, 1], c=yt, cmap='tab10', vmax=9, label="Prediction")
+plt.scatter(Xt[:, 0], Xt[:, 1], c=yt, cmap="tab10", vmax=9, label="Prediction")
 plt.imshow(
     Z,
-    extent=(
-        ax[0],
-        ax[1],
-        ax[2],
-        ax[3]),
-    origin='lower',
+    extent=(ax[0], ax[1], ax[2], ax[3]),
+    origin="lower",
     alpha=0.5,
-    cmap='tab10',
+    cmap="tab10",
     vmax=9,
-        )
+)
 plt.title(f"JDOT reglog on target (ACC={acc_t:.2f})")
 plt.axis(ax)
 
@@ -334,7 +316,7 @@ plt.axis(ax)
 # Note that in this case it is necessary to change the metric from the default
 # 'multinomial' to 'hinge' to match the hinge loss used by the SVC.
 
-jdot = JDOTClassifier(SVC(kernel='rbf', C=1), metric='hinge')
+jdot = JDOTClassifier(SVC(kernel="rbf", C=1), metric="hinge")
 
 jdot.fit(X, y, sample_domain=sample_domain)
 
@@ -353,34 +335,26 @@ Z = jdot.predict(np.c_[XX.ravel(), YY.ravel()]).reshape(XX.shape)
 
 plt.figure(8, (10, 5))
 plt.subplot(1, 2, 1)
-plt.scatter(Xs[:, 0], Xs[:, 1], c=ys, cmap='tab10', vmax=9, label="Prediction")
+plt.scatter(Xs[:, 0], Xs[:, 1], c=ys, cmap="tab10", vmax=9, label="Prediction")
 plt.imshow(
     Z,
-    extent=(
-        ax[0],
-        ax[1],
-        ax[2],
-        ax[3]),
-    origin='lower',
+    extent=(ax[0], ax[1], ax[2], ax[3]),
+    origin="lower",
     alpha=0.5,
-    cmap='tab10',
+    cmap="tab10",
     vmax=9,
-        )
+)
 plt.title(f"JDOT SVC on source (ACC={acc_s:.2f})")
 
 plt.subplot(1, 2, 2)
-plt.scatter(Xt[:, 0], Xt[:, 1], c=yt, cmap='tab10', vmax=9, label="Prediction")
+plt.scatter(Xt[:, 0], Xt[:, 1], c=yt, cmap="tab10", vmax=9, label="Prediction")
 plt.imshow(
     Z,
-    extent=(
-        ax[0],
-        ax[1],
-        ax[2],
-        ax[3]),
-    origin='lower',
+    extent=(ax[0], ax[1], ax[2], ax[3]),
+    origin="lower",
     alpha=0.5,
-    cmap='tab10',
+    cmap="tab10",
     vmax=9,
-        )
+)
 plt.title(f"JDOT SVC on target (ACC={acc_t:.2f})")
 plt.axis(ax)

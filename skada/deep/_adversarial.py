@@ -4,29 +4,27 @@
 import math
 
 import numpy as np
-
 import torch
 from torch import nn
 
 from skada.deep.base import (
-    DomainAwareModule,
-    DomainAwareCriterion,
-    DomainBalancedDataLoader,
-    DomainAwareNet,
     BaseDALoss,
+    DomainAwareCriterion,
+    DomainAwareModule,
+    DomainAwareNet,
+    DomainBalancedDataLoader,
 )
-from .modules import DomainClassifier
-
-from .utils import check_generator
-
 from skada.utils import extract_source_indices
+
+from .modules import DomainClassifier
+from .utils import check_generator
 
 
 class DANNLoss(BaseDALoss):
     """Loss DANN.
 
     This loss tries to minimize the divergence between features with
-    adversarial method. The weigths are updated to make harder
+    adversarial method. The weights are updated to make harder
     to classify domains (i.e., remove domain-specific features)
     See [15]_.
 
@@ -44,7 +42,7 @@ class DANNLoss(BaseDALoss):
     """
 
     def __init__(self, domain_criterion=None):
-        super(DANNLoss, self).__init__()
+        super().__init__()
         if domain_criterion is None:
             self.domain_criterion_ = torch.nn.BCELoss()
         else:
@@ -85,7 +83,7 @@ def DANN(
     domain_classifier=None,
     num_features=None,
     domain_criterion=None,
-    **kwargs
+    **kwargs,
 ):
     """Domain-Adversarial Training of Neural Networks (DANN).
 
@@ -137,7 +135,7 @@ def DANN(
             DANNLoss(domain_criterion=domain_criterion),
             reg=reg,
         ),
-        **kwargs
+        **kwargs,
     )
     return net
 
@@ -146,7 +144,7 @@ class CDANLoss(BaseDALoss):
     """Conditional Domain Adversarial Networks (CDAN) loss.
 
     This loss tries to minimize the divergence between features with
-    adversarial method. The weigths are updated to make harder
+    adversarial method. The weights are updated to make harder
     to classify domains (i.e., remove domain-specific features)
     via multilinear conditioning that captures the crosscovariance between
     feature representations and classifier predictions
@@ -167,7 +165,7 @@ class CDANLoss(BaseDALoss):
     """
 
     def __init__(self, domain_criterion=None):
-        super(CDANLoss, self).__init__()
+        super().__init__()
         if domain_criterion is None:
             self.domain_criterion_ = torch.nn.BCELoss()
         else:
@@ -230,7 +228,7 @@ class CDANModule(DomainAwareModule):
     def __init__(
         self, module, layer_name, domain_classifier, max_features=4096, random_state=42
     ):
-        super(CDANModule, self).__init__(module, layer_name, domain_classifier)
+        super().__init__(module, layer_name, domain_classifier)
         self.max_features = max_features
         self.random_state = random_state
 
@@ -277,7 +275,7 @@ class CDANModule(DomainAwareModule):
 
             domain_pred_s = self.domain_classifier_(multilinear_map)
             domain_pred_t = self.domain_classifier_(multilinear_map_target)
-            domain_pred = torch.empty((len(sample_domain)))
+            domain_pred = torch.empty(len(sample_domain))
             domain_pred[source_idx] = domain_pred_s
             domain_pred[~source_idx] = domain_pred_t
 
@@ -310,7 +308,7 @@ def CDAN(
     domain_classifier=None,
     num_features=None,
     domain_criterion=None,
-    **kwargs
+    **kwargs,
 ):
     """Conditional Domain Adversarial Networks (CDAN).
 
@@ -365,7 +363,7 @@ def CDAN(
             CDANLoss(domain_criterion=domain_criterion),
             reg=reg,
         ),
-        **kwargs
+        **kwargs,
     )
     return net
 
@@ -384,7 +382,7 @@ class _RandomLayer(nn.Module):
     """
 
     def __init__(self, random_state, input_dims, output_dim=4096):
-        super(_RandomLayer, self).__init__()
+        super().__init__()
         gen = check_generator(random_state)
         self.output_dim = output_dim
         self.random_matrix = [

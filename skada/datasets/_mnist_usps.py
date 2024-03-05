@@ -4,8 +4,8 @@
 
 # skip if torchvision not installed
 try:
-    import torchvision
     import torch
+    import torchvision
     from torchvision import transforms
 except ImportError:
     torchvision = False
@@ -75,7 +75,7 @@ def load_mnist_usps(
     mnist_target = mnist_target[mnist_target < n_classes]
 
     selected_samples = rng.choice(
-        np.linspace(0, len(mnist_data)-1, len(mnist_data)),
+        np.linspace(0, len(mnist_data) - 1, len(mnist_data)),
         int(n_samples * len(mnist_data)),
     )
     mnist_data = mnist_data[selected_samples]
@@ -101,7 +101,7 @@ def load_mnist_usps(
     usps_target = usps_target[usps_target < n_classes]
 
     selected_samples = rng.choice(
-        np.linspace(0, len(usps_data)-1, len(usps_data)),
+        np.linspace(0, len(usps_data) - 1, len(usps_data)),
         int(n_samples * len(usps_data)),
     )
     usps_data = usps_data[selected_samples]

@@ -5,16 +5,14 @@
 # License: BSD 3-Clause
 
 import numpy as np
-
 from sklearn.decomposition import PCA
 from sklearn.metrics.pairwise import pairwise_kernels
-from sklearn.utils import check_random_state
 from sklearn.svm import SVC
+from sklearn.utils import check_random_state
 
-from .base import BaseAdapter
-from .utils import check_X_domain, source_target_split
-from .utils import source_target_merge
 from ._pipeline import make_da_pipeline
+from .base import BaseAdapter
+from .utils import check_X_domain, source_target_merge, source_target_split
 
 
 class SubspaceAlignmentAdapter(BaseAdapter):
@@ -131,10 +129,9 @@ class SubspaceAlignmentAdapter(BaseAdapter):
         self.pca_source_ = PCA(n_components, random_state=self.random_state_).fit(
             X_source
         )
-        self.pca_target_ = PCA(
-            n_components,
-            random_state=self.random_state_
-        ).fit(X_target)
+        self.pca_target_ = PCA(n_components, random_state=self.random_state_).fit(
+            X_target
+        )
         self.n_components_ = n_components
         self.M_ = np.dot(self.pca_source_.components_, self.pca_target_.components_.T)
         return self
@@ -222,12 +219,7 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
            on Neural Networks, 2011.
     """
 
-    def __init__(
-        self,
-        kernel='rbf',
-        n_components=None,
-        mu=0.1
-    ):
+    def __init__(self, kernel="rbf", n_components=None, mu=0.1):
         super().__init__()
         self.kernel = kernel
         self.n_components = n_components
@@ -257,8 +249,7 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
             allow_multi_target=True,
         )
         self.X_source_, self.X_target_ = source_target_split(
-            X,
-            sample_domain=sample_domain
+            X, sample_domain=sample_domain
         )
 
         Kss = pairwise_kernels(self.X_source_, metric=self.kernel)
@@ -269,12 +260,12 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
 
         ns = self.X_source_.shape[0]
         nt = self.X_target_.shape[0]
-        Lss = 1/ns**2 * np.ones((ns, ns))
-        Ltt = 1/nt**2 * np.ones((nt, nt))
-        Lst = -1/(ns*nt) * np.ones((ns, nt))
+        Lss = 1 / ns**2 * np.ones((ns, ns))
+        Ltt = 1 / nt**2 * np.ones((nt, nt))
+        Lst = -1 / (ns * nt) * np.ones((ns, nt))
         L = np.block([[Lss, Lst], [Lst.T, Ltt]])
 
-        H = np.eye(ns+nt) - 1/(ns + nt) * np.ones((ns + nt, ns + nt))
+        H = np.eye(ns + nt) - 1 / (ns + nt) * np.ones((ns + nt, ns + nt))
 
         A = np.eye(ns + nt) + self.mu * K @ L @ K
         B = K @ H @ K
@@ -325,20 +316,17 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
         if np.array_equal(X_source, self.X_source_) and np.array_equal(
             X_target, self.X_target_
         ):
-            X_ = (self.K_ @ self.eigvects_)[:X.shape[0]]
+            X_ = (self.K_ @ self.eigvects_)[: X.shape[0]]
         else:
             Ks = pairwise_kernels(X, self.X_source_, metric=self.kernel)
             Kt = pairwise_kernels(X, self.X_target_, metric=self.kernel)
             K = np.concatenate((Ks, Kt), axis=1)
-            X_ = (K @ self.eigvects_)[:X.shape[0]]
+            X_ = (K @ self.eigvects_)[: X.shape[0]]
         return X_
 
 
 def TransferComponentAnalysis(
-    base_estimator=None,
-    kernel='rbf',
-    n_components=None,
-    mu=0.1
+    base_estimator=None, kernel="rbf", n_components=None, mu=0.1
 ):
     """Domain Adaptation Using Transfer Component Analysis.
 
@@ -374,9 +362,7 @@ def TransferComponentAnalysis(
 
     return make_da_pipeline(
         TransferComponentAnalysisAdapter(
-            kernel=kernel,
-            n_components=n_components,
-            mu=mu
+            kernel=kernel, n_components=n_components, mu=mu
         ),
         base_estimator,
     )

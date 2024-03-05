@@ -8,8 +8,10 @@ from torch.autograd import Function
 
 
 class ToyModule2D(torch.nn.Module):
+    """XXX add docstring here."""
+
     def __init__(self, n_classes=2, num_features=10, nonlin=torch.nn.ReLU()):
-        super(ToyModule2D, self).__init__()
+        super().__init__()
 
         self.dense0 = torch.nn.Linear(2, num_features)
         self.nonlin = nonlin
@@ -20,6 +22,7 @@ class ToyModule2D(torch.nn.Module):
         self,
         X,
     ):
+        """XXX add docstring here."""
         X = self.nonlin(self.dense0(X))
         X = self.dropout(X)
         X = self.dense1(X)
@@ -44,17 +47,18 @@ class ToyCNN(nn.Module):
     def __init__(
         self, n_channels, input_size, n_classes, kernel_size=64, out_channels=10
     ):
-        super(ToyCNN, self).__init__()
+        super().__init__()
 
         self.feature_extractor = nn.Sequential(
             nn.Conv1d(n_channels, out_channels, kernel_size),
             nn.ReLU(),
-            nn.AvgPool1d(kernel_size)
+            nn.AvgPool1d(kernel_size),
         )
         self.num_features = self._num_features(n_channels, input_size)
         self.fc = nn.Linear(self.num_features, n_classes)
 
     def forward(self, x):
+        """XXX add docstring here."""
         x = self.feature_extractor(x)
         x = self.fc(x.flatten(start_dim=1))
         return x
@@ -62,25 +66,27 @@ class ToyCNN(nn.Module):
     def _num_features(self, n_channels, input_size):
         self.feature_extractor.eval()
         with torch.no_grad():
-            out = self.feature_extractor(
-                torch.Tensor(1, n_channels, input_size))
+            out = self.feature_extractor(torch.Tensor(1, n_channels, input_size))
         self.feature_extractor.train()
         return len(out.flatten())
 
 
 class GradientReversalLayer(Function):
     """Leaves the input unchanged during forward propagation
-       and reverses the gradient by multiplying it by a
-       negative scalar during the backpropagation.
+    and reverses the gradient by multiplying it by a
+    negative scalar during the backpropagation.
     """
+
     @staticmethod
     def forward(ctx, x, alpha):
+        """XXX add docstring here."""
         ctx.alpha = alpha
 
         return x.view_as(x)
 
     @staticmethod
     def backward(ctx, grad_output):
+        """XXX add docstring here."""
         output = grad_output.neg() * ctx.alpha
         return output, None
 
@@ -103,19 +109,14 @@ class DomainClassifier(nn.Module):
             Research, 2016.
     """
 
-    def __init__(
-        self,
-        num_features,
-        n_classes=1,
-        alpha=1
-    ):
+    def __init__(self, num_features, n_classes=1, alpha=1):
         super().__init__()
         self.classifier = nn.Sequential(
             nn.Linear(num_features, 100),
             nn.BatchNorm1d(100),
             nn.ReLU(),
             nn.Linear(100, n_classes),
-            nn.Sigmoid()
+            nn.Sigmoid(),
         )
         self.alpha = alpha
 
@@ -123,7 +124,7 @@ class DomainClassifier(nn.Module):
         """Forward pass.
 
         Parameters
-        ---------
+        ----------
         x: torch.Tensor
             Batch of EEG windows of shape (batch_size, n_channels, n_times).
         alpha: float
@@ -134,8 +135,10 @@ class DomainClassifier(nn.Module):
 
 
 class MNISTtoUSPSNet(nn.Module):
+    """XXX add docstring here."""
+
     def __init__(self):
-        super(MNISTtoUSPSNet, self).__init__()
+        super().__init__()
         self.conv1 = nn.Conv2d(1, 32, 3, 1)
         self.relu1 = nn.ReLU()
         self.conv2 = nn.Conv2d(32, 64, 3, 1)
@@ -148,6 +151,7 @@ class MNISTtoUSPSNet(nn.Module):
         self.maxpool = nn.MaxPool2d(2)
 
     def forward(self, x):
+        """XXX add docstring here."""
         x = self.conv1(x)
         x = self.relu1(x)
         x = self.conv2(x)

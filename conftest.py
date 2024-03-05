@@ -1,7 +1,7 @@
 import numpy as np
-from skada.datasets import DomainAwareDataset, make_shifted_blobs, make_shifted_datasets
-
 import pytest
+
+from skada.datasets import DomainAwareDataset, make_shifted_blobs, make_shifted_datasets
 
 
 @pytest.fixture(scope='function', autouse=True)

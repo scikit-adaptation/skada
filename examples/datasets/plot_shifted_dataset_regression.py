@@ -22,11 +22,11 @@ See detailed description of each shift in [1]_.
 
 import matplotlib.pyplot as plt
 
-from skada.datasets import make_shifted_datasets
 from skada import source_target_split
-
+from skada.datasets import make_shifted_datasets
 
 # %% Helper function
+
 
 def plot_shifted_dataset(shift, random_state=42):
     """Plot source and shifted target data for a given type of shift.
@@ -46,7 +46,8 @@ def plot_shifted_dataset(shift, random_state=42):
         random_state=random_state,
     )
     X_source, X_target, y_source, y_target = source_target_split(
-        X, y, sample_domain=sample_domain)
+        X, y, sample_domain=sample_domain
+    )
 
     fig, (ax1, ax2) = plt.subplots(1, 2, sharex="row", sharey="row", figsize=(8, 4))
     fig.suptitle(shift.replace("_", " ").title(), fontsize=14)
@@ -57,7 +58,7 @@ def plot_shifted_dataset(shift, random_state=42):
         c=y_source,
         vmax=max(y),
         alpha=0.5,
-        cmap="autumn"
+        cmap="autumn",
     )
     ax1.set_title("Source data")
     ax1.set_xlabel("Feature 1")
@@ -69,7 +70,7 @@ def plot_shifted_dataset(shift, random_state=42):
         c=y_target,
         vmax=max(y),
         alpha=0.5,
-        cmap="autumn"
+        cmap="autumn",
     )
     ax2.set_title("Target data")
     ax2.set_xlabel("Feature 1")
@@ -85,10 +86,5 @@ def plot_shifted_dataset(shift, random_state=42):
 
 # %% Visualize shifted datasets
 
-for shift in [
-    "covariate_shift",
-    "target_shift",
-    "concept_drift",
-    "subspace"
-]:
+for shift in ["covariate_shift", "target_shift", "concept_drift", "subspace"]:
     plot_shifted_dataset(shift)

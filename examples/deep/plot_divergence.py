@@ -16,8 +16,8 @@ on a simple image classification task.
 # sphinx_gallery_thumbnail_number = 4
 
 # %%
-from torch import nn
 from skorch import NeuralNetClassifier
+from torch import nn
 
 from skada.datasets import load_mnist_usps
 from skada.deep import DeepCoral
