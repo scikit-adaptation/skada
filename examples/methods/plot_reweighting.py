@@ -229,11 +229,15 @@ create_plots(
 # Here the adapter based on re-weighting samples using
 # density estimation.
 
+# We define our classifier, `clf` is a da pipeline
 clf = ReweightDensity(
         base_estimator=base_classifier,
         weight_estimator=KernelDensity(bandwidth=0.5),
     )
-# We get the weights
+
+# We get the weights:
+
+# we first get the adapter which is estimating the weights
 weight_estimator = clf[0].base_estimator
 weight_estimator.fit(X, sample_domain=sample_domain)
 idx = extract_source_indices(sample_domain)
@@ -256,7 +260,7 @@ create_plots(
 #         covariate shift by weighting the log-likelihood function.
 #         In Journal of Statistical Planning and Inference, 2000.
 
-
+# We define our classifier, `clf` is a da pipeline
 clf = GaussianReweightDensity(base_classifier)
 # We get the weights
 weight_estimator = clf[0].base_estimator
@@ -282,9 +286,13 @@ create_plots(
 #           covariate shift by weighting the log-likelihood function.
 #           In Journal of Statistical Planning and Inference, 2000.
 
+# We define our classifier, `clf` is a da pipeline
 clf = DiscriminatorReweightDensity(
         base_classifier)
-# We get the weights
+
+# We get the weights:
+
+# we first get the adapter which is estimating the weights
 weight_estimator = clf[0].base_estimator
 weight_estimator.fit(X, sample_domain=sample_domain)
 idx = extract_source_indices(sample_domain)
@@ -313,10 +321,14 @@ create_plots(
 #        and Its Application to Covariate Shift Adaptation.
 #        In NeurIPS, 2007.
 
+# We define our classifier, `clf` is a da pipeline
 clf = KLIEP(
         LogisticRegression().set_fit_request(
             sample_weight=True), gamma=[1, 0.1, 0.001])
-# We get the weights
+
+# We get the weights:
+
+# we first get the adapter which is estimating the weights
 weight_estimator = clf[0].base_estimator
 weight_estimator.fit(X, sample_domain=sample_domain)
 idx = extract_source_indices(sample_domain)
@@ -345,10 +357,14 @@ create_plots(
 #        In 2012 IEEE International Workshop on Machine
 #        Learning for Signal Processing, pages 1–6. IEEE
 
+# We define our classifier, `clf` is a da pipeline
 clf = NearestNeighborReweightDensity(
         base_classifier,
         laplace_smoothing=True)
-# We get the weights
+
+# We get the weights:
+
+# we first get the adapter which is estimating the weights
 weight_estimator = clf[0].base_estimator
 weight_estimator.fit(X, sample_domain=sample_domain)
 idx = extract_source_indices(sample_domain)
@@ -373,10 +389,13 @@ create_plots(
 # .. [5] J. Huang, A. Gretton, K. Borgwardt, B. Schölkopf and A. J. Smola.
 #        Correcting sample selection bias by unlabeled data. In NIPS, 2007.
 
-
+# We define our classifier, `clf` is a da pipeline
 clf = KMM(base_classifier,
         gamma=10., max_iter=1000, smooth_weights=False)
-# We get the weights
+
+# We get the weights:
+
+# we first get the adapter which is estimating the weights
 weight_estimator = clf[0].base_estimator
 weight_estimator.fit(X, sample_domain=sample_domain)
 idx = extract_source_indices(sample_domain)
@@ -390,9 +409,13 @@ create_plots(
     name="Kernel Mean Matching",
     suptitle="Illustration of KMM without weights smoothing")
 
+# We define our classifier, `clf` is a da pipeline
 clf = KMM(base_classifier,
         gamma=10., max_iter=1000, smooth_weights=True)
-# We get the weights
+
+# We get the weights:
+
+# we first get the adapter which is estimating the weights
 weight_estimator = clf[0].base_estimator
 weight_estimator.fit(X, sample_domain=sample_domain)
 idx = extract_source_indices(sample_domain)
