@@ -200,10 +200,9 @@ create_plots(
 # %%
 #     Illustration of the Reweight Density method
 # ------------------------------------------
-# .. _Reweight Density
 #
-# Here the adapter based on re-weighting samples using
-# density estimation.
+# This method is trying to compute the optimal weights as a ratio of two probability
+# functions, by default, it is the ratio of two kernel densities estimations.
 
 # We define our classifier, `clf` is a da pipeline
 clf = ReweightDensity(
@@ -225,7 +224,10 @@ create_plots(clf, weights=weights, name="Reweight Density")
 # %%
 #     Illustration of the Gaussian reweighting method
 # ------------------------------------------
-# .. _Gaussian Reweight Density
+# This method tries to approximate the optimal weights by assuming that the data are
+# normally distributed, and thus approximating the probability functions for both source
+# and target set, and setting the weight to be the ratio of the two.
+#
 # See [1] for details.
 #
 # .. [1]  Hidetoshi Shimodaira. Improving predictive inference under
@@ -246,7 +248,10 @@ create_plots(clf, weights=weights, name="Gaussian Reweight Density")
 # %%
 #     Illustration of the Discr. reweighting method
 # ------------------------------------------
-# .. _Discr. Reweight Density
+#
+# This estimator derive a class of predictive densities by weighting the source samples
+# when trying to maximize the log-likelihood function. Such approach is effective in
+# cases of covariate shift.
 #
 # See [2] for details.
 #
