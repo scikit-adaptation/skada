@@ -33,13 +33,15 @@ from skada import (
 )
 
 # %%
+#
 #     The reweighting methods
 # ------------------------------------------
-#
 # The goal of reweighting methods is to estimate some weights for the
 # source dataset in order to then fit a estimator on the source dataset,
 # while taking those weights into account, so that the fitted estimator is
 # well suited to predicting labels from points drawn from the target distribution.
+#
+# Reweighting methods implemented and illustrated are the following: ##
 #
 # For more details, look at [0].
 #
@@ -48,6 +50,7 @@ from skada import (
 #        covariate shift adaptation. Annals of the Institute of Statistical
 #        Mathematics, 60(4):699–746.
 #        https://www.ism.ac.jp/editsec/aism/pdf/060_4_0699.pdf
+
 
 base_classifier = LogisticRegression().set_fit_request(sample_weight=True)
 
