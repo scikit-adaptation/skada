@@ -34,21 +34,9 @@ from skada import (
 )
 
 # %%
-#     The reweighting methods
+#     The subspaces methods
 # ------------------------------------------
 #
-# The goal of reweighting methods is to estimate some weights for the
-# source dataset in order to then fit a estimator on the source dataset,
-# while taking those weights into account, so that the fitted estimator is
-# well suited to predicting labels from points drawn from the target distribution.
-#
-# For more details, look at [0].
-#
-# .. [0] [Sugiyama et al., 2008] Sugiyama, M., Suzuki, T., Nakajima, S., Kashima, H.,
-#        von Bünau, P., and Kawanabe, M. (2008). Direct importance estimation for
-#        covariate shift adaptation. Annals of the Institute of Statistical
-#        Mathematics, 60(4):699–746.
-#        https://www.ism.ac.jp/editsec/aism/pdf/060_4_0699.pdf
 
 base_classifier = LogisticRegression().set_fit_request(sample_weight=True)
 
@@ -216,46 +204,40 @@ def create_plots(
 
 
 create_plots(
-    LogisticRegression(), "Without DA",
+    base_classifier, "Without DA",
     suptitle="Illustration of the classifier with no DA")
 
-# %%
-#     Illustration of the Reweight Density method
+
+# Subspace#     Illustration of the subspace Alignment method
 # ------------------------------------------
 #
-# Here the adapter based on re-weighting samples using
-# density estimation.
+
+create_plots(
+    SubspaceAlignment(base_classifier, n_components=1),
+    "Subspace Alignment")
+
+# %%
+#     Illustration of the Transfer Component Analysis method
+# ------------------------------------------
+#
+# The TCA ...
 
 create_plots(
     TransferComponentAnalysis(base_classifier, n_components=1),
     "tca")
 
-
 # %%
-#     Illustration of the Reweight Density method
+#     Illustration of the TJM method
 # ------------------------------------------
 #
-# Here the adapter based on re-weighting samples using
-# density estimation.
 
-create_plots(
-    SubspaceAlignment(base_classifier, n_components=1),
-    "SubspaceAlignment")
-
-
-# %%
-#     Illustration of the Reweight Density method
-# ------------------------------------------
-#
-# Here the adapter based on re-weighting samples using
-# density estimation.
 create_plots(
     TJM(base_classifier, l=0.1, k=1),
-    f"tjm")
+    f"TJM")
 
 
 # %%
-#     omparisaon of score between reweighting methods:
+#     Comparisaon of score between reweighting methods:
 # ------------------------------------------
 
 
