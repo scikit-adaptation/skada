@@ -160,9 +160,7 @@ def create_plots(
 
     if name != "Without DA":
         # We get the weights
-        keys = list(clf.named_steps.keys())
-        weight_estimator = clf.named_steps[
-            keys[0]].base_estimator
+        weight_estimator = clf[0].base_estimator
         weight_estimator.fit(X, sample_domain=sample_domain)
         idx = sample_domain > 0
         size = 1 + 8*weight_estimator.adapt(
