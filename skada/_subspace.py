@@ -522,6 +522,7 @@ class TJMAdapter(BaseAdapter):
         self.random_state_ = check_random_state(self.random_state)
 
         n = X.shape[0]
+        ns = (sample_domain>0).shape[0]
         H = np.identity(n) - 1/n * np.ones((n, n))
         M = self._get_mmd_matrix(
             X_source.shape[0], X_target.shape[0], sample_domain)
@@ -549,6 +550,10 @@ class TJMAdapter(BaseAdapter):
                     else:
                         G[j, j] = 1 / (2 * np.linalg.norm(a))
             self.A_ = A
+            l21 = self.l21_norm(A[:ns])
+            f = self.frobenius_norm(A[ns:])
+            c = np.trace(A.T@K@M@K@A) + self.l*(l21 +  f**2)
+            print(c)
 
         return self
 
@@ -565,7 +570,7 @@ def TJM(
 
     Parameters
     ----------
-    
+
 
     Returns
     -------
@@ -574,7 +579,7 @@ def TJM(
 
     References
     ----------
-    .. [1] 
+    .. [1]
         [Long et al., 2014] Long, M., Wang, J., Ding, G., Sun, J., and Yu, P.
         (2014). Transfer joint matching for unsupervised domain adaptation.
         In IEEE Conference on Computer Vision and Pattern Recognition (CVPR),

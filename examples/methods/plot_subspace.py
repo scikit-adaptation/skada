@@ -38,7 +38,7 @@ from skada import (
 # ------------------------------------------
 #
 
-base_classifier = LogisticRegression().set_fit_request(sample_weight=True)
+base_classifier = LogisticRegression()
 
 print(f"Will be using {base_classifier} as base classifier", end="\n\n")
 
@@ -55,7 +55,7 @@ X, y, sample_domain = make_shifted_datasets(
     n_samples_target=20,
     noise=0.1,
     random_state=RANDOM_SEED,
-    shift="covariate_shift",
+    shift="subspace",
 )
 
 Xs, Xt, ys, yt = source_target_split(
@@ -232,8 +232,8 @@ create_plots(
 #
 
 create_plots(
-    TJM(base_classifier, l=0.1, k=1),
-    f"TJM")
+    TJM(base_classifier, l=2, k=1, max_iter=100),
+    "TJM")
 
 
 # %%
