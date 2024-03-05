@@ -10,7 +10,7 @@ from abc import abstractmethod
 from copy import deepcopy
 
 import numpy as np
-from sklearn.base import clone
+from sklearn.base import BaseEstimator, clone
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import balanced_accuracy_score, check_scoring
 from sklearn.model_selection import train_test_split
@@ -19,8 +19,6 @@ from sklearn.preprocessing import Normalizer
 from sklearn.utils import check_random_state
 from sklearn.utils.extmath import softmax
 from sklearn.utils.metadata_routing import _MetadataRequester, get_routing_for_object
-
-from skada.deep.base import DomainAwareNet
 
 from ._utils import (
     _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
@@ -381,7 +379,8 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
                 f"The estimator {estimator!r} does not."
             )
 
-        if isinstance(estimator, DomainAwareNet):
+        if not isinstance(estimator, BaseEstimator):
+            # The estimator is a deep model
             transformer = estimator.predict_features
         else:
             # We need to find the last layer of the pipeline with a transform method
@@ -428,7 +427,7 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         N_train, N_target = len(features_train), len(features_target)
         domain_pred = self.domain_classifier_.predict_proba(features_val)
         weights = (N_train / N_target) * domain_pred[:, :1] / domain_pred[:, 1:]
-        if isinstance(estimator, DomainAwareNet):
+        if not isinstance(estimator, BaseEstimator):
             # Deep estimators dont accept allow_source parameter
             y_pred = estimator.predict_proba(X_val, sample_domain_val)
         else:
