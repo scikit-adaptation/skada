@@ -1,4 +1,10 @@
-import torch
+# Author: Theo Gnassounou <theo.gnassounou@inria.fr>
+#         Oleksii Kachaiev <kachayev@gmail.com>
+#
+# License: BSD 3-Clause
+import pytest
+
+torch = pytest.importorskip("torch")
 
 from skada.deep.utils import check_generator
 

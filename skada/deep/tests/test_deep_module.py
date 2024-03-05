@@ -1,9 +1,13 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
+#         Oleksii Kachaiev <kachayev@gmail.com>
 #
 # License: BSD 3-Clause
 
+import pytest
+
+torch = pytest.importorskip("torch")
+
 import numpy as np
-import torch
 
 from skada.deep.modules import MNISTtoUSPSNet, ToyCNN, ToyModule2D
 

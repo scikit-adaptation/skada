@@ -35,3 +35,6 @@ ignore-decorators = [
 "examples/*/*.py" = [
     "D205", # 1 blank line required between summary line and description
 ]
+"skada/deep/tests/test_*.py" = [
+    "E402", # Module level import not at top of file
+]
