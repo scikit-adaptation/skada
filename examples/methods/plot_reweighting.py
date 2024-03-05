@@ -42,7 +42,14 @@ from skada import (
 # while taking those weights into account, so that the fitted estimator is
 # well suited to predicting labels from points drawn from the target distribution.
 #
-# Reweighting methods implemented and illustrated are the following: ##
+# Reweighting methods implemented and illustrated are the following:
+#   * :ref:`Illustration of the problem with no domain adaptation`
+#   * Reweight Density
+#   * Gaussian Reweight Density
+#   * Discr. Reweight Density
+#   * KLIEP
+#   * Nearest Neighbor reweighting
+#   * Kernel Mean Matching
 #
 # For more details, look at [0].
 #
