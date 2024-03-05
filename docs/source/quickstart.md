@@ -21,7 +21,7 @@ The are a few test suites available to see examples, specifically
 To run all tests, simply execute
 
 ```shell
-pytest skada/ --ignore=skada/feature
+pytest skada/ --ignore=skada/deep
 ```
 
 A test suite for new datasets API is on its way. A separate test suite for new `Office31` dataset is already in there (note, it take a bit longer to run compared to other tests as it has to fetch datasets first).
