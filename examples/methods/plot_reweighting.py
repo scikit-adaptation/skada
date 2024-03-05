@@ -19,6 +19,7 @@ import numpy as np
 
 from sklearn.inspection import DecisionBoundaryDisplay
 from skada.datasets import make_shifted_datasets
+from skada.utils import extract_source_indices
 
 from sklearn.neighbors import KernelDensity
 from sklearn.linear_model import LogisticRegression
@@ -97,7 +98,7 @@ ax.scatter(
     c=ys,
     cmap=colormap,
     alpha=0.7,
-    s=[15]
+    s=[25]
 )
 
 ax.set_xticks(()), ax.set_yticks(())
@@ -113,7 +114,7 @@ ax.scatter(
     c=ys,
     cmap=colormap,
     alpha=0.1,
-    s=[15]
+    s=[25]
 )
 ax.scatter(
     Xt[:, 0],
@@ -121,7 +122,7 @@ ax.scatter(
     c=yt,
     cmap=colormap,
     alpha=0.7,
-    s=[15]
+    s=[25]
 )
 figure.suptitle("Plot of the dataset", fontsize=16, y=1)
 ax.set_xticks(()), ax.set_yticks(())
@@ -163,11 +164,11 @@ def create_plots(
         weight_estimator = clf[0].base_estimator
         weight_estimator.fit(X, sample_domain=sample_domain)
         idx = extract_source_indices(sample_domain)
-        size = 1 + 8*weight_estimator.adapt(
+        size = 5 + 8*weight_estimator.adapt(
                 X, sample_domain=sample_domain
                 ).sample_weight[idx]
     else:
-        size = np.array([16]*Xs.shape[0])
+        size = np.array([25]*Xs.shape[0])
 
     # Plot the target points:
     ax.scatter(
@@ -176,7 +177,7 @@ def create_plots(
         c=yt,
         cmap=colormap,
         alpha=0.7,
-        s=[15],
+        s=[25],
     )
 
     ax.set_xticks(()), ax.set_yticks(())
