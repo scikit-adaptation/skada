@@ -8,6 +8,7 @@ torch = pytest.importorskip("torch")
 
 import numpy as np
 from skorch.dataset import Dataset
+
 from skada.datasets import make_shifted_datasets
 from skada.deep.base import (
     BaseDALoss,
