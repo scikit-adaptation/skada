@@ -13,9 +13,11 @@ from skada.deep.base import (
     DomainAwareNet,
     DomainBalancedDataLoader,
 )
-from skada.deep.modules import ToyModule2D
+from skada.deep.modules import ToyModuleClassification2D
 from skada.metrics import (
     DeepEmbeddedValidation,
+    PredictionEntropyScorer,
+    SoftNeighborhoodDensity,
 )
 
 
@@ -39,13 +41,15 @@ class TestLoss(BaseDALoss):
     "scorer",
     [
         DeepEmbeddedValidation(),
+        PredictionEntropyScorer(),
+        SoftNeighborhoodDensity(),
     ],
 )
 def test_generic_scorer_on_deepmodel(scorer, da_dataset):
     X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
     X_test, y_test, sample_domain_test = da_dataset.pack_test(as_targets=["t"])
 
-    module = ToyModule2D()
+    module = ToyModuleClassification2D()
 
     estimator = DomainAwareNet(
         DomainAwareModule(module, "dropout"),
