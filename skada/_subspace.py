@@ -475,6 +475,9 @@ class ConditionalTransferableComponentsAdapter(BaseAdapter):
         #TODO: Add constraints on alpha, W, G, H
         for i in range(self.max_iter):
             if i % 3 == 0:
+                # For α, we use quadratic programming (QP) to minimize
+                # Jˆct w.r.t. α under constraint (11)
+                #TODO: Switch to qp_solver here
                 alpha, _ = torch_minimize(func, alpha, args=(G, H, W), tol=self.tol, max_iter=1)
             elif i % 3 == 1:
                 W, _ = torch_minimize(func, W, args=(alpha, G, H) tol=self.tol, max_iter=1)
