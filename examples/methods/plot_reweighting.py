@@ -43,13 +43,14 @@ from skada import (
 # well suited to predicting labels from points drawn from the target distribution.
 #
 # Reweighting methods implemented and illustrated are the following:
-#   * No domain adaptation: :ref:`Without DA`
-#   * Reweight Density: :ref:`Reweight Density`
-#   * Gaussian Reweight Density: :ref:`Gaussian Reweight Density`
-#   * Discr. Reweight Density: :ref:`Discr. Reweight Density`
-#   * KLIEP: :ref:`KLIEP`
-#   * Nearest Neighbor reweighting: :ref:`Nearest Neighbor reweighting`
-#   * Kernel Mean Matching: :ref:`Kernel Mean Matching`
+#   * No domain adaptation: :ref:`Illustration of the problem with no domain adaptation`
+#   * Reweight Density: :ref:`Illustration of the Reweight Density method`
+#   * Gaussian Reweight Density: :ref:`Illustration of the Gaussian reweighting method`
+#   * Discr. Reweight Density: :ref:`Illustration of the Discr. reweighting method`
+#   * KLIEP: :ref:`Illustration of the KLIEP method`
+#   * Nearest Neighbor reweighting: :ref:`Illustration of the Nearest Neighbor
+#     reweighting method`
+#   * Kernel Mean Matching: :ref:`Illustration of the Kernel Mean Matching method`
 #
 # For more details, look at [0].
 #
@@ -138,7 +139,6 @@ ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
 # %%
 #     Illustration of the problem with no domain adaptation
 # ------------------------------------------
-# .. _Without DA
 #
 # When not using domain adaptation, the classifier won't train on
 # data that is distributed as the target sample domain, it will thus
