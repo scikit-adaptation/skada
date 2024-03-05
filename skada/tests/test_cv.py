@@ -6,11 +6,11 @@
 # License: BSD 3-Clause
 
 import numpy as np
-
+import pytest
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import (
-    GroupShuffleSplit,
     GroupKFold,
+    GroupShuffleSplit,
     LeaveOneGroupOut,
     cross_validate,
 )
@@ -18,30 +18,27 @@ from sklearn.model_selection import (
 from skada import SubspaceAlignmentAdapter, make_da_pipeline
 from skada.metrics import PredictionEntropyScorer
 from skada.model_selection import (
+    DomainShuffleSplit,
     LeaveOneDomainOut,
     SourceTargetShuffleSplit,
-    DomainShuffleSplit,
-    StratifiedDomainShuffleSplit
+    StratifiedDomainShuffleSplit,
 )
-
-import pytest
 
 
 @pytest.mark.parametrize(
-    'cv, n_splits',
+    "cv, n_splits",
     [
         (GroupShuffleSplit(n_splits=2, test_size=0.3, random_state=0), 2),
         (GroupKFold(n_splits=2), 2),
-        (LeaveOneGroupOut(), 4)
-    ]
+        (LeaveOneGroupOut(), 4),
+    ],
 )
 def test_group_based_cv(da_dataset, cv, n_splits):
-    assert hasattr(cv, 'set_split_request'), 'splitter has to support routing'
-    cv.set_split_request(groups='sample_domain')
+    assert hasattr(cv, "set_split_request"), "splitter has to support routing"
+    cv.set_split_request(groups="sample_domain")
     # single source, single target, target labels are masked
     X, y, sample_domain = da_dataset.pack_train(
-        as_sources=['s', 's2'],
-        as_targets=['t', 't2']
+        as_sources=["s", "s2"], as_targets=["t", "t2"]
     )
     # by default, each estimator in the pipeline is wrapped into `Shared` selector
     pipe = make_da_pipeline(
@@ -54,9 +51,9 @@ def test_group_based_cv(da_dataset, cv, n_splits):
         X,
         y,
         cv=cv,
-        params={'sample_domain': sample_domain},
+        params={"sample_domain": sample_domain},
         scoring=PredictionEntropyScorer(),
-    )['test_score']
+    )["test_score"]
     assert scores.shape[0] == n_splits, "evaluate all splits"
     # xxx(okachaiev): make sure we understand why/when validation fails
     # (some results are certainly None in here)
@@ -64,17 +61,16 @@ def test_group_based_cv(da_dataset, cv, n_splits):
 
 
 @pytest.mark.parametrize(
-    'cv',
+    "cv",
     [
         (SourceTargetShuffleSplit(n_splits=4, test_size=0.3, random_state=0)),
         (DomainShuffleSplit(n_splits=4, test_size=0.3, random_state=0)),
         (StratifiedDomainShuffleSplit(n_splits=4, test_size=0.3, random_state=0)),
-    ]
+    ],
 )
 def test_domain_aware_split(da_dataset, cv):
     X, y, sample_domain = da_dataset.pack_train(
-        as_sources=['s', 's2'],
-        as_targets=['t', 't2']
+        as_sources=["s", "s2"], as_targets=["t", "t2"]
     )
     pipe = make_da_pipeline(
         SubspaceAlignmentAdapter(n_components=2),
@@ -86,17 +82,14 @@ def test_domain_aware_split(da_dataset, cv):
         X,
         y,
         cv=cv,
-        params={'sample_domain': sample_domain},
+        params={"sample_domain": sample_domain},
         scoring=PredictionEntropyScorer(),
-    )['test_score']
+    )["test_score"]
     assert scores.shape[0] == 4, "evaluate all splits"
     assert np.all(~np.isnan(scores)), "at least some scores are computed"
 
 
-@pytest.mark.parametrize(
-    'max_n_splits, n_splits',
-    [(2, 2), (10, 4)]
-)
+@pytest.mark.parametrize("max_n_splits, n_splits", [(2, 2), (10, 4)])
 def test_leave_one_domain_out(da_dataset, max_n_splits, n_splits):
     X, y, sample_domain = da_dataset.pack_lodo()
     pipe = make_da_pipeline(
@@ -110,17 +103,16 @@ def test_leave_one_domain_out(da_dataset, max_n_splits, n_splits):
         X,
         y,
         cv=cv,
-        params={'sample_domain': sample_domain},
+        params={"sample_domain": sample_domain},
         scoring=PredictionEntropyScorer(),
-    )['test_score']
+    )["test_score"]
     assert scores.shape[0] == n_splits, "evaluate all splits"
     assert np.all(~np.isnan(scores)), "all scores are computed"
 
 
 def test_domain_shuffle_split(da_dataset):
     X, y, sample_domain = da_dataset.pack_train(
-        as_sources=['s', 's2'],
-        as_targets=['t', 't2']
+        as_sources=["s", "s2"], as_targets=["t", "t2"]
     )
     pipe = make_da_pipeline(
         SubspaceAlignmentAdapter(n_components=2),
@@ -128,9 +120,7 @@ def test_domain_shuffle_split(da_dataset):
     )
 
     with pytest.raises(ValueError):
-        DomainShuffleSplit(n_splits=4, test_size=0.3,
-                           random_state=0, under_sampling=2
-                           )
+        DomainShuffleSplit(n_splits=4, test_size=0.3, random_state=0, under_sampling=2)
 
     cv = DomainShuffleSplit(n_splits=4, test_size=0.3, random_state=0)
     scores = cross_validate(
@@ -138,9 +128,9 @@ def test_domain_shuffle_split(da_dataset):
         X,
         y,
         cv=cv,
-        params={'sample_domain': sample_domain},
+        params={"sample_domain": sample_domain},
         scoring=PredictionEntropyScorer(),
-    )['test_score']
+    )["test_score"]
     assert scores.shape[0] == 4, "evaluate all splits"
     assert np.all(~np.isnan(scores)), "all scores are computed"
 
@@ -148,10 +138,10 @@ def test_domain_shuffle_split(da_dataset):
 def test_stratified_domain_shuffle_split_exceptions():
     # Test with y.ndim == 2 nothing is raised
     X = np.ones((10, 2))
-    y = np.array(5*[[0], [1]])
-    sample_domain = np.array(5*[0, 1])
+    y = np.array(5 * [[0], [1]])
+    sample_domain = np.array(5 * [0, 1])
     splitter = StratifiedDomainShuffleSplit(n_splits=4, test_size=0.5, random_state=0)
-    next(iter((splitter.split(X, y, sample_domain))))
+    next(iter(splitter.split(X, y, sample_domain)))
 
     # Test np.min(group_counts) < 2
     X = np.ones((2, 2))
@@ -159,20 +149,20 @@ def test_stratified_domain_shuffle_split_exceptions():
     sample_domain = np.array([0, 1])
     splitter = StratifiedDomainShuffleSplit(n_splits=4, test_size=0.5, random_state=0)
     with pytest.raises(ValueError):
-        next(iter((splitter.split(X, y, sample_domain))))
+        next(iter(splitter.split(X, y, sample_domain)))
 
     # Test n_train < n_groups:
     X = np.ones((10, 2))
-    y = np.array(5*[0, 1])
-    sample_domain = np.array(5*[0, 1])
+    y = np.array(5 * [0, 1])
+    sample_domain = np.array(5 * [0, 1])
     splitter = StratifiedDomainShuffleSplit(n_splits=4, test_size=0.9, random_state=0)
     with pytest.raises(ValueError):
-        next(iter((splitter.split(X, y, sample_domain))))
+        next(iter(splitter.split(X, y, sample_domain)))
 
     # Test n_test < n_groups:
     X = np.ones((10, 2))
-    y = np.array(5*[0, 1])
-    sample_domain = np.array(5*[0, 1])
+    y = np.array(5 * [0, 1])
+    sample_domain = np.array(5 * [0, 1])
     splitter = StratifiedDomainShuffleSplit(n_splits=4, test_size=0.1, random_state=0)
     with pytest.raises(ValueError):
-        next(iter((splitter.split(X, y, sample_domain))))
+        next(iter(splitter.split(X, y, sample_domain)))

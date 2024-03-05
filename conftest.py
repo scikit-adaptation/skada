@@ -1,33 +1,22 @@
 import numpy as np
 import pytest
+
 from skada.datasets import DomainAwareDataset, make_shifted_blobs, make_shifted_datasets
 
 
-# xxx(okachaiev): old API has to be gone when re-writing is done
-@pytest.fixture(scope="session")
-def tmp_da_dataset():
-    centers = np.array(
-        [
-            [0, 0],
-            [1, 1],
-        ]
-    )
-    _, n_features = centers.shape
+collect_ignore_glob = []
 
-    X, y, sample_domain = make_shifted_blobs(
-        n_samples=100,
-        centers=centers,
-        n_features=n_features,
-        shift=0.13,
-        random_state=42,
-        cluster_std=0.05,
-        return_X_y=True,
-    )
+# if 'torch' is not installed, we should not attempt
+# to run 'collect' for skada/deep modules
+try:
+    import torch  # noqa
+except ImportError:
+    collect_ignore_glob.append('skada/deep/*.py')
 
-    return (
-        X[sample_domain > 0], y[sample_domain > 0],
-        X[sample_domain < 0], y[sample_domain < 0],
-    )
+
+@pytest.fixture(scope='function', autouse=True)
+def set_seed():
+    np.random.seed(0)
 
 
 @pytest.fixture(scope='session')
@@ -36,6 +25,7 @@ def da_reg_dataset():
         n_samples_source=20,
         n_samples_target=21,
         shift="concept_drift",
+        mean=0.5,
         noise=0.3,
         label="regression",
         random_state=42,
@@ -67,6 +57,21 @@ def da_binary_dataset():
         random_state=42,
     )
     return X, y, sample_domain
+
+
+@pytest.fixture(scope='session')
+def da_blobs_dataset():
+    centers = np.array([[0, 0], [1, 1]])
+    _, n_features = centers.shape
+    return make_shifted_blobs(
+        n_samples=100,
+        centers=centers,
+        n_features=n_features,
+        shift=0.13,
+        random_state=42,
+        cluster_std=0.05,
+        return_X_y=True,
+    )
 
 
 @pytest.fixture(scope='session')

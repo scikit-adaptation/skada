@@ -19,6 +19,8 @@ from ._mapping import (
     EntropicOTMapping,
     LinearOTMappingAdapter,
     LinearOTMapping,
+    MMDLSConSMappingAdapter,
+    MMDLSConSMapping,
     OTMappingAdapter,
     OTMapping,
 )
@@ -35,6 +37,8 @@ from ._reweight import (
     ReweightDensity,
     NearestNeighborDensityAdapter,
     NearestNeighborReweightDensity,
+    MMDTarSReweightAdapter,
+    MMDTarSReweight
 )
 from ._subspace import (
     SubspaceAlignmentAdapter,
@@ -72,6 +76,8 @@ __all__ = [
     "EntropicOTMapping",
     "LinearOTMappingAdapter",
     "LinearOTMapping",
+    "MMDLSConSMappingAdapter",
+    "MMDLSConSMapping",
     "OTMappingAdapter",
     "OTMapping",
 
@@ -87,6 +93,8 @@ __all__ = [
     "ReweightDensity",
     "NearestNeighborDensityAdapter",
     "NearestNeighborReweightDensity",
+    "MMDTarSReweightAdapter",
+    "MMDTarSReweight",
 
     "SubspaceAlignmentAdapter",
     "SubspaceAlignment",

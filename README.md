@@ -23,8 +23,8 @@ The following algorithms are currently implemented.
 ### Domain adaptation algorithms
 
 - Sample reweighting methods (Gaussian [1], Discriminant [2], KLIEP [3],
-  DensityRatio [4])
-- Sample mapping methods (CORAL [5], Optimal Transport DA OTDA [6], LinearMonge [7])
+  DensityRatio [4], TarS [22])
+- Sample mapping methods (CORAL [5], Optimal Transport DA OTDA [6], LinearMonge [7], LS-ConS [22])
 - Subspace methods (SubspaceAlignment [8], TCA [9])
 - Other methods (JDOT [10], DASVM [11])
 
@@ -46,6 +46,7 @@ estimator and an `Adapter` that can be used in a DA pipeline with
 - Prediction entropy [18]
 - Soft neighborhood density [19]
 - Deep Embedded Validation (DEV) [20]
+- Circular Validation [21]
 
 
 ## Installation
@@ -66,7 +67,7 @@ X, y, sample_domain
 
 Where `X` is the input data, `y` is the target labels and `sample_domain` is the
 domain labels (positive for source and negative for target domains). We provide
-below an exmaple ho how to fit a DA estimator:
+below an example ho how to fit a DA estimator:
 
 ```python
 from skada import CORAL
@@ -150,7 +151,6 @@ The library is distributed under the 3-Clause BSD license.
 
 ## References
 
-
 [1] Shimodaira Hidetoshi. ["Improving predictive inference under covariate shift by weighting the log-likelihood function."](https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=235723a15c86c369c99a42e7b666dfe156ad2cba) Journal of statistical planning and inference 90, no. 2 (2000): 227-244.
 
 [2] Sugiyama Masashi, Taiji Suzuki, and Takafumi Kanamori. ["Density-ratio matching under the Bregman divergence: a unified framework of density-ratio estimation."](https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=f1467208a75def8b2e52a447ab83644db66445ea) Annals of the Institute of Statistical Mathematics 64 (2012): 1009-1044.
@@ -191,6 +191,12 @@ The library is distributed under the 3-Clause BSD license.
 
 [20] You, K., Wang, X., Long, M., & Jordan, M. (2019, May). [Towards accurate model selection in deep unsupervised domain adaptation](https://proceedings.mlr.press/v97/you19a/you19a.pdf). In International Conference on Machine Learning (pp. 7124-7133). PMLR.
 
-[21] Domain Adaptation Problems: A DASVM ClassificationTechnique and a Circular Validation StrategyLorenzo Bruzzone, Fellow, IEEE, and Mattia Marconcini, Member, IEEE (https://rslab.disi.unitn.it/papers/R82-PAMI.pdf)
+[21] Bruzzone, Lorenzo & Marconcini, Mattia. (2010). [Domain Adaptation Problems: A DASVM Classification Technique and a Circular Validation Strategy](https://rslab.disi.unitn.it/papers/R82-PAMI.pdf). IEEE transactions on pattern analysis and machine intelligence. 32. 770-87. 10.1109/TPAMI.2009.57. 
 
-[22] Loog, M. (2012). Nearest neighbor-based importance weighting. In 2012 IEEE International Workshop on Machine Learning for Signal Processing, pages 1–6. IEEE (https://arxiv.org/pdf/2102.02291.pdf)
+[22] Zhang, K., Schölkopf, B., Muandet, K., Wang, Z. (2013). [Domain Adaptation under Target and Conditional Shift](http://proceedings.mlr.press/v28/zhang13d.pdf). In International Conference on Machine Learning (pp. 819-827). PMLR.
+
+[23] Domain Adaptation Problems: A DASVM ClassificationTechnique and a Circular Validation StrategyLorenzo Bruzzone, Fellow, IEEE, and Mattia Marconcini, Member, IEEE (https://rslab.disi.
+unitn.it/papers/R82-PAMI.pdf)
+
+[24] Loog, M. (2012). Nearest neighbor-based importance weighting. In 2012 IEEE International Workshop on Machine Learning for Signal Processing, pages 1–6. IEEE (https://arxiv.org/pdf/
+2102.02291.pdf)

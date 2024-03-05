@@ -1,17 +1,16 @@
-# -*- coding: utf-8 -*-
 #
 
 # Author: Remi Flamary <remi.flamary@polytechnique.edu>
 #
 # License: BSD 3-Clause
 
-import sys
 import os
 import re
-from numpydoc import numpydoc, docscrape  # noqa
+import sys
 
 import sphinx_gallery  # noqa
 import sphinx_rtd_theme  # noqa
+from numpydoc import docscrape, numpydoc  # noqa
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -29,18 +28,18 @@ sys.path.insert(0, os.path.abspath("../.."))
 # ones.
 
 extensions = [
-    'sphinx.ext.autodoc',
-    'numpydoc',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.autosummary',
-    'sphinx.ext.doctest',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.todo',
-    'sphinx.ext.coverage',
-    'sphinx.ext.mathjax',
-    'sphinx_gallery.gen_gallery',
-    'sphinx.ext.graphviz',
-    'myst_parser',
+    "sphinx.ext.autodoc",
+    "numpydoc",
+    "sphinx.ext.viewcode",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.doctest",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.todo",
+    "sphinx.ext.coverage",
+    "sphinx.ext.mathjax",
+    "sphinx_gallery.gen_gallery",
+    "sphinx.ext.graphviz",
+    "myst_parser",
 ]
 
 # autodoc / autosummary
@@ -98,7 +97,7 @@ language = "English"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['build']
+exclude_patterns = ["build"]
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
@@ -117,7 +116,7 @@ exclude_patterns = ['build']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = "default"
-highlight_language = 'python3'
+highlight_language = "python3"
 
 # A list of ignored prefixes for module index sorting.
 # modindex_common_prefix = []
@@ -153,7 +152,7 @@ html_title = "SKADA : Scikit Adaptation"
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = '_static/images/skada_logo_full_white.svg'
+html_logo = "_static/images/skada_logo_full_white.svg"
 
 # The name of an image file (relative to this directory) to use as a favicon of
 # the docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32

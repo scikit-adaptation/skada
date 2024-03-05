@@ -9,7 +9,7 @@ import numbers
 
 import numpy as np
 from scipy import signal
-from scipy.fftpack import rfft, irfft
+from scipy.fftpack import irfft, rfft
 from scipy.stats import multivariate_normal
 from sklearn.datasets import make_blobs
 
@@ -29,7 +29,7 @@ def _generate_data_2d_classif(
     mu_regression=None,
     sigma_regression=None,
     regression_scaling_constant=27,
-    label='binary'
+    label="binary",
 ):
     """Generate 2d classification data.
 
@@ -42,10 +42,10 @@ def _generate_data_2d_classif(
         Generator for dataset creation
     mu_regression : np.array, default=np.array([0, 0])
         Will only be used if label=='regression'
-        When it's value is None, it will be changed to be teh default one
+        When it's value is None, it will be changed to be the default one
     sigma_regression : np.array, default=np.array([[1, 0], [0, 1]])
         Will only be used if label=='regression'
-        When it's value is None, it will be changed to be teh default one
+        When it's value is None, it will be changed to be the default one
     regression_scaling_constant: float, default=27
         Constant by which we multiply the y-value when label=='regression'
     label : tuple, default='binary'
@@ -93,21 +93,23 @@ def _generate_data_2d_classif(
     x = np.concatenate((x1, x21, x22, x23, x24), 0)
 
     # make labels
-    if label == 'binary':
+    if label == "binary":
         y = np.concatenate((np.zeros(n1), np.ones(4 * n2)), 0)
         y = y.astype(int)
-    elif label == 'multiclass':
+    elif label == "multiclass":
         y = np.zeros(n1)
         for i in range(4):
             y = np.concatenate((y, (i + 1) * np.ones(n2)), 0)
             y = y.astype(int)
-    elif label == 'regression':
+    elif label == "regression":
         # create label y with gaussian distribution
         normal_rv = multivariate_normal(mu_regression, sigma_regression)
         y = normal_rv.pdf(x) * regression_scaling_constant
     else:
-        raise ValueError(f"Invalid label value: {label}. The label should either be "
-                         "'binary', 'multiclass' or 'regression'")
+        raise ValueError(
+            f"Invalid label value: {label}. The label should either be "
+            "'binary', 'multiclass' or 'regression'"
+        )
     return x, y
 
 
@@ -117,7 +119,7 @@ def _generate_data_2d_classif_subspace(
     mu_regression=None,
     sigma_regression=None,
     regression_scaling_constant=27,
-    label='binary'
+    label="binary",
 ):
     """Generate 2d classification data.
 
@@ -132,10 +134,10 @@ def _generate_data_2d_classif_subspace(
         Will only be used if label=='regression'
     sigma_regression : float, default=1.
         Will only be used if label=='regression'
-        When it's value is None, it will be changed to be teh default one
+        When it's value is None, it will be changed to be the default one
     regression_scaling_constant: float, default=27
         Constant by which we multiply the y-value when label=='regression'
-        When it's value is None, it will be changed to be teh default one
+        When it's value is None, it will be changed to be the default one
     label : str, default='binary'
         If 'binary, return binary class.
         If 'multiclass', return multiclass.
@@ -169,24 +171,26 @@ def _generate_data_2d_classif_subspace(
     x = np.concatenate((x1, x21, x22), 0)
 
     # make labels
-    if label == 'binary':
+    if label == "binary":
         y = np.concatenate((np.zeros(n1), np.ones(2 * n2)), 0)
         y = y.astype(int)
-    elif label == 'multiclass':
+    elif label == "multiclass":
         k = 4
-        y = np.zeros(n1+n1 % k)
+        y = np.zeros(n1 + n1 % k)
         for i in range(k):
-            y = np.concatenate((y, (i + 1) * np.ones(n1//k)), 0)
+            y = np.concatenate((y, (i + 1) * np.ones(n1 // k)), 0)
             y = y.astype(int)
-    elif label == 'regression':
+    elif label == "regression":
         # create label y with gaussian distribution
         normal_rv = multivariate_normal(mu_regression, sigma_regression)
         # We project on the line: y=x
         X_projected = (x[:, 0] + x[:, 1]) / 2
         y = normal_rv.pdf(X_projected) * regression_scaling_constant
     else:
-        raise ValueError(f"Invalid label value: {label}. The label should either be "
-                         "'binary', 'multiclass' or 'regression'")
+        raise ValueError(
+            f"Invalid label value: {label}. The label should either be "
+            "'binary', 'multiclass' or 'regression'"
+        )
     return x, y
 
 
@@ -198,7 +202,7 @@ def _generate_data_from_moons(n_samples, index, rng):
     n_samples : int
         It is the total number of points among one cluster.
     index : float,
-        Give the position fo the centers in the moons
+        Give the position of the centers in the moons
     rng : random generator
         Generator for dataset creation
     """
@@ -214,26 +218,18 @@ def _generate_data_from_moons(n_samples, index, rng):
     center2 = np.array([inner_circ_x[index], inner_circ_y[index]])
 
     X = np.concatenate(
-        [rng.multivariate_normal(center1, cov, size=n_samples),
-         rng.multivariate_normal(center2, cov, size=n_samples)]
+        [
+            rng.multivariate_normal(center1, cov, size=n_samples),
+            rng.multivariate_normal(center2, cov, size=n_samples),
+        ]
     )
-    y = np.concatenate(
-        [np.zeros(n_samples),
-         np.ones(n_samples)]
-    )
+    y = np.concatenate([np.zeros(n_samples), np.ones(n_samples)])
 
     return X, y
 
 
 def _generate_signal_with_peak_frequency(
-    n_samples,
-    n_channels,
-    input_size,
-    frequencies,
-    band_size,
-    sigma_freq,
-    fs,
-    rng
+    n_samples, n_channels, input_size, frequencies, band_size, sigma_freq, fs, rng
 ):
     X = []
     y = []
@@ -244,18 +240,20 @@ def _generate_signal_with_peak_frequency(
             channel_weights = rng.uniform(0.5, 1, size=(n_channels))
             X_random = rng.normal(0, 1, size=(n_samples, n_channels, input_size))
             for i in range(n_samples):
-                frequency = rng.normal(
-                    frequencies[n_class, n_frequency], sigma_freq*band_size
-                ) + 1e-5
+                frequency = (
+                    rng.normal(
+                        frequencies[n_class, n_frequency], sigma_freq * band_size
+                    )
+                    + 1e-5
+                )
                 if frequency < 0:
                     frequency = -frequency
                 sos = signal.butter(
                     10,
-                    [frequency,
-                     frequency + band_size],
-                    'bandpass',
+                    [frequency, frequency + band_size],
+                    "bandpass",
                     fs=fs,
-                    output='sos'
+                    output="sos",
                 )
 
                 X_filtered = signal.sosfilt(sos, X_random[i])
@@ -361,14 +359,16 @@ def make_shifted_blobs(
         X_source += rng.normal(scale=noise[0], size=X_source.shape)
         X_target += rng.normal(scale=noise[1], size=X_target.shape)
 
-    dataset = DomainAwareDataset(domains=[
-        (X_source, y_source, 's'),
-        (X_target, y_target, 't'),
-    ])
+    dataset = DomainAwareDataset(
+        domains=[
+            (X_source, y_source, "s"),
+            (X_target, y_target, "t"),
+        ]
+    )
     if return_dataset:
         return dataset
     else:
-        return dataset.pack(as_sources=['s'], as_targets=['t'], return_X_y=return_X_y)
+        return dataset.pack(as_sources=["s"], as_targets=["t"], return_X_y=return_X_y)
 
 
 def make_shifted_datasets(
@@ -376,7 +376,7 @@ def make_shifted_datasets(
     n_samples_target=100,
     shift="covariate_shift",
     noise=None,
-    label='binary',
+    label="binary",
     ratio=0.9,
     mean=1,
     sigma=0.7,
@@ -477,17 +477,26 @@ def make_shifted_datasets(
             A unifying view on dataset shift in classification.
             Pattern recognition, 45(1):521-530.
     """
-
     rng = np.random.RandomState(random_state)
     X_source, y_source = _generate_data_2d_classif(
-        n_samples_source, rng, mu_regression,
-        sigma_regression, regression_scaling_constant, label)
+        n_samples_source,
+        rng,
+        mu_regression,
+        sigma_regression,
+        regression_scaling_constant,
+        label,
+    )
 
     if shift == "covariate_shift":
         n_samples_target_temp = n_samples_target * 100
         X_target, y_target = _generate_data_2d_classif(
-            n_samples_target_temp, rng, mu_regression,
-            sigma_regression, regression_scaling_constant, label)
+            n_samples_target_temp,
+            rng,
+            mu_regression,
+            sigma_regression,
+            regression_scaling_constant,
+            label,
+        )
 
         w = np.exp(-gamma * np.sum((X_target - np.array(center)) ** 2, 1))
         w /= w.sum()
@@ -500,21 +509,22 @@ def make_shifted_datasets(
     elif shift == "target_shift":
         n_samples_target_temp = n_samples_target * 3
         X_target, y_target = _generate_data_2d_classif(
-            n_samples_target_temp, rng, mu_regression,
-            sigma_regression, regression_scaling_constant, label)
+            n_samples_target_temp,
+            rng,
+            mu_regression,
+            sigma_regression,
+            regression_scaling_constant,
+            label,
+        )
 
         n_samples1 = int(8 * n_samples_target * ratio)
         n_samples2 = 8 * n_samples_target - n_samples1
         isel1 = rng.choice(
-            8 * n_samples_target_temp // 2,
-            size=(n_samples1,),
-            replace=False
+            8 * n_samples_target_temp // 2, size=(n_samples1,), replace=False
         )
         isel2 = (
             rng.choice(
-                8 * n_samples_target_temp // 2,
-                size=(n_samples2,),
-                replace=False
+                8 * n_samples_target_temp // 2, size=(n_samples2,), replace=False
             )
         ) + 8 * n_samples_target_temp // 2
         isel = np.concatenate((isel1, isel2))
@@ -524,23 +534,40 @@ def make_shifted_datasets(
 
     elif shift == "concept_drift":
         X_target, y_target = _generate_data_2d_classif(
-            n_samples_target, rng, mu_regression,
-            sigma_regression, regression_scaling_constant, label)
+            n_samples_target,
+            rng,
+            mu_regression,
+            sigma_regression,
+            regression_scaling_constant,
+            label,
+        )
         X_target = X_target * sigma + mean
 
     elif shift == "subspace":
         X_source, y_source = _generate_data_2d_classif_subspace(
-            n_samples_source, rng, mu_regression,
-            sigma_regression, regression_scaling_constant, label)
+            n_samples_source,
+            rng,
+            mu_regression,
+            sigma_regression,
+            regression_scaling_constant,
+            label,
+        )
         X_target, y_target = _generate_data_2d_classif_subspace(
-            n_samples_target, rng, mu_regression,
-            sigma_regression, regression_scaling_constant, label)
+            n_samples_target,
+            rng,
+            mu_regression,
+            sigma_regression,
+            regression_scaling_constant,
+            label,
+        )
         X_target *= -1
 
     else:
-        raise ValueError(f"Invalid shift value: {shift}. The shift should either be "
-                         "'covariate_shift', 'target_shift', 'concept_drift' "
-                         "or 'subspace'")
+        raise ValueError(
+            f"Invalid shift value: {shift}. The shift should either be "
+            "'covariate_shift', 'target_shift', 'concept_drift' "
+            "or 'subspace'"
+        )
 
     if isinstance(noise, numbers.Real):
         X_source += rng.normal(scale=noise, size=X_source.shape)
@@ -549,14 +576,16 @@ def make_shifted_datasets(
         X_source += rng.normal(scale=noise[0], size=X_source.shape)
         X_target += rng.normal(scale=noise[1], size=X_target.shape)
 
-    dataset = DomainAwareDataset(domains=[
-        (X_source, y_source, 's'),
-        (X_target, y_target, 't'),
-    ])
+    dataset = DomainAwareDataset(
+        domains=[
+            (X_source, y_source, "s"),
+            (X_target, y_target, "t"),
+        ]
+    )
     if return_dataset:
         return dataset
     else:
-        return dataset.pack(as_sources=['s'], as_targets=['t'], return_X_y=return_X_y)
+        return dataset.pack(as_sources=["s"], as_targets=["t"], return_X_y=return_X_y)
 
 
 def make_dataset_from_moons_distribution(
@@ -639,8 +668,8 @@ def make_dataset_from_moons_distribution(
             X_source += rng.normal(scale=noise, size=X_source.shape)
         elif noise is not None:
             X_source += rng.normal(scale=noise[0], size=X_source.shape)
-        dataset.add_domain(X_source, y_source, 's')
-        sources.append('s')
+        dataset.add_domain(X_source, y_source, "s")
+        sources.append("s")
     else:
         for i, pos in enumerate(pos_source):
             X, y = _generate_data_from_moons(n_samples_source, pos, rng)
@@ -648,8 +677,8 @@ def make_dataset_from_moons_distribution(
                 X += rng.normal(scale=noise, size=X.shape)
             elif noise is not None:
                 X += rng.normal(scale=noise[0], size=X.shape)
-            dataset.add_domain(X, y, 's{}'.format(i))
-            sources.append('s{}'.format(i))
+            dataset.add_domain(X, y, f"s{i}")
+            sources.append(f"s{i}")
 
     if isinstance(pos_target, numbers.Real):
         X_target, y_target = _generate_data_from_moons(
@@ -659,8 +688,8 @@ def make_dataset_from_moons_distribution(
             X_target += rng.normal(scale=noise, size=X_target.shape)
         elif noise is not None:
             X_target += rng.normal(scale=noise[1], size=X_target.shape)
-        dataset.add_domain(X_target, y_target, 't')
-        targets.append('t')
+        dataset.add_domain(X_target, y_target, "t")
+        targets.append("t")
     else:
         for i, pos in enumerate(pos_target):
             X, y = _generate_data_from_moons(n_samples_target, pos, rng)
@@ -668,8 +697,8 @@ def make_dataset_from_moons_distribution(
                 X += rng.normal(scale=noise, size=X.shape)
             elif noise is not None:
                 X += rng.normal(scale=noise[1], size=X.shape)
-            dataset.add_domain(X, y, 't{}'.format(i))
-            targets.append('t{}'.format(i))
+            dataset.add_domain(X, y, f"t{i}")
+            targets.append(f"t{i}")
 
     if return_dataset:
         return dataset
@@ -756,7 +785,6 @@ def make_variable_frequency_dataset(
     dataset : :class:`~skada.datasets.DomainAwareDataset`
         Dataset object.
     """
-
     rng = np.random.RandomState(random_state)
     input_size = 3000
     fs = 100
@@ -773,7 +801,7 @@ def make_variable_frequency_dataset(
         band_size,
         sigma_freq,
         fs,
-        rng
+        rng,
     )
 
     X_target, y_target = _generate_signal_with_peak_frequency(
@@ -784,7 +812,7 @@ def make_variable_frequency_dataset(
         band_size,
         sigma_freq,
         fs,
-        rng
+        rng,
     )
 
     if isinstance(noise, numbers.Real):
@@ -794,11 +822,13 @@ def make_variable_frequency_dataset(
         X_source += rng.normal(scale=noise[0], size=X_source.shape)
         X_target += rng.normal(scale=noise[1], size=X_target.shape)
 
-    dataset = DomainAwareDataset(domains=[
-        (X_source, y_source, 's'),
-        (X_target, y_target, 't'),
-    ])
+    dataset = DomainAwareDataset(
+        domains=[
+            (X_source, y_source, "s"),
+            (X_target, y_target, "t"),
+        ]
+    )
     if return_dataset:
         return dataset
     else:
-        return dataset.pack(as_sources=['s'], as_targets=['t'], return_X_y=return_X_y)
+        return dataset.pack(as_sources=["s"], as_targets=["t"], return_X_y=return_X_y)

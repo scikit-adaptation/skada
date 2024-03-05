@@ -4,7 +4,7 @@
 API and modules
 ===============
 
-Main module  :py:mod:`skada`
+Main module :py:mod:`skada`
 ---------------------------
 
 .. currentmodule:: skada
@@ -25,6 +25,7 @@ Sample reweighting DA methods
    DiscriminatorReweightDensity
    KLIEP
    NearestNeighborReweightDensity
+   MMDTarSReweight
 
 Sample mapping and alignment DA methods
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -40,6 +41,7 @@ Sample mapping and alignment DA methods
    EntropicOTMapping
    ClassRegularizerOTMapping
    LinearOTMapping
+   MMDLSConSMapping
    
 Other DA methods
 ^^^^^^^^^^^^^^^^
@@ -71,12 +73,12 @@ Utilities
 
 
 
-Deep learning DA :py:mod:`skada.feature`
+Deep learning DA :py:mod:`skada.deep`:
 ----------------------------------------
 
-.. currentmodule:: skada.feature
+.. currentmodule:: skada.deep
 
-.. automodule:: skada.feature
+.. automodule:: skada.deep
    :no-members:
    :no-inherited-members:
 
@@ -84,11 +86,10 @@ Deep learning DA :py:mod:`skada.feature`
    :toctree: gen_modules/
    :template: class.rst
 
-   DeepCORAL
-   DeepJDOT
-   DANN
-   CDAN
-   DAN
+   DeepCoralLoss
+   DeepJDOTLoss
+   DANLoss
+   CDANLoss
 
 .. autosummary::
    :toctree: gen_modules/
@@ -97,6 +98,10 @@ Deep learning DA :py:mod:`skada.feature`
    dan_loss
    deepcoral_loss
    deepjdot_loss
+   DeepCoral
+   DeepJDOT
+   DANN
+   CDAN
 
 
 
@@ -119,10 +124,11 @@ DA metrics :py:mod:`skada.metrics`
    PredictionEntropyScorer
    DeepEmbeddedValidation
    SoftNeighborhoodDensity
+   CircularValidation
 
 
 Model Selection :py:mod:`skada.model_selection`
---------------------------------
+-----------------------------------------------
 
 .. currentmodule:: skada.model_selection
 
@@ -141,7 +147,7 @@ Model Selection :py:mod:`skada.model_selection`
 
 
 Datasets :py:mod:`skada.datasets`
---------------------------------
+---------------------------------
 
 .. currentmodule:: skada.datasets
 

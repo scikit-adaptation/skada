@@ -3,12 +3,12 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-- python>=3.7
-- numpy
-- pandas
-- scipy
-- matplotlib
-- pytest
-- pot
-- pip
-- scikit-learn
+  - python>=3.7
+  - numpy
+  - pandas
+  - scipy
+  - matplotlib
+  - pytest
+  - pot
+  - pip
+  - scikit-learn

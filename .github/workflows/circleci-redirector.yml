@@ -1,5 +1,5 @@
 name: circleci-redirector
-on: [status]
+on: [status]  # yamllint disable-line rule:truthy
 jobs:
   circleci_artifacts_redirector_job:
     runs-on: ubuntu-latest

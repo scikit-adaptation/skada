@@ -1,0 +1,40 @@
+exclude = [
+    "__init__.py",
+    "base.py",  # XXX to fix
+    "utils.py",  # XXX to fix
+    "conftest.py",
+]
+
+[lint]
+select = ["A", "B006", "D", "E", "F", "I", "W", "UP"]
+ignore = [
+    "A001", # Variable `copyright` is shadowing a Python builtin
+    "A002", # Argument `input` is shadowing a Python builtin
+    "D100", # Missing docstring in public module
+    "D104", # Missing docstring in public package
+    "D105", # Missing docstring in magic method
+    "D205", # 1 blank line required between summary line and description
+    "D400", # First line should end with a period
+    "D401", # First line of docstring should be in imperative mood
+    "D404", # First word of the docstring should not be "This"
+    "D413", # Missing blank line after last section
+    "UP031", # Use format specifiers instead of percent format
+]
+
+[lint.pydocstyle]
+convention = "numpy"
+ignore-decorators = [
+    "property",
+    "setter",
+]
+
+[lint.per-file-ignores]
+"skada/**/test_*.py" = [
+    "D103", # Missing docstring in public function
+]
+"examples/*/*.py" = [
+    "D205", # 1 blank line required between summary line and description
+]
+"skada/deep/tests/test_*.py" = [
+    "E402", # Module level import not at top of file
+]

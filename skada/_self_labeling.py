@@ -1,6 +1,6 @@
 """
-    DASVM estimator
-==========================================
+DASVM estimator
+===============
 
 The DASVM method comes from [21].
 
@@ -9,46 +9,47 @@ The DASVM method comes from [21].
 #
 # License: BSD 3-Clause
 
-import numpy as np
 import math
 
-from skada.utils import check_X_y_domain, source_target_split
+import numpy as np
 from sklearn.base import clone
-from .base import DAEstimator
-
 from sklearn.svm import SVC
+
+from skada.utils import check_X_y_domain, source_target_split
+
+from .base import DAEstimator
 
 
 class DASVMClassifier(DAEstimator):
-    """ DASVM Estimator:
+    """DASVM Estimator:
 
-        Parameters
-        ----------
-        base_estimator : BaseEstimator
-            The estimator that will be used in the algorithm,
-            It is a SVC by default, but can use any classifier
-            equiped with a `decision_function` method
-        k: int>0
-            The number of points per classes that will be discarded/added
-            at each steps of the algorithm
-        max_iter : int
-            The maximal number of iteration of the algorithm when using `fit`
-        save_estimators : Bool
-            True if this object should remembers all the fitted estimators
-        save_indices : Bool
-            True if this object should remembers all the values of
-                `index_source_deleted` and `index_target_added`
-        """
+    Parameters
+    ----------
+    base_estimator : BaseEstimator
+        The estimator that will be used in the algorithm,
+        It is a SVC by default, but can use any classifier
+        equipped with a `decision_function` method
+    k: int>0
+        The number of points per classes that will be discarded/added
+        at each steps of the algorithm
+    max_iter : int
+        The maximal number of iteration of the algorithm when using `fit`
+    save_estimators : Bool
+        True if this object should remembers all the fitted estimators
+    save_indices : Bool
+        True if this object should remembers all the values of
+            `index_source_deleted` and `index_target_added`
+    """
 
     def __init__(
-            self,
-            base_estimator=None,
-            k=3,
-            max_iter=1_000,
-            save_estimators=False,
-            save_indices=False,
-            **kwargs
-            ):
+        self,
+        base_estimator=None,
+        k=3,
+        max_iter=1_000,
+        save_estimators=False,
+        save_indices=False,
+        **kwargs,
+    ):
         super().__init__()
         if base_estimator is None:
             self.base_estimator = SVC()
@@ -60,29 +61,29 @@ class DASVMClassifier(DAEstimator):
         self.k = k
 
     def _find_points_next_step(self, indices_list, d, cond_array):
-        """
-        This function allow us to find the next points to add/discard,
+        """This function allow us to find the next points to add/discard.
+
         It is an inplace method, changing indices_list
         """
         # We should take k points for each of the c classes,
         # depending on the values of d
         condition = np.logical_and(~indices_list, cond_array)
-        for j in range(min(self.k, math.ceil(sum(condition)/self.n_class))):
-            I = np.unique(np.argmax(d[condition], axis=0))
+        for _ in range(min(self.k, math.ceil(sum(condition) / self.n_class))):
+            idx = np.unique(np.argmax(d[condition], axis=0))
             # We need to get all those indices to be take into account
             # the fact that the some previous points weren't in the list
-            for l in range(condition.shape[0]):
-                if ~condition[l]:
-                    I[I >= l] += 1
+            for ll in range(condition.shape[0]):
+                if ~condition[ll]:
+                    idx[idx >= ll] += 1
 
             # We finally only need to change the list
-            for l in I:
+            for ll in idx:
                 # indices_list[l] is False at that point
-                indices_list[l] = True
+                indices_list[ll] = True
 
     def _get_X_y(
-            self, new_estimator, index_target_added, index_source_deleted, Xs, Xt, ys
-            ):
+        self, new_estimator, index_target_added, index_source_deleted, Xs, Xt, ys
+    ):
         """
         Allow to get the X and y arrays at a state of the algorithm
         We take the source datapoints that have not been
@@ -90,22 +91,19 @@ class DASVMClassifier(DAEstimator):
         that have been added
         """
         X = np.concatenate((Xs[~index_source_deleted], Xt[index_target_added]))
-        semi_labels = new_estimator.predict(
-            Xt[index_target_added])
+        semi_labels = new_estimator.predict(Xt[index_target_added])
         y = np.concatenate((ys[~index_source_deleted], semi_labels))
         return X, y
 
     def _get_decision(self, new_estimator, X, indices_list):
-        """
-        We look at the points that have either not been discarded or not been added
-        """
+        """Look at the points that have either not been discarded or not been added."""
         if sum(~indices_list) > 0:
             df = new_estimator.decision_function(X[~indices_list])
             # df.ndim allows us to know if we are in the
             # `binary` case or the `multiclass` one
             decisions = np.ones(X.shape[0])
             decisions[~indices_list] = df
-            decisions = np.array([-decisions+1, decisions+1]).T
+            decisions = np.array([-decisions + 1, decisions + 1]).T
         else:
             decisions = np.ones(X.shape[0])
         return decisions
@@ -128,9 +126,7 @@ class DASVMClassifier(DAEstimator):
             Returns self.
         """
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
-        Xs, Xt, ys, _ = source_target_split(
-            X, y, sample_domain=sample_domain
-        )
+        Xs, Xt, ys, _ = source_target_split(X, y, sample_domain=sample_domain)
 
         n = Xs.shape[0]
         m = Xt.shape[0]
@@ -139,13 +135,11 @@ class DASVMClassifier(DAEstimator):
         self.indices_source_deleted = []
         self.indices_target_added = []
 
-        index_source_deleted = np.array([False]*n)
-        index_target_added = np.array([False]*m)
+        index_source_deleted = np.array([False] * n)
+        index_target_added = np.array([False] * m)
         if self.save_indices:
-            self.indices_source_deleted.append(
-                np.copy(index_source_deleted))
-            self.indices_target_added.append(
-                np.copy(index_target_added))
+            self.indices_source_deleted.append(np.copy(index_source_deleted))
+            self.indices_target_added.append(np.copy(index_target_added))
 
         X_train = Xs
         y_train = ys
@@ -162,26 +156,30 @@ class DASVMClassifier(DAEstimator):
         if self.n_class == 2:
             decisions_target = np.array([-decisions_target, decisions_target]).T
 
-        decisions_target_ = -np.abs(decisions_target-self.n_class+1)
+        decisions_target_ = -np.abs(decisions_target - self.n_class + 1)
 
         self._find_points_next_step(
-            index_source_deleted, decisions_source, np.ones(
-                index_source_deleted.shape[0], dtype=bool))
-        in_margin_target = np.sum(
-            np.logical_and(
-                decisions_target < self.n_class-1,
-                decisions_target > self.n_class-2
+            index_source_deleted,
+            decisions_source,
+            np.ones(index_source_deleted.shape[0], dtype=bool),
+        )
+        in_margin_target = (
+            np.sum(
+                np.logical_and(
+                    decisions_target < self.n_class - 1,
+                    decisions_target > self.n_class - 2,
                 ),
-            axis=1
-            ) > 0
+                axis=1,
+            )
+            > 0
+        )
         self._find_points_next_step(
-            index_target_added, decisions_target_, in_margin_target)
+            index_target_added, decisions_target_, in_margin_target
+        )
 
         if self.save_indices:
-            self.indices_source_deleted.append(
-                np.copy(index_source_deleted))
-            self.indices_target_added.append(
-                np.copy(index_target_added))
+            self.indices_source_deleted.append(np.copy(index_source_deleted))
+            self.indices_target_added.append(np.copy(index_target_added))
 
         i = 0
         for i in range(1, self.max_iter):
@@ -190,7 +188,8 @@ class DASVMClassifier(DAEstimator):
 
             old_estimator = new_estimator
             X_train, y_train = self._get_X_y(
-                new_estimator, index_target_added, index_source_deleted, Xs, Xt, ys)
+                new_estimator, index_target_added, index_source_deleted, Xs, Xt, ys
+            )
 
             new_estimator = clone(self.base_estimator)
             new_estimator.fit(X_train, y_train)
@@ -200,37 +199,37 @@ class DASVMClassifier(DAEstimator):
             for j in range(len(index_target_added)):
                 if index_target_added[j]:
                     x = Xt[j]
-                    if new_estimator.predict(
-                            [x]) != old_estimator.predict([x]):
+                    if new_estimator.predict([x]) != old_estimator.predict([x]):
                         # index_target_added[j] should be True
                         index_target_added[j] = False
 
             decisions_source = self._get_decision(
-                new_estimator, Xs, index_source_deleted)
+                new_estimator, Xs, index_source_deleted
+            )
 
             decisions_target = self._get_decision(new_estimator, Xt, index_target_added)
 
             if decisions_target.ndim > 1:
-                decisions_target_ = -np.abs(decisions_target-1)
+                decisions_target_ = -np.abs(decisions_target - 1)
 
             self._find_points_next_step(
-                index_source_deleted, decisions_source,
-                np.ones(index_source_deleted.shape[0], dtype=bool))
-            in_margin_target = np.sum(
-                np.logical_and(
-                    decisions_target < 1,
-                    decisions_target > 0
-                    ),
-                axis=1
-                ) > 0
+                index_source_deleted,
+                decisions_source,
+                np.ones(index_source_deleted.shape[0], dtype=bool),
+            )
+            in_margin_target = (
+                np.sum(
+                    np.logical_and(decisions_target < 1, decisions_target > 0), axis=1
+                )
+                > 0
+            )
             self._find_points_next_step(
-                index_target_added, decisions_target, in_margin_target)
+                index_target_added, decisions_target, in_margin_target
+            )
 
             if self.save_indices:
-                self.indices_source_deleted.append(
-                    np.copy(index_source_deleted))
-                self.indices_target_added.append(
-                    np.copy(index_target_added))
+                self.indices_source_deleted.append(np.copy(index_source_deleted))
+                self.indices_target_added.append(np.copy(index_target_added))
 
         old_estimator = new_estimator
         X_train, y_train = Xt, old_estimator.predict(Xt)
@@ -241,23 +240,21 @@ class DASVMClassifier(DAEstimator):
             self.estimators.append(new_estimator)
 
         if self.save_indices:
-            self.indices_source_deleted.append(
-                np.ones(n, dtype=bool))
-            self.indices_target_added.append(
-                np.ones(m, dtype=bool))
+            self.indices_source_deleted.append(np.ones(n, dtype=bool))
+            self.indices_target_added.append(np.ones(m, dtype=bool))
 
         self.base_estimator_ = new_estimator
 
         return self
 
     def predict(self, X):
-        """ return predicted value by the fitted estimator for `X`
+        """Return predicted value by the fitted estimator for `X`
         `predict` method from the estimator we fitted
         """
         return self.base_estimator_.predict(X)
 
     def decision_function(self, X):
-        """ return values of the decision function of the
+        """Return values of the decision function of the
                 fitted estimator for `X`
         `decision_function` method from the base_estimator_ we fitted
         """
