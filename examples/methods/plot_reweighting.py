@@ -214,7 +214,7 @@ def create_plots(
 
 
 create_plots(
-    LogisticRegression(), "Without DA",
+    base_classifier, "Without DA",
     suptitle="Illustration of the classifier with no DA")
 
 # %%
@@ -324,7 +324,7 @@ create_plots(
     "Kernel Mean Matching", suptitle="Illustration of KMM with weights smoothing")
 
 # %%
-#     omparisaon of score between reweighting methods:
+#     Comparisaon of score between reweighting methods:
 # ------------------------------------------
 
 
