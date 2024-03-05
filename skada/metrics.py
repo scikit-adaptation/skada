@@ -355,7 +355,7 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
     def _no_reduc_log_loss(self, y, y_pred):
         return np.array(
             [
-                log_loss(y[i : i + 1], y_pred[i : i + 1], labels=np.unique(y))
+                log_loss(y[i: i + 1], y_pred[i: i + 1], labels=np.unique(y))
                 for i in range(len(y))
             ]
         )

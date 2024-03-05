@@ -28,7 +28,6 @@ from skada import (
     DiscriminatorReweightDensity,
     KLIEP
 )
-from skada import SubspaceAlignment, TransferComponentAnalysis
 from skada import (
     OTMapping,
     EntropicOTMapping,

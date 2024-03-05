@@ -27,7 +27,7 @@ def get_lda_interp(xs, xt, alpha, len_=1):
     """Compute the LDA interpolation between two domains"""
     # compute means (classes assumed to be balanced)
     m1 = (1 - alpha) * xs[: n // 2, :].mean(0) + (alpha) * xt[: n // 2, :].mean(0)
-    m2 = (1 - alpha) * xs[n // 2 :, :].mean(0) + (alpha) * xt[n // 2 :, :].mean(0)
+    m2 = (1 - alpha) * xs[n // 2:, :].mean(0) + (alpha) * xt[n // 2:, :].mean(0)
 
     vo = m2 - m1
     vo = vo / np.linalg.norm(vo)
@@ -52,12 +52,12 @@ np.random.seed(42)
 xs = 0.2 * np.random.randn(n, 2)
 
 # class  specific change
-xs[n // 2 :, 0] += 0.5
-xs[n // 2 :, 1] -= 1
+xs[n // 2:, 0] += 0.5
+xs[n // 2:, 1] -= 1
 
 # classes 0 an 3 for blue/red colors
 ys = np.zeros(n)
-ys[n // 2 :] = 3
+ys[n // 2:] = 3
 
 # global changes
 xt = 0.15 * np.random.randn(n, 2)
@@ -65,8 +65,8 @@ xt[:, 0] += 0.7
 xt[:, 1] -= 0
 
 # class specific change
-xt[n // 2 :, 0] += 1
-xt[n // 2 :, 1] -= 0.2
+xt[n // 2:, 0] += 1
+xt[n // 2:, 1] -= 0.2
 
 # class 7 for gray color (target without label)
 yt = np.ones(n) * 7
