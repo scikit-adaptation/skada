@@ -20,11 +20,11 @@ from skada import (
 )
 from skada.datasets import DomainAwareDataset, make_shifted_datasets
 from skada.metrics import (
+    CircularValidation,
+    DeepEmbeddedValidation,
     ImportanceWeightedScorer,
     PredictionEntropyScorer,
     SoftNeighborhoodDensity,
-    DeepEmbeddedValidation,
-    CircularValidation,
     SupervisedScorer,
 )
 
