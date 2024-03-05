@@ -14,24 +14,23 @@ to covariate shift
 
 # %% Imports
 import matplotlib.pyplot as plt
-from matplotlib.colors import ListedColormap
 import numpy as np
-
+from matplotlib.colors import ListedColormap
 from sklearn.inspection import DecisionBoundaryDisplay
-from skada.datasets import make_shifted_datasets
-from skada.utils import extract_source_indices
-
-from sklearn.neighbors import KernelDensity
 from sklearn.linear_model import LogisticRegression
-from skada._reweight import NearestNeighborReweightDensity
+from sklearn.neighbors import KernelDensity
+
 from skada import (
-    source_target_split,
-    ReweightDensity,
-    GaussianReweightDensity,
-    DiscriminatorReweightDensity,
     KLIEP,
     KMM,
+    DiscriminatorReweightDensity,
+    GaussianReweightDensity,
+    ReweightDensity,
+    source_target_split,
 )
+from skada._reweight import NearestNeighborReweightDensity
+from skada.datasets import make_shifted_datasets
+from skada.utils import extract_source_indices
 
 # %%
 #
@@ -43,14 +42,13 @@ from skada import (
 # well suited to predicting labels from points drawn from the target distribution.
 #
 # Reweighting methods implemented and illustrated are the following:
-#   * No domain adaptation: :ref:`Illustration of the problem with no domain adaptation`
-#   * Reweight Density: :ref:`Illustration of the Reweight Density method`
-#   * Gaussian Reweight Density: :ref:`Illustration of the Gaussian reweighting method`
-#   * Discr. Reweight Density: :ref:`Illustration of the Discr. reweighting method`
-#   * KLIEP: :ref:`Illustration of the KLIEP method`
-#   * Nearest Neighbor reweighting: :ref:`Illustration of the Nearest Neighbor
-#     reweighting method`
-#   * Kernel Mean Matching: :ref:`Illustration of the Kernel Mean Matching method`
+#   * :ref:`Illustration of the Reweight Density method<Reweight Density>`
+#   * :ref:`Illustration of the Gaussian reweighting method<Gaussian Reweight Density>`
+#   * :ref:`Illustration of the Discr. reweighting method<Discr. Reweight Density>`
+#   * :ref:`Illustration of the KLIEP method<KLIEP>`
+#   * :ref:`Illustration of the Nearest Neighbor
+#     reweighting method<Nearest Neighbor reweighting>`
+#   * :ref:`Illustration of the Kernel Mean Matching method<Kernel Mean Matching>`
 #
 # For more details, look at [0].
 #
@@ -74,15 +72,10 @@ print(f"Will be using {base_classifier} as base classifier", end="\n\n")
 RANDOM_SEED = 42
 
 X, y, sample_domain = make_shifted_datasets(
-    n_samples_source=20,
-    n_samples_target=20,
-    noise=0.1,
-    random_state=RANDOM_SEED
+    n_samples_source=20, n_samples_target=20, noise=0.1, random_state=RANDOM_SEED
 )
 
-Xs, Xt, ys, yt = source_target_split(
-    X, y, sample_domain=sample_domain
-)
+Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 
 # %%
 # Plot of the dataset:
@@ -100,14 +93,7 @@ colormap = ListedColormap(["#FFA056", "#6C4C7C"])
 ax = axes[0]
 ax.set_title("Source data")
 # Plot the source points:
-ax.scatter(
-    Xs[:, 0],
-    Xs[:, 1],
-    c=ys,
-    cmap=colormap,
-    alpha=0.7,
-    s=[25]
-)
+ax.scatter(Xs[:, 0], Xs[:, 1], c=ys, cmap=colormap, alpha=0.7, s=[25])
 
 ax.set_xticks(()), ax.set_yticks(())
 ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
@@ -116,22 +102,8 @@ ax = axes[1]
 
 ax.set_title("Target data")
 # Plot the target points:
-ax.scatter(
-    Xt[:, 0],
-    Xt[:, 1],
-    c=ys,
-    cmap=colormap,
-    alpha=0.1,
-    s=[25]
-)
-ax.scatter(
-    Xt[:, 0],
-    Xt[:, 1],
-    c=yt,
-    cmap=colormap,
-    alpha=0.7,
-    s=[25]
-)
+ax.scatter(Xt[:, 0], Xt[:, 1], c=ys, cmap=colormap, alpha=0.1, s=[25])
+ax.scatter(Xt[:, 0], Xt[:, 1], c=yt, cmap=colormap, alpha=0.7, s=[25])
 figure.suptitle("Plot of the dataset", fontsize=16, y=1)
 ax.set_xticks(()), ax.set_yticks(())
 ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
@@ -149,11 +121,11 @@ scores_dict = {}
 
 
 def create_plots(
-        clf,
-        weights, 
-        name="Without DA",
-        suptitle=None,
-        ):
+    clf,
+    weights,
+    name="Without DA",
+    suptitle=None,
+):
     if suptitle is None:
         suptitle = f"Illustration of the {name} method"
     figure, axes = plt.subplots(1, 2, figsize=figsize)
@@ -164,8 +136,14 @@ def create_plots(
         clf.fit(X, y, sample_domain=sample_domain)
     score = clf.score(Xt, yt)
     DecisionBoundaryDisplay.from_estimator(
-        clf, Xs, cmap=ListedColormap(["w", "k"]), alpha=1, ax=ax, eps=0.5,
-        response_method="predict", plot_method='contour',
+        clf,
+        Xs,
+        cmap=ListedColormap(["w", "k"]),
+        alpha=1,
+        ax=ax,
+        eps=0.5,
+        response_method="predict",
+        plot_method="contour",
     )
 
     size = 5 + 10 * weights
@@ -195,18 +173,17 @@ def create_plots(
     ax = axes[0]
 
     # Plot the source points:
-    ax.scatter(
-        Xs[:, 0],
-        Xs[:, 1],
-        c=ys,
-        cmap=colormap,
-        alpha=0.7,
-        s=size
-    )
+    ax.scatter(Xs[:, 0], Xs[:, 1], c=ys, cmap=colormap, alpha=0.7, s=size)
 
     DecisionBoundaryDisplay.from_estimator(
-        clf, Xs, cmap=ListedColormap(["w", "k"]), alpha=1, ax=ax, eps=0.5,
-        response_method="predict", plot_method='contour',
+        clf,
+        Xs,
+        cmap=ListedColormap(["w", "k"]),
+        alpha=1,
+        ax=ax,
+        eps=0.5,
+        response_method="predict",
+        plot_method="contour",
     )
 
     ax.set_xticks(()), ax.set_yticks(())
@@ -216,10 +193,11 @@ def create_plots(
 
 
 create_plots(
-    base_classifier, 
+    base_classifier,
     name="Without DA",
-    weights = np.array([2] * Xs.shape[0]),
-    suptitle="Illustration of the classifier with no DA")
+    weights=np.array([2] * Xs.shape[0]),
+    suptitle="Illustration of the classifier with no DA",
+)
 
 # %%
 #     Illustration of the Reweight Density method
@@ -231,9 +209,9 @@ create_plots(
 
 # We define our classifier, `clf` is a da pipeline
 clf = ReweightDensity(
-        base_estimator=base_classifier,
-        weight_estimator=KernelDensity(bandwidth=0.5),
-    )
+    base_estimator=base_classifier,
+    weight_estimator=KernelDensity(bandwidth=0.5),
+)
 
 # We get the weights:
 
@@ -241,14 +219,9 @@ clf = ReweightDensity(
 weight_estimator = clf[0].base_estimator
 weight_estimator.fit(X, sample_domain=sample_domain)
 idx = extract_source_indices(sample_domain)
-weights = weight_estimator.adapt(
-        X, sample_domain=sample_domain
-        ).sample_weight[idx]
+weights = weight_estimator.adapt(X, sample_domain=sample_domain).sample_weight[idx]
 
-create_plots(
-    clf,
-    weights=weights,
-    name="Reweight Density")
+create_plots(clf, weights=weights, name="Reweight Density")
 
 # %%
 #     Illustration of the Gaussian reweighting method
@@ -266,14 +239,9 @@ clf = GaussianReweightDensity(base_classifier)
 weight_estimator = clf[0].base_estimator
 weight_estimator.fit(X, sample_domain=sample_domain)
 idx = extract_source_indices(sample_domain)
-weights = weight_estimator.adapt(
-        X, sample_domain=sample_domain
-        ).sample_weight[idx]
+weights = weight_estimator.adapt(X, sample_domain=sample_domain).sample_weight[idx]
 
-create_plots(
-    clf,
-    weights=weights,
-    name="Gaussian Reweight Density")
+create_plots(clf, weights=weights, name="Gaussian Reweight Density")
 
 # %%
 #     Illustration of the Discr. reweighting method
@@ -287,8 +255,7 @@ create_plots(
 #           In Journal of Statistical Planning and Inference, 2000.
 
 # We define our classifier, `clf` is a da pipeline
-clf = DiscriminatorReweightDensity(
-        base_classifier)
+clf = DiscriminatorReweightDensity(base_classifier)
 
 # We get the weights:
 
@@ -296,19 +263,13 @@ clf = DiscriminatorReweightDensity(
 weight_estimator = clf[0].base_estimator
 weight_estimator.fit(X, sample_domain=sample_domain)
 idx = extract_source_indices(sample_domain)
-weights = weight_estimator.adapt(
-        X, sample_domain=sample_domain
-        ).sample_weight[idx]
+weights = weight_estimator.adapt(X, sample_domain=sample_domain).sample_weight[idx]
 
-create_plots(
-    clf,
-    weights=weights,
-    name="Discr. Reweight Density")
+create_plots(clf, weights=weights, name="Discr. Reweight Density")
 
 # %%
 #     Illustration of the KLIEP method
 # ------------------------------------------
-# .. _KLIEP
 #
 # The idea of KLIEP is to find an importance estimate :math:`w(x)` such that
 # the Kullback-Leibler (KL) divergence between the source input density
@@ -323,8 +284,8 @@ create_plots(
 
 # We define our classifier, `clf` is a da pipeline
 clf = KLIEP(
-        LogisticRegression().set_fit_request(
-            sample_weight=True), gamma=[1, 0.1, 0.001])
+    LogisticRegression().set_fit_request(sample_weight=True), gamma=[1, 0.1, 0.001]
+)
 
 # We get the weights:
 
@@ -332,14 +293,9 @@ clf = KLIEP(
 weight_estimator = clf[0].base_estimator
 weight_estimator.fit(X, sample_domain=sample_domain)
 idx = extract_source_indices(sample_domain)
-weights = weight_estimator.adapt(
-        X, sample_domain=sample_domain
-        ).sample_weight[idx]
+weights = weight_estimator.adapt(X, sample_domain=sample_domain).sample_weight[idx]
 
-create_plots(
-    clf,
-    weights=weights,
-    name="KLIEP")
+create_plots(clf, weights=weights, name="KLIEP")
 
 # %%
 #     Illustration of the Nearest Neighbor reweighting method
@@ -358,9 +314,7 @@ create_plots(
 #        Learning for Signal Processing, pages 1–6. IEEE
 
 # We define our classifier, `clf` is a da pipeline
-clf = NearestNeighborReweightDensity(
-        base_classifier,
-        laplace_smoothing=True)
+clf = NearestNeighborReweightDensity(base_classifier, laplace_smoothing=True)
 
 # We get the weights:
 
@@ -368,14 +322,9 @@ clf = NearestNeighborReweightDensity(
 weight_estimator = clf[0].base_estimator
 weight_estimator.fit(X, sample_domain=sample_domain)
 idx = extract_source_indices(sample_domain)
-weights = weight_estimator.adapt(
-        X, sample_domain=sample_domain
-        ).sample_weight[idx]
+weights = weight_estimator.adapt(X, sample_domain=sample_domain).sample_weight[idx]
 
-create_plots(
-    clf,
-    weights=weights,
-    name="1NN Reweight Density")
+create_plots(clf, weights=weights, name="1NN Reweight Density")
 
 # %%
 #     Illustration of the Kernel Mean Matching method
@@ -390,8 +339,7 @@ create_plots(
 #        Correcting sample selection bias by unlabeled data. In NIPS, 2007.
 
 # We define our classifier, `clf` is a da pipeline
-clf = KMM(base_classifier,
-        gamma=10., max_iter=1000, smooth_weights=False)
+clf = KMM(base_classifier, gamma=10.0, max_iter=1000, smooth_weights=False)
 
 # We get the weights:
 
@@ -399,19 +347,17 @@ clf = KMM(base_classifier,
 weight_estimator = clf[0].base_estimator
 weight_estimator.fit(X, sample_domain=sample_domain)
 idx = extract_source_indices(sample_domain)
-weights = weight_estimator.adapt(
-        X, sample_domain=sample_domain
-        ).sample_weight[idx]
+weights = weight_estimator.adapt(X, sample_domain=sample_domain).sample_weight[idx]
 
 create_plots(
     clf,
     weights=weights,
     name="Kernel Mean Matching",
-    suptitle="Illustration of KMM without weights smoothing")
+    suptitle="Illustration of KMM without weights smoothing",
+)
 
 # We define our classifier, `clf` is a da pipeline
-clf = KMM(base_classifier,
-        gamma=10., max_iter=1000, smooth_weights=True)
+clf = KMM(base_classifier, gamma=10.0, max_iter=1000, smooth_weights=True)
 
 # We get the weights:
 
@@ -419,15 +365,14 @@ clf = KMM(base_classifier,
 weight_estimator = clf[0].base_estimator
 weight_estimator.fit(X, sample_domain=sample_domain)
 idx = extract_source_indices(sample_domain)
-weights = weight_estimator.adapt(
-        X, sample_domain=sample_domain
-        ).sample_weight[idx]
+weights = weight_estimator.adapt(X, sample_domain=sample_domain).sample_weight[idx]
 
 create_plots(
     clf,
     weights=weights,
     name="Kernel Mean Matching",
-    suptitle="Illustration of KMM with weights smoothing")
+    suptitle="Illustration of KMM with weights smoothing",
+)
 
 # %%
 #     Comparison of score between reweighting methods:
@@ -436,8 +381,8 @@ create_plots(
 
 def print_scores_as_table(scores):
     keys = list(scores.keys())
-    lenghts = [len(k) for k in keys]
-    max_lenght = max(lenghts)
+    lengths = [len(k) for k in keys]
+    max_lenght = max(lengths)
     for k in keys:
         print(f"{k}{' '*(max_lenght - len(k))} | ", end="")
         print(f"{scores[k]*100}{' '*(6-len(str(scores[k]*100)))}%")

@@ -20,10 +20,10 @@ from skada import (
     KMMAdapter,
     MMDTarSReweight,
     MMDTarSReweightAdapter,
+    NearestNeighborDensityAdapter,
+    NearestNeighborReweightDensity,
     ReweightDensity,
     ReweightDensityAdapter,
-    NearestNeighborReweightDensity,
-    NearestNeighborDensityAdapter,
     make_da_pipeline,
     source_target_split,
 )
@@ -55,12 +55,12 @@ from skada import (
         KLIEP(gamma=0.2),
         NearestNeighborReweightDensity(
             LogisticRegression().set_fit_request(sample_weight=True),
-            laplace_smoothing=True),
-        NearestNeighborReweightDensity(
-            laplace_smoothing=True),
+            laplace_smoothing=True,
+        ),
+        NearestNeighborReweightDensity(laplace_smoothing=True),
         make_da_pipeline(
             NearestNeighborDensityAdapter(laplace_smoothing=True),
-            LogisticRegression().set_fit_request(sample_weight=True)
+            LogisticRegression().set_fit_request(sample_weight=True),
         ),
         make_da_pipeline(
             KMMAdapter(gamma=0.1),

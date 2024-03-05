@@ -155,12 +155,12 @@ class SourceTargetShuffleSplit(BaseDomainAwareShuffleSplit):
             # random partition
             source_permutation = source_idx[rng.permutation(n_source_samples)]
             ind_source_train = source_permutation[
-                n_source_test: (n_source_test + n_source_train)
+                n_source_test : (n_source_test + n_source_train)
             ]
             ind_source_test = source_permutation[:n_source_test]
             target_permutation = target_idx[rng.permutation(n_target_samples)]
             ind_target_train = target_permutation[
-                n_target_test: (n_target_test + n_target_train)
+                n_target_test : (n_target_test + n_target_train)
             ]
             ind_target_test = target_permutation[:n_target_test]
             yield (
@@ -270,12 +270,12 @@ class LeaveOneDomainOut(SplitSampleDomainRequesterMixin):
             # random partition
             source_permutation = source_idx[rng.permutation(n_source_samples)]
             ind_source_train = source_permutation[
-                n_source_test: (n_source_test + n_source_train)
+                n_source_test : (n_source_test + n_source_train)
             ]
             ind_source_test = source_permutation[:n_source_test]
             target_permutation = target_idx[rng.permutation(n_target_samples)]
             ind_target_train = target_permutation[
-                n_target_test: (n_target_test + n_target_train)
+                n_target_test : (n_target_test + n_target_train)
             ]
             ind_target_test = target_permutation[:n_target_test]
             yield (
@@ -443,7 +443,7 @@ class StratifiedDomainShuffleSplit(BaseDomainAwareShuffleSplit):
                 perm_indices_group_i = group_indices[i].take(permutation, mode="clip")
 
                 train.extend(perm_indices_group_i[: n_i[i]])
-                test.extend(perm_indices_group_i[n_i[i]: n_i[i] + t_i[i]])
+                test.extend(perm_indices_group_i[n_i[i] : n_i[i] + t_i[i]])
 
             train = rng.permutation(train)
             test = rng.permutation(test)
@@ -562,11 +562,11 @@ class DomainShuffleSplit(BaseDomainAwareShuffleSplit):
             )
 
             ind_source_train = source_idx[
-                n_source_test: (n_source_test + n_source_train)
+                n_source_test : (n_source_test + n_source_train)
             ]
             ind_source_test = source_idx[:n_source_test]
             ind_target_train = target_idx[
-                n_target_test: (n_target_test + n_target_train)
+                n_target_test : (n_target_test + n_target_train)
             ]
             ind_target_test = target_idx[:n_target_test]
 

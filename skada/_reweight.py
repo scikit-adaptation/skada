@@ -13,11 +13,10 @@ from scipy.stats import multivariate_normal
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics.pairwise import KERNEL_PARAMS, pairwise_distances, pairwise_kernels
 from sklearn.model_selection import check_cv
-from sklearn.neighbors import KernelDensity
+from sklearn.neighbors import KernelDensity, KNeighborsClassifier
 from sklearn.svm import SVC
 from sklearn.utils import check_random_state
 from sklearn.utils.validation import check_is_fitted
-from sklearn.neighbors import KNeighborsClassifier
 
 from ._pipeline import make_da_pipeline
 from ._utils import Y_Type, _estimate_covariance, _find_y_type
@@ -701,15 +700,16 @@ class NearestNeighborDensityAdapter(BaseAdapter):
     """
 
     def __init__(
-            self,
-            weights='uniform',
-            algorithm='auto',
-            leaf_size=30,
-            p=2,
-            metric='minkowski',
-            metric_params=None,
-            n_jobs=None,
-            laplace_smoothing=False):
+        self,
+        weights="uniform",
+        algorithm="auto",
+        leaf_size=30,
+        p=2,
+        metric="minkowski",
+        metric_params=None,
+        n_jobs=None,
+        laplace_smoothing=False,
+    ):
         super().__init__()
         self.weights = weights
         self.algorithm = algorithm
@@ -727,7 +727,8 @@ class NearestNeighborDensityAdapter(BaseAdapter):
             p=self.p,
             metric=self.metric,
             metric_params=self.metric_params,
-            n_jobs=self.n_jobs)
+            n_jobs=self.n_jobs,
+        )
 
     def fit(self, X, y=None, sample_domain=None):
         """Fit adaptation parameters.
@@ -795,7 +796,7 @@ class NearestNeighborDensityAdapter(BaseAdapter):
 
         # xxx(okachaiev): move this to API
         if source_idx.sum() > 0:
-            source_idx, = np.where(source_idx)
+            (source_idx,) = np.where(source_idx)
             indices_source = np.arange(X[source_idx].shape[0])
             if np.array_equal(self.X_source_fit, X[source_idx]):
                 estimator = self.estimator_
@@ -812,17 +813,17 @@ class NearestNeighborDensityAdapter(BaseAdapter):
 def NearestNeighborReweightDensity(
     base_estimator=None,
     laplace_smoothing=False,
-    weights='uniform',
-    algorithm='auto',
+    weights="uniform",
+    algorithm="auto",
     leaf_size=30,
     p=2,
-    metric='minkowski',
+    metric="minkowski",
     metric_params=None,
     n_jobs=None,
 ):
     """Density re-weighting pipeline adapter and estimator.
 
-    The last 7 parameters are the parametters from the 1NN estimator that
+    The last 7 parameters are the parameters from the 1NN estimator that
     will be used to estimate the weights in the `adapt` method
 
     Parameters
@@ -915,13 +916,14 @@ def NearestNeighborReweightDensity(
     return make_da_pipeline(
         NearestNeighborDensityAdapter(
             laplace_smoothing=laplace_smoothing,
-            weights='uniform',
-            algorithm='auto',
+            weights="uniform",
+            algorithm="auto",
             leaf_size=30,
             p=2,
-            metric='minkowski',
+            metric="minkowski",
             metric_params=None,
-            n_jobs=None),
+            n_jobs=None,
+        ),
         base_estimator,
     )
 
@@ -1019,7 +1021,6 @@ class KMMAdapter(BaseAdapter):
         self : object
             Returns self.
         """
-
         X, sample_domain = check_X_domain(
             X, sample_domain, allow_multi_source=True, allow_multi_target=True
         )
