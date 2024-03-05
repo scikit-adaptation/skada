@@ -67,7 +67,8 @@ X, y, sample_domain = make_shifted_datasets(
     n_samples_source=20,
     n_samples_target=20,
     noise=0.1,
-    random_state=RANDOM_SEED
+    random_state=RANDOM_SEED,
+    shift="covariate_shift",
 )
 
 Xs, Xt, ys, yt = source_target_split(
@@ -147,13 +148,17 @@ def create_plots(
 
     if suptitle is None:
         suptitle = f"Illustration of the {name} method"
-    figure, axes = plt.subplots(1, 2, figsize=figsize)
+    figure, axes = plt.subplots(1, 3, figsize=figsize)
     ax = axes[1]
     if name == "Without DA":
         clf.fit(Xs, ys)
     else:
         clf.fit(X, y, sample_domain=sample_domain)
     score = clf.score(Xt, yt)
+    DecisionBoundaryDisplay.from_estimator(
+        clf, Xs, cmap=colormap, alpha=0.1, ax=ax, eps=0.5,
+        response_method="predict",
+    )
 
     # Plot the target points:
     ax.scatter(
@@ -192,6 +197,18 @@ def create_plots(
     ax.set_xticks(()), ax.set_yticks(())
     ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
     ax.set_title("Training with rewegihted data", fontsize=12)
+
+    ax = axes[2]
+    ax.scatter(
+        clf.adapt(Xs),
+        [0] * Xs.shape[0],
+        c=ys,
+        cmap=colormap,
+        alpha=0.7,
+        s=size
+    )
+    ax.set_title("Subspace")
+
     figure.suptitle(suptitle, fontsize=16, y=1)
 
 
@@ -205,10 +222,9 @@ create_plots(
 #
 # Here the adapter based on re-weighting samples using
 # density estimation.
-
 create_plots(
-    TJM(base_classifier),
-    "tjm")
+    TJM(base_classifier, l=0.5, k=1),
+    f"tjm")
 
 # %%
 #     Illustration of the Reweight Density method
@@ -218,7 +234,7 @@ create_plots(
 # density estimation.
 
 create_plots(
-    TransferComponentAnalysis(base_classifier),
+    TransferComponentAnalysis(base_classifier, n_components=1),
     "tca")
 
 
@@ -230,7 +246,7 @@ create_plots(
 # density estimation.
 
 create_plots(
-    SubspaceAlignment(base_classifier),
+    SubspaceAlignment(base_classifier, n_components=1),
     "SubspaceAlignment")
 
 

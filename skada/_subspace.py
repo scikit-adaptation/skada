@@ -413,6 +413,7 @@ class TJMAdapter(BaseAdapter):
         l=0,
         max_iter=100,
         kernel='rbf',
+        tol=0.05
     ):
         super().__init__()
         self.k = k
@@ -420,6 +421,7 @@ class TJMAdapter(BaseAdapter):
         self.random_state = random_state
         self.kernel = kernel
         self.max_iter = max_iter
+        self.tol=tol
 
     def adapt(self, X, y=None, sample_domain=None, **kwargs):
         """Predict adaptation (weigts, sample or labels).
@@ -458,13 +460,11 @@ class TJMAdapter(BaseAdapter):
         ):
             K = self._get_kernel_matrix(X_source, X_target)
             X_ = K @ self.A_
-            print("1.", X_.shape)
         else:
             Ks = pairwise_kernels(X, self.X_source_, metric=self.kernel)
             Kt = pairwise_kernels(X, self.X_target_, metric=self.kernel)
             K = np.concatenate((Ks, Kt), axis=1)
             X_ = (K @ self.A_)
-            print("2.", X_.shape)
         return X_
 
     def _get_mmd_matrix(self, ns, nt, sample_domain):
@@ -498,6 +498,12 @@ class TJMAdapter(BaseAdapter):
 
     def frobenius_norm(self, M):
         return np.sqrt(np.trace(M@M.T))
+
+    def l21_norm(self, A):
+        norm = 0
+        for i in range(A.shape[0]):
+            norm += np.linalg.norm(A[i])
+        return norm
 
     def fit(self, X, y=None, sample_domain=None, **kwargs):
         """Fit adaptation parameters.
@@ -540,7 +546,7 @@ class TJMAdapter(BaseAdapter):
         M = M / self.frobenius_norm(M)
         G = np.identity(n)
 
-        self.Z_ = np.identity(n)
+        self.A_ = np.identity(n)
 
         for i in range(self.max_iter):
             B = (K @ M @ K.T + self.l * G)
@@ -558,8 +564,13 @@ class TJMAdapter(BaseAdapter):
                         G[j, j] = 0
                     else:
                         G[j, j] = 1 / (2 * np.linalg.norm(a))
-
-            self.A_ = A
+            norm = self.l21_norm(A - self.A_)
+            print(i, norm)
+            if norm < self.tol:
+                self.A_ = A
+                break
+            else:
+                self.A_ = A
         return self
 
 
@@ -569,7 +580,7 @@ def TJM(
     k=1,
     l=0,
     kernel='rbf',
-    max_iter=5,
+    max_iter=100,
 ):
     """
 
