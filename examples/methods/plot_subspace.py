@@ -1,13 +1,12 @@
 """
-Reweighting method example on covariate shift dataset
+Subspace method example on covariate shift dataset
 ====================================================
 
-An example of the reweighting methods on a dataset subject
+An example of the subspace methods on a dataset subject
 to covariate shift
 """
 
 # Author:   Ruben Bueno <ruben.bueno@polytechnique.edu>
-#           Antoine de Mathelin
 #
 # License: BSD 3-Clause
 # sphinx_gallery_thumbnail_number = 7
@@ -197,17 +196,21 @@ def create_plots(
     ax.set_xticks(()), ax.set_yticks(())
     ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
     ax.set_title("Training with rewegihted data", fontsize=12)
-
-    ax = axes[2]
-    ax.scatter(
-        clf.adapt(Xs),
-        [0] * Xs.shape[0],
-        c=ys,
-        cmap=colormap,
-        alpha=0.7,
-        s=size
-    )
-    ax.set_title("Subspace")
+    if name != "Without DA":
+        ax = axes[2]
+        keys = list(clf.named_steps.keys())
+        subspace_estimator = clf.named_steps[
+                keys[0]].base_estimator
+        subspace_estimator.fit(X, sample_domain=sample_domain)
+        ax.scatter(
+            subspace_estimator.adapt(Xs),
+            [0] * Xs.shape[0],
+            c=ys,
+            cmap=colormap,
+            alpha=0.5,
+            s=size
+        )
+        ax.set_title("Subspace")
 
     figure.suptitle(suptitle, fontsize=16, y=1)
 
@@ -215,16 +218,6 @@ def create_plots(
 create_plots(
     LogisticRegression(), "Without DA",
     suptitle="Illustration of the classifier with no DA")
-
-# %%
-#     Illustration of the Reweight Density method
-# ------------------------------------------
-#
-# Here the adapter based on re-weighting samples using
-# density estimation.
-create_plots(
-    TJM(base_classifier, l=0.5, k=1),
-    f"tjm")
 
 # %%
 #     Illustration of the Reweight Density method
@@ -248,6 +241,17 @@ create_plots(
 create_plots(
     SubspaceAlignment(base_classifier, n_components=1),
     "SubspaceAlignment")
+
+
+# %%
+#     Illustration of the Reweight Density method
+# ------------------------------------------
+#
+# Here the adapter based on re-weighting samples using
+# density estimation.
+create_plots(
+    TJM(base_classifier, l=0.1, k=1),
+    f"tjm")
 
 
 # %%

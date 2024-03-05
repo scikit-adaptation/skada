@@ -7,7 +7,6 @@
 
 import numpy as np
 from scipy.linalg import eig
-from scipy.linalg import eigh
 
 from sklearn.decomposition import PCA
 from sklearn.metrics.pairwise import pairwise_kernels
@@ -459,7 +458,7 @@ class TJMAdapter(BaseAdapter):
             X_target, self.X_target_
         ):
             K = self._get_kernel_matrix(X_source, X_target)
-            X_ = K @ self.A_
+            X_ = (K @ self.A_)
         else:
             Ks = pairwise_kernels(X, self.X_source_, metric=self.kernel)
             Kt = pairwise_kernels(X, self.X_target_, metric=self.kernel)
@@ -468,24 +467,10 @@ class TJMAdapter(BaseAdapter):
         return X_
 
     def _get_mmd_matrix(self, ns, nt, sample_domain):
-        n = ns + nt
-        M = np.ones((n, n))
-        indices = np.array([
-            [i, j]
-            for i in range(n)
-            for j in range(n)
-            ])
-        for i, j in indices:
-            if sample_domain[i] > 0:
-                if sample_domain[j] > 0:
-                    M[i, j] /= ns * ns
-                else:
-                    M[i, j] /= -ns * nt
-            else:
-                if sample_domain[j] < 0:
-                    M[i, j] /= nt * nt
-                else:
-                    M[i, j] /= -ns * nt
+        Mss = 1/ns**2 * np.ones((ns, ns))
+        Mtt = 1/nt**2 * np.ones((nt, nt))
+        Mst = -1/(ns*nt) * np.ones((ns, nt))
+        M = np.block([[Mss, Mst], [Mst.T, Mtt]])
         return M
             
 
@@ -537,7 +522,7 @@ class TJMAdapter(BaseAdapter):
         self.random_state_ = check_random_state(self.random_state)
 
         n = X.shape[0]
-        H = np.identity(n) - np.ones((n, n))/n
+        H = np.identity(n) - 1/n * np.ones((n, n))
         M = self._get_mmd_matrix(
             X_source.shape[0], X_target.shape[0], sample_domain)
         self.X_source_ = X_source
@@ -546,15 +531,14 @@ class TJMAdapter(BaseAdapter):
         M = M / self.frobenius_norm(M)
         G = np.identity(n)
 
-        self.A_ = np.identity(n)
-
+        self.A_ = np.identity(n)[:, n-k:]
         for i in range(self.max_iter):
-            B = (K @ M @ K.T + self.l * G)
-            C = (K @ H @ K.T)
+            B = self.l * G + K @ M @ K
+            C = (K @ H @ K)
             phi, A = eig(B, C)
-            indices = np.argsort(phi)
+            indices = np.argsort(np.abs(phi))
             A = A[indices]
-            A = A[:, n-k:]
+            A = np.real(A[:, n-k:])
             for j in range(n):
                 if sample_domain[j] < 0:
                     G[j, j] = 1
@@ -564,13 +548,8 @@ class TJMAdapter(BaseAdapter):
                         G[j, j] = 0
                     else:
                         G[j, j] = 1 / (2 * np.linalg.norm(a))
-            norm = self.l21_norm(A - self.A_)
-            print(i, norm)
-            if norm < self.tol:
-                self.A_ = A
-                break
-            else:
-                self.A_ = A
+            self.A_ = A
+
         return self
 
 
@@ -580,7 +559,7 @@ def TJM(
     k=1,
     l=0,
     kernel='rbf',
-    max_iter=100,
+    max_iter=10,
 ):
     """
 
