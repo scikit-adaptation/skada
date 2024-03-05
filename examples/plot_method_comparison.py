@@ -23,16 +23,6 @@ from sklearn.neighbors import KernelDensity
 from sklearn.svm import SVC
 
 from skada import (
-    ReweightDensity,
-    GaussianReweightDensity,
-    DiscriminatorReweightDensity,
-    KLIEP
-)
-from skada import (
-    OTMapping,
-    EntropicOTMapping,
-    ClassRegularizerOTMapping,
-    LinearOTMapping,
     CORAL,
     KLIEP,
     ClassRegularizerOTMapping,
