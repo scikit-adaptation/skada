@@ -43,13 +43,13 @@ from skada import (
 # well suited to predicting labels from points drawn from the target distribution.
 #
 # Reweighting methods implemented and illustrated are the following:
-#   * :ref:`Illustration of the problem with no domain adaptation`
-#   * Reweight Density
-#   * Gaussian Reweight Density
-#   * Discr. Reweight Density
-#   * KLIEP
-#   * Nearest Neighbor reweighting
-#   * Kernel Mean Matching
+#   * No domain adaptation: :ref:`Without DA`
+#   * Reweight Density: :ref:`Reweight Density`
+#   * Gaussian Reweight Density: :ref:`Gaussian Reweight Density`
+#   * Discr. Reweight Density: :ref:`Discr. Reweight Density`
+#   * KLIEP: :ref:`KLIEP`
+#   * Nearest Neighbor reweighting: :ref:`Nearest Neighbor reweighting`
+#   * Kernel Mean Matching: :ref:`Kernel Mean Matching`
 #
 # For more details, look at [0].
 #
@@ -138,6 +138,7 @@ ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
 # %%
 #     Illustration of the problem with no domain adaptation
 # ------------------------------------------
+# .. _Without DA
 #
 # When not using domain adaptation, the classifier won't train on
 # data that is distributed as the target sample domain, it will thus
@@ -229,6 +230,7 @@ create_plots(
 # %%
 #     Illustration of the Reweight Density method
 # ------------------------------------------
+# .. _Reweight Density
 #
 # Here the adapter based on re-weighting samples using
 # density estimation.
@@ -243,7 +245,7 @@ create_plots(
 # %%
 #     Illustration of the Gaussian reweighting method
 # ------------------------------------------
-#
+# .. _Gaussian Reweight Density
 # See [1] for details.
 #
 # .. [1]  Hidetoshi Shimodaira. Improving predictive inference under
@@ -257,6 +259,7 @@ create_plots(
 # %%
 #     Illustration of the Discr. reweighting method
 # ------------------------------------------
+# .. _Discr. Reweight Density
 #
 # See [2] for details.
 #
@@ -272,6 +275,7 @@ create_plots(
 # %%
 #     Illustration of the KLIEP method
 # ------------------------------------------
+# .. _KLIEP
 #
 # The idea of KLIEP is to find an importance estimate :math:`w(x)` such that
 # the Kullback-Leibler (KL) divergence between the source input density
@@ -293,6 +297,7 @@ create_plots(
 # %%
 #     Illustration of the Nearest Neighbor reweighting method
 # ------------------------------------------
+# .. _Nearest Neighbor reweighting
 #
 # This method estimate weight of a point in the source dataset by
 # counting the number of points in the target set that are closer to
@@ -314,6 +319,7 @@ create_plots(
 # %%
 #     Illustration of the Kernel Mean Matching method
 # ------------------------------------------
+# .. _Kernel Mean Matching
 #
 # This example illustrates the use of KMM method [5] to correct covariate-shift.
 #
