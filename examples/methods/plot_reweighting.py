@@ -130,10 +130,6 @@ def create_plots(
         suptitle = f"Illustration of the {name} method"
     figure, axes = plt.subplots(1, 2, figsize=figsize)
     ax = axes[1]
-    if name == "Without DA":
-        clf.fit(Xs, ys)
-    else:
-        clf.fit(X, y, sample_domain=sample_domain)
     score = clf.score(Xt, yt)
     DecisionBoundaryDisplay.from_estimator(
         clf,
@@ -192,6 +188,8 @@ def create_plots(
     figure.suptitle(suptitle, fontsize=16, y=1)
 
 
+clf = base_classifier
+clf.fit(Xs, ys)
 create_plots(
     base_classifier,
     name="Without DA",
@@ -212,6 +210,7 @@ clf = ReweightDensity(
     base_estimator=base_classifier,
     weight_estimator=KernelDensity(bandwidth=0.5),
 )
+clf.fit(X, y, sample_domain=sample_domain)
 
 # We get the weights:
 
@@ -235,6 +234,7 @@ create_plots(clf, weights=weights, name="Reweight Density")
 
 # We define our classifier, `clf` is a da pipeline
 clf = GaussianReweightDensity(base_classifier)
+clf.fit(X, y, sample_domain=sample_domain)
 # We get the weights
 weight_estimator = clf[0].base_estimator
 weight_estimator.fit(X, sample_domain=sample_domain)
@@ -256,6 +256,7 @@ create_plots(clf, weights=weights, name="Gaussian Reweight Density")
 
 # We define our classifier, `clf` is a da pipeline
 clf = DiscriminatorReweightDensity(base_classifier)
+clf.fit(X, y, sample_domain=sample_domain)
 
 # We get the weights:
 
@@ -286,6 +287,7 @@ create_plots(clf, weights=weights, name="Discr. Reweight Density")
 clf = KLIEP(
     LogisticRegression().set_fit_request(sample_weight=True), gamma=[1, 0.1, 0.001]
 )
+clf.fit(X, y, sample_domain=sample_domain)
 
 # We get the weights:
 
@@ -315,6 +317,7 @@ create_plots(clf, weights=weights, name="KLIEP")
 
 # We define our classifier, `clf` is a da pipeline
 clf = NearestNeighborReweightDensity(base_classifier, laplace_smoothing=True)
+clf.fit(X, y, sample_domain=sample_domain)
 
 # We get the weights:
 
@@ -340,6 +343,7 @@ create_plots(clf, weights=weights, name="1NN Reweight Density")
 
 # We define our classifier, `clf` is a da pipeline
 clf = KMM(base_classifier, gamma=10.0, max_iter=1000, smooth_weights=False)
+clf.fit(X, y, sample_domain=sample_domain)
 
 # We get the weights:
 
@@ -358,6 +362,7 @@ create_plots(
 
 # We define our classifier, `clf` is a da pipeline
 clf = KMM(base_classifier, gamma=10.0, max_iter=1000, smooth_weights=True)
+clf.fit(X, y, sample_domain=sample_domain)
 
 # We get the weights:
 
