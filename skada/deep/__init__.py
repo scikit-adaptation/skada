@@ -11,7 +11,7 @@ try:
     import skorch  # noqa: F401
 except (ImportError, ModuleNotFoundError) as e:
     raise ImportError(
-        "torch and skorch are required for importing deep's method."
+        "torch and skorch are required for importing skada.deep.* modules."
     ) from e
 
 from ._divergence import DeepCoral, DeepCoralLoss, DANLoss, DAN
