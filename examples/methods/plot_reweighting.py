@@ -162,7 +162,7 @@ def create_plots(
         # We get the weights
         weight_estimator = clf[0].base_estimator
         weight_estimator.fit(X, sample_domain=sample_domain)
-        idx = sample_domain > 0
+        idx = extract_source_indices(sample_domain)
         size = 1 + 8*weight_estimator.adapt(
                 X, sample_domain=sample_domain
                 ).sample_weight[idx]
@@ -325,7 +325,7 @@ create_plots(
     "Kernel Mean Matching", suptitle="Illustration of KMM with weights smoothing")
 
 # %%
-#     Comparisaon of score between reweighting methods:
+#     Comparison of score between reweighting methods:
 # ------------------------------------------
 
 
