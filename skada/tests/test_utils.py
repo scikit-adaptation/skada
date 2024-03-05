@@ -3,24 +3,22 @@
 #
 # License: BSD 3-Clause
 
+import numpy as np
 import pytest
 
-import numpy as np
-
-from skada.datasets import (
-    make_dataset_from_moons_distribution
-)
-from skada.utils import (
-    check_X_y_domain,
-    check_X_domain,
-    extract_source_indices,
-    source_target_split,
-    extract_domains_indices,
-    source_target_merge,
-    qp_solve,
-    torch_minimize
-)
 from skada._utils import _check_y_masking
+from skada.datasets import make_dataset_from_moons_distribution
+from skada.utils import (
+    check_X_domain,
+    check_X_y_domain,
+    extract_domains_indices,
+    extract_source_indices,
+    qp_solve,
+    source_target_merge,
+    source_target_split,
+    torch_minimize,
+)
+
 try:
     import torch
 except ImportError:
@@ -118,15 +116,16 @@ def test_source_target_split():
     )
 
     assert X_source.shape == (2 * n_samples_source, 2), "X_source shape mismatch"
-    assert y_source.shape == (2 * n_samples_source, ), "y_source shape mismatch"
+    assert y_source.shape == (2 * n_samples_source,), "y_source shape mismatch"
     assert X_target.shape == (2 * n_samples_target, 2), "X_target shape mismatch"
-    assert y_target.shape == (2 * n_samples_target, ), "y_target shape mismatch"
+    assert y_target.shape == (2 * n_samples_target,), "y_target shape mismatch"
 
     with pytest.raises(IndexError):
         source_target_split(X, y[:-2], sample_domain=sample_domain)
 
     X_source, X_target, weights_source, weights_target = source_target_split(
-        X, None, sample_domain=sample_domain)
+        X, None, sample_domain=sample_domain
+    )
 
     assert X_source.shape == (2 * n_samples_source, 2), "X_source shape mismatch"
     assert X_target.shape == (2 * n_samples_target, 2), "X_target shape mismatch"
@@ -165,11 +164,14 @@ def test_check_X_y_allow_exceptions():
         match=(
             f"Number of sources provided is {n_sources} "
             f"and 'allow_source' is set to {allow_source}"
-        )
+        ),
     ):
         check_X_y_domain(
-            X, y, sample_domain=random_sample_domain,
-            allow_auto_sample_domain=False, allow_source=allow_source
+            X,
+            y,
+            sample_domain=random_sample_domain,
+            allow_auto_sample_domain=False,
+            allow_source=allow_source,
         )
 
     with pytest.raises(
@@ -177,11 +179,14 @@ def test_check_X_y_allow_exceptions():
         match=(
             f"Number of targets provided is {n_targets} "
             f"and 'allow_target' is set to {allow_target}"
-            )
+        ),
     ):
         check_X_y_domain(
-            X, y, sample_domain=random_sample_domain,
-            allow_auto_sample_domain=False, allow_target=allow_target
+            X,
+            y,
+            sample_domain=random_sample_domain,
+            allow_auto_sample_domain=False,
+            allow_target=allow_target,
         )
 
     with pytest.raises(
@@ -189,11 +194,14 @@ def test_check_X_y_allow_exceptions():
         match=(
             f"Number of sources provided is {n_sources} "
             f"and 'allow_multi_source' is set to {allow_multi_source}"
-        )
+        ),
     ):
         check_X_y_domain(
-            X, y, sample_domain=random_sample_domain,
-            allow_auto_sample_domain=False, allow_multi_source=allow_multi_source
+            X,
+            y,
+            sample_domain=random_sample_domain,
+            allow_auto_sample_domain=False,
+            allow_multi_source=allow_multi_source,
         )
 
     with pytest.raises(
@@ -201,11 +209,14 @@ def test_check_X_y_allow_exceptions():
         match=(
             f"Number of targets provided is {n_targets} "
             f"and 'allow_multi_target' is set to {allow_multi_target}"
-        )
+        ),
     ):
         check_X_y_domain(
-            X, y, sample_domain=random_sample_domain,
-            allow_auto_sample_domain=False, allow_multi_target=allow_multi_target
+            X,
+            y,
+            sample_domain=random_sample_domain,
+            allow_auto_sample_domain=False,
+            allow_multi_target=allow_multi_target,
         )
 
 
@@ -241,11 +252,13 @@ def test_check_X_allow_exceptions():
         match=(
             f"Number of sources provided is {n_sources} "
             f"and 'allow_source' is set to {allow_source}"
-        )
+        ),
     ):
         check_X_domain(
-            X, sample_domain=random_sample_domain,
-            allow_auto_sample_domain=False, allow_source=allow_source
+            X,
+            sample_domain=random_sample_domain,
+            allow_auto_sample_domain=False,
+            allow_source=allow_source,
         )
 
     with pytest.raises(
@@ -253,11 +266,13 @@ def test_check_X_allow_exceptions():
         match=(
             f"Number of targets provided is {n_targets} "
             f"and 'allow_target' is set to {allow_target}"
-        )
+        ),
     ):
         check_X_domain(
-            X, sample_domain=random_sample_domain,
-            allow_auto_sample_domain=False, allow_target=allow_target
+            X,
+            sample_domain=random_sample_domain,
+            allow_auto_sample_domain=False,
+            allow_target=allow_target,
         )
 
     with pytest.raises(
@@ -265,11 +280,13 @@ def test_check_X_allow_exceptions():
         match=(
             f"Number of sources provided is {n_sources} "
             f"and 'allow_multi_source' is set to {allow_multi_source}"
-        )
+        ),
     ):
         check_X_domain(
-            X, sample_domain=random_sample_domain,
-            allow_auto_sample_domain=False, allow_multi_source=allow_multi_source
+            X,
+            sample_domain=random_sample_domain,
+            allow_auto_sample_domain=False,
+            allow_multi_source=allow_multi_source,
         )
 
     with pytest.raises(
@@ -277,11 +294,13 @@ def test_check_X_allow_exceptions():
         match=(
             f"Number of targets provided is {n_targets} "
             f"and 'allow_multi_target' is set to {allow_multi_target}"
-        )
+        ),
     ):
         check_X_domain(
-            X, sample_domain=random_sample_domain,
-            allow_auto_sample_domain=False, allow_multi_target=allow_multi_target
+            X,
+            sample_domain=random_sample_domain,
+            allow_auto_sample_domain=False,
+            allow_multi_target=allow_multi_target,
         )
 
 
@@ -317,23 +336,21 @@ def test_extract_domains_indices():
 
     domain_idx_dict = extract_domains_indices(sample_domain)
     domain_source_idx_dict, domain_target_idx_dict = extract_domains_indices(
-            sample_domain,
-            split_source_target=True
-        )
+        sample_domain, split_source_target=True
+    )
 
-    assert (
-        sum(len(values) for values in domain_idx_dict.values()) ==
-        len(sample_domain)
+    assert sum(len(values) for values in domain_idx_dict.values()) == len(
+        sample_domain
     ), "domain_idx_dict shape mismatch"
 
     assert (
-        sum(len(values) for values in domain_source_idx_dict.values()) ==
-        2 * n_samples_source
+        sum(len(values) for values in domain_source_idx_dict.values())
+        == 2 * n_samples_source
     ), "domain_source_idx_dict shape mismatch"
 
     assert (
-        sum(len(values) for values in domain_target_idx_dict.values()) ==
-        2 * n_samples_target
+        sum(len(values) for values in domain_target_idx_dict.values())
+        == 2 * n_samples_target
     ), "domain_target_idx_dict shape mismatch"
 
 
@@ -366,116 +383,94 @@ def test_source_target_merge():
     ), "labels shape mismatch"
 
     # Test with empty samples
-    with pytest.raises(ValueError,
-                       match="Only one array can be None or empty in each pair"
-                       ):
+    with pytest.raises(
+        ValueError, match="Only one array can be None or empty in each pair"
+    ):
         _ = source_target_merge(np.array([]), np.array([]), sample_domain=np.array([]))
 
     # Test that no Error with one empty sample
     _ = source_target_merge(
-        X_source,
-        np.array([]),
-        sample_domain=np.array([1]*X_source.shape[0])
+        X_source, np.array([]), sample_domain=np.array([1] * X_source.shape[0])
     )
     _ = source_target_merge(
-        np.array([]),
-        X_target,
-        sample_domain=np.array([-1]*X_target.shape[0])
+        np.array([]), X_target, sample_domain=np.array([-1] * X_target.shape[0])
     )
 
     # Test consistent length
-    with pytest.raises(ValueError,
-                       match="Inconsistent number of samples in source-target arrays "
-                       "and the number infered in the sample_domain"
-                       ):
+    with pytest.raises(
+        ValueError,
+        match="Inconsistent number of samples in source-target arrays "
+        "and the number inferred in the sample_domain",
+    ):
         _ = source_target_merge(X_source[0], X_target[1], sample_domain=sample_domain)
 
     # Test no sample domain
     _ = source_target_merge(X_source, X_target, sample_domain=None)
 
     # Test odd number of array
-    with pytest.raises(ValueError,
-                       match="Even number of arrays required as input"
-                       ):
+    with pytest.raises(ValueError, match="Even number of arrays required as input"):
         _ = source_target_merge(
-            X_source,
-            X_target,
-            y_source,
-            sample_domain=sample_domain
+            X_source, X_target, y_source, sample_domain=sample_domain
         )
 
     # Test >2 arrays
     _ = source_target_merge(
-        X_source,
-        X_target,
-        y_source,
-        y_target,
-        sample_domain=sample_domain
+        X_source, X_target, y_source, y_target, sample_domain=sample_domain
     )
 
     # Test one array
-    with pytest.raises(ValueError,
-                       match="At least two array required as input"
-                       ):
+    with pytest.raises(ValueError, match="At least two array required as input"):
         _ = source_target_merge(X_source, sample_domain=sample_domain)
 
     # Test y_target = None + Inconsistent number of samples in source-target
-    with pytest.raises(ValueError,
-                       match="Inconsistent number of samples in source-target arrays "
-                       "and the number infered in the sample_domain"
-                       ):
+    with pytest.raises(
+        ValueError,
+        match="Inconsistent number of samples in source-target arrays "
+        "and the number inferred in the sample_domain",
+    ):
         _ = source_target_merge(
             X_source,
             X_target,
             np.ones_like(sample_domain),
             None,
-            sample_domain=sample_domain
+            sample_domain=sample_domain,
         )
 
     # Test y_target = None + Consistent number of samples in source-target
     _ = source_target_merge(
-        X_source,
-        X_target,
-        y_source,
-        None,
-        sample_domain=sample_domain
+        X_source, X_target, y_source, None, sample_domain=sample_domain
     )
 
     # Test 2 None in a pair of arrays
-    with pytest.raises(ValueError,
-                       match="Only one array can be None or empty in each pair"
-                       ):
+    with pytest.raises(
+        ValueError, match="Only one array can be None or empty in each pair"
+    ):
         _ = source_target_merge(None, None, sample_domain=sample_domain)
 
     # Test 1 None in 2 pair of arrays
     _ = source_target_merge(X_source, None, y_source, None, sample_domain=sample_domain)
 
     # Test inconsistent number of features
-    with pytest.raises(ValueError,
-                       match="Inconsistent number of features in source-target arrays"
-                       ):
-        _ = source_target_merge(
-            X_source[:, :-1],
-            X_target,
-            sample_domain=sample_domain
-        )
+    with pytest.raises(
+        ValueError, match="Inconsistent number of features in source-target arrays"
+    ):
+        _ = source_target_merge(X_source[:, :-1], X_target, sample_domain=sample_domain)
 
 
 def test_qp_solve():
-    Q = np.array([[2., .5],
-                  [.5, 1.]])
-    c = np.array([1., 1.])
+    Q = np.array([[2.0, 0.5], [0.5, 1.0]])
+    c = np.array([1.0, 1.0])
 
-    Aeq = np.array([[1., 1.]])
-    beq = np.array([1.])
+    Aeq = np.array([[1.0, 1.0]])
+    beq = np.array([1.0])
 
     A = -np.eye(2)
     b = np.zeros(2)
 
-    lb = np.array([0., 0.])
-    ub = np.array([0., 0.])
+    lb = np.array([0.0, 0.0])
+    ub = np.array([0.0, 0.0])
 
-    x0 = 2. * np.ones(2)
+    x0 = 2.0 * np.ones(2)
 
     sol1 = np.array([0.25, 0.75])
     sol2 = -np.linalg.inv(Q) @ c
@@ -507,14 +502,13 @@ def test_qp_solve():
     res = qp_solve(Q, c, log=True)
     assert isinstance(res[2], dict)
 
-    with pytest.warns(UserWarning,
-                      match="Iteration limit reached"):
+    with pytest.warns(UserWarning, match="Iteration limit reached"):
         qp_solve(Q, c, Aeq=Aeq, beq=beq, lb=lb, max_iter=1)
 
 
 @pytest.mark.skipif(not torch, reason="PyTorch not installed")
 def test_torch_minimize():
-    A = torch.tensor([[5., 2.], [2., 5.]], dtype=torch.float64)
+    A = torch.tensor([[5.0, 2.0], [2.0, 5.0]], dtype=torch.float64)
     true_eigval, true_eigvec = np.linalg.eigh(A)
     true_eigval = true_eigval[0]
     true_eigvec = true_eigvec[:, 0].reshape(-1, 1)

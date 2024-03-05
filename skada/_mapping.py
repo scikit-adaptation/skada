@@ -12,22 +12,17 @@ from ot import da
 from sklearn.metrics.pairwise import pairwise_distances
 from sklearn.svm import SVC
 
+from ._pipeline import make_da_pipeline
+from ._utils import Y_Type, _estimate_covariance, _find_y_type
 from .base import BaseAdapter, clone
 from .utils import (
     check_X_domain,
     check_X_y_domain,
     extract_source_indices,
-    source_target_split,
     source_target_merge,
-    torch_minimize
+    source_target_split,
+    torch_minimize,
 )
-from ._utils import (
-    _estimate_covariance,
-    _find_y_type,
-    Y_Type
-)
-
-from ._pipeline import make_da_pipeline
 
 
 class BaseOTMappingAdapter(BaseAdapter):
@@ -86,10 +81,7 @@ class BaseOTMappingAdapter(BaseAdapter):
         """
         # xxx(okachaiev): implement auto-infer for sample_domain
         X, sample_domain = check_X_domain(
-            X,
-            sample_domain,
-            allow_multi_source=True,
-            allow_multi_target=True
+            X, sample_domain, allow_multi_source=True, allow_multi_target=True
         )
         X_source, X_target = source_target_split(X, sample_domain=sample_domain)
         # in case of prediction we would get only target samples here,
@@ -152,12 +144,7 @@ class OTMappingAdapter(BaseOTMappingAdapter):
         )
 
 
-def OTMapping(
-    base_estimator=None,
-    metric="sqeuclidean",
-    norm=None,
-    max_iter=100000
-):
+def OTMapping(base_estimator=None, metric="sqeuclidean", norm=None, max_iter=100000):
     """OTmapping pipeline with adapter and estimator.
 
     see [1]_ for details.
@@ -229,7 +216,7 @@ class EntropicOTMappingAdapter(BaseOTMappingAdapter):
 
     def __init__(
         self,
-        reg_e=1.,
+        reg_e=1.0,
         metric="sqeuclidean",
         norm=None,
         max_iter=1000,
@@ -257,7 +244,7 @@ def EntropicOTMapping(
     metric="sqeuclidean",
     norm=None,
     max_iter=1000,
-    reg_e=1.,
+    reg_e=1.0,
     tol=1e-8,
 ):
     """EntropicOTMapping pipeline with adapter and estimator.
@@ -298,11 +285,7 @@ def EntropicOTMapping(
 
     return make_da_pipeline(
         EntropicOTMappingAdapter(
-            metric=metric,
-            norm=norm,
-            max_iter=max_iter,
-            reg_e=reg_e,
-            tol=tol
+            metric=metric, norm=norm, max_iter=max_iter, reg_e=reg_e, tol=tol
         ),
         base_estimator,
     )
@@ -347,7 +330,7 @@ class ClassRegularizerOTMappingAdapter(BaseOTMappingAdapter):
 
     def __init__(
         self,
-        reg_e=1.,
+        reg_e=1.0,
         reg_cl=0.1,
         norm="lpl1",
         metric="sqeuclidean",
@@ -387,7 +370,7 @@ def ClassRegularizerOTMapping(
     norm="lpl1",
     max_iter=10,
     max_inner_iter=200,
-    reg_e=1.,
+    reg_e=1.0,
     reg_cl=0.1,
     tol=1e-8,
 ):
@@ -436,7 +419,7 @@ def ClassRegularizerOTMapping(
             max_inner_iter=max_inner_iter,
             reg_e=reg_e,
             reg_cl=reg_cl,
-            tol=tol
+            tol=tol,
         ),
         base_estimator,
     )
@@ -472,7 +455,7 @@ class LinearOTMappingAdapter(BaseOTMappingAdapter):
 
 def LinearOTMapping(
     base_estimator=None,
-    reg=1.,
+    reg=1.0,
     bias=True,
 ):
     """Returns a the linear OT mapping method with adapter and estimator.
@@ -560,7 +543,7 @@ def _invsqrtm(C):
         Matrix inverse square root of C.
     """
     eigvals, eigvecs = np.linalg.eigh(C)
-    return (eigvecs * 1. / np.sqrt(eigvals)) @ eigvecs.T
+    return (eigvecs * 1.0 / np.sqrt(eigvals)) @ eigvecs.T
 
 
 class CORALAdapter(BaseAdapter):
@@ -590,7 +573,7 @@ class CORALAdapter(BaseAdapter):
            In Advances in Computer Vision and Pattern Recognition, 2017.
     """
 
-    def __init__(self, reg='auto'):
+    def __init__(self, reg="auto"):
         super().__init__()
         self.reg = reg
 
@@ -612,10 +595,7 @@ class CORALAdapter(BaseAdapter):
             Returns self.
         """
         X, sample_domain = check_X_domain(
-            X,
-            sample_domain,
-            allow_multi_source=True,
-            allow_multi_target=True
+            X, sample_domain, allow_multi_source=True, allow_multi_target=True
         )
         X_source, X_target = source_target_split(X, sample_domain=sample_domain)
 
@@ -647,10 +627,7 @@ class CORALAdapter(BaseAdapter):
             No weights are returned here.
         """
         X, sample_domain = check_X_domain(
-            X,
-            sample_domain,
-            allow_multi_source=True,
-            allow_multi_target=True
+            X, sample_domain, allow_multi_source=True, allow_multi_target=True
         )
         X_source, X_target = source_target_split(X, sample_domain=sample_domain)
 
@@ -703,7 +680,7 @@ def CORAL(
 
 
 class MMDLSConSMappingAdapter(BaseAdapter):
-    """Location-Scale mapping minimizing the MMD with a Gaussian kernel.
+    r"""Location-Scale mapping minimizing the MMD with a Gaussian kernel.
 
     MMDLSConSMapping finds a linear transformation that minimizes the Maximum Mean
     Discrepancy (MMD) between the source and target domains, such that
@@ -770,7 +747,8 @@ class MMDLSConSMappingAdapter(BaseAdapter):
         X_source = torch.tensor(X_source, dtype=torch.float64)
         X_target = torch.tensor(X_target, dtype=torch.float64)
         y_source = torch.tensor(
-            y_source, dtype=torch.int64 if discrete else torch.float64)
+            y_source, dtype=torch.int64 if discrete else torch.float64
+        )
 
         # get shapes
         m, n = X_source.shape[0], X_target.shape[0]
@@ -803,10 +781,10 @@ class MMDLSConSMappingAdapter(BaseAdapter):
 
             K = torch.exp(-self.gamma * torch.cdist(X_new, X_new, p=2))
             K_cross = torch.exp(-self.gamma * torch.cdist(X_target, X_new, p=2))
-            J_cons = (1 / (m ** 2)) * torch.sum(omega @ K @ omega.T)
+            J_cons = (1 / (m**2)) * torch.sum(omega @ K @ omega.T)
             J_cons -= (2 / (m * n)) * torch.sum(K_cross @ omega.T)
 
-            J_reg = (1 / m) * (torch.sum((W - 1) ** 2) + torch.sum(B ** 2))
+            J_reg = (1 / m) * (torch.sum((W - 1) ** 2) + torch.sum(B**2))
 
             return J_cons + self.reg_m * J_reg
 
@@ -841,14 +819,13 @@ class MMDLSConSMappingAdapter(BaseAdapter):
         """
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
         X_source, X_target, y_source, _ = source_target_split(
-            X,
-            y,
-            sample_domain=sample_domain
+            X, y, sample_domain=sample_domain
         )
         self.X_source_ = X_source
 
         self.W_, self.B_, self.G_, self.H_ = self._mapping_optimization(
-            X_source, X_target, y_source)
+            X_source, X_target, y_source
+        )
 
         return self
 
@@ -873,10 +850,7 @@ class MMDLSConSMappingAdapter(BaseAdapter):
         weights : array-like, shape (n_samples,)
             The weights of the samples.
         """
-        X, sample_domain = check_X_domain(
-            X,
-            sample_domain
-        )
+        X, sample_domain = check_X_domain(X, sample_domain)
 
         source_idx = extract_source_indices(sample_domain)
         X_source, X_target = X[source_idx], X[~source_idx]
@@ -911,12 +885,7 @@ class MMDLSConSMappingAdapter(BaseAdapter):
 
 
 def MMDLSConSMapping(
-    base_estimator=None,
-    gamma=1.0,
-    reg_k=1e-10,
-    reg_m=1e-10,
-    tol=1e-5,
-    max_iter=100
+    base_estimator=None, gamma=1.0, reg_k=1e-10, reg_m=1e-10, tol=1e-5, max_iter=100
 ):
     """MMDLSConSMapping pipeline with adapter and estimator.
 
@@ -952,11 +921,7 @@ def MMDLSConSMapping(
 
     return make_da_pipeline(
         MMDLSConSMappingAdapter(
-            gamma=gamma,
-            reg_k=reg_k,
-            reg_m=reg_m,
-            tol=tol,
-            max_iter=max_iter
+            gamma=gamma, reg_k=reg_k, reg_m=reg_m, tol=tol, max_iter=max_iter
         ),
-        base_estimator
+        base_estimator,
     )

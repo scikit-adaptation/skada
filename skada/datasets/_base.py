@@ -2,13 +2,12 @@
 #
 # License: BSD 3-Clause
 
-from functools import reduce
 import os
+from functools import reduce
 from typing import Dict, Iterable, List, Mapping, Optional, Tuple, Union
 
 import numpy as np
 from sklearn.utils import Bunch
-
 
 _DEFAULT_HOME_FOLDER_KEY = "SKADA_DATA_FOLDER"
 _DEFAULT_HOME_FOLDER = "~/skada_datasets"
@@ -22,13 +21,10 @@ DomainDataType = Union[
     # (X, y)
     Tuple[np.ndarray, np.ndarray],
     # (X,)
-    Tuple[np.ndarray, ],
+    Tuple[np.ndarray,],
 ]
 
-PackedDatasetType = Union[
-    Bunch,
-    Tuple[np.ndarray, np.ndarray, np.ndarray]
-]
+PackedDatasetType = Union[Bunch, Tuple[np.ndarray, np.ndarray, np.ndarray]]
 
 
 def get_data_home(data_home: Union[str, os.PathLike, None]) -> str:
@@ -65,11 +61,10 @@ def get_data_home(data_home: Union[str, os.PathLike, None]) -> str:
 
 
 class DomainAwareDataset:
-
     def __init__(
         self,
         # xxx(okachaiev): not sure if dictionary is a good format :thinking:
-        domains: Union[List[DomainDataType], Dict[str, DomainDataType], None] = None
+        domains: Union[List[DomainDataType], Dict[str, DomainDataType], None] = None,
     ):
         self.domains_ = []
         self.domain_names_ = {}
@@ -84,27 +79,22 @@ class DomainAwareDataset:
                 self.add_domain(X, y=y, domain_name=domain_name)
 
     def add_domain(
-        self,
-        X,
-        y=None,
-        domain_name: Optional[str] = None
-    ) -> 'DomainAwareDataset':
+        self, X, y=None, domain_name: Optional[str] = None
+    ) -> "DomainAwareDataset":
         if domain_name is not None:
             # check the name is unique
             # xxx(okachaiev): ValueError would be more appropriate
             assert domain_name not in self.domain_names_
         else:
             domain_name = f"_{len(self.domain_names_)+1}"
-        domain_id = len(self.domains_)+1
+        domain_id = len(self.domains_) + 1
         self.domains_.append((X, y) if y is not None else (X,))
         self.domain_names_[domain_name] = domain_id
         return self
 
     def merge(
-        self,
-        dataset: 'DomainAwareDataset',
-        names_mapping: Optional[Mapping] = None
-    ) -> 'DomainAwareDataset':
+        self, dataset: "DomainAwareDataset", names_mapping: Optional[Mapping] = None
+    ) -> "DomainAwareDataset":
         for domain_name in dataset.domain_names_:
             # xxx(okachaiev): this needs to be more flexible
             # as it should be possible to pass only X with y=None
@@ -117,12 +107,10 @@ class DomainAwareDataset:
 
     def get_domain(self, domain_name: str) -> Tuple[np.ndarray, Optional[np.ndarray]]:
         domain_id = self.domain_names_[domain_name]
-        return self.domains_[domain_id-1]
+        return self.domains_[domain_id - 1]
 
     def select_domain(
-        self,
-        sample_domain: np.ndarray,
-        domains: Union[str, Iterable[str]]
+        self, sample_domain: np.ndarray, domains: Union[str, Iterable[str]]
     ) -> np.ndarray:
         return select_domain(self.domain_names_, sample_domain, domains)
 
@@ -185,7 +173,7 @@ class DomainAwareDataset:
             domain_id = self.domain_names_[domain_name]
             source = self.get_domain(domain_name)
             if len(source) == 1:
-                X, = source
+                (X,) = source
                 y = -np.ones(X.shape[0], dtype=np.int32)
             elif len(source) == 2:
                 X, y = source
@@ -194,7 +182,7 @@ class DomainAwareDataset:
             # xxx(okachaiev): this is horribly inefficient, re-write when API is fixed
             Xs.append(X)
             ys.append(y)
-            sample_domains.append(np.ones_like(y)*domain_id)
+            sample_domains.append(np.ones_like(y) * domain_id)
             domain_labels[domain_name] = domain_id
         # xxx(okachaiev): code duplication, re-write when API is fixed
         dtype = None
@@ -202,7 +190,7 @@ class DomainAwareDataset:
             domain_id = self.domain_names_[domain_name]
             target = self.get_domain(domain_name)
             if len(target) == 1:
-                X, = target
+                (X,) = target
                 # xxx(okachaiev): for what it's worth, we should likely to
                 # move the decision about dtype to the very end of the list
                 y = -np.ones(X.shape[0], dtype=np.int32)
@@ -231,11 +219,15 @@ class DomainAwareDataset:
         Xs = np.concatenate(Xs)
         ys = np.concatenate(ys)
         sample_domain = np.concatenate(sample_domains)
-        return (Xs, ys, sample_domain) if return_X_y else Bunch(
-            X=Xs,
-            y=ys,
-            sample_domain=sample_domain,
-            domain_names=domain_labels,
+        return (
+            (Xs, ys, sample_domain)
+            if return_X_y
+            else Bunch(
+                X=Xs,
+                y=ys,
+                sample_domain=sample_domain,
+                domain_names=domain_labels,
+            )
         )
 
     def pack_train(
@@ -332,11 +324,11 @@ class DomainAwareDataset:
         else:
             # If the number of domains is large, truncate the list and add ellipsis
             truncated_domains = domain_names[:max_domains]
-            domain_str = str(truncated_domains)[:-1] + ', ...]'
+            domain_str = str(truncated_domains)[:-1] + ", ...]"
 
         # Truncate the string representation if it exceeds max_length
         if len(domain_str) > max_length:
-            domain_str = domain_str[:max_length - 3] + '...]'
+            domain_str = domain_str[: max_length - 3] + "...]"
 
         return domain_str
 
@@ -346,12 +338,11 @@ class DomainAwareDataset:
 def select_domain(
     domain_names: Dict[str, int],
     sample_domain: np.ndarray,
-    domains: Union[str, Iterable[str]]
+    domains: Union[str, Iterable[str]],
 ) -> np.ndarray:
     if isinstance(domains, str):
         domains = [domains]
     # xxx(okachaiev): this version is not the most efficient
     return reduce(
-        np.logical_or,
-        (sample_domain == domain_names[domain] for domain in domains)
+        np.logical_or, (sample_domain == domain_names[domain] for domain in domains)
     )

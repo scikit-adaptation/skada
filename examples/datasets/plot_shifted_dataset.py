@@ -17,11 +17,11 @@ See detailed description of each shift in [1]_.
 
 import matplotlib.pyplot as plt
 
-from skada.datasets import make_shifted_datasets
 from skada import source_target_split
-
+from skada.datasets import make_shifted_datasets
 
 # %% Helper function
+
 
 def plot_shifted_dataset(shift, random_state=42):
     """Plot source and shifted target data for a given type of shift.

@@ -4,7 +4,7 @@
 API and modules
 ===============
 
-Main module  :py:mod:`skada`
+Main module :py:mod:`skada`
 ---------------------------
 
 .. currentmodule:: skada
@@ -127,7 +127,7 @@ DA metrics :py:mod:`skada.metrics`
 
 
 Model Selection :py:mod:`skada.model_selection`
---------------------------------
+-----------------------------------------------
 
 .. currentmodule:: skada.model_selection
 
@@ -146,7 +146,7 @@ Model Selection :py:mod:`skada.model_selection`
 
 
 Datasets :py:mod:`skada.datasets`
---------------------------------
+---------------------------------
 
 .. currentmodule:: skada.datasets
 

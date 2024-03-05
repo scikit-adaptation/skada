@@ -10,9 +10,9 @@ import numpy as np
 
 from torch.nn import BCELoss
 
-from skada.deep import DANN, CDAN
-from skada.deep.modules import ToyModule2D, DomainClassifier
 from skada.datasets import make_shifted_datasets
+from skada.deep import CDAN, DANN
+from skada.deep.modules import DomainClassifier, ToyModule2D
 
 
 @pytest.mark.parametrize(
@@ -162,7 +162,7 @@ def test_return_features():
         ToyModule2D(),
         reg=1,
         domain_classifier=None,
-        num_features=num_features*n_classes,
+        num_features=num_features * n_classes,
         domain_criterion=BCELoss(),
         layer_name="dropout",
         batch_size=10,

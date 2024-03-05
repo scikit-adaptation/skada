@@ -8,17 +8,14 @@ with `cross_val_score <https://scikit-learn.org/stable/modules/generated/sklearn
 # %%
 # Prepare dataset and estimators
 
-import numpy as np
 import matplotlib.pyplot as plt
-
+import numpy as np
+from sklearn.model_selection import ShuffleSplit, cross_val_score
 from sklearn.svm import SVC
-from sklearn.model_selection import cross_val_score
-from sklearn.model_selection import ShuffleSplit
 
 from skada import EntropicOTMapping, source_target_split
 from skada.datasets import make_shifted_datasets
 from skada.metrics import SupervisedScorer
-
 
 RANDOM_SEED = 0
 dataset = make_shifted_datasets(
@@ -28,17 +25,13 @@ dataset = make_shifted_datasets(
     label="binary",
     noise=0.4,
     random_state=RANDOM_SEED,
-    return_dataset=True
+    return_dataset=True,
 )
 
 base_estimator = SVC()
-estimator = EntropicOTMapping(
-    base_estimator=base_estimator,
-    reg_e=0.5,
-    tol=1e-3
-)
+estimator = EntropicOTMapping(base_estimator=base_estimator, reg_e=0.5, tol=1e-3)
 
-X, y, sample_domain = dataset.pack_train(as_sources=['s'], as_targets=['t'])
+X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
 X_source, X_target, y_source, y_target = source_target_split(
     X, y, sample_domain=sample_domain
 )
@@ -50,13 +43,13 @@ cv = ShuffleSplit(n_splits=5, test_size=0.3, random_state=0)
 # Supervised scoring requires target labels to be passed into the pipeline
 # separately, so they are only available for the scoring.
 
-_, target_labels, _ = dataset.pack(as_sources=['s'], as_targets=['t'], train=False)
+_, target_labels, _ = dataset.pack(as_sources=["s"], as_targets=["t"], train=False)
 scores_sup = cross_val_score(
     estimator,
     X,
     y,
     cv=cv,
-    params={'sample_domain': sample_domain, 'target_labels': target_labels},
+    params={"sample_domain": sample_domain, "target_labels": target_labels},
     scoring=SupervisedScorer(),
 )
 

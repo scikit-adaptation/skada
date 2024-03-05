@@ -212,7 +212,7 @@ class DomainBalancedDataLoader(DataLoader):
 class DomainAwareModule(torch.nn.Module):
     """Domain aware module
 
-    A domain aware module allowing to separe the source and target and
+    A domain aware module allowing to separate the source and target and
     compute their respective prediction and feaures.
 
     Parameters

@@ -5,49 +5,41 @@
 #
 # License: BSD 3-Clause
 
-from abc import abstractmethod
 import warnings
-import numpy as np
+from abc import abstractmethod
 
+import numpy as np
 from sklearn.base import clone
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import log_loss, check_scoring
+from sklearn.metrics import balanced_accuracy_score, check_scoring, log_loss
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KernelDensity
 from sklearn.preprocessing import Normalizer
 from sklearn.utils import check_random_state
 from sklearn.utils.extmath import softmax
 from sklearn.utils.metadata_routing import _MetadataRequester, get_routing_for_object
-from sklearn.metrics import balanced_accuracy_score
 
-from .utils import check_X_y_domain, extract_source_indices, source_target_split
-from ._utils import _find_y_type
 from ._utils import (
     _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
     _DEFAULT_MASKED_TARGET_REGRESSION_LABEL,
     Y_Type,
+    _find_y_type,
 )
+from .utils import check_X_y_domain, extract_source_indices, source_target_split
 
 
 # xxx(okachaiev): maybe it would be easier to reuse _BaseScorer?
 # xxx(okachaiev): add proper __repr__/__str__
 # xxx(okachaiev): support clone()
 class _BaseDomainAwareScorer(_MetadataRequester):
-
-    __metadata_request__score = {'sample_domain': True}
+    __metadata_request__score = {"sample_domain": True}
 
     @abstractmethod
     def _score(self, estimator, X, y, sample_domain=None, **params):
         pass
 
     def __call__(self, estimator, X, y=None, sample_domain=None, **params):
-        return self._score(
-            estimator,
-            X,
-            y,
-            sample_domain=sample_domain,
-            **params
-        )
+        return self._score(estimator, X, y, sample_domain=sample_domain, **params)
 
 
 class SupervisedScorer(_BaseDomainAwareScorer):
@@ -66,7 +58,7 @@ class SupervisedScorer(_BaseDomainAwareScorer):
         scorer object will sign-flip the outcome of the `scorer`.
     """
 
-    __metadata_request__score = {'target_labels': True}
+    __metadata_request__score = {"target_labels": True}
 
     def __init__(self, scoring=None, greater_is_better=True):
         super().__init__()
@@ -74,13 +66,7 @@ class SupervisedScorer(_BaseDomainAwareScorer):
         self._sign = 1 if greater_is_better else -1
 
     def _score(
-        self,
-        estimator,
-        X,
-        y=None,
-        sample_domain=None,
-        target_labels=None,
-        **params
+        self, estimator, X, y=None, sample_domain=None, target_labels=None, **params
     ):
         scorer = check_scoring(estimator, self.scoring)
 
@@ -92,7 +78,7 @@ class SupervisedScorer(_BaseDomainAwareScorer):
             X[~source_idx],
             target_labels[~source_idx],
             sample_domain=sample_domain[~source_idx],
-            **params
+            **params,
         )
 
 
@@ -171,7 +157,7 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
         scorer = check_scoring(estimator, self.scoring)
         # xxx(okachaiev): similar should be done
         # for the pipeline with re-weight adapters
-        if not get_routing_for_object(scorer).consumes('score', ['sample_weight']):
+        if not get_routing_for_object(scorer).consumes("score", ["sample_weight"]):
             raise ValueError(
                 "The estimator passed should accept 'sample_weight' parameter. "
                 f"The estimator {estimator!r} does not."
@@ -179,9 +165,7 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
 
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
         X_source, X_target, y_source, _ = source_target_split(
-            X,
-            y,
-            sample_domain=sample_domain
+            X, y, sample_domain=sample_domain
         )
         self._fit(X_source, X_target)
         ws = self.weight_estimator_source_.score_samples(X_source)
@@ -195,7 +179,7 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
             sample_domain=sample_domain[sample_domain >= 0],
             sample_weight=weights,
             allow_source=True,
-            **params
+            **params,
         )
 
 
@@ -230,14 +214,12 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
             ICLR, 2018.
     """
 
-    def __init__(self,
-                 greater_is_better=False,
-                 reduction='mean'):
+    def __init__(self, greater_is_better=False, reduction="mean"):
         super().__init__()
         self._sign = 1 if greater_is_better else -1
         self.reduction = reduction
 
-        if self.reduction not in ['none', 'mean', 'sum']:
+        if self.reduction not in ["none", "mean", "sum"]:
             raise ValueError(
                 f"Unknown reduction '{self.reduction}'. "
                 "Valid options are: 'none', 'mean', 'sum'."
@@ -253,26 +235,22 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
         source_idx = extract_source_indices(sample_domain)
         proba = estimator.predict_proba(
-            X[~source_idx],
-            sample_domain=sample_domain[~source_idx],
-            **params
+            X[~source_idx], sample_domain=sample_domain[~source_idx], **params
         )
         if hasattr(estimator, "predict_log_proba"):
             log_proba = estimator.predict_log_proba(
-                X[~source_idx],
-                sample_domain=sample_domain[~source_idx],
-                **params
+                X[~source_idx], sample_domain=sample_domain[~source_idx], **params
             )
         else:
             log_proba = np.log(proba + 1e-7)
 
         entropy_per_sample = -proba * log_proba
 
-        if self.reduction == 'none':
+        if self.reduction == "none":
             return self._sign * entropy_per_sample
-        elif self.reduction == 'sum':
+        elif self.reduction == "sum":
             return self._sign * np.sum(entropy_per_sample)
-        elif self.reduction == 'mean':
+        elif self.reduction == "mean":
             return self._sign * np.mean(entropy_per_sample)
         else:
             raise ValueError(
@@ -318,17 +296,15 @@ class SoftNeighborhoodDensity(_BaseDomainAwareScorer):
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
         source_idx = extract_source_indices(sample_domain)
         proba = estimator.predict_proba(
-            X[~source_idx],
-            sample_domain=sample_domain[~source_idx],
-            **params
+            X[~source_idx], sample_domain=sample_domain[~source_idx], **params
         )
         proba = Normalizer(norm="l2").fit_transform(proba)
 
         similarity_matrix = proba @ proba.T / self.T
-        np.fill_diagonal(similarity_matrix, - np.diag(similarity_matrix))
+        np.fill_diagonal(similarity_matrix, -np.diag(similarity_matrix))
         similarity_matrix = softmax(similarity_matrix)
 
-        entropy = np.sum(- similarity_matrix * np.log(similarity_matrix), axis=1)
+        entropy = np.sum(-similarity_matrix * np.log(similarity_matrix), axis=1)
         return self._sign * np.mean(entropy)
 
 
@@ -381,8 +357,8 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
             [
                 log_loss(y[i : i + 1], y_pred[i : i + 1], labels=np.unique(y))
                 for i in range(len(y))
-             ]
-         )
+            ]
+        )
 
     def _fit_adapt(self, features, features_target):
         domain_classifier = self.domain_classifier
@@ -400,8 +376,11 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         source_idx = extract_source_indices(sample_domain)
         rng = check_random_state(self.random_state)
         X_train, X_val, _, y_val, _, sample_domain_val = train_test_split(
-            X[source_idx], y[source_idx], sample_domain[source_idx],
-            test_size=0.33, random_state=rng
+            X[source_idx],
+            y[source_idx],
+            sample_domain[source_idx],
+            test_size=0.33,
+            random_state=rng,
         )
         features_train = estimator.get_features(X_train)
         features_val = estimator.get_features(X_val)
@@ -498,17 +477,13 @@ class CircularValidation(_BaseDomainAwareScorer):
             # Otherwise, we can get ValueError exceptions
             # when fitting the backward estimator
             # (happened with SVC)
-            warnings.warn(
-                "The predicted target domain labels"
-                "are all the same. "
-            )
+            warnings.warn("The predicted target domain labels" "are all the same. ")
 
             # Here we assume that the backward_estimator trained on
             # the target domain will predict the same label for all
             # the source domain samples
             score = self.source_scorer(
-                y[source_idx],
-                np.ones_like(y[source_idx])*y_pred_target[0]
+                y[source_idx], np.ones_like(y[source_idx]) * y_pred_target[0]
             )
         else:
             backward_sample_domain = -sample_domain

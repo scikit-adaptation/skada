@@ -8,17 +8,16 @@ torch = pytest.importorskip('torch')
 
 import numpy as np
 
+from skorch.dataset import Dataset, make_shifted_datasets
 from skada.deep.base import (
-    DomainAwareModule,
+    BaseDALoss,
     DomainAwareCriterion,
+    DomainAwareModule,
+    DomainAwareNet,
     DomainBalancedDataLoader,
     DomainBalancedSampler,
-    DomainAwareNet,
-    BaseDALoss,
 )
 from skada.deep.modules import ToyModule2D
-from skada.datasets import make_shifted_datasets
-from skorch.dataset import Dataset
 
 
 class TestLoss(BaseDALoss):
@@ -27,7 +26,7 @@ class TestLoss(BaseDALoss):
     def __init__(
         self,
     ):
-        super(TestLoss, self).__init__()
+        super().__init__()
 
     def forward(
         self,
@@ -44,7 +43,6 @@ class TestLoss(BaseDALoss):
 
 
 def test_domainawaretraining():
-
     module = ToyModule2D()
     module.eval()
 
@@ -261,7 +259,7 @@ def test_domain_balanced_dataloader():
 
     # with more source than target
     dataset = make_shifted_datasets(
-        n_samples_source=2*n_samples,
+        n_samples_source=2 * n_samples,
         n_samples_target=n_samples,
         shift="concept_drift",
         noise=0.1,
@@ -283,7 +281,7 @@ def test_domain_balanced_dataloader():
     # with more target than source
     dataset = make_shifted_datasets(
         n_samples_source=n_samples,
-        n_samples_target=2*n_samples,
+        n_samples_target=2 * n_samples,
         shift="concept_drift",
         noise=0.1,
         random_state=42,

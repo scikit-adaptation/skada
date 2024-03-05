@@ -8,9 +8,9 @@ pytest.importorskip('torch')
 
 import numpy as np
 
+from skada.datasets import make_shifted_datasets
 from skada.deep import DeepJDOT
 from skada.deep.modules import ToyModule2D
-from skada.datasets import make_shifted_datasets
 
 
 def test_deepjdot():
@@ -34,7 +34,7 @@ def test_deepjdot():
         layer_name="dropout",
         batch_size=10,
         max_epochs=10,
-        train_split=None
+        train_split=None,
     )
 
     X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
