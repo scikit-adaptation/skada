@@ -3,26 +3,24 @@
 # License: BSD 3-Clause
 
 import numpy as np
-from skada import JDOTRegressor, JDOTClassifier
-from sklearn.linear_model import Ridge, LogisticRegression
-from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import StandardScaler
-from skada.utils import source_target_split
-from skada import make_da_pipeline
+from sklearn.linear_model import LogisticRegression, Ridge
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.svm import SVC
+
+from skada import JDOTClassifier, JDOTRegressor, make_da_pipeline
 from skada._ot import get_jdot_class_cost_matrix, get_tgt_loss_jdot_class
-from sklearn.preprocessing import OneHotEncoder
+from skada.utils import source_target_split
 
 
 def test_JDOTRegressor(da_reg_dataset):
-
     X, y, sample_domain = da_reg_dataset
     w = np.random.rand(X.shape[0])
 
     Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 
     # standard case
-    jdot = JDOTRegressor(base_estimator=Ridge(), alpha=.1, verbose=True)
+    jdot = JDOTRegressor(base_estimator=Ridge(), alpha=0.1, verbose=True)
 
     jdot.fit(X, y, sample_domain=sample_domain)
 
@@ -47,14 +45,13 @@ def test_JDOTRegressor(da_reg_dataset):
 
 
 def test_JDOTRegressor_pipeline(da_reg_dataset):
-
     X, y, sample_domain = da_reg_dataset
 
     Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 
     jdot = make_da_pipeline(
-        StandardScaler(), JDOTRegressor(
-            Ridge(), alpha=.1, verbose=True))
+        StandardScaler(), JDOTRegressor(Ridge(), alpha=0.1, verbose=True)
+    )
 
     jdot.fit(X, y, sample_domain=sample_domain)
 
@@ -68,16 +65,14 @@ def test_JDOTRegressor_pipeline(da_reg_dataset):
 
 
 def test_JDOTClassifier(da_multiclass_dataset, da_binary_dataset):
-
     for dataset in [da_multiclass_dataset, da_binary_dataset]:
-
         X, y, sample_domain = dataset
         w = np.random.rand(X.shape[0])
 
         Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 
         # standard case (Logistic)
-        jdot = JDOTClassifier(LogisticRegression(), alpha=.1, verbose=True)
+        jdot = JDOTClassifier(LogisticRegression(), alpha=0.1, verbose=True)
         jdot.fit(X, y, sample_domain=sample_domain)
         ypred = jdot.predict(Xt)
 
@@ -85,10 +80,8 @@ def test_JDOTClassifier(da_multiclass_dataset, da_binary_dataset):
 
         # JDOT with weights
         jdot = JDOTClassifier(
-            base_estimator=SVC(),
-            verbose=True,
-            n_iter_max=1,
-            metric='hinge')
+            base_estimator=SVC(), verbose=True, n_iter_max=1, metric="hinge"
+        )
         jdot.fit(X, y, sample_weight=w, sample_domain=sample_domain)
 
         score = jdot.score(X, y, sample_domain=sample_domain)
@@ -105,7 +98,7 @@ def test_JDOTClassifier(da_multiclass_dataset, da_binary_dataset):
 
             # test raise error
         with np.testing.assert_raises(ValueError):
-            jdot = JDOTClassifier(metric='bad_metric')
+            jdot = JDOTClassifier(metric="bad_metric")
             jdot.fit(X, y, sample_domain=sample_domain)
 
         # No porba method in base estimator
@@ -115,19 +108,18 @@ def test_JDOTClassifier(da_multiclass_dataset, da_binary_dataset):
 
         # no decision function with hinge
         with np.testing.assert_raises(ValueError):
-            jdot = JDOTClassifier(RandomForestClassifier(), metric='hinge')
+            jdot = JDOTClassifier(RandomForestClassifier(), metric="hinge")
             jdot.fit(X, y, sample_domain=sample_domain)
 
         # estimator without log_proba
         lp = LogisticRegression.predict_log_proba
-        delattr(LogisticRegression, 'predict_log_proba')
+        delattr(LogisticRegression, "predict_log_proba")
         jdot = JDOTClassifier(LogisticRegression())
         jdot.fit(X, y, sample_domain=sample_domain)
-        setattr(LogisticRegression, 'predict_log_proba', lp)
+        setattr(LogisticRegression, "predict_log_proba", lp)
 
 
 def test_jdot_class_cost_matrix(da_multiclass_dataset):
-
     X, y, sample_domain = da_multiclass_dataset
 
     Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
@@ -136,11 +128,11 @@ def test_jdot_class_cost_matrix(da_multiclass_dataset):
 
     # test without predict log_proba
     lp = LogisticRegression.predict_log_proba
-    delattr(LogisticRegression, 'predict_log_proba')
+    delattr(LogisticRegression, "predict_log_proba")
     est = LogisticRegression()
     est.fit(Xs, ys)
     M = get_jdot_class_cost_matrix(Ys, Xt, est)
-    setattr(LogisticRegression, 'predict_log_proba', lp)
+    setattr(LogisticRegression, "predict_log_proba", lp)
     assert M.shape[0] == Ys.shape[0]
 
     # raise because no probas
@@ -153,16 +145,15 @@ def test_jdot_class_cost_matrix(da_multiclass_dataset):
     with np.testing.assert_raises(ValueError):
         est = RandomForestClassifier()
         est.fit(Xs, ys)
-        M = get_jdot_class_cost_matrix(Ys, Xt, est, metric='hinge')
+        M = get_jdot_class_cost_matrix(Ys, Xt, est, metric="hinge")
 
     with np.testing.assert_raises(ValueError):
         est = LogisticRegression()
         est.fit(Xs, ys)
-        M = get_jdot_class_cost_matrix(Ys, Xt, est, metric='bad_metric')
+        M = get_jdot_class_cost_matrix(Ys, Xt, est, metric="bad_metric")
 
 
 def test_jdot_class_tgt_loss(da_multiclass_dataset):
-
     X, y, sample_domain = da_multiclass_dataset
 
     Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
@@ -173,11 +164,11 @@ def test_jdot_class_tgt_loss(da_multiclass_dataset):
 
     # test without predict log_proba
     lp = LogisticRegression.predict_log_proba
-    delattr(LogisticRegression, 'predict_log_proba')
+    delattr(LogisticRegression, "predict_log_proba")
     est = LogisticRegression()
     est.fit(Xs, ys)
     loss = get_tgt_loss_jdot_class(Xs, Ys, ws, est)
-    setattr(LogisticRegression, 'predict_log_proba', lp)
+    setattr(LogisticRegression, "predict_log_proba", lp)
     assert loss >= 0
 
     # raise because no probas
@@ -190,9 +181,9 @@ def test_jdot_class_tgt_loss(da_multiclass_dataset):
     with np.testing.assert_raises(ValueError):
         est = RandomForestClassifier()
         est.fit(Xs, ys)
-        loss = get_tgt_loss_jdot_class(Xs, Ys, ws, est, metric='hinge')
+        loss = get_tgt_loss_jdot_class(Xs, Ys, ws, est, metric="hinge")
 
     with np.testing.assert_raises(ValueError):
         est = LogisticRegression()
         est.fit(Xs, ys)
-        loss = get_tgt_loss_jdot_class(Xs, Ys, ws, est, metric='bad_metric')
+        loss = get_tgt_loss_jdot_class(Xs, Ys, ws, est, metric="bad_metric")

@@ -1,7 +1,12 @@
 import numpy as np
+import pytest
+
 from skada.datasets import DomainAwareDataset, make_shifted_blobs, make_shifted_datasets
 
-import pytest
+
+@pytest.fixture(scope='function', autouse=True)
+def set_seed():
+    np.random.seed(0)
 
 
 @pytest.fixture(scope='session')
