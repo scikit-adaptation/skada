@@ -150,6 +150,7 @@ scores_dict = {}
 
 def create_plots(
         clf,
+        weights, 
         name="Without DA",
         suptitle=None,
         ):
@@ -167,16 +168,7 @@ def create_plots(
         response_method="predict", plot_method='contour',
     )
 
-    if name != "Without DA":
-        # We get the weights
-        weight_estimator = clf[0].base_estimator
-        weight_estimator.fit(X, sample_domain=sample_domain)
-        idx = extract_source_indices(sample_domain)
-        size = 5 + 8*weight_estimator.adapt(
-                X, sample_domain=sample_domain
-                ).sample_weight[idx]
-    else:
-        size = np.array([25]*Xs.shape[0])
+    size = 5 + 10 * weights
 
     # Plot the target points:
     ax.scatter(
@@ -224,7 +216,9 @@ def create_plots(
 
 
 create_plots(
-    base_classifier, "Without DA",
+    base_classifier, 
+    name="Without DA",
+    weights = np.array([2] * Xs.shape[0]),
     suptitle="Illustration of the classifier with no DA")
 
 # %%
@@ -235,12 +229,22 @@ create_plots(
 # Here the adapter based on re-weighting samples using
 # density estimation.
 
-create_plots(
-    ReweightDensity(
+clf = ReweightDensity(
         base_estimator=base_classifier,
         weight_estimator=KernelDensity(bandwidth=0.5),
-    ),
-    "Reweight Density")
+    )
+# We get the weights
+weight_estimator = clf[0].base_estimator
+weight_estimator.fit(X, sample_domain=sample_domain)
+idx = extract_source_indices(sample_domain)
+weights = weight_estimator.adapt(
+        X, sample_domain=sample_domain
+        ).sample_weight[idx]
+
+create_plots(
+    clf,
+    weights=weights,
+    name="Reweight Density")
 
 # %%
 #     Illustration of the Gaussian reweighting method
@@ -252,9 +256,20 @@ create_plots(
 #         covariate shift by weighting the log-likelihood function.
 #         In Journal of Statistical Planning and Inference, 2000.
 
+
+clf = GaussianReweightDensity(base_classifier)
+# We get the weights
+weight_estimator = clf[0].base_estimator
+weight_estimator.fit(X, sample_domain=sample_domain)
+idx = extract_source_indices(sample_domain)
+weights = weight_estimator.adapt(
+        X, sample_domain=sample_domain
+        ).sample_weight[idx]
+
 create_plots(
-    GaussianReweightDensity(base_classifier),
-    "Gaussian Reweight Density")
+    clf,
+    weights=weights,
+    name="Gaussian Reweight Density")
 
 # %%
 #     Illustration of the Discr. reweighting method
@@ -267,10 +282,20 @@ create_plots(
 #           covariate shift by weighting the log-likelihood function.
 #           In Journal of Statistical Planning and Inference, 2000.
 
+clf = DiscriminatorReweightDensity(
+        base_classifier)
+# We get the weights
+weight_estimator = clf[0].base_estimator
+weight_estimator.fit(X, sample_domain=sample_domain)
+idx = extract_source_indices(sample_domain)
+weights = weight_estimator.adapt(
+        X, sample_domain=sample_domain
+        ).sample_weight[idx]
+
 create_plots(
-    DiscriminatorReweightDensity(
-        base_classifier),
-    "Discr. Reweight Density")
+    clf,
+    weights=weights,
+    name="Discr. Reweight Density")
 
 # %%
 #     Illustration of the KLIEP method
@@ -288,11 +313,21 @@ create_plots(
 #        and Its Application to Covariate Shift Adaptation.
 #        In NeurIPS, 2007.
 
-create_plots(
-    KLIEP(
+clf = KLIEP(
         LogisticRegression().set_fit_request(
-            sample_weight=True), gamma=[1, 0.1, 0.001]),
-    "KLIEP")
+            sample_weight=True), gamma=[1, 0.1, 0.001])
+# We get the weights
+weight_estimator = clf[0].base_estimator
+weight_estimator.fit(X, sample_domain=sample_domain)
+idx = extract_source_indices(sample_domain)
+weights = weight_estimator.adapt(
+        X, sample_domain=sample_domain
+        ).sample_weight[idx]
+
+create_plots(
+    clf,
+    weights=weights,
+    name="KLIEP")
 
 # %%
 #     Illustration of the Nearest Neighbor reweighting method
@@ -310,11 +345,21 @@ create_plots(
 #        In 2012 IEEE International Workshop on Machine
 #        Learning for Signal Processing, pages 1–6. IEEE
 
-create_plots(
-    NearestNeighborReweightDensity(
+clf = NearestNeighborReweightDensity(
         base_classifier,
-        laplace_smoothing=True),
-    "1NN Reweight Density")
+        laplace_smoothing=True)
+# We get the weights
+weight_estimator = clf[0].base_estimator
+weight_estimator.fit(X, sample_domain=sample_domain)
+idx = extract_source_indices(sample_domain)
+weights = weight_estimator.adapt(
+        X, sample_domain=sample_domain
+        ).sample_weight[idx]
+
+create_plots(
+    clf,
+    weights=weights,
+    name="1NN Reweight Density")
 
 # %%
 #     Illustration of the Kernel Mean Matching method
@@ -328,15 +373,38 @@ create_plots(
 # .. [5] J. Huang, A. Gretton, K. Borgwardt, B. Schölkopf and A. J. Smola.
 #        Correcting sample selection bias by unlabeled data. In NIPS, 2007.
 
-create_plots(
-    KMM(base_classifier,
-        gamma=10., max_iter=1000, smooth_weights=False),
-    "Kernel Mean Matching", suptitle="Illustration of KMM without weights smoothing")
+
+clf = KMM(base_classifier,
+        gamma=10., max_iter=1000, smooth_weights=False)
+# We get the weights
+weight_estimator = clf[0].base_estimator
+weight_estimator.fit(X, sample_domain=sample_domain)
+idx = extract_source_indices(sample_domain)
+weights = weight_estimator.adapt(
+        X, sample_domain=sample_domain
+        ).sample_weight[idx]
 
 create_plots(
-    KMM(base_classifier,
-        gamma=10., max_iter=1000, smooth_weights=True),
-    "Kernel Mean Matching", suptitle="Illustration of KMM with weights smoothing")
+    clf,
+    weights=weights,
+    name="Kernel Mean Matching",
+    suptitle="Illustration of KMM without weights smoothing")
+
+clf = KMM(base_classifier,
+        gamma=10., max_iter=1000, smooth_weights=True)
+# We get the weights
+weight_estimator = clf[0].base_estimator
+weight_estimator.fit(X, sample_domain=sample_domain)
+idx = extract_source_indices(sample_domain)
+weights = weight_estimator.adapt(
+        X, sample_domain=sample_domain
+        ).sample_weight[idx]
+
+create_plots(
+    clf,
+    weights=weights,
+    name="Kernel Mean Matching",
+    suptitle="Illustration of KMM with weights smoothing")
 
 # %%
 #     Comparison of score between reweighting methods:
