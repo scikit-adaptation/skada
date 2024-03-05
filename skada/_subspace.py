@@ -1,10 +1,13 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Remi Flamary <remi.flamary@polytechnique.edu>
 #         Oleksii Kachaiev <kachayev@gmail.com>
+#         Ruben Bueno <ruben.bueno@polytechnique.edu>
 #
 # License: BSD 3-Clause
 
 import numpy as np
+from scipy.linalg import eig
+from scipy.linalg import eigh
 
 from sklearn.decomposition import PCA
 from sklearn.metrics.pairwise import pairwise_kernels
@@ -57,7 +60,7 @@ class SubspaceAlignmentAdapter(BaseAdapter):
         self.random_state = random_state
 
     def adapt(self, X, y=None, sample_domain=None, **kwargs):
-        """Predict adaptation (weights, sample or labels).
+        """Predict adaptation (weigts, sample or labels).
 
         Parameters
         ----------
@@ -77,8 +80,8 @@ class SubspaceAlignmentAdapter(BaseAdapter):
         sample_domain : array-like, shape (n_samples,)
             The domain labels transformed to the target subspace
             (same as sample_domain).
-        weights : None
-            No weights are returned here.
+        weigts : None
+            No weigts are returned here.
         """
         X, sample_domain = check_X_domain(
             X,
@@ -280,7 +283,7 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
         B = K @ H @ K
         solution = np.linalg.solve(A, B)
 
-        eigvals, eigvects = np.linalg.eigh(solution)
+        eigvals, eigvects = np.linalg.eig(solution)
 
         if self.n_components is None:
             n_components = min(X.shape[0], X.shape[1])
@@ -291,7 +294,7 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
         return self
 
     def adapt(self, X, y=None, sample_domain=None, **kwargs):
-        """Predict adaptation (weights, sample or labels).
+        """Predict adaptation (weigts, sample or labels).
 
         Parameters
         ----------
@@ -306,13 +309,11 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
         -------
         X_t : array-like, shape (n_samples, n_components)
             The data transformed to the target subspace.
-        y_t : array-like, shape (n_samples,)
-            The labels (same as y).
         sample_domain : array-like, shape (n_samples,)
             The domain labels transformed to the target subspace
             (same as sample_domain).
-        weights : None
-            No weights are returned here.
+        weigts : None
+            No weigts are returned here.
         """
         X, sample_domain = check_X_domain(
             X,
@@ -377,6 +378,228 @@ def TransferComponentAnalysis(
             kernel=kernel,
             n_components=n_components,
             mu=mu
+        ),
+        base_estimator,
+    )
+
+
+class TJMAdapter(BaseAdapter):
+    """Domain Adaptation Using TJM: Transfer Joint .
+
+    See [1]_ for details.
+
+    Parameters
+    ----------
+    
+
+    Attributes
+    ----------
+    
+
+    References
+    ----------
+    .. [1] 
+        [Long et al., 2014] Long, M., Wang, J., Ding, G., Sun, J., and Yu, P.
+        (2014). Transfer joint matching for unsupervised domain adaptation.
+        In IEEE Conference on Computer Vision and Pattern Recognition (CVPR),
+        pages 1410–1417
+
+    """
+
+    def __init__(
+        self,
+        k=None,
+        random_state=None,
+        l=0,
+        max_iter=100,
+        kernel='rbf',
+    ):
+        super().__init__()
+        self.k = k
+        self.l = l
+        self.random_state = random_state
+        self.kernel = kernel
+        self.max_iter = max_iter
+
+    def adapt(self, X, y=None, sample_domain=None, **kwargs):
+        """Predict adaptation (weigts, sample or labels).
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        X_t : array-like, shape (n_samples, n_components)
+            The data transformed to the target subspace.
+        y_t : array-like, shape (n_samples,)
+            The labels (same as y).
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels transformed to the target subspace
+            (same as sample_domain).
+        weigts : None
+            No weigts are returned here.
+        """
+        X, sample_domain = check_X_domain(
+            X,
+            sample_domain,
+            allow_multi_source=True,
+            allow_multi_target=True,
+        )
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+
+        if np.array_equal(X_source, self.X_source_) and np.array_equal(
+            X_target, self.X_target_
+        ):
+            K = self._get_kernel_matrix(X_source, X_target)
+            X_ = K @ self.A_
+            print("1.", X_.shape)
+        else:
+            Ks = pairwise_kernels(X, self.X_source_, metric=self.kernel)
+            Kt = pairwise_kernels(X, self.X_target_, metric=self.kernel)
+            K = np.concatenate((Ks, Kt), axis=1)
+            X_ = (K @ self.A_)
+            print("2.", X_.shape)
+        return X_
+
+    def _get_mmd_matrix(self, ns, nt, sample_domain):
+        n = ns + nt
+        M = np.ones((n, n))
+        indices = np.array([
+            [i, j]
+            for i in range(n)
+            for j in range(n)
+            ])
+        for i, j in indices:
+            if sample_domain[i] > 0:
+                if sample_domain[j] > 0:
+                    M[i, j] /= ns * ns
+                else:
+                    M[i, j] /= -ns * nt
+            else:
+                if sample_domain[j] < 0:
+                    M[i, j] /= nt * nt
+                else:
+                    M[i, j] /= -ns * nt
+        return M
+            
+
+    def _get_kernel_matrix(self, X_source, X_target):
+        Kss = pairwise_kernels(X_source, metric=self.kernel)
+        Ktt = pairwise_kernels(X_target, metric=self.kernel)
+        Kst = pairwise_kernels(X_source, X_target, metric=self.kernel)
+        K = np.block([[Kss, Kst], [Kst.T, Ktt]])
+        return K
+
+    def frobenius_norm(self, M):
+        return np.sqrt(np.trace(M@M.T))
+
+    def fit(self, X, y=None, sample_domain=None, **kwargs):
+        """Fit adaptation parameters.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
+        X, sample_domain = check_X_domain(
+            X,
+            sample_domain,
+            allow_multi_source=True,
+            allow_multi_target=True,
+        )
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+
+        if self.k is None:
+            k = min(min(X_source.shape), min(X_target.shape))
+        else:
+            k = self.k
+        self.random_state_ = check_random_state(self.random_state)
+
+        n = X.shape[0]
+        H = np.identity(n) - np.ones((n, n))/n
+        M = self._get_mmd_matrix(
+            X_source.shape[0], X_target.shape[0], sample_domain)
+        self.X_source_ = X_source
+        self.X_target_ = X_target
+        K = self._get_kernel_matrix(X_source, X_target)
+        M = M / self.frobenius_norm(M)
+        G = np.identity(n)
+
+        self.Z_ = np.identity(n)
+
+        for i in range(self.max_iter):
+            B = (K @ M @ K.T + self.l * G)
+            C = (K @ H @ K.T)
+            phi, A = eig(B, C)
+            indices = np.argsort(phi)
+            A = A[indices]
+            A = A[:, n-k:]
+            for j in range(n):
+                if sample_domain[j] < 0:
+                    G[j, j] = 1
+                else:
+                    a = A[j]
+                    if np.array_equal(a, np.zeros(a.shape)):
+                        G[j, j] = 0
+                    else:
+                        G[j, j] = 1 / (2 * np.linalg.norm(a))
+
+            self.A_ = A
+        return self
+
+
+def TJM(
+    base_estimator=None,
+    random_state=None,
+    k=1,
+    l=0,
+    kernel='rbf',
+    max_iter=5,
+):
+    """
+
+    Parameters
+    ----------
+    
+
+    Returns
+    -------
+    pipeline : Pipeline
+        A pipeline containing a SubspaceAlignmentAdapter.
+
+    References
+    ----------
+    .. [1] 
+        [Long et al., 2014] Long, M., Wang, J., Ding, G., Sun, J., and Yu, P.
+        (2014). Transfer joint matching for unsupervised domain adaptation.
+        In IEEE Conference on Computer Vision and Pattern Recognition (CVPR),
+        pages 1410–1417
+    """
+    if base_estimator is None:
+        base_estimator = SVC()
+
+    return make_da_pipeline(
+        TJMAdapter(
+            random_state=random_state,
+            l=l,
+            k=k,
+            kernel=kernel,
+            max_iter=max_iter,
         ),
         base_estimator,
     )
