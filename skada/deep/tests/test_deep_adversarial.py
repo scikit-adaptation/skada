@@ -4,10 +4,9 @@
 # License: BSD 3-Clause
 import pytest
 
-torch = pytest.importorskip('torch')
+torch = pytest.importorskip("torch")
 
 import numpy as np
-
 from torch.nn import BCELoss
 
 from skada.datasets import make_shifted_datasets

@@ -4,7 +4,7 @@
 # License: BSD 3-Clause
 import pytest
 
-pytest.importorskip('torch')
+pytest.importorskip("torch")
 
 import numpy as np
 

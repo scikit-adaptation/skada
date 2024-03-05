@@ -4,11 +4,11 @@
 # License: BSD 3-Clause
 import pytest
 
-torch = pytest.importorskip('torch')
+torch = pytest.importorskip("torch")
 
 import numpy as np
-
 from skorch.dataset import Dataset, make_shifted_datasets
+
 from skada.deep.base import (
     BaseDALoss,
     DomainAwareCriterion,

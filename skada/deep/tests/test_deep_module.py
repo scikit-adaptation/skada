@@ -5,7 +5,7 @@
 
 import pytest
 
-torch = pytest.importorskip('torch')
+torch = pytest.importorskip("torch")
 
 import numpy as np
 
