@@ -7,17 +7,20 @@
 
 import warnings
 from abc import abstractmethod
+from copy import deepcopy
 
 import numpy as np
 from sklearn.base import clone
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import balanced_accuracy_score, check_scoring, log_loss
+from sklearn.metrics import balanced_accuracy_score, check_scoring
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KernelDensity
 from sklearn.preprocessing import Normalizer
 from sklearn.utils import check_random_state
 from sklearn.utils.extmath import softmax
 from sklearn.utils.metadata_routing import _MetadataRequester, get_routing_for_object
+
+from skada.deep.base import DomainAwareNet
 
 from ._utils import (
     _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
@@ -365,11 +368,9 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         if domain_classifier is None:
             domain_classifier = LogisticRegression()
         self.domain_classifier_ = clone(domain_classifier)
-        y_domain = np.concatenate(
-            (len(features.get('X')) * [1], len(features_target.get('X')) * [0])
-        )
+        y_domain = np.concatenate((len(features) * [1], len(features_target) * [0]))
         self.domain_classifier_.fit(
-            np.concatenate((features.get('X'), features_target.get('X'))), y_domain
+            np.concatenate((features, features_target)), y_domain
         )
         return self
 
@@ -380,17 +381,21 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
                 f"The estimator {estimator!r} does not."
             )
 
-        # We need to find the last layer of the pipeline with a transform method
-        pipeline_steps = list(enumerate(estimator.named_steps.items()))
-
-        for index_transformer, (step_name, step_process) in reversed((pipeline_steps)):
-            if hasattr(step_process, 'transform'):
-                break  # Stop after the first occurrence if there are multiple
+        if isinstance(estimator, DomainAwareNet):
+            transformer = estimator.predict_features
         else:
-            raise AttributeError(
-                "The estimator passed should have a 'transform' method. "
-                f"The estimator {estimator!r} does not."
-            )
+            # We need to find the last layer of the pipeline with a transform method
+            pipeline_steps = list(enumerate(estimator.named_steps.items()))
+
+            for index_transformer, (_, step_process) in reversed(pipeline_steps):
+                if hasattr(step_process, "transform"):
+                    transformer = estimator[: index_transformer + 1].transform
+                    break  # Stop after the first occurrence if there are multiple
+            else:
+                raise AttributeError(
+                    "The estimator passed should have a 'transform' method. "
+                    f"The estimator {estimator!r} does not."
+                )
 
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
         source_idx = extract_source_indices(sample_domain)
@@ -403,18 +408,34 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
             random_state=rng,
         )
 
-        features_train = estimator[:index_transformer+1].transform(X_train)
-        features_val = estimator[:index_transformer+1].transform(X_val)
-        features_target = estimator[:index_transformer+1].transform(X[~source_idx])
+        features_train = transformer(X_train)
+        features_val = transformer(X_val)
+        features_target = transformer(X[~source_idx])
+
+        if hasattr(features_train, "get"):
+            # The transformer comes not from a deep model,
+            # we need to extract the features
+            features_train = features_train.get("X")
+            features_val = features_val.get("X")
+            features_target = features_target.get("X")
+        else:
+            # The transformer comes from a deep model
+            features_train = features_train.detach().numpy()
+            features_val = features_val.detach().numpy()
+            features_target = features_target.detach().numpy()
 
         self._fit_adapt(features_train, features_target)
         N_train, N_target = len(features_train), len(features_target)
-        domain_pred = self.domain_classifier_.predict_proba(features_val.get('X'))
+        domain_pred = self.domain_classifier_.predict_proba(features_val)
         weights = (N_train / N_target) * domain_pred[:, :1] / domain_pred[:, 1:]
+        if isinstance(estimator, DomainAwareNet):
+            # Deep estimators dont accept allow_source parameter
+            y_pred = estimator.predict_proba(X_val, sample_domain_val)
+        else:
+            y_pred = estimator.predict_proba(
+                X_val, sample_domain=sample_domain_val, allow_source=True
+            )
 
-        y_pred = estimator.predict_proba(
-            X_val, sample_domain=sample_domain_val, allow_source=True
-        )
         error = self._loss_func(y_val, y_pred)
         assert weights.shape[0] == error.shape[0]
 
@@ -432,12 +453,14 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
 
         This loss allows to have a changing num_classes over the validation.
 
-        Parameters:
+        Parameters
+        ----------
         - y_true: true labels (integer labels).
         - y_pred: predicted probabilities
         - epsilon: a small constant to avoid numerical instability (default is 1e-15).
 
-        Returns:
+        Returns
+        -------
         - Cross-entropy loss.
         """
         num_classes = y_pred.shape[1]
@@ -518,7 +541,7 @@ class CircularValidation(_BaseDomainAwareScorer):
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
         source_idx = extract_source_indices(sample_domain)
 
-        backward_estimator = clone(estimator)
+        backward_estimator = deepcopy(estimator)
 
         y_pred_target = estimator.predict(X[~source_idx])
 
