@@ -7,14 +7,16 @@
 import numpy as np
 
 from sklearn.decomposition import PCA
+from sklearn.metrics import pairwise_distances
 from sklearn.metrics.pairwise import pairwise_kernels
 from sklearn.utils import check_random_state
 from sklearn.svm import SVC
 
 from .base import BaseAdapter
-from .utils import check_X_domain, source_target_split
+from .utils import check_X_domain, check_X_y_domain, extract_source_indices, source_target_split
 from .utils import source_target_merge
 from ._pipeline import make_da_pipeline
+from ._utils import _find_y_type, Y_Type
 
 
 class SubspaceAlignmentAdapter(BaseAdapter):
@@ -380,3 +382,159 @@ def TransferComponentAnalysis(
         ),
         base_estimator,
     )
+
+# Call it instead CTCAdapter ?
+class ConditionalTransferableComponentsAdapter(BaseAdapter):
+    def __init__(
+        self,
+        gamma,
+        eps = 1e-3,
+        lmbd=1e-3,
+        lmbd_s=1e-3,
+        lmbd_l=1e-4,
+        max_iter=100
+    ):
+        super().__init__()
+        self.gamma = gamma
+        self.eps = eps
+        self.lmbd = lmbd
+        self.lmbd_s = lmbd_s
+        self.lmbd_l = lmbd_l
+        self.max_iter = max_iter
+        self.max_iter = max_iter
+
+
+    
+
+    def _mapping_optimization(self, X_source, X_target, y_source, d):
+        """Weight optimization"""
+        try:
+            import torch
+        except ImportError:
+            raise ImportError(
+                "ConditionalTransferableComponentsAdapter requires pytorch to be installed."
+            )
+        n_s, n_t = X_source.shape[0], X_target.shape[0]
+
+        # We estimate the parameters α, W , G, and H by minimizing J_ct
+         
+        # check y is discrete or continuous
+        self.discrete_ = _find_y_type(y_source) == Y_Type.DISCRETE
+
+        def compute_Beta_A_B(discrete, alpha, G, H):
+            if discrete:
+                classes = np.unique(y_source)
+                n_c = len(classes)
+
+                R = np.zeros((X_source.shape[0], len(classes)))
+                for i, c in enumerate(classes):
+                    R[:, i] = (n_s/n_c)*(y_source == c).astype(int)
+
+                Beta = R*alpha
+                A = (R@G).T
+                B = (R@H).T
+            else:
+            #TODO
+                pass
+
+            return Beta, A, B
+
+        
+        def func(alpha, W, G, H):
+            Beta, A, B = compute_Beta_A_B(self.discrete_, alpha, G, H)
+            X_ct = A * (W.T @ X_source) + B
+
+            K_s = pairwise_kernels(X_ct, metric="rbf", gamma=self.gamma)
+            K_t = pairwise_kernels(W.T @ X_target, metric="rbf", gamma=self.gamma)
+            K_t_s = pairwise_kernels(W.T@X_target, X_ct, metric="rbf", gamma=self.gamma)
+
+            L = pairwise_kernels(y_source, metric="rbf", gamma=self.gamma)
+
+            J_ct = ((1/n_s**2)*Beta.T @ K_s @ Beta -
+                (2/n_s*n_t)*np.ones((n_s+n_t)).T @ K_t_s @ Beta +
+                (1/n_t**2)*np.ones((n_t)).T @ K_t @ np.ones((n_t))
+            )
+
+            Jreg = ((self.lmbd_s/n_s) * np.linalg.norm(A - np.np.ones((d, n_s)), ord=2) +
+                (self.lmbd_l/n_s) * np.linalg.norm(B, ord=2)
+            )
+
+            J_ct_con = J_ct + self.lmbd * np.trace(L@np.linalg.inv(K_s + n_s*self.eps*np.eye(n_s))) + Jreg
+
+            return J_ct_con
+
+        #####
+        alpha = torch.ones(n_s, dtype=torch.float64, requires_grad=True)
+        W = torch.ones(d, n_s, dtype=torch.float64, requires_grad=True)
+        G = torch.ones((n_s, n_s), dtype=torch.float64, requires_grad=True)
+        H = torch.zeros((n_t, n_s), dtype=torch.float64, requires_grad=True)
+
+        #TODO: Use the torch_minimize function from PR # 103 and adapt it
+        # to accept multiple variables
+
+        #TODO: Add constraints on alpha, W, G, H
+        for i in range(self.max_iter):
+            if i % 3 == 0:
+                alpha, _ = torch_minimize(func, alpha, args=(G, H, W), tol=self.tol, max_iter=1)
+            elif i % 3 == 1:
+                W, _ = torch_minimize(func, W, args=(alpha, G, H) tol=self.tol, max_iter=1)
+            else:
+                (G, H), _ = torch_minimize(func, (G, H), args=(alpha, W), tol=self.tol, max_iter=1)
+
+        return alpha, W, G, H
+
+    def fit(self, X, y=None, sample_domain=None, **kwargs):
+        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        X_source, X_target, y_source, _ = source_target_split(
+            X, y, sample_domain=sample_domain
+        )
+        self.X_source_ = X_source
+
+        self.alpha_, self.W_, self.G_, self.H_ = self._mapping_optimization(
+            X_source, X_target, y_source)
+    
+    def adapt(self, X, y=None, sample_domain=None, **kwargs):
+        X, sample_domain = check_X_domain(
+            X,
+            sample_domain
+        )
+
+        n_s = X_source.shape[0]
+
+        source_idx = extract_source_indices(sample_domain)
+        X_source, X_target = X[source_idx], X[~source_idx]
+
+        if source_idx.sum() > 0:
+            if np.array_equal(self.X_source_, X[source_idx]):
+                W, G, H = self.W_, self.G_, self.H_
+            else:
+                if self.discrete_:
+                    # recompute the mapping
+                    X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+                    source_idx = extract_source_indices(sample_domain)
+                    y_source = y[source_idx]
+                    classes = self.classes_
+                    n_c = len(classes)
+                    R = np.zeros((X_source.shape[0], len(classes)))
+                    for i, c in enumerate(classes):
+                        R[:, i] = (y_source == c).astype(int)
+
+                    W = R @ self.W_
+                    A = (n_s/n_c)*(R@self.G_).T
+                    B = (n_s/n_c)*(R@self.H_).T
+                else:
+                    # assign the nearest neighbor's mapping to the source samples
+                    C = pairwise_distances(X[source_idx], self.X_source_)
+                    idx = np.argmin(C, axis=1)
+
+                    W = C[idx] @ self.W_[idx]
+                    A = (n_s/n_c)*(C[idx]@self.G_[idx]).T
+                    B = (n_s/n_c)*(C[idx]@self.H_[idx]).T
+            X_source_adapt = A*(W.T @ X_source) + B
+            X_adapt, _ = source_target_merge(
+                X_source_adapt, X_target, sample_domain=sample_domain
+            )
+        else:
+            X_adapt = X
+
+        return X_adapt
