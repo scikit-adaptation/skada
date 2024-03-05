@@ -42,13 +42,13 @@ from skada.utils import extract_source_indices
 # well suited to predicting labels from points drawn from the target distribution.
 #
 # Reweighting methods implemented and illustrated are the following:
-#   * :ref:`Illustration of the Reweight Density method<Reweight Density>`
-#   * :ref:`Illustration of the Gaussian reweighting method<Gaussian Reweight Density>`
-#   * :ref:`Illustration of the Discr. reweighting method<Discr. Reweight Density>`
-#   * :ref:`Illustration of the KLIEP method<KLIEP>`
-#   * :ref:`Illustration of the Nearest Neighbor
-#     reweighting method<Nearest Neighbor reweighting>`
-#   * :ref:`Illustration of the Kernel Mean Matching method<Kernel Mean Matching>`
+#   * :ref:`Reweight Density<Illustration of the Reweight Density method>`
+#   * :ref:`Gaussian Reweight Density<Illustration of the Gaussian reweighting method>`
+#   * :ref:`Discr. Reweight Density<Illustration of the Discr. reweighting method>`
+#   * :ref:`KLIEP<Illustration of the KLIEP method>`
+#   * :ref:`Nearest Neighbor reweighting<Illustration of the Nearest Neighbor
+#     reweighting method>`
+#   * :ref:`Kernel Mean Matching<Illustration of the Kernel Mean Matching method>`
 #
 # For more details, look at [0].
 #
