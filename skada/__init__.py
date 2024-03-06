@@ -43,8 +43,8 @@ from ._subspace import (
     SubspaceAlignment,
     TransferComponentAnalysisAdapter,
     TransferComponentAnalysis,
-    TJM,
-    TJMAdapter,
+    TransferJointMatching,
+    TransferJointMatchingAdapter,
 )
 from ._ot import (
     solve_jdot_regression,
@@ -98,8 +98,8 @@ __all__ = [
     "SubspaceAlignment",
     "TransferComponentAnalysisAdapter",
     "TransferComponentAnalysis",
-    "TJMAdapter",
-    "TJM",
+    "TransferJointMatchingAdapter",
+    "TransferJointMatching",
 
     "DASVMClassifier",
     "solve_jdot_regression",

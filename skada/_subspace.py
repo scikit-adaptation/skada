@@ -6,7 +6,6 @@
 # License: BSD 3-Clause
 
 import numpy as np
-from scipy.linalg import eig
 from sklearn.decomposition import PCA
 from sklearn.metrics.pairwise import pairwise_kernels
 from sklearn.svm import SVC
@@ -57,7 +56,7 @@ class SubspaceAlignmentAdapter(BaseAdapter):
         self.random_state = random_state
 
     def adapt(self, X, y=None, sample_domain=None, **kwargs):
-        """Predict adaptation (weigts, sample or labels).
+        """Predict adaptation (weights, sample or labels).
 
         Parameters
         ----------
@@ -77,8 +76,8 @@ class SubspaceAlignmentAdapter(BaseAdapter):
         sample_domain : array-like, shape (n_samples,)
             The domain labels transformed to the target subspace
             (same as sample_domain).
-        weigts : None
-            No weigts are returned here.
+        weights : None
+            No weights are returned here.
         """
         X, sample_domain = check_X_domain(
             X,
@@ -273,7 +272,7 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
         B = K @ H @ K
         solution = np.linalg.solve(A, B)
 
-        eigvals, eigvects = np.linalg.eig(solution)
+        eigvals, eigvects = np.linalg.eigh(solution)
 
         if self.n_components is None:
             n_components = min(X.shape[0], X.shape[1])
@@ -284,7 +283,7 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
         return self
 
     def adapt(self, X, y=None, sample_domain=None, **kwargs):
-        """Predict adaptation (weigts, sample or labels).
+        """Predict adaptation (weights, sample or labels).
 
         Parameters
         ----------
@@ -302,8 +301,8 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
         sample_domain : array-like, shape (n_samples,)
             The domain labels transformed to the target subspace
             (same as sample_domain).
-        weigts : None
-            No weigts are returned here.
+        weights : None
+            No weights are returned here.
         """
         X, sample_domain = check_X_domain(
             X,
@@ -368,8 +367,8 @@ def TransferComponentAnalysis(
     )
 
 
-class TJMAdapter(BaseAdapter):
-    """Domain Adaptation Using TJM: Transfer Joint .
+class TransferJointMatchingAdapter(BaseAdapter):
+    """Domain Adaptation Using TJM: Transfer Joint Matching.
 
     See [1]_ for details.
 
@@ -416,7 +415,7 @@ class TJMAdapter(BaseAdapter):
         self.tol = tol
 
     def adapt(self, X, y=None, sample_domain=None, **kwargs):
-        """Predict adaptation (weigts, sample or labels).
+        """Predict adaptation (weights, sample or labels).
 
         Parameters
         ----------
@@ -436,8 +435,8 @@ class TJMAdapter(BaseAdapter):
         sample_domain : array-like, shape (n_samples,)
             The domain labels transformed to the target subspace
             (same as sample_domain).
-        weigts : None
-            No weigts are returned here.
+        weights : None
+            No weights are returned here.
         """
         X, sample_domain = check_X_domain(
             X,
@@ -527,7 +526,8 @@ class TJMAdapter(BaseAdapter):
         for i in range(self.max_iter):
             B = self.regularizer * G + K @ M @ K
             C = K @ H @ K
-            phi, A = eig(B, C)
+            solution = np.linalg.solve(B, C)
+            phi, A = np.linalg.eigh(solution)
             indices = np.argsort(np.abs(phi))
             A = A[indices]
             A = np.real(A[:, n - n_components :])
@@ -549,7 +549,7 @@ class TJMAdapter(BaseAdapter):
         return self
 
 
-def TJM(
+def TransferJointMatching(
     base_estimator=None,
     random_state=None,
     n_components=1,
@@ -587,7 +587,7 @@ def TJM(
         base_estimator = SVC()
 
     return make_da_pipeline(
-        TJMAdapter(
+        TransferJointMatchingAdapter(
             random_state=random_state,
             regularizer=regularizer,
             n_components=n_components,

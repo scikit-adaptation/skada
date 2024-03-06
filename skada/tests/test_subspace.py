@@ -9,12 +9,12 @@ import pytest
 from sklearn.linear_model import LogisticRegression
 
 from skada import (
-    TJM,
     SubspaceAlignment,
     SubspaceAlignmentAdapter,
-    TJMAdapter,
     TransferComponentAnalysis,
     TransferComponentAnalysisAdapter,
+    TransferJointMatching,
+    TransferJointMatchingAdapter,
     make_da_pipeline,
 )
 from skada.base import AdaptationOutput
@@ -32,8 +32,10 @@ from skada.datasets import DomainAwareDataset
             TransferComponentAnalysisAdapter(n_components=2), LogisticRegression()
         ),
         TransferComponentAnalysis(n_components=2),
-        TJM(n_components=2),
-        make_da_pipeline(TJMAdapter(n_components=2), LogisticRegression()),
+        TransferJointMatching(n_components=2),
+        make_da_pipeline(
+            TransferJointMatchingAdapter(n_components=2), LogisticRegression()
+        ),
     ],
 )
 def test_subspace_alignment(estimator, da_dataset):
@@ -56,9 +58,9 @@ def test_subspace_alignment(estimator, da_dataset):
         (TransferComponentAnalysisAdapter(), 5, 3, 3),
         (TransferComponentAnalysisAdapter(), 2, 3, 3),
         (TransferComponentAnalysisAdapter(), 2, 5, 4),
-        (TJMAdapter(), 5, 3, 3),
-        (TJMAdapter(), 2, 3, 3),
-        (TJMAdapter(), 2, 5, 4),
+        (TransferJointMatchingAdapter(), 5, 3, 3),
+        (TransferJointMatchingAdapter(), 2, 3, 3),
+        (TransferJointMatchingAdapter(), 2, 5, 4),
     ],
 )
 def test_subspace_default_n_components(adapter, n_samples, n_features, n_components):

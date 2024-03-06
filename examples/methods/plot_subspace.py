@@ -21,9 +21,9 @@ from sklearn.linear_model import LogisticRegression
 from skada import (
     SubspaceAlignment,
     TransferComponentAnalysis,
+    TransferJointMatching,
     source_target_split,
 )
-from skada._subspace import TJM
 from skada.datasets import make_shifted_datasets
 
 # %%
@@ -190,11 +190,14 @@ create_plots(SubspaceAlignment(base_classifier, n_components=1), "Subspace Align
 create_plots(TransferComponentAnalysis(base_classifier, n_components=1), "tca")
 
 # %%
-#     Illustration of the TJM method
+#     Illustration of the TransferJointMatching method
 # ------------------------------------------
 #
 
-create_plots(TJM(base_classifier, l=2, k=1, max_iter=100), "TJM")
+create_plots(
+    TransferJointMatching(base_classifier, regularizer=2, n_components=1, max_iter=20),
+    "TransferJointMatching",
+)
 
 
 # %%
