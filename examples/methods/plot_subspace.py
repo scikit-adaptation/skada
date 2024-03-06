@@ -57,8 +57,8 @@ Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 # Plot of the dataset:
 # ------------------------------------------
 
-x_min, x_max = -2.5, 4.5
-y_min, y_max = -1.5, 4.5
+x_min, x_max = -2.4, 2.4
+y_min, y_max = -2.4, 2.4
 
 
 figsize = (8, 4)
@@ -165,6 +165,7 @@ def create_plots(
             alpha=0.5,
             s=size,
         )
+        ax.set_xticks(()), ax.set_yticks(())
         ax.set_title("Subspace")
 
     figure.suptitle(suptitle, fontsize=16, y=1)
@@ -175,7 +176,8 @@ create_plots(
 )
 
 
-# Subspace#     Illustration of the subspace Alignment method
+# %%
+#     Illustration of the subspace Alignment method
 # ------------------------------------------
 #
 
@@ -187,10 +189,7 @@ create_plots(SubspaceAlignment(base_classifier, n_components=1), "Subspace Align
 #
 # The TCA ...
 
-for m in [0.01, 0.02, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 1, 2, 3]:
-    create_plots(
-        TransferComponentAnalysis(base_classifier, n_components=1, mu=m), f"tca {m}"
-    )
+create_plots(TransferComponentAnalysis(base_classifier, n_components=1, mu=2), "TCA")
 
 # %%
 #     Illustration of the TransferJointMatching method
