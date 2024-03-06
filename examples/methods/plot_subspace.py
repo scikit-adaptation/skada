@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import ListedColormap
 from sklearn.inspection import DecisionBoundaryDisplay
-from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
 
 from skada import (
     SubspaceAlignment,
@@ -31,7 +31,7 @@ from skada.datasets import make_shifted_datasets
 # ------------------------------------------
 #
 
-base_classifier = LogisticRegression()
+base_classifier = SVC()
 
 print(f"Will be using {base_classifier} as base classifier", end="\n\n")
 
@@ -158,9 +158,9 @@ def create_plots(
         subspace_estimator = clf.named_steps[keys[0]].base_estimator
         subspace_estimator.fit(X, sample_domain=sample_domain)
         ax.scatter(
-            subspace_estimator.adapt(Xs),
-            [0] * Xs.shape[0],
-            c=ys,
+            subspace_estimator.adapt(Xt),
+            [0] * Xt.shape[0],
+            c=yt,
             cmap=colormap,
             alpha=0.5,
             s=size,
@@ -187,7 +187,10 @@ create_plots(SubspaceAlignment(base_classifier, n_components=1), "Subspace Align
 #
 # The TCA ...
 
-create_plots(TransferComponentAnalysis(base_classifier, n_components=1), "tca")
+for m in [0.01, 0.02, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 1, 2, 3]:
+    create_plots(
+        TransferComponentAnalysis(base_classifier, n_components=1, mu=m), f"tca {m}"
+    )
 
 # %%
 #     Illustration of the TransferJointMatching method
