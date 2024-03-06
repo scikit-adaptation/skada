@@ -9,7 +9,7 @@ to covariate shift
 # Author:   Ruben Bueno <ruben.bueno@polytechnique.edu>
 #
 # License: BSD 3-Clause
-# sphinx_gallery_thumbnail_number = 7
+# sphinx_gallery_thumbnail_number = 4
 
 # %% Imports
 import matplotlib.pyplot as plt
@@ -39,7 +39,7 @@ print(f"Will be using {base_classifier} as base classifier", end="\n\n")
 # We generate our 2D dataset with 2 classes
 # ------------------------------------------
 #
-# We generate a simple 2D dataset with covariate shift
+# We generate a simple 2D dataset with subspace shift
 
 RANDOM_SEED = 42
 
@@ -107,10 +107,6 @@ def create_plots(
         suptitle = f"Illustration of the {name} method"
     figure, axes = plt.subplots(1, 3, figsize=figsize)
     ax = axes[1]
-    if name == "Without DA":
-        clf.fit(Xs, ys)
-    else:
-        clf.fit(X, y, sample_domain=sample_domain)
     score = clf.score(Xt, yt)
     DecisionBoundaryDisplay.from_estimator(
         clf,
@@ -171,6 +167,8 @@ def create_plots(
     figure.suptitle(suptitle, fontsize=16, y=1)
 
 
+clf = base_classifier
+clf.fit(Xs, ys)
 create_plots(
     base_classifier, "Without DA", suptitle="Illustration of the classifier with no DA"
 )
@@ -181,7 +179,9 @@ create_plots(
 # ------------------------------------------
 #
 
-create_plots(SubspaceAlignment(base_classifier, n_components=1), "Subspace Alignment")
+clf = SubspaceAlignment(base_classifier, n_components=1)
+clf.fit(X, y, sample_domain=sample_domain)
+create_plots(clf, "Subspace Alignment")
 
 # %%
 #     Illustration of the Transfer Component Analysis method
@@ -189,15 +189,19 @@ create_plots(SubspaceAlignment(base_classifier, n_components=1), "Subspace Align
 #
 # The TCA ...
 
-create_plots(TransferComponentAnalysis(base_classifier, n_components=1, mu=2), "TCA")
+clf = TransferComponentAnalysis(base_classifier, n_components=1, mu=2)
+clf.fit(X, y, sample_domain=sample_domain)
+create_plots(clf, "TCA")
 
 # %%
 #     Illustration of the TransferJointMatching method
 # ------------------------------------------
 #
 
+clf = TransferJointMatching(base_classifier, regularizer=2, n_components=1, max_iter=20)
+clf.fit(X, y, sample_domain=sample_domain)
 create_plots(
-    TransferJointMatching(base_classifier, regularizer=2, n_components=1, max_iter=20),
+    clf,
     "TransferJointMatching",
 )
 
