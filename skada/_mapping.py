@@ -958,10 +958,6 @@ def _gsvd(A, B):
     # TODO: implement the true gsvd
     U_A, S_A, V_A = np.linalg.svd(A)
     U_B, S_B, V_B = np.linalg.svd(B)
-
-    S_A = np.diag(S_A)
-    S_B = np.diag(S_B)
-
     return U_A, U_B, S_A, S_B, V_A
 
 
