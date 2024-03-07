@@ -166,7 +166,7 @@ def test_selector_rejects_incompatible_adaptation_output():
         (SelectTarget, "target"),
     ],
 )
-def test_source_selector(da_multiclass_dataset, selector_cls, side):
+def test_source_selector_with_estimator(da_multiclass_dataset, selector_cls, side):
     X, y, sample_domain = da_multiclass_dataset
     X_source, X_target = source_target_split(X, sample_domain=sample_domain)
     output = {}
@@ -197,3 +197,40 @@ def test_source_selector(da_multiclass_dataset, selector_cls, side):
     # should allow everything for predict
     pipe.predict(X)
     assert output["n_predict_samples"] == X.shape[0]
+
+
+@pytest.mark.parametrize(
+    "selector_cls, side",
+    [
+        (SelectSource, "source"),
+        (SelectTarget, "target"),
+    ],
+)
+def test_source_selector_with_transformer(da_multiclass_dataset, selector_cls, side):
+    X, y, sample_domain = da_multiclass_dataset
+    X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+    output = {}
+
+    class FakeTransformer(BaseEstimator):
+        def fit(self, X, y=None):
+            output["n_X_samples"] = X.shape[0]
+            self.fitted_ = True
+
+        def transform(self, X):
+            output["n_transform_samples"] = X.shape[0]
+            return X
+
+    pipe = make_da_pipeline(selector_cls(FakeTransformer()))
+    pipe.fit(X, sample_domain=sample_domain)
+
+    # make sure both X samples are filtered out
+    correct_n_samples = (X_source if side == "source" else X_target).shape[0]
+    assert output["n_X_samples"] == correct_n_samples
+
+    # make sure fit_transform gives the same result
+    pipe.fit_transform(X, None, sample_domain=sample_domain)
+    assert output["n_X_samples"] == correct_n_samples
+
+    # should allow everything for transform
+    pipe.transform(X)
+    assert output["n_transform_samples"] == X.shape[0]
