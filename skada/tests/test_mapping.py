@@ -68,7 +68,7 @@ from skada.datasets import DomainAwareDataset
             MMDLSConSMapping(),
             marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
         ),
-        make_da_pipeline(GFKAdapter(), LogisticRegression()),
+        make_da_pipeline(GFKAdapter(n_components=1), LogisticRegression()),
     ],
 )
 def test_mapping_estimator(estimator, da_blobs_dataset):

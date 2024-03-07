@@ -9,6 +9,7 @@ from abc import abstractmethod
 
 import numpy as np
 from ot import da
+from sklearn.decomposition import PCA
 from sklearn.metrics.pairwise import pairwise_distances
 from sklearn.svm import SVC
 
@@ -927,6 +928,41 @@ def MMDLSConSMapping(
     )
 
 
+def _gsvd(A, B):
+    """Generalized singular value decomposition.
+
+    Compute the generalized singular value decomposition of two matrices A and B.
+
+    Parameters
+    ----------
+    A : array-like, shape (m, n)
+        The first matrix.
+    B : array-like, shape (m, n)
+        The second matrix.
+
+    Returns
+    -------
+    U_A : array-like, shape (m, min(m, n))
+        The left singular vectors of A.
+    U_B : array-like, shape (m, min(m, n))
+        The left singular vectors of B.
+    S_A : array-like, shape (min(m, n),)
+        The singular values of A.
+    S_B : array-like, shape (min(m, n),)
+        The singular values of B.
+    Vt : array-like, shape (min(m, n), n)
+        The right singular vectors of A and B.
+    """
+    # TODO: implement the true gsvd
+    U_A, S_A, V_A = np.linalg.svd(A)
+    U_B, S_B, V_B = np.linalg.svd(B)
+
+    S_A = np.diag(S_A)
+    S_B = np.diag(S_B)
+
+    return U_A, U_B, S_A, S_B, V_A
+
+
 class GFKAdapter(BaseAdapter):
     """Domain Adaptation using an infinite number of subspaces between domains.
 
@@ -962,9 +998,36 @@ class GFKAdapter(BaseAdapter):
         if self.n_components is None:
             self.n_components = min(X.shape[0], X.shape[1])
 
+    def _compute_pca_subspace(self, X):
+        pca = PCA(n_components=self.n_components)
+        pca.fit(X)
+        return pca.components_.T
+
     def _kernel_computation(self, X_source, X_target):
         """Kernel computation for the GFK algorithm."""
-        return np.eye(X_source.shape[1])
+        P_S = self._compute_pca_subspace(X_source)
+        P_S_fat, _, _ = np.linalg.svd(P_S, full_matrices=True)
+        R_S = P_S_fat[:, self.n_components :]
+        P_T = self._compute_pca_subspace(X_target)
+
+        U_1, U_2, Gamma, Sigma, Vt = _gsvd(P_S.T @ P_T, R_S.T @ P_T)
+
+        theta = np.arccos(Gamma)
+        Lambda_1 = 1 + (np.sin(2 * theta) / (2 * theta))
+        Lambda_2 = (np.cos(2 * theta) - 1) / (2 * theta)
+        Lambda_3 = 1 - (np.sin(2 * theta) / (2 * theta))
+
+        A = np.block([P_S @ U_1, R_S @ U_2])
+        B = np.block(
+            [
+                [np.diag(Lambda_1), np.diag(Lambda_2)],
+                [np.diag(Lambda_2), np.diag(Lambda_3)],
+            ]
+        )
+        C = np.block([[U_1.T @ P_S.T], [U_2.T @ R_S.T]])
+        G = A @ B @ C
+
+        return G
 
     def fit(self, X, y=None, sample_domain=None, **kwargs):
         """Fit adaptation parameters.
