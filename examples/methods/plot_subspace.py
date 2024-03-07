@@ -35,6 +35,13 @@ from skada.datasets import make_shifted_datasets
 # This kind of da method is especially good when we work with subspace
 # shift, meaning that there is a subspace on which, when projected on it,
 # the source and target data have the same distributions.
+#
+# The Subspace methods implemented and illustrated are the following:
+#   * :ref:`Subspace Alignment<Illustration of the Subspace Alignment method>`
+#   * :ref:`Transfer Component Analysis<Illustration of the Transfer Component
+#     Analysis method>`
+#   * :ref:`Transfer Joint Matching<Illustration of the Transfer Joint Matching method>`
+
 
 base_classifier = SVC()
 
@@ -180,7 +187,7 @@ create_plots(
 
 
 # %%
-#     Illustration of the subspace Alignment method
+#     Illustration of the Subspace Alignment method
 # ------------------------------------------
 #
 # As we assume that the  source and target domains are represented
@@ -236,7 +243,7 @@ create_plots(
 
 
 # %%
-#     Comparisaon of score between reweighting methods:
+#     Comparison of score between reweighting methods:
 # ------------------------------------------
 
 
