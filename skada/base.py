@@ -21,7 +21,7 @@ from sklearn.utils.metaestimators import available_if
 from sklearn.utils.validation import check_is_fitted
 
 from skada._utils import _remove_masked
-from skada.utils import check_X_domain
+from skada.utils import check_X_domain, check_X_y_domain, extract_source_indices
 
 
 def _estimator_has(attr):
@@ -442,3 +442,23 @@ class PerDomain(BaseSelector):
                 )
             output[idx] = domain_output
         return output
+
+
+class SelectSource(Shared):
+
+    def fit(self, X, y, **params):
+        if y is not None:
+            X, y, sample_domain = check_X_y_domain(X, y, sample_domain=params.get('sample_domain'))
+        else:
+            X, sample_domain = check_X_domain(X, sample_domain=params.get('sample_domain'))
+        source_idx = extract_source_indices(sample_domain)
+        X = X[source_idx]
+        if y is not None:
+            y = y[source_idx]
+        params = {
+            k: v[source_idx]
+            if (hasattr(v, "__len__") and len(v) == len(source_idx))
+            else v
+            for k, v in params.items()
+        }
+        return super().fit(X, y, **params)

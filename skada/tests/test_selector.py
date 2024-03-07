@@ -20,10 +20,11 @@ from skada.base import (
     AdaptationOutput,
     IncompatibleMetadataError,
     PerDomain,
+    SelectSource,
     Shared,
 )
 from skada.datasets import make_shifted_datasets
-from skada.utils import extract_source_indices
+from skada.utils import extract_source_indices, source_target_split
 
 
 def test_base_selector_estimator_fetcher():
@@ -155,3 +156,30 @@ def test_selector_rejects_incompatible_adaptation_output():
 
     with pytest.raises(IncompatibleMetadataError):
         estimator.fit(X, y)
+
+
+def test_source_selector(da_multiclass_dataset):
+    X, y, sample_domain = da_multiclass_dataset
+    X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+    output = {}
+
+    class FakeEstimator(BaseEstimator):
+        def fit(self, X, y):
+            output["n_X_samples"] = X.shape[0]
+            output["n_y_samples"] = y.shape[0]
+            self.fitted_ = True
+
+        def predict(self, X):
+            output["n_predict_samples"] = X.shape[0]
+            return X
+
+    pipe = make_da_pipeline(SelectSource(FakeEstimator()))
+    pipe.fit(X, y, sample_domain=sample_domain)
+
+    # make sure both X and y are filtered out
+    assert output["n_X_samples"] == X_source.shape[0]
+    assert output["n_y_samples"] == X_source.shape[0]
+
+    # should allow everything for predict
+    pipe.predict(X)
+    assert output["n_predict_samples"] == X.shape[0]
