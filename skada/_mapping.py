@@ -1012,12 +1012,17 @@ class GFKAdapter(BaseAdapter):
         R_S = P_S_fat[:, self.n_components :]
         P_T = self._compute_pca_subspace(X_target)
 
-        U_1, U_2, Gamma, Sigma, Vt = _gsvd(P_S.T @ P_T, R_S.T @ P_T)
+        U_1, U_2, Gamma, _, Vt = _gsvd(P_S.T @ P_T, R_S.T @ P_T)
 
         theta = np.arccos(Gamma)
-        Lambda_1 = 1 + (np.sin(2 * theta) / (2 * theta))
-        Lambda_2 = (np.cos(2 * theta) - 1) / (2 * theta)
-        Lambda_3 = 1 - (np.sin(2 * theta) / (2 * theta))
+
+        Lambda_1 = 1 + np.sinc(2 * theta / np.pi)
+        Lambda_3 = 1 - np.sinc(2 * theta / np.pi)
+
+        EPS_TOL = 1e-14
+        Lambda_2 = np.zeros_like(theta)
+        Lambda_2[theta > EPS_TOL] = (np.cos(2 * theta) - 1) / (2 * theta)
+        Lambda_2[theta <= EPS_TOL] = 0
 
         A = np.block([P_S @ U_1, R_S @ U_2])
         B = np.block(
