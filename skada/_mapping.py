@@ -925,3 +925,93 @@ def MMDLSConSMapping(
         ),
         base_estimator,
     )
+
+
+class GFKAdapter(BaseAdapter):
+    """Domain Adaptation using an infinite number of subspaces between domains.
+
+    Geodesic Flow Kernel (GFK) maps the source and target domains to an infinite
+    dimensional space with an infinite number of subspaces. The subspaces are
+    taken from the geodesic flow of the Grassmann manifold between the source
+    and target domains.
+
+    See [5]_ for details.
+
+    Parameters
+    ----------
+    n_components : int, default=None
+        Number of components to keep. If None, all components are kept:
+        ``n_components == min(n_samples, n_features)``.
+
+    Attributes
+    ----------
+    `G_sqrtm_` : array-like, shape (n_features, n_features)
+        The square root of kernel matrix.
+
+    References
+    ----------
+    .. [5] Boqing Gong et. al. Geodesic Flow Kernel for Unsupervised Domain Adaptation
+           In CVPR, 2012.
+    """
+
+    def __init__(self, n_components=None):
+        super().__init__()
+        self.n_components = n_components
+
+    def _set_n_components(self, X):
+        if self.n_components is None:
+            self.n_components = min(X.shape[0], X.shape[1])
+
+    def _kernel_computation(self, X_source, X_target):
+        """Kernel computation for the GFK algorithm."""
+        return np.eye(X_source.shape[1])
+
+    def fit(self, X, y=None, sample_domain=None, **kwargs):
+        """Fit adaptation parameters.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : Ignored
+            Ignored.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
+        X, sample_domain = check_X_domain(X, sample_domain)
+        self._set_n_components(X)
+
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+
+        G = self._kernel_computation(X_source, X_target)
+        self.G_sqrtm_ = _sqrtm(G)
+
+        return self
+
+    def adapt(self, X, y=None, sample_domain=None, **kwargs):
+        """Predict adaptation (weights, sample or labels).
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : Ignored
+            Ignored.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        X_t : array-like, shape (n_samples, n_components)
+            The data (same as X).
+        """
+        X, sample_domain = check_X_domain(X, sample_domain)
+
+        X_adapt = X @ self.G_sqrtm_.T
+
+        return X_adapt

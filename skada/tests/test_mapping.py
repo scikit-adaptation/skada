@@ -23,6 +23,7 @@ from skada import (
     CORALAdapter,
     EntropicOTMapping,
     EntropicOTMappingAdapter,
+    GFKAdapter,
     LinearOTMapping,
     LinearOTMappingAdapter,
     MMDLSConSMapping,
@@ -67,6 +68,7 @@ from skada.datasets import DomainAwareDataset
             MMDLSConSMapping(),
             marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
         ),
+        make_da_pipeline(GFKAdapter(), LogisticRegression()),
     ],
 )
 def test_mapping_estimator(estimator, da_blobs_dataset):
@@ -117,6 +119,7 @@ def test_mapping_estimator(estimator, da_blobs_dataset):
             MMDLSConSMapping(Ridge()),
             marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
         ),
+        make_da_pipeline(GFKAdapter(), Ridge()),
     ],
 )
 def test_reg_mapping_estimator(estimator, da_reg_dataset):
@@ -169,6 +172,7 @@ def _base_test_new_X_adapt(estimator, da_dataset):
             MMDLSConSMappingAdapter(gamma=1e-3),
             marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
         ),
+        GFKAdapter(),
     ],
 )
 def test_new_X_adapt(estimator, da_dataset):
@@ -188,6 +192,7 @@ def test_new_X_adapt(estimator, da_dataset):
             MMDLSConSMappingAdapter(gamma=1e-3),
             marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
         ),
+        GFKAdapter(),
     ],
 )
 def test_reg_new_X_adapt(estimator, da_reg_dataset):

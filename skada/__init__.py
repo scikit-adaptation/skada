@@ -23,6 +23,7 @@ from ._mapping import (
     MMDLSConSMapping,
     OTMappingAdapter,
     OTMapping,
+    GFKAdapter
 )
 from ._reweight import (
     DiscriminatorReweightDensityAdapter,
@@ -78,6 +79,7 @@ __all__ = [
     "MMDLSConSMapping",
     "OTMappingAdapter",
     "OTMapping",
+    "GFKAdapter",
 
     "DiscriminatorReweightDensityAdapter",
     "DiscriminatorReweightDensity",
