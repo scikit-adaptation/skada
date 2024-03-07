@@ -477,12 +477,6 @@ class TransferJointMatchingAdapter(BaseAdapter):
         K = np.block([[Kss, Kst], [Kst.T, Ktt]])
         return K
 
-    def l21_norm(self, A):
-        norm = 0
-        for i in range(A.shape[0]):
-            norm += np.linalg.norm(A[i])
-        return norm
-
     def fit(self, X, y=None, sample_domain=None, **kwargs):
         """Fit adaptation parameters.
 
