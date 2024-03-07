@@ -477,6 +477,7 @@ class _BaseSelectDomain(Shared):
             X, y, sample_domain = check_X_y_domain(X, y, sample_domain=params.get('sample_domain'))
         else:
             X, sample_domain = check_X_domain(X, sample_domain=params.get('sample_domain'))
+        params['sample_domain'] = sample_domain
         filter_masks = self._select_indices(sample_domain)
         X = X[filter_masks]
         if y is not None:
