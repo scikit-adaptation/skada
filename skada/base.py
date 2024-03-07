@@ -444,21 +444,61 @@ class PerDomain(BaseSelector):
         return output
 
 
-class SelectSource(Shared):
+class _BaseSelectDomain(Shared):
+    """Abstract class to implement selectors that are intended
+    for picking specific subset of samples from the input for
+    fitting the base estimator, e.g. only source, only targets,
+    specific domain by its index or name, and more.
+    
+    Specific functionality is given by providing implementation
+    for the `_select_indices` abstract method that receives an
+    array with domain indices (i.e. `sample_domain`) and returns
+    masks that should be used to filter out necessary samples
+    from the input.
+    """
+
+    @abstractmethod    
+    def _select_indices(self, sample_domain):
+        """Calculates masks for input samples.
+
+        Parameters
+        ----------
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels.
+
+        Returns
+        -------
+        filter_masks : array-like, shape (n_samples,)
+            Array of boolean masks.
+        """
 
     def fit(self, X, y, **params):
         if y is not None:
             X, y, sample_domain = check_X_y_domain(X, y, sample_domain=params.get('sample_domain'))
         else:
             X, sample_domain = check_X_domain(X, sample_domain=params.get('sample_domain'))
-        source_idx = extract_source_indices(sample_domain)
-        X = X[source_idx]
+        filter_masks = self._select_indices(sample_domain)
+        X = X[filter_masks]
         if y is not None:
-            y = y[source_idx]
+            y = y[filter_masks]
         params = {
-            k: v[source_idx]
-            if (hasattr(v, "__len__") and len(v) == len(source_idx))
+            k: v[filter_masks]
+            if (hasattr(v, "__len__") and len(v) == len(filter_masks))
             else v
             for k, v in params.items()
         }
         return super().fit(X, y, **params)
+
+
+class SelectSource(_BaseSelectDomain):
+    """Selects only source domains for fitting base estimator."""
+
+    def _select_indices(self, sample_domain):
+        return extract_source_indices(sample_domain)
+
+
+class SelectTarget(_BaseSelectDomain):
+    """Selects only target domains for fitting base estimator."""
+
+    def _select_indices(self, sample_domain):
+        return ~extract_source_indices(sample_domain)

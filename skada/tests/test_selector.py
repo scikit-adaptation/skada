@@ -21,6 +21,7 @@ from skada.base import (
     IncompatibleMetadataError,
     PerDomain,
     SelectSource,
+    SelectTarget,
     Shared,
 )
 from skada.datasets import make_shifted_datasets
@@ -158,7 +159,14 @@ def test_selector_rejects_incompatible_adaptation_output():
         estimator.fit(X, y)
 
 
-def test_source_selector(da_multiclass_dataset):
+@pytest.mark.parametrize(
+    "selector_cls, side",
+    [
+        (SelectSource, "source"),
+        (SelectTarget, "target"),
+    ],
+)
+def test_source_selector(da_multiclass_dataset, selector_cls, side):
     X, y, sample_domain = da_multiclass_dataset
     X_source, X_target = source_target_split(X, sample_domain=sample_domain)
     output = {}
@@ -173,12 +181,13 @@ def test_source_selector(da_multiclass_dataset):
             output["n_predict_samples"] = X.shape[0]
             return X
 
-    pipe = make_da_pipeline(SelectSource(FakeEstimator()))
+    pipe = make_da_pipeline(selector_cls(FakeEstimator()))
     pipe.fit(X, y, sample_domain=sample_domain)
 
     # make sure both X and y are filtered out
-    assert output["n_X_samples"] == X_source.shape[0]
-    assert output["n_y_samples"] == X_source.shape[0]
+    correct_n_samples = (X_source if side == "source" else X_target).shape[0]
+    assert output["n_X_samples"] == correct_n_samples
+    assert output["n_y_samples"] == correct_n_samples
 
     # should allow everything for predict
     pipe.predict(X)
