@@ -374,14 +374,21 @@ class TransferJointMatchingAdapter(BaseAdapter):
 
     Parameters
     ----------
-    base_estimator : object, default=None
-        estimator used for fitting and prediction
-    kernel : kernel object, default='rbf'
-        The kernel computed between data.
     n_components : int, default=None
         The numbers of components to learn with PCA.
         Should be less or equal to the number of samples
         of the source and target data.
+    random_state : int, default=None
+        The seed for random number generation.
+    tradeoff : float, default=0
+        The tradeoff constant for the TJM algorithm.
+        It serves to trade off feature matching and instance
+        reweighting.
+    max_iter : int>0, default=100
+        The maximal number of iteration before stopping when
+        fitting.
+    kernel : kernel object, default='rbf'
+        The kernel computed between data.
 
     Attributes
     ----------
@@ -390,10 +397,10 @@ class TransferJointMatchingAdapter(BaseAdapter):
     References
     ----------
     .. [1]
-        [Long et al., 2014] Long, M., Wang, J., Ding, G., Sun, J., and Yu, P.
-        (2014). Transfer joint matching for unsupervised domain adaptation.
-        In IEEE Conference on Computer Vision and Pattern Recognition (CVPR),
-        pages 1410–1417
+            [Long et al., 2014] Long, M., Wang, J., Ding, G., Sun, J., and Yu, P.
+            (2014). Transfer joint matching for unsupervised domain adaptation.
+            In IEEE Conference on Computer Vision and Pattern Recognition (CVPR),
+            pages 1410–1417
 
     """
 
@@ -401,18 +408,16 @@ class TransferJointMatchingAdapter(BaseAdapter):
         self,
         n_components=None,
         random_state=None,
-        regularizer=0,
+        tradeoff=0,
         max_iter=100,
         kernel="rbf",
-        tol=0.05,
     ):
         super().__init__()
         self.n_components = n_components
-        self.regularizer = regularizer
+        self.tradeoff = tradeoff
         self.random_state = random_state
         self.kernel = kernel
         self.max_iter = max_iter
-        self.tol = tol
 
     def adapt(self, X, y=None, sample_domain=None, **kwargs):
         """Predict adaptation (weights, sample or labels).
@@ -472,9 +477,6 @@ class TransferJointMatchingAdapter(BaseAdapter):
         K = np.block([[Kss, Kst], [Kst.T, Ktt]])
         return K
 
-    def frobenius_norm(self, M):
-        return np.sqrt(np.trace(M @ M.T))
-
     def l21_norm(self, A):
         norm = 0
         for i in range(A.shape[0]):
@@ -518,12 +520,12 @@ class TransferJointMatchingAdapter(BaseAdapter):
         self.X_source_ = X_source
         self.X_target_ = X_target
         K = self._get_kernel_matrix(X_source, X_target)
-        M = M / self.frobenius_norm(M)
+        M /= np.linalg.norm(M, ord="fr" "o")
         G = np.identity(n)
 
         self.A_ = np.identity(n)[:, n - n_components :]
         for i in range(self.max_iter):
-            B = self.regularizer * G + K @ M @ K
+            B = self.tradeoff * G + K @ M @ K
             C = K @ H @ K
             solution = np.linalg.solve(B, C)
             phi, A = np.linalg.eigh(solution)
@@ -548,7 +550,7 @@ def TransferJointMatching(
     base_estimator=None,
     random_state=None,
     n_components=1,
-    regularizer=0,
+    tradeoff=0,
     kernel="rbf",
     max_iter=10,
 ):
@@ -558,17 +560,26 @@ def TransferJointMatching(
     ----------
     base_estimator : object, default=None
         estimator used for fitting and prediction
-    kernel : kernel object, default='rbf'
-        The kernel computed between data.
     n_components : int, default=None
         The numbers of components to learn with PCA.
         Should be less or equal to the number of samples
         of the source and target data.
+    random_state : int, default=None
+        The seed for random number generation.
+    tradeoff : float, default=0
+        The tradeoff constant for the TJM algorithm.
+        It serves to trade off feature matching and instance
+        reweighting.
+    max_iter : int>0, default=100
+        The maximal number of iteration before stopping when
+        fitting.
+    kernel : kernel object, default='rbf'
+        The kernel computed between data.
 
     Returns
     -------
     pipeline : Pipeline
-        A pipeline containing a SubspaceAlignmentAdapter.
+        A pipeline containing a TransferJointMatchingAdapter.
 
     References
     ----------
@@ -584,7 +595,7 @@ def TransferJointMatching(
     return make_da_pipeline(
         TransferJointMatchingAdapter(
             random_state=random_state,
-            regularizer=regularizer,
+            tradeoff=tradeoff,
             n_components=n_components,
             kernel=kernel,
             max_iter=max_iter,

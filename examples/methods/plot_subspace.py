@@ -30,6 +30,11 @@ from skada.datasets import make_shifted_datasets
 #     The subspaces methods
 # ------------------------------------------
 #
+# The goal of subspace is to project data from a d dimensional space
+# into a d' dimensional space with d'<d.
+# This kind of da method is especially good when we work with subspace
+# shift, meaning that there is a subspace on which, when projected on it,
+# the source and target data have the same distributions.
 
 base_classifier = SVC()
 
@@ -39,7 +44,7 @@ print(f"Will be using {base_classifier} as base classifier", end="\n\n")
 # We generate our 2D dataset with 2 classes
 # ------------------------------------------
 #
-# We generate a simple 2D dataset with subspace shift
+# We generate a simple 2D dataset with subspace shift.
 
 RANDOM_SEED = 42
 
@@ -178,6 +183,15 @@ create_plots(
 #     Illustration of the subspace Alignment method
 # ------------------------------------------
 #
+# As we assume that the  source and target domains are represented
+# by subspaces described by eigenvectors;
+# This method seeks a domain adaptation solution by learning a mapping
+# function which aligns the source subspace with the target one.
+#
+# See [1]_ for details:
+# .. [1] Basura Fernando et. al. Unsupervised Visual
+#        Domain Adaptation Using Subspace Alignment.
+#        In IEEE International Conference on Computer Vision, 2013.
 
 clf = SubspaceAlignment(base_classifier, n_components=1)
 clf.fit(X, y, sample_domain=sample_domain)
@@ -187,18 +201,33 @@ create_plots(clf, "Subspace Alignment")
 #     Illustration of the Transfer Component Analysis method
 # ------------------------------------------
 #
-# The TCA ...
+# The goal of Transfer Component Analysis (or TCA) is to learn some transfer
+# components across domains in a reproducing kernel Hilbert space using maximum
+# mean discrepancy (mmd).
+#
+# See [2]_ for details:
+# .. [2] Sinno Jialin Pan et. al. Domain Adaptation via
+#        Transfer Component Analysis. In IEEE Transactions
+#        on Neural Networks, 2011.
 
 clf = TransferComponentAnalysis(base_classifier, n_components=1, mu=2)
 clf.fit(X, y, sample_domain=sample_domain)
 create_plots(clf, "TCA")
 
 # %%
-#     Illustration of the TransferJointMatching method
+#     Illustration of the Transfer Joint Matching method
 # ------------------------------------------
 #
+# In most of the previous works, we explored two learning strategies independently for
+# domain adaptation: feature matching and instance reweighting. Transfer Joint Matching
+# or TJM aims to use both, by adding a constant to tradeoff between to two.
+#
+# See [3]_ for details:
+# .. [3] Long et al., 2014] Long, M., Wang, J., Ding, G., Sun, J., and Yu, P. (2014).
+#         Transfer joint matching for unsupervised domain adaptation. In IEEE Conference
+#         on Computer Vision and Pattern Recognition (CVPR), pages 1410–1417.
 
-clf = TransferJointMatching(base_classifier, regularizer=2, n_components=1, max_iter=20)
+clf = TransferJointMatching(base_classifier, tradeoff=2, n_components=1, max_iter=20)
 clf.fit(X, y, sample_domain=sample_domain)
 create_plots(
     clf,
