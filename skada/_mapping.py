@@ -518,6 +518,8 @@ def _sqrtm(C):
         Matrix inverse square root of C.
     """
     eigvals, eigvecs = np.linalg.eigh(C)
+    if np.any(eigvals < 0):
+        eigvals += 1e-14
     return (eigvecs * np.sqrt(eigvals)) @ eigvecs.T
 
 
