@@ -975,7 +975,7 @@ class GFKAdapter(BaseAdapter):
     ----------
     n_components : int, default=None
         Number of components to keep. If None, all components are kept:
-        ``n_components == min(n_samples, n_features)``.
+        ``n_components == min(n_samples, n_features) - 1``.
 
     Attributes
     ----------
@@ -994,7 +994,11 @@ class GFKAdapter(BaseAdapter):
 
     def _set_n_components(self, X):
         if self.n_components is None:
-            self.n_components = min(X.shape[0], X.shape[1])
+            self.n_components = min(X.shape[0], X.shape[1]) - 1
+        elif self.n_components > min(X.shape[0], X.shape[1]) - 1:
+            raise ValueError(
+                "n_components must be less than min(n_samples, n_features) - 1"
+            )
 
     def _compute_pca_subspace(self, X):
         pca = PCA(n_components=self.n_components)
