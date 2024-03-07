@@ -195,7 +195,8 @@ create_plots(
 # This method seeks a domain adaptation solution by learning a mapping
 # function which aligns the source subspace with the target one.
 #
-# See [1]_ for details:
+# See [1] for details:
+#
 # .. [1] Basura Fernando et. al. Unsupervised Visual
 #        Domain Adaptation Using Subspace Alignment.
 #        In IEEE International Conference on Computer Vision, 2013.
@@ -212,7 +213,8 @@ create_plots(clf, "Subspace Alignment")
 # components across domains in a reproducing kernel Hilbert space using maximum
 # mean discrepancy (mmd).
 #
-# See [2]_ for details:
+# See [2] for details:
+#
 # .. [2] Sinno Jialin Pan et. al. Domain Adaptation via
 #        Transfer Component Analysis. In IEEE Transactions
 #        on Neural Networks, 2011.
@@ -229,7 +231,8 @@ create_plots(clf, "TCA")
 # domain adaptation: feature matching and instance reweighting. Transfer Joint Matching
 # or TJM aims to use both, by adding a constant to tradeoff between to two.
 #
-# See [3]_ for details:
+# See [3] for details:
+#
 # .. [3] Long et al., 2014] Long, M., Wang, J., Ding, G., Sun, J., and Yu, P. (2014).
 #         Transfer joint matching for unsupervised domain adaptation. In IEEE Conference
 #         on Computer Vision and Pattern Recognition (CVPR), pages 1410–1417.

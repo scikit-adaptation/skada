@@ -40,6 +40,7 @@ extensions = [
     "sphinx_gallery.gen_gallery",
     "sphinx.ext.graphviz",
     "myst_parser",
+    "sphinx.ext.autosectionlabel",
 ]
 
 # autodoc / autosummary
