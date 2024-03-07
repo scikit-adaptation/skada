@@ -172,9 +172,10 @@ def test_source_selector(da_multiclass_dataset, selector_cls, side):
     output = {}
 
     class FakeEstimator(BaseEstimator):
-        def fit(self, X, y):
+        def fit(self, X, y=None):
             output["n_X_samples"] = X.shape[0]
-            output["n_y_samples"] = y.shape[0]
+            if y is not None:
+                output["n_y_samples"] = y.shape[0]
             self.fitted_ = True
 
         def predict(self, X):
@@ -188,6 +189,10 @@ def test_source_selector(da_multiclass_dataset, selector_cls, side):
     correct_n_samples = (X_source if side == "source" else X_target).shape[0]
     assert output["n_X_samples"] == correct_n_samples
     assert output["n_y_samples"] == correct_n_samples
+
+    # make sure y=None works as well
+    pipe.fit(X, None, sample_domain=sample_domain)
+    assert output["n_X_samples"] == correct_n_samples
 
     # should allow everything for predict
     pipe.predict(X)
