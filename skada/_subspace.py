@@ -476,9 +476,9 @@ class TransferJointMatchingAdapter(BaseAdapter):
         return X_
 
     def _get_mmd_matrix(self, ns, nt, sample_domain):
-        Mss = 1 / ns**2 * np.ones((ns, ns))
-        Mtt = 1 / nt**2 * np.ones((nt, nt))
-        Mst = -1 / (ns * nt) * np.ones((ns, nt))
+        Mss = (1 / (ns**2)) * np.ones((ns, ns))
+        Mtt = (1 / (nt**2)) * np.ones((nt, nt))
+        Mst = -(1 / (ns * nt)) * np.ones((ns, nt))
         M = np.block([[Mss, Mst], [Mst.T, Mtt]])
         return M
 
