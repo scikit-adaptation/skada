@@ -5,7 +5,10 @@
 #
 # License: BSD 3-Clause
 
+import warnings
+
 import numpy as np
+import scipy.linalg
 from sklearn.decomposition import PCA
 from sklearn.metrics.pairwise import pairwise_kernels
 from sklearn.svm import SVC
@@ -389,6 +392,8 @@ class TransferJointMatchingAdapter(BaseAdapter):
         fitting.
     kernel : kernel object, default='rbf'
         The kernel computed between data.
+    verbose : bool, default=False
+        If True, print the loss value at each iteration.
 
     Attributes
     ----------
@@ -411,6 +416,7 @@ class TransferJointMatchingAdapter(BaseAdapter):
         tradeoff=0,
         max_iter=100,
         kernel="rbf",
+        verbose=False,
     ):
         super().__init__()
         self.n_components = n_components
@@ -418,6 +424,7 @@ class TransferJointMatchingAdapter(BaseAdapter):
         self.random_state = random_state
         self.kernel = kernel
         self.max_iter = max_iter
+        self.verbose = verbose
 
     def adapt(self, X, y=None, sample_domain=None, **kwargs):
         """Predict adaptation (weights, sample or labels).
@@ -517,15 +524,16 @@ class TransferJointMatchingAdapter(BaseAdapter):
         M /= np.linalg.norm(M, ord="fr" "o")
         G = np.identity(n)
 
-        self.A_ = np.identity(n)[:, n - n_components :]
+        # minimization of the objective function
+        # \min_{A} tr(A^T K M K A) + tradeoff * (||A_s||_{2, 1} + ||A_t||_F^2)
+        # s.t. A^T K H K^T A = I
         for i in range(self.max_iter):
-            B = self.tradeoff * G + K @ M @ K
-            C = K @ H @ K
-            solution = np.linalg.solve(B, C)
-            phi, A = np.linalg.eigh(solution)
-            indices = np.argsort(np.abs(phi))
-            A = A[indices]
-            A = np.real(A[:, n - n_components :])
+            B = self.tradeoff * G + K @ M @ K + 1e-14 * np.identity(n)
+            C = K @ H @ K + 1e-14 * np.identity(n)
+            phi, A = scipy.linalg.eigh(B, C)
+            phi = phi + 1e-14
+            indices = np.argsort(phi)[:n_components]
+            A = A[:, indices]
             for j in range(n):
                 if sample_domain[j] < 0:
                     G[j, j] = 1
@@ -535,7 +543,23 @@ class TransferJointMatchingAdapter(BaseAdapter):
                         G[j, j] = 0
                     else:
                         G[j, j] = 1 / (2 * np.linalg.norm(a))
-            self.A_ = A
+            if self.verbose:
+                loss = np.trace(A.T @ K @ M @ K @ A)
+                reg = (
+                    np.linalg.norm(A[: X_source.shape[0]], ord=2, axis=1).sum()
+                    + np.linalg.norm(A[X_source.shape[0] :], ord="fr" "o") ** 2
+                )
+                loss_total = loss + self.tradeoff * reg
+                print(
+                    f"iter {i}: loss={loss_total:.4f}, loss_mmd={loss:.4f}, "
+                    f"reg={reg:.4f}"
+                )
+        self.A_ = A
+
+        if not np.allclose(A.T @ K @ H @ K.T @ A, np.identity(n_components)):
+            warnings.warn(
+                "The solution does not satisfy the constraint " "A^T K H K^T A = I."
+            )
 
         return self
 
