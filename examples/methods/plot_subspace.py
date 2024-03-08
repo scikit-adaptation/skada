@@ -209,21 +209,41 @@ def create_plots(
         )
 
         ax.set_xticks(()), ax.set_yticks(())
-        ax.set_xlim(x_min, x_max), ax.set_ylim(-50, 50)
+        ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
         ax.set_title("Full dataset", fontsize=12)
 
         ax = axes[1]
-        Xt_adapted = Xt
-        ax.scatter(
-            Xt_adapted[:, 0],
-            Xt_adapted[:, 1],
-            c=yt,
+        score = clf.score(Xs, ys)
+        DecisionBoundaryDisplay.from_estimator(
+            clf,
+            Xs,
             cmap=colormap,
-            alpha=0.5,
-            s=size,
+            alpha=0.1,
+            ax=ax,
+            eps=0.5,
+            response_method="predict",
         )
+
+        # Plot the source points:
+        ax.scatter(
+            Xs[:, 0],
+            Xs[:, 1],
+            c=ys,
+            cmap=colormap,
+            alpha=0.7,
+            s=[15],
+        )
+
+        ax.set_xticks(()), ax.set_yticks(())
         ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
-        ax.set_title("Accuracy on target", fontsize=12)
+        ax.set_title("Accuracy on source", fontsize=12)
+        ax.text(
+            x_max - 0.3,
+            y_min + 0.3,
+            ("%.2f" % score).lstrip("0"),
+            size=15,
+            horizontalalignment="right",
+        )
 
     figure.suptitle(suptitle, fontsize=16, y=1)
     figure.tight_layout()
