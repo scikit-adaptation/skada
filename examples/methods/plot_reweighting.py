@@ -184,7 +184,10 @@ def create_plots(
 
     ax.set_xticks(()), ax.set_yticks(())
     ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
-    ax.set_title("Training with reweighted data", fontsize=12)
+    if name != "Without DA":
+        ax.set_title("Training with reweighted data", fontsize=12)
+    else:
+        ax.set_title("Training data", fontsize=12)
     figure.suptitle(suptitle, fontsize=16, y=1)
 
 
