@@ -8,6 +8,8 @@ import pytest
 from sklearn.base import BaseEstimator
 from sklearn.datasets import make_regression
 from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
 from sklearn.utils.metadata_routing import _MetadataRequester, get_routing_for_object
 
 from skada import SubspaceAlignmentAdapter, make_da_pipeline
@@ -21,6 +23,7 @@ from skada.base import (
     IncompatibleMetadataError,
     PerDomain,
     SelectSource,
+    SelectSourceTarget,
     SelectTarget,
     Shared,
 )
@@ -142,7 +145,9 @@ def test_base_selector_remove_masked_continuous():
     assert X_output.shape[0] == y_output.shape[0]
 
 
-@pytest.mark.parametrize("estimator_cls", [PerDomain, Shared])
+@pytest.mark.parametrize(
+    "estimator_cls", [PerDomain, Shared, SelectSource, SelectTarget]
+)
 def test_selector_inherits_routing(estimator_cls):
     lr = LogisticRegression().set_fit_request(sample_weight=True)
     estimator = estimator_cls(lr)
@@ -271,3 +276,14 @@ def test_source_selector_with_weights(da_multiclass_dataset, selector_cls, side)
     # should allow everything for predict
     pipe.predict(X, sample_weight=sample_weight)
     assert output["n_predict_sample_weight"] == X.shape[0]
+
+
+def test_source_target_selector(da_multiclass_dataset):
+    X, y, sample_domain = da_multiclass_dataset
+
+    pipe = make_da_pipeline(
+        SelectSourceTarget(StandardScaler()),
+        SVC(),
+    )
+
+    pipe.fit(X, y, sample_domain=sample_domain)

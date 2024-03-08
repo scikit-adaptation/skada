@@ -5,7 +5,7 @@
 # License: BSD 3-Clause
 
 from abc import abstractmethod
-from typing import Union
+from typing import Literal, Optional, Union
 
 import numpy as np
 from sklearn.base import BaseEstimator, clone
@@ -20,7 +20,7 @@ from sklearn.utils.metadata_routing import (
 from sklearn.utils.metaestimators import available_if
 from sklearn.utils.validation import check_is_fitted
 
-from skada._utils import _remove_masked
+from skada._utils import _apply_domain_masks, _remove_masked
 from skada.utils import check_X_domain, check_X_y_domain, extract_source_indices
 
 
@@ -479,15 +479,7 @@ class _BaseSelectDomain(Shared):
             X, sample_domain = check_X_domain(X, sample_domain=params.get('sample_domain'))
         params['sample_domain'] = sample_domain
         filter_masks = self._select_indices(sample_domain)
-        X = X[filter_masks]
-        if y is not None:
-            y = y[filter_masks]
-        params = {
-            k: v[filter_masks]
-            if (hasattr(v, "__len__") and len(v) == len(filter_masks))
-            else v
-            for k, v in params.items()
-        }
+        X, y, params = _apply_domain_masks(X, y, params, masks=filter_masks)
         return super().fit(X, y, **params)
 
 
@@ -503,3 +495,69 @@ class SelectTarget(_BaseSelectDomain):
 
     def _select_indices(self, sample_domain):
         return ~extract_source_indices(sample_domain)
+
+
+class SelectSourceTarget(BaseSelector):
+    
+    def __init__(self, source_estimator: BaseEstimator, target_estimator: Optional[BaseEstimator] = None):
+        self.source_estimator = source_estimator
+        self.target_estimator = target_estimator
+        # xxx(okachaiev): temp, to make naming work for now
+        self.base_estimator = source_estimator
+
+    def get_estimator(self, domain: Literal['source', 'target']) -> BaseEstimator:
+        """Provides access to the fitted estimator based on the domain type."""
+        assert domain in ('source', 'target')
+        check_is_fitted(self)
+        return self.estimators_[domain]
+
+    def fit(self, X, y, **params):
+        if y is not None:
+            X, y, sample_domain = check_X_y_domain(X, y, sample_domain=params.get('sample_domain'))
+        else:
+            X, sample_domain = check_X_domain(X, sample_domain=params.get('sample_domain'))
+        params['sample_domain'] = sample_domain
+        source_masks = extract_source_indices(sample_domain)
+        estimators = {}
+        for domain_type, base_estimator, domain_masks in [
+            ('source', self.source_estimator, source_masks),
+            ('target', self.target_estimator if self.target_estimator is not None else self.source_estimator, ~source_masks)
+        ]:
+            X_masked, y_masked, params_masked = _apply_domain_masks(X, y, params, masks=domain_masks)
+            routing = get_routing_for_object(base_estimator)
+            X_masked, routed_params = self._route_and_merge_params(routing.fit, X_masked, params_masked)
+            X_masked, y_masked, routed_params = self._remove_masked(X_masked, y_masked, routed_params)
+            estimator = clone(self.base_estimator)
+            estimator.fit(X_masked, y_masked, **routed_params)
+            estimators[domain_type] = estimator
+        self.estimators_ = estimators
+        return self
+
+    def _route_to_estimator(self, method_name, X, y=None, **params):
+        check_is_fitted(self)
+        if y is not None:
+            X, y, sample_domain = check_X_y_domain(X, y, sample_domain=params.get('sample_domain'))
+        else:
+            X, sample_domain = check_X_domain(X, sample_domain=params.get('sample_domain'))
+        source_masks = extract_source_indices(sample_domain)
+        params['sample_domain'] = sample_domain
+        output = None
+        for domain_estimator, domain_masks in [
+            (self.estimators_['source'], source_masks),
+            (self.estimators_['target'], ~source_masks),
+        ]:
+            X_domain, y_domain, params_domain = _apply_domain_masks(X, y, params, masks=domain_masks)
+            request = getattr(get_routing_for_object(domain_estimator), method_name)
+            X_domain, routed_params = self._route_and_merge_params(request, X_domain, params_domain)
+            method = getattr(domain_estimator, method_name)
+            if y_domain is None:
+                domain_output = method(X_domain, **routed_params)
+            else:
+                domain_output = method(X_domain, y_domain, **routed_params)
+            if output is None:
+                output = np.zeros(
+                    (X.shape[0], *domain_output.shape[1:]),
+                    dtype=domain_output.dtype
+                )
+            output[domain_masks] = domain_output
+        return output
