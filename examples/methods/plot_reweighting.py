@@ -214,8 +214,7 @@ clf.fit(X, y, sample_domain=sample_domain)
 # We get the weights:
 
 # we first get the adapter which is estimating the weights
-weight_estimator = clf[0].base_estimator
-weight_estimator.fit(X, sample_domain=sample_domain)
+weight_estimator = clf[0].base_estimator_
 idx = extract_source_indices(sample_domain)
 weights = weight_estimator.adapt(X, sample_domain=sample_domain).sample_weight[idx]
 
@@ -238,8 +237,7 @@ create_plots(clf, weights=weights, name="Reweight Density")
 clf = GaussianReweightDensity(base_classifier)
 clf.fit(X, y, sample_domain=sample_domain)
 # We get the weights
-weight_estimator = clf[0].base_estimator
-weight_estimator.fit(X, sample_domain=sample_domain)
+weight_estimator = clf[0].base_estimator_
 idx = extract_source_indices(sample_domain)
 weights = weight_estimator.adapt(X, sample_domain=sample_domain).sample_weight[idx]
 
@@ -266,8 +264,7 @@ clf.fit(X, y, sample_domain=sample_domain)
 # We get the weights:
 
 # we first get the adapter which is estimating the weights
-weight_estimator = clf[0].base_estimator
-weight_estimator.fit(X, sample_domain=sample_domain)
+weight_estimator = clf[0].base_estimator_
 idx = extract_source_indices(sample_domain)
 weights = weight_estimator.adapt(X, sample_domain=sample_domain).sample_weight[idx]
 
@@ -297,8 +294,7 @@ clf.fit(X, y, sample_domain=sample_domain)
 # We get the weights:
 
 # we first get the adapter which is estimating the weights
-weight_estimator = clf[0].base_estimator
-weight_estimator.fit(X, sample_domain=sample_domain)
+weight_estimator = clf[0].base_estimator_
 idx = extract_source_indices(sample_domain)
 weights = weight_estimator.adapt(X, sample_domain=sample_domain).sample_weight[idx]
 
@@ -327,8 +323,7 @@ clf.fit(X, y, sample_domain=sample_domain)
 # We get the weights:
 
 # we first get the adapter which is estimating the weights
-weight_estimator = clf[0].base_estimator
-weight_estimator.fit(X, sample_domain=sample_domain)
+weight_estimator = clf[0].base_estimator_
 idx = extract_source_indices(sample_domain)
 weights = weight_estimator.adapt(X, sample_domain=sample_domain).sample_weight[idx]
 
@@ -353,8 +348,7 @@ clf.fit(X, y, sample_domain=sample_domain)
 # We get the weights:
 
 # we first get the adapter which is estimating the weights
-weight_estimator = clf[0].base_estimator
-weight_estimator.fit(X, sample_domain=sample_domain)
+weight_estimator = clf[0].base_estimator_
 idx = extract_source_indices(sample_domain)
 weights = weight_estimator.adapt(X, sample_domain=sample_domain).sample_weight[idx]
 
@@ -372,8 +366,7 @@ clf.fit(X, y, sample_domain=sample_domain)
 # We get the weights:
 
 # we first get the adapter which is estimating the weights
-weight_estimator = clf[0].base_estimator
-weight_estimator.fit(X, sample_domain=sample_domain)
+weight_estimator = clf[0].base_estimator_
 idx = extract_source_indices(sample_domain)
 weights = weight_estimator.adapt(X, sample_domain=sample_domain).sample_weight[idx]
 
