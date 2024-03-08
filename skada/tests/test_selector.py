@@ -286,10 +286,35 @@ def test_source_target_selector(
     da_multiclass_dataset, source_estimator, target_estimator
 ):
     X, y, sample_domain = da_multiclass_dataset
+    source_masks = extract_source_indices(sample_domain)
+    # make sure sources and targets have significantly different mean
+    X[source_masks] += 100 * np.ones((source_masks.sum(), X.shape[1]))
 
     pipe = make_da_pipeline(
         SelectSourceTarget(source_estimator, target_estimator),
         SVC(),
     )
+
     # no errors should be raised
     pipe.fit(X, y, sample_domain=sample_domain)
+
+    # no error is raised when only a single domain type is present
+    pipe.predict(X[~source_masks], sample_domain=sample_domain[~source_masks])
+
+    # make sure that scalers were trained on different inputs
+    correct_mean = np.zeros(X.shape[1])
+    source_estimator = pipe[0].get_estimator("source")
+    assert np.allclose(
+        source_estimator.transform(X[source_masks]).mean(0), correct_mean
+    )
+    assert not np.allclose(
+        source_estimator.transform(X[~source_masks]).mean(0), correct_mean
+    )
+
+    target_estimator = pipe[0].get_estimator("target")
+    assert not np.allclose(
+        target_estimator.transform(X[source_masks]).mean(0), correct_mean
+    )
+    assert np.allclose(
+        target_estimator.transform(X[~source_masks]).mean(0), correct_mean
+    )

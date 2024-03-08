@@ -512,6 +512,8 @@ class SelectSourceTarget(BaseSelector):
         return self.estimators_[domain]
 
     def fit(self, X, y, **params):
+        # xxx(okachaiev): seems like we have this block of code rather often
+        #                 maybe should be a helper
         if y is not None:
             X, y, sample_domain = check_X_y_domain(X, y, sample_domain=params.get('sample_domain'))
         else:
@@ -547,6 +549,9 @@ class SelectSourceTarget(BaseSelector):
             (self.estimators_['source'], source_masks),
             (self.estimators_['target'], ~source_masks),
         ]:
+            if domain_masks.sum() == 0:
+                # if domain type is not present, just skip
+                continue
             X_domain, y_domain, params_domain = _apply_domain_masks(X, y, params, masks=domain_masks)
             request = getattr(get_routing_for_object(domain_estimator), method_name)
             X_domain, routed_params = self._route_and_merge_params(request, X_domain, params_domain)
