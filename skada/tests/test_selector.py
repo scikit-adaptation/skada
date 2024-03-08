@@ -318,3 +318,23 @@ def test_source_target_selector(
     assert np.allclose(
         target_estimator.transform(X[~source_masks]).mean(0), correct_mean
     )
+
+
+def test_source_target_selector_fails_on_missing_domain(da_multiclass_dataset):
+    X, y, sample_domain = da_multiclass_dataset
+    source_masks = extract_source_indices(sample_domain)
+    pipe = make_da_pipeline(SelectSourceTarget(StandardScaler()), SVC())
+
+    # fails without targets
+    with pytest.raises(ValueError):
+        pipe.fit(
+            X[source_masks], y[source_masks], sample_domain=sample_domain[source_masks]
+        )
+
+    # fails without sources
+    with pytest.raises(ValueError):
+        pipe.fit(
+            X[~source_masks],
+            y[~source_masks],
+            sample_domain=sample_domain[~source_masks],
+        )

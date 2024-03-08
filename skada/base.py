@@ -526,6 +526,11 @@ class SelectSourceTarget(BaseSelector):
             ('source', self.source_estimator, source_masks),
             ('target', target_estimator, ~source_masks)
         ]:
+            if domain_masks.sum() == 0:
+                # if we don't have either source or target, we should conclude that fitting
+                # was not successful, otherwise prediction might be not possible
+                raise ValueError('`SelectSourceTarget` requires both source and target samples for fitting. '
+                                 f"'{domain_type}' samples are missing in the input provided.")
             X_masked, y_masked, params_masked = _apply_domain_masks(X, y, params, masks=domain_masks)
             routing = get_routing_for_object(base_estimator)
             X_masked, routed_params = self._route_and_merge_params(routing.fit, X_masked, params_masked)
