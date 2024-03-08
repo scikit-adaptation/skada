@@ -8,7 +8,7 @@ import pytest
 from sklearn.base import BaseEstimator
 from sklearn.datasets import make_regression
 from sklearn.linear_model import LogisticRegression
-from sklearn.utils.metadata_routing import get_routing_for_object
+from sklearn.utils.metadata_routing import _MetadataRequester, get_routing_for_object
 
 from skada import SubspaceAlignmentAdapter, make_da_pipeline
 from skada._utils import (
@@ -20,10 +20,12 @@ from skada.base import (
     AdaptationOutput,
     IncompatibleMetadataError,
     PerDomain,
+    SelectSource,
+    SelectTarget,
     Shared,
 )
 from skada.datasets import make_shifted_datasets
-from skada.utils import extract_source_indices
+from skada.utils import extract_source_indices, source_target_split
 
 
 def test_base_selector_estimator_fetcher():
@@ -155,3 +157,117 @@ def test_selector_rejects_incompatible_adaptation_output():
 
     with pytest.raises(IncompatibleMetadataError):
         estimator.fit(X, y)
+
+
+@pytest.mark.parametrize(
+    "selector_cls, side",
+    [
+        (SelectSource, "source"),
+        (SelectTarget, "target"),
+    ],
+)
+def test_source_selector_with_estimator(da_multiclass_dataset, selector_cls, side):
+    X, y, sample_domain = da_multiclass_dataset
+    X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+    output = {}
+
+    class FakeEstimator(BaseEstimator):
+        def fit(self, X, y=None):
+            output["n_X_samples"] = X.shape[0]
+            if y is not None:
+                output["n_y_samples"] = y.shape[0]
+            self.fitted_ = True
+
+        def predict(self, X):
+            output["n_predict_samples"] = X.shape[0]
+            return X
+
+    pipe = make_da_pipeline(selector_cls(FakeEstimator()))
+    pipe.fit(X, y, sample_domain=sample_domain)
+
+    # make sure both X and y are filtered out
+    correct_n_samples = (X_source if side == "source" else X_target).shape[0]
+    assert output["n_X_samples"] == correct_n_samples
+    assert output["n_y_samples"] == correct_n_samples
+
+    # make sure y=None works as well
+    pipe.fit(X, None, sample_domain=sample_domain)
+    assert output["n_X_samples"] == correct_n_samples
+
+    # should allow everything for predict
+    pipe.predict(X)
+    assert output["n_predict_samples"] == X.shape[0]
+
+
+@pytest.mark.parametrize(
+    "selector_cls, side",
+    [
+        (SelectSource, "source"),
+        (SelectTarget, "target"),
+    ],
+)
+def test_source_selector_with_transformer(da_multiclass_dataset, selector_cls, side):
+    X, y, sample_domain = da_multiclass_dataset
+    X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+    output = {}
+
+    class FakeTransformer(BaseEstimator):
+        def fit(self, X, y=None):
+            output["n_X_samples"] = X.shape[0]
+            self.fitted_ = True
+
+        def transform(self, X):
+            output["n_transform_samples"] = X.shape[0]
+            return X
+
+    pipe = make_da_pipeline(selector_cls(FakeTransformer()))
+    pipe.fit(X, sample_domain=sample_domain)
+
+    # make sure both X samples are filtered out
+    correct_n_samples = (X_source if side == "source" else X_target).shape[0]
+    assert output["n_X_samples"] == correct_n_samples
+
+    # make sure fit_transform gives the same result
+    pipe.fit_transform(X, None, sample_domain=sample_domain)
+    assert output["n_X_samples"] == correct_n_samples
+
+    # should allow everything for transform
+    pipe.transform(X)
+    assert output["n_transform_samples"] == X.shape[0]
+
+
+@pytest.mark.parametrize(
+    "selector_cls, side",
+    [
+        (SelectSource, "source"),
+        (SelectTarget, "target"),
+    ],
+)
+def test_source_selector_with_weights(da_multiclass_dataset, selector_cls, side):
+    X, y, sample_domain = da_multiclass_dataset
+    sample_weight = np.ones(X.shape[0])
+    X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+    output = {}
+
+    class FakeEstimator(BaseEstimator, _MetadataRequester):
+        __metadata_request__fit = {"sample_weight": True}
+        __metadata_request__predict = {"sample_weight": True}
+
+        def fit(self, X, y=None, sample_weight=None):
+            output["n_sample_weight"] = sample_weight.shape[0]
+            self.fitted_ = True
+
+        def predict(self, X, sample_weight=None):
+            output["n_predict_sample_weight"] = sample_weight.shape[0]
+            return X
+
+    pipe = make_da_pipeline(selector_cls(FakeEstimator()))
+    pipe.fit(X, y, sample_weight=sample_weight, sample_domain=sample_domain)
+
+    # make sure sample_weight is properly filtered out
+    correct_n_samples = (X_source if side == "source" else X_target).shape[0]
+    assert output["n_sample_weight"] == correct_n_samples
+
+    # should allow everything for predict
+    pipe.predict(X, sample_weight=sample_weight)
+    assert output["n_predict_sample_weight"] == X.shape[0]
