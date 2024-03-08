@@ -220,6 +220,10 @@ def test_gsvd():
     assert np.allclose(U_B.T @ U_B, np.eye(d))
     assert np.allclose(Vt @ Vt.T, np.eye(d))
 
+    # check condition on S_A and S_B
+    cond = S_A.T @ S_A + S_B.T @ S_B
+    assert np.allclose(cond, np.diag(np.diag(cond)))
+
     # check the reconstruction
     assert np.allclose(A, U_A @ S_A @ Vt)
     assert np.allclose(B, U_B @ S_B @ Vt)
