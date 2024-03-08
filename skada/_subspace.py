@@ -558,8 +558,8 @@ class TransferJointMatchingAdapter(BaseAdapter):
             if self.verbose:
                 loss = np.trace(A.T @ K @ M @ K @ A)
                 reg = (
-                    np.linalg.norm(A[: X_source.shape[0]], ord=2, axis=1).sum()
-                    + np.linalg.norm(A[X_source.shape[0] :], ord="fr" "o") ** 2
+                    np.linalg.norm(A[source_mask], axis=1).sum()
+                    + np.linalg.norm(A[~source_mask]) ** 2
                 )
                 loss_total = loss + self.tradeoff * reg
                 print(
