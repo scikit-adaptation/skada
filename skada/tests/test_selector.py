@@ -338,3 +338,8 @@ def test_source_target_selector_fails_on_missing_domain(da_multiclass_dataset):
             y[~source_masks],
             sample_domain=sample_domain[~source_masks],
         )
+
+
+def test_source_target_selector_non_transformers():
+    with pytest.raises(TypeError):
+        SelectSourceTarget(StandardScaler(), SVC())

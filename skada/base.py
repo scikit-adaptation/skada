@@ -500,6 +500,9 @@ class SelectTarget(_BaseSelectDomain):
 class SelectSourceTarget(BaseSelector):
     
     def __init__(self, source_estimator: BaseEstimator, target_estimator: Optional[BaseEstimator] = None):
+        if target_estimator is not None and hasattr(source_estimator, 'transform') and not hasattr(target_estimator, 'transform'):
+            raise TypeError("The provided source and target estimators must "
+                            "both be transformers, or neither should be.")
         self.source_estimator = source_estimator
         self.target_estimator = target_estimator
 
