@@ -528,7 +528,7 @@ class TransferJointMatchingAdapter(BaseAdapter):
         H = np.identity(n) - 1 / n * np.ones((n, n))
         K = self._get_kernel_matrix(X_source, X_target)
         M = self._get_mmd_matrix(X_source.shape[0], X_target.shape[0], sample_domain)
-        M /= np.linalg.norm(M, ord="fr" "o")
+        M /= np.linalg.norm(M)
         G = np.identity(n)
 
         # minimization of the objective function
