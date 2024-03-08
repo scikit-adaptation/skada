@@ -5,7 +5,6 @@
 #
 # License: BSD 3-Clause
 
-import warnings
 
 import numpy as np
 import scipy.linalg
@@ -566,12 +565,10 @@ class TransferJointMatchingAdapter(BaseAdapter):
                     f"iter {i}: loss={loss_total:.4f}, loss_mmd={loss:.4f}, "
                     f"reg={reg:.4f}"
                 )
-        self.A_ = A
+                cond = np.allclose(A.T @ K @ H @ K.T @ A, np.identity(n_components))
+                print(f"Constraint satisfaction: {cond}")
 
-        if not np.allclose(A.T @ K @ H @ K.T @ A, np.identity(n_components)):
-            warnings.warn(
-                "The solution does not satisfy the constraint " "A^T K H K^T A = I."
-            )
+        self.A_ = A
 
         return self
 
