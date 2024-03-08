@@ -585,9 +585,9 @@ def TransferJointMatching(
     base_estimator=None,
     random_state=None,
     n_components=1,
-    tradeoff=100,
+    tradeoff=1e-2,
     kernel="rbf",
-    max_iter=20,
+    max_iter=100,
 ):
     """
 
