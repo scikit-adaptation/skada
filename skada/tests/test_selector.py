@@ -8,6 +8,8 @@ import pytest
 from sklearn.base import BaseEstimator
 from sklearn.datasets import make_regression
 from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
 from sklearn.utils.metadata_routing import _MetadataRequester, get_routing_for_object
 
 from skada import SubspaceAlignmentAdapter, make_da_pipeline
@@ -21,6 +23,7 @@ from skada.base import (
     IncompatibleMetadataError,
     PerDomain,
     SelectSource,
+    SelectSourceTarget,
     SelectTarget,
     Shared,
 )
@@ -142,7 +145,9 @@ def test_base_selector_remove_masked_continuous():
     assert X_output.shape[0] == y_output.shape[0]
 
 
-@pytest.mark.parametrize("estimator_cls", [PerDomain, Shared])
+@pytest.mark.parametrize(
+    "estimator_cls", [PerDomain, Shared, SelectSource, SelectTarget]
+)
 def test_selector_inherits_routing(estimator_cls):
     lr = LogisticRegression().set_fit_request(sample_weight=True)
     estimator = estimator_cls(lr)
@@ -271,3 +276,70 @@ def test_source_selector_with_weights(da_multiclass_dataset, selector_cls, side)
     # should allow everything for predict
     pipe.predict(X, sample_weight=sample_weight)
     assert output["n_predict_sample_weight"] == X.shape[0]
+
+
+@pytest.mark.parametrize(
+    "source_estimator, target_estimator",
+    [(StandardScaler(), None), (StandardScaler(), StandardScaler())],
+)
+def test_source_target_selector(
+    da_multiclass_dataset, source_estimator, target_estimator
+):
+    X, y, sample_domain = da_multiclass_dataset
+    source_masks = extract_source_indices(sample_domain)
+    # make sure sources and targets have significantly different mean
+    X[source_masks] += 100 * np.ones((source_masks.sum(), X.shape[1]))
+
+    pipe = make_da_pipeline(
+        SelectSourceTarget(source_estimator, target_estimator),
+        SVC(),
+    )
+
+    # no errors should be raised
+    pipe.fit(X, y, sample_domain=sample_domain)
+
+    # no error is raised when only a single domain type is present
+    pipe.predict(X[~source_masks], sample_domain=sample_domain[~source_masks])
+
+    # make sure that scalers were trained on different inputs
+    correct_mean = np.zeros(X.shape[1])
+    source_estimator = pipe[0].get_estimator("source")
+    assert np.allclose(
+        source_estimator.transform(X[source_masks]).mean(0), correct_mean
+    )
+    assert not np.allclose(
+        source_estimator.transform(X[~source_masks]).mean(0), correct_mean
+    )
+
+    target_estimator = pipe[0].get_estimator("target")
+    assert not np.allclose(
+        target_estimator.transform(X[source_masks]).mean(0), correct_mean
+    )
+    assert np.allclose(
+        target_estimator.transform(X[~source_masks]).mean(0), correct_mean
+    )
+
+
+def test_source_target_selector_fails_on_missing_domain(da_multiclass_dataset):
+    X, y, sample_domain = da_multiclass_dataset
+    source_masks = extract_source_indices(sample_domain)
+    pipe = make_da_pipeline(SelectSourceTarget(StandardScaler()), SVC())
+
+    # fails without targets
+    with pytest.raises(ValueError):
+        pipe.fit(
+            X[source_masks], y[source_masks], sample_domain=sample_domain[source_masks]
+        )
+
+    # fails without sources
+    with pytest.raises(ValueError):
+        pipe.fit(
+            X[~source_masks],
+            y[~source_masks],
+            sample_domain=sample_domain[~source_masks],
+        )
+
+
+def test_source_target_selector_non_transformers():
+    with pytest.raises(TypeError):
+        SelectSourceTarget(StandardScaler(), SVC())
