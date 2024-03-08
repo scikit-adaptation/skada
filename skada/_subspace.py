@@ -16,7 +16,12 @@ from sklearn.utils import check_random_state
 
 from ._pipeline import make_da_pipeline
 from .base import BaseAdapter
-from .utils import check_X_domain, source_target_merge, source_target_split
+from .utils import (
+    check_X_domain,
+    extract_source_indices,
+    source_target_merge,
+    source_target_split,
+)
 
 
 class SubspaceAlignmentAdapter(BaseAdapter):
@@ -514,13 +519,15 @@ class TransferJointMatchingAdapter(BaseAdapter):
         else:
             n_components = self.n_components
         self.random_state_ = check_random_state(self.random_state)
-
-        n = X.shape[0]
-        H = np.identity(n) - 1 / n * np.ones((n, n))
-        M = self._get_mmd_matrix(X_source.shape[0], X_target.shape[0], sample_domain)
         self.X_source_ = X_source
         self.X_target_ = X_target
+
+        n = X.shape[0]
+        source_mask = extract_source_indices(sample_domain)
+
+        H = np.identity(n) - 1 / n * np.ones((n, n))
         K = self._get_kernel_matrix(X_source, X_target)
+        M = self._get_mmd_matrix(X_source.shape[0], X_target.shape[0], sample_domain)
         M /= np.linalg.norm(M, ord="fr" "o")
         G = np.identity(n)
 
@@ -529,21 +536,25 @@ class TransferJointMatchingAdapter(BaseAdapter):
         # s.t. A^T K H K^T A = I
         EPS_eigval = 1e-12
         for i in range(self.max_iter):
-            B = self.tradeoff * G + K @ M @ K + EPS_eigval * np.identity(n)
-            C = K @ H @ K + EPS_eigval * np.identity(n)
+            # update A
+            B = K @ M @ K + self.tradeoff * G
+            B = B + EPS_eigval * np.identity(n)
+            C = K @ H @ K
+            C = C + EPS_eigval * np.identity(n)
             phi, A = scipy.linalg.eigh(B, C)
             phi = phi + EPS_eigval
             indices = np.argsort(phi)[:n_components]
             A = A[:, indices]
-            for j in range(n):
-                if sample_domain[j] < 0:
-                    G[j, j] = 1
-                else:
-                    a = A[j]
-                    if np.array_equal(a, np.zeros(a.shape)):
-                        G[j, j] = 0
-                    else:
-                        G[j, j] = 1 / (2 * np.linalg.norm(a))
+
+            # update G
+            A_norms = np.linalg.norm(A, axis=1)
+            mask = A_norms > 0
+            mask[~source_mask] = False
+            G = np.zeros_like(G)
+            G[mask, mask] = 1 / (2 * A_norms[mask])
+            G[~source_mask, ~source_mask] = 1
+
+            # print objective function and constraint satisfaction
             if self.verbose:
                 loss = np.trace(A.T @ K @ M @ K @ A)
                 reg = (
