@@ -2,6 +2,7 @@
 #         Remi Flamary <remi.flamary@polytechnique.edu>
 #         Oleksii Kachaiev <kachayev@gmail.com>
 #         Ruben Bueno <ruben.bueno@polytechnique.edu>
+#         Antoine Collas <contact@antoinecollas.fr>
 #
 # License: BSD 3-Clause
 
@@ -387,7 +388,7 @@ class TransferJointMatchingAdapter(BaseAdapter):
         of the source and target data.
     random_state : int, default=None
         The seed for random number generation.
-    tradeoff : float, default=0
+    tradeoff : float, default=1e-2
         The tradeoff constant for the TJM algorithm.
         It serves to trade off feature matching and instance
         reweighting.
@@ -417,7 +418,7 @@ class TransferJointMatchingAdapter(BaseAdapter):
         self,
         n_components=None,
         random_state=None,
-        tradeoff=0,
+        tradeoff=1e-2,
         max_iter=100,
         kernel="rbf",
         verbose=False,
@@ -577,7 +578,7 @@ def TransferJointMatching(
     base_estimator=None,
     random_state=None,
     n_components=1,
-    tradeoff=0,
+    tradeoff=1e-2,
     kernel="rbf",
     max_iter=10,
 ):
@@ -593,7 +594,7 @@ def TransferJointMatching(
         of the source and target data.
     random_state : int, default=None
         The seed for random number generation.
-    tradeoff : float, default=0
+    tradeoff : float, default=1e-2
         The tradeoff constant for the TJM algorithm.
         It serves to trade off feature matching and instance
         reweighting.
