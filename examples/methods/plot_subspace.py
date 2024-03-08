@@ -113,12 +113,12 @@ def create_plots(
     name="Without DA",
     suptitle=None,
 ):
-    size = np.array([16] * Xs.shape[0])
+    size = 16
 
     if suptitle is None:
         suptitle = f"Illustration of the {name} method"
-    figure, axes = plt.subplots(1, 3, figsize=figsize)
-    ax = axes[1]
+    figure, axes = plt.subplots(1, 3, figsize=(figsize[0] * 1.5, figsize[1]))
+    ax = axes[2]
     score = clf.score(Xt, yt)
     DecisionBoundaryDisplay.from_estimator(
         clf,
@@ -151,32 +151,82 @@ def create_plots(
         horizontalalignment="right",
     )
     scores_dict[name] = score
-
-    ax = axes[0]
-
-    # Plot the source points:
-    ax.scatter(Xs[:, 0], Xs[:, 1], c=ys, cmap=colormap, alpha=0.7, s=size)
-
-    ax.set_xticks(()), ax.set_yticks(())
-    ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
-    ax.set_title("Training with rewegihted data", fontsize=12)
     if name != "Without DA":
-        ax = axes[2]
         keys = list(clf.named_steps.keys())
-        subspace_estimator = clf.named_steps[keys[0]].base_estimator
-        subspace_estimator.fit(X, sample_domain=sample_domain)
+        subspace_estimator = clf.named_steps[keys[0]].base_estimator_
+        clf_on_subspace = clf.named_steps[keys[1]].base_estimator_
+
+        ax = axes[0]
+        # Plot the source points:
+        X_subspace = subspace_estimator.adapt(X)
         ax.scatter(
-            subspace_estimator.adapt(Xt),
+            X_subspace,
+            [0] * X.shape[0],
+            c=y,
+            cmap=colormap,
+            alpha=0.5,
+            s=size,
+        )
+
+        ax.set_xticks(()), ax.set_yticks(())
+        ax.set_xlim(x_min, x_max), ax.set_ylim(-50, 50)
+        ax.set_title("Full dataset projected on the subspace", fontsize=12)
+
+        ax = axes[1]
+        Xt_adapted = subspace_estimator.adapt(Xt)
+        ax.scatter(
+            Xt_adapted,
             [0] * Xt.shape[0],
             c=yt,
             cmap=colormap,
             alpha=0.5,
             s=size,
         )
+
+        x_ = list(np.linspace(x_min, x_max, 100).reshape(-1, 1))
+        y_ = list(clf_on_subspace.predict(x_))
+        ax.scatter(
+            x_ * 100,
+            [j // 100 - 50 for j in range(100 * 100)],
+            c=y_ * 100,
+            cmap=colormap,
+            alpha=0.02,
+            s=size,
+        )
+        ax.set_xlim(x_min, x_max), ax.set_ylim(-50, 50)
+        ax.set_title("Accuracy on target projected on the subspace", fontsize=12)
+    else:
+        ax = axes[0]
+        # Plot the source points:
+        X_subspace = X
+        ax.scatter(
+            X_subspace[:, 0],
+            X_subspace[:, 1],
+            c=y,
+            cmap=colormap,
+            alpha=0.5,
+            s=size,
+        )
+
         ax.set_xticks(()), ax.set_yticks(())
-        ax.set_title("Subspace")
+        ax.set_xlim(x_min, x_max), ax.set_ylim(-50, 50)
+        ax.set_title("Full dataset", fontsize=12)
+
+        ax = axes[1]
+        Xt_adapted = Xt
+        ax.scatter(
+            Xt_adapted[:, 0],
+            Xt_adapted[:, 1],
+            c=yt,
+            cmap=colormap,
+            alpha=0.5,
+            s=size,
+        )
+        ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
+        ax.set_title("Accuracy on target", fontsize=12)
 
     figure.suptitle(suptitle, fontsize=16, y=1)
+    figure.tight_layout()
 
 
 clf = base_classifier
