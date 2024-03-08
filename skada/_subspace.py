@@ -527,11 +527,12 @@ class TransferJointMatchingAdapter(BaseAdapter):
         # minimization of the objective function
         # \min_{A} tr(A^T K M K A) + tradeoff * (||A_s||_{2, 1} + ||A_t||_F^2)
         # s.t. A^T K H K^T A = I
+        EPS_eigval = 1e-12
         for i in range(self.max_iter):
-            B = self.tradeoff * G + K @ M @ K + 1e-14 * np.identity(n)
-            C = K @ H @ K + 1e-14 * np.identity(n)
+            B = self.tradeoff * G + K @ M @ K + EPS_eigval * np.identity(n)
+            C = K @ H @ K + EPS_eigval * np.identity(n)
             phi, A = scipy.linalg.eigh(B, C)
-            phi = phi + 1e-14
+            phi = phi + EPS_eigval
             indices = np.argsort(phi)[:n_components]
             A = A[:, indices]
             for j in range(n):
