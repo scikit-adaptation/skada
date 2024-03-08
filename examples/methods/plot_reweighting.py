@@ -184,7 +184,7 @@ def create_plots(
 
     ax.set_xticks(()), ax.set_yticks(())
     ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
-    ax.set_title("Training with rewegihted data", fontsize=12)
+    ax.set_title("Training with reweighted data", fontsize=12)
     figure.suptitle(suptitle, fontsize=16, y=1)
 
 
@@ -334,7 +334,9 @@ create_plots(clf, weights=weights, name="1NN Reweight Density")
 # ------------------------------------------
 # .. _Kernel Mean Matching
 #
-# This example illustrates the use of KMM method [5] to correct covariate-shift.
+# This example illustrates the use of KMM method [6] to correct covariate-shift.
+# This methods works without any estimation of the assumption, by matching distribution
+# between training and testing sets in feature space.
 #
 # See [6] for details.
 #
