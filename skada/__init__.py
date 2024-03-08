@@ -9,7 +9,7 @@ import sklearn
 from .version import __version__  # noqa: F401
 from . import model_selection
 from . import metrics
-from .base import BaseAdapter, PerDomain, Shared
+from .base import BaseAdapter, PerDomain, Shared, SelectSource, SelectTarget
 from ._mapping import (
     ClassRegularizerOTMappingAdapter,
     ClassRegularizerOTMapping,
@@ -65,6 +65,8 @@ __all__ = [
     "BaseAdapter",
     "PerDomain",
     "Shared",
+    "SelectSource",
+    "SelectTarget",
 
     "ClassRegularizerOTMappingAdapter",
     "ClassRegularizerOTMapping",

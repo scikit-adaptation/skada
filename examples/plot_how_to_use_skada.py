@@ -24,6 +24,8 @@ from skada import (
     CORAL,
     CORALAdapter,
     GaussianReweightDensityAdapter,
+    PerDomain,
+    SelectSource,
     make_da_pipeline,
     source_target_split,
 )
@@ -51,6 +53,8 @@ X, y, sample_domain = make_shifted_datasets(
 
 # split source and target for visualization
 Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
+sample_domain_s = np.ones(Xs.shape[0])
+sample_domain_t = -np.ones(Xt.shape[0]) * 2
 
 # plot data
 plt.figure(1, (10, 5))
@@ -127,7 +131,8 @@ pipe.fit(X, y, sample_domain=sample_domain)
 
 print("Accuracy on target:", pipe.score(Xt, yt))
 
-# create a DA pipeline with GaussianReweight adapter
+# create a DA pipeline with GaussianReweight adapter (does not work well on
+# concept drift).
 pipe = make_da_pipeline(
     StandardScaler(),
     GaussianReweightDensityAdapter(),
@@ -186,3 +191,30 @@ grid_search.fit(X, y, sample_domain=sample_domain)
 
 print("Best regularization parameter:", grid_search.best_params_["coraladapter__reg"])
 print("Accuracy on target:", np.mean(grid_search.predict(Xt) == yt))
+
+
+# %%
+# Advanced DA pipeline
+# --------------------
+#
+# The DA pipeline can be used with any estimator and any adapter. But more
+# importantly all estimators in the pipeline are wrapped automatically in what
+# we call in skada a :code:`Selector. The selector is a wrapper that allows to
+# select what is passed during fit and predict/transform.
+#
+# For instance in the following we train one StandardScaler per domain but then
+# use a single SVC trained only on source. When predicting on target data the
+# pipeline will automatically use StandardScaler trained on target and the SVC
+# trained on source.
+
+# create a DA pipeline with PerDomain estimators
+
+pipe = make_da_pipeline(
+    PerDomain(StandardScaler()),
+    SelectSource(SVC()),
+)
+
+pipe.fit(X, y, sample_domain=sample_domain)
+
+print("Accuracy on source:", pipe.score(Xs, ys, sample_domain=sample_domain_s))
+print("Accuracy on target:", pipe.score(Xt, yt, sample_domain=sample_domain_t))
