@@ -937,28 +937,45 @@ def _gsvd(A, B):
 
     Parameters
     ----------
-    A : array-like, shape (m, n)
+    A : array-like, shape (d, d)
         The first matrix.
-    B : array-like, shape (m, n)
+    B : array-like, shape (d, d)
         The second matrix.
 
     Returns
     -------
-    U_A : array-like, shape (m, min(m, n))
+    U_A : array-like, shape (d, d)
         The left singular vectors of A.
-    U_B : array-like, shape (m, min(m, n))
+    U_B : array-like, shape (d, d)
         The left singular vectors of B.
-    S_A : array-like, shape (min(m, n),)
+    S_A : array-like, shape (d, d)
         The singular values of A.
-    S_B : array-like, shape (min(m, n),)
+    S_B : array-like, shape (d, d)
         The singular values of B.
-    Vt : array-like, shape (min(m, n), n)
+    Vt : array-like, shape (d, d)
         The right singular vectors of A and B.
     """
-    # TODO: implement the true gsvd
-    U_A, S_A, V_A = np.linalg.svd(A)
-    U_B, S_B, V_B = np.linalg.svd(B)
-    return U_A, U_B, S_A, S_B, V_A
+    d = A.shape[0]
+    if A.shape != B.shape or A.shape[1] != d:
+        raise ValueError("A and B must have the same shape and be square matrices")
+
+    # computation as described in the construction section of
+    # https://en.wikipedia.org/wiki/Generalized_singular_value_decomposition
+    C = np.block([[A], [B]])
+    k = np.linalg.matrix_rank(C)
+    P, D, Vt = np.linalg.svd(C, full_matrices=False)
+    Vt = Vt[:d]
+    P11 = P[:d, :k]
+    P21 = P[d:, :k]
+    U_A, Sigma1, Wt = np.linalg.svd(P11, full_matrices=False)
+    P21_W = P21 @ Wt.T
+    Sigma2 = np.linalg.norm(P21_W, axis=0)
+    U_B = P21_W / Sigma2
+
+    S_A = np.diag(Sigma1) @ Wt @ np.diag(D)
+    S_B = np.diag(Sigma2) @ Wt @ np.diag(D)
+
+    return U_A, U_B, S_A, S_B, Vt
 
 
 class GFKAdapter(BaseAdapter):

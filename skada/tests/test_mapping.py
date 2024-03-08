@@ -33,6 +33,7 @@ from skada import (
     make_da_pipeline,
     source_target_split,
 )
+from skada._mapping import _gsvd
 from skada.datasets import DomainAwareDataset
 
 
@@ -197,3 +198,28 @@ def test_new_X_adapt(estimator, da_dataset):
 )
 def test_reg_new_X_adapt(estimator, da_reg_dataset):
     _base_test_new_X_adapt(estimator, da_reg_dataset)
+
+
+def test_gsvd():
+    d = 10
+    A = np.random.multivariate_normal(np.zeros(d), np.eye(d), size=d)
+    B = np.random.multivariate_normal(np.zeros(d), np.eye(d), size=d)
+
+    # gsvd
+    U_A, U_B, S_A, S_B, Vt = _gsvd(A, B)
+
+    # shape of the matrices
+    assert U_A.shape == (d, d)
+    assert U_B.shape == (d, d)
+    assert S_A.shape == (d, d)
+    assert S_B.shape == (d, d)
+    assert Vt.shape == (d, d)
+
+    # orthogonality
+    assert np.allclose(U_A.T @ U_A, np.eye(d))
+    assert np.allclose(U_B.T @ U_B, np.eye(d))
+    assert np.allclose(Vt @ Vt.T, np.eye(d))
+
+    # check the reconstruction
+    assert np.allclose(A, U_A @ S_A @ Vt)
+    assert np.allclose(B, U_B @ S_B @ Vt)
