@@ -227,3 +227,21 @@ def test_gsvd():
     # check the reconstruction
     assert np.allclose(A, U_A @ S_A @ Vt)
     assert np.allclose(B, U_B @ S_B @ Vt)
+
+    n, d, k = 100, 10, 5
+    Xs = np.random.multivariate_normal(np.zeros(d), np.eye(d), size=n)
+    Xt = np.random.multivariate_normal(np.zeros(d), np.eye(d), size=n)
+
+    Ps, _, _ = np.linalg.svd(Xs.T, full_matrices=False)
+    Ps, Rs = Ps[:, :k], Ps[:, k:]
+    Pt, _, _ = np.linalg.svd(Xt.T, full_matrices=False)
+    Pt = Pt[:, :k]
+
+    U1, U2, Gamma, Sigma, Vt = _gsvd(Ps.T @ Pt, -Rs.T @ Pt)
+
+    # assert Gamma and Sigma are diagonal
+    import ipdb
+
+    ipdb.set_trace()
+    assert np.allclose(Gamma, np.diag(np.diag(Gamma)))
+    assert np.allclose(Sigma, np.diag(np.diag(Sigma)))
