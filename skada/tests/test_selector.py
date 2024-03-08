@@ -278,12 +278,18 @@ def test_source_selector_with_weights(da_multiclass_dataset, selector_cls, side)
     assert output["n_predict_sample_weight"] == X.shape[0]
 
 
-def test_source_target_selector(da_multiclass_dataset):
+@pytest.mark.parametrize(
+    "source_estimator, target_estimator",
+    [(StandardScaler(), None), (StandardScaler(), StandardScaler())],
+)
+def test_source_target_selector(
+    da_multiclass_dataset, source_estimator, target_estimator
+):
     X, y, sample_domain = da_multiclass_dataset
 
     pipe = make_da_pipeline(
-        SelectSourceTarget(StandardScaler()),
+        SelectSourceTarget(source_estimator, target_estimator),
         SVC(),
     )
-
+    # no errors should be raised
     pipe.fit(X, y, sample_domain=sample_domain)

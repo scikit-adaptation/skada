@@ -519,9 +519,10 @@ class SelectSourceTarget(BaseSelector):
         params['sample_domain'] = sample_domain
         source_masks = extract_source_indices(sample_domain)
         estimators = {}
+        target_estimator = self.target_estimator if self.target_estimator is not None else self.source_estimator
         for domain_type, base_estimator, domain_masks in [
             ('source', self.source_estimator, source_masks),
-            ('target', self.target_estimator if self.target_estimator is not None else self.source_estimator, ~source_masks)
+            ('target', target_estimator, ~source_masks)
         ]:
             X_masked, y_masked, params_masked = _apply_domain_masks(X, y, params, masks=domain_masks)
             routing = get_routing_for_object(base_estimator)
@@ -555,9 +556,6 @@ class SelectSourceTarget(BaseSelector):
             else:
                 domain_output = method(X_domain, y_domain, **routed_params)
             if output is None:
-                output = np.zeros(
-                    (X.shape[0], *domain_output.shape[1:]),
-                    dtype=domain_output.dtype
-                )
+                output = np.zeros((X.shape[0], *domain_output.shape[1:]), dtype=domain_output.dtype)
             output[domain_masks] = domain_output
         return output
