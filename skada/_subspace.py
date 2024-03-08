@@ -548,11 +548,11 @@ class TransferJointMatchingAdapter(BaseAdapter):
 
             # update G
             A_norms = np.linalg.norm(A, axis=1)
-            mask = A_norms > 0
-            mask[~source_mask] = False
-            G = np.zeros_like(G)
-            G[mask, mask] = 1 / (2 * A_norms[mask])
-            G[~source_mask, ~source_mask] = 1
+            mask = A_norms != 0
+            G = np.zeros(n, dtype=np.float64)
+            G[mask] = 1 / (2 * A_norms[mask] + EPS_eigval)
+            G[~source_mask] = 1
+            G = np.diag(G)
 
             # print objective function and constraint satisfaction
             if self.verbose:
