@@ -536,10 +536,14 @@ class TransferJointMatchingAdapter(BaseAdapter):
         # s.t. A^T K H K^T A = I
         EPS_eigval = 1e-12
         for i in range(self.max_iter):
+            import ipdb
+
+            ipdb.set_trace()
+
             # update A
-            B = K @ M @ K + self.tradeoff * G
+            B = K @ M @ K.T + self.tradeoff * G
             B = B + EPS_eigval * np.identity(n)
-            C = K @ H @ K
+            C = K @ H @ K.T
             C = C + EPS_eigval * np.identity(n)
             phi, A = scipy.linalg.eigh(B, C)
             phi = phi + EPS_eigval
@@ -548,9 +552,8 @@ class TransferJointMatchingAdapter(BaseAdapter):
 
             # update G
             A_norms = np.linalg.norm(A, axis=1)
-            mask = A_norms != 0
             G = np.zeros(n, dtype=np.float64)
-            G[mask] = 1 / (2 * A_norms[mask] + EPS_eigval)
+            G[A_norms != 0] = 1 / (2 * A_norms[A_norms != 0] + EPS_eigval)
             G[~source_mask] = 1
             G = np.diag(G)
 
@@ -566,8 +569,12 @@ class TransferJointMatchingAdapter(BaseAdapter):
                     f"iter {i}: loss={loss_total:.4f}, loss_mmd={loss:.4f}, "
                     f"reg={reg:.4f}"
                 )
-                cond = np.allclose(A.T @ K @ H @ K.T @ A, np.identity(n_components))
-                print(f"Constraint satisfaction: {cond}")
+                mat = A.T @ K @ H @ K.T @ A
+                cond = np.allclose(mat, np.identity(n_components))
+                print(
+                    f"Constraint satisfaction: {cond}, dist="
+                    f"{np.linalg.norm(mat - np.identity(n_components))}"
+                )
 
         self.A_ = A
 
@@ -578,9 +585,9 @@ def TransferJointMatching(
     base_estimator=None,
     random_state=None,
     n_components=1,
-    tradeoff=1e-2,
+    tradeoff=100,
     kernel="rbf",
-    max_iter=10,
+    max_iter=20,
 ):
     """
 
