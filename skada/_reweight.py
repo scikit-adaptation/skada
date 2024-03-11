@@ -869,7 +869,7 @@ class KMMAdapter(BaseAdapter):
             weights[source_idx] = source_weights
         else:
             weights = None
-        return AdaptationOutput(X=X, sample_weight=weights)
+        return AdaptationOutput(X, sample_weight=weights)
 
 
 def KMM(
@@ -1125,7 +1125,7 @@ class MMDTarSReweightAdapter(BaseAdapter):
             weights += 1e-13  # avoid negative weights
         else:
             weights = None
-        return AdaptationOutput(X=X, sample_weight=weights)
+        return AdaptationOutput(X, sample_weight=weights)
 
 
 def MMDTarSReweight(
