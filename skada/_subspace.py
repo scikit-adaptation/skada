@@ -536,18 +536,15 @@ class TransferJointMatchingAdapter(BaseAdapter):
         # s.t. A^T K H K^T A = I
         EPS_eigval = 1e-12
         for i in range(self.max_iter):
-            import ipdb
-
-            ipdb.set_trace()
-
             # update A
             B = K @ M @ K.T + self.tradeoff * G
             B = B + EPS_eigval * np.identity(n)
             C = K @ H @ K.T
             C = C + EPS_eigval * np.identity(n)
-            phi, A = scipy.linalg.eigh(B, C)
+            solution = scipy.linalg.solve(B, C)
+            phi, A = scipy.linalg.eigh(solution)
             phi = phi + EPS_eigval
-            indices = np.argsort(phi)[:n_components]
+            indices = np.argsort(-np.abs(phi))[:n_components]
             A = A[:, indices]
 
             # update G
@@ -575,6 +572,7 @@ class TransferJointMatchingAdapter(BaseAdapter):
                     f"Constraint satisfaction: {cond}, dist="
                     f"{np.linalg.norm(mat - np.identity(n_components))}"
                 )
+                print(mat)
 
         self.A_ = A
 
