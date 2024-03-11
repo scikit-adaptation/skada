@@ -287,7 +287,7 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
         # of `AdaptationOutput`. The only case where should avoid such
         # operation is that if the selector wraps the last step in the pipeline.
         # In such a case, the `output` is supposed to be consumable from
-        # the common sklearn API.  
+        # the common sklearn API.
         if not self._is_final and isinstance(X_container, AdaptationOutput):
             output = X_container.merge_into(output)
         return output
@@ -326,24 +326,32 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
         )
         params['sample_domain'] = sample_domain
 
-        try:
-            routed_params = routing_request._route_params(params=params)
-        except UnsetMetadataPassedError as e:
-            # check if every parameter given by `AdaptationOutput` object
-            # was accepted by the downstream (base) estimator
-            if isinstance(X_container, AdaptationOutput):
-                for k in X_container:
-                    marker = routing_request.requests.get(k)
-                    if v is not None and marker is None:
-                        method = routing_request.method
-                        raise IncompatibleMetadataError(
-                            f"The adapter provided '{k}' parameter which is not explicitly set as "  # noqa
-                            f"requested or not for '{routing_request.owner}.{method}'.\n"  # noqa
-                            f"Make sure that metadata routing is properly setup, e.g. by calling 'set_{method}_request()'. "  # noqa
-                            "See documentation at https://scikit-learn.org/stable/metadata_routing.html"  # noqa
-                        ) from e
-            # re-raise exception if the problem was not caused by the adapter
-            raise e
+        if not self._is_final:
+            routed_params = {k: params[k] for k in routing_request._consumes(params=params)}
+        else:
+            # xxx(okachaiev): there's still at least a single scenario where such condition
+            # fails. consider the following pipeline: adapter -> transformer -> estimator.
+            # assuming that adapter produces weights that are consumed by the transformer,
+            # it might be perfectly valid for the estimator not to accept weights. not sure
+            # what would be the most comfortable way to check such a occurrence.
+            try:
+                routed_params = routing_request._route_params(params=params)
+            except UnsetMetadataPassedError as e:
+                # check if every parameter given by `AdaptationOutput` object
+                # was accepted by the downstream (base) estimator
+                if isinstance(X_container, AdaptationOutput):
+                    for k in X_container:
+                        marker = routing_request.requests.get(k)
+                        if v is not None and marker is None:
+                            method = routing_request.method
+                            raise IncompatibleMetadataError(
+                                f"The adapter provided '{k}' parameter which is not explicitly set as "  # noqa
+                                f"requested or not for '{routing_request.owner}.{method}'.\n"  # noqa
+                                f"Make sure that metadata routing is properly setup, e.g. by calling 'set_{method}_request()'. "  # noqa
+                                "See documentation at https://scikit-learn.org/stable/metadata_routing.html"  # noqa
+                            ) from e
+                # re-raise exception if the problem was not caused by the adapter
+                raise e
         return X_out, routed_params
 
     def _remove_masked(self, X, y, routed_params):
@@ -407,15 +415,16 @@ class Shared(BaseSelector):
     # xxx(okachaiev): check if underlying estimator supports 'fit_transform'
     def fit_transform(self, X, y=None, **params):
         self.fit(X, y, **params)
-        routed_params = self.routing_.fit_transform._route_params(params=params)
         # 'fit_transform' allows transformation for source domains
         # as well, that's why it calls 'adapt' directly
         if isinstance(self.base_estimator_, BaseAdapter):
             # xxx(okachaiev): adapt should take 'y' as well, as in many cases
             # we need to bound estimator fitting to a sub-group of the input
+            routed_params = self.routing_.fit_transform._route_params(params=params)
             output = self.base_estimator_.adapt(X, **routed_params)
         else:
-            output = self.base_estimator_.transform(X, **routed_params)
+            # output = self.base_estimator_.transform(X, **routed_params)
+            output = self._route_to_estimator('transform', X, **params)
         return output
 
     # xxx(okachaiev): fail if unknown domain is given
