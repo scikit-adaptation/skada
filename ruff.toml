@@ -1,6 +1,5 @@
 exclude = [
     "base.py",  # XXX to fix
-    "conftest.py",
 ]
 
 [lint]
