@@ -554,6 +554,7 @@ class SelectSourceTarget(BaseSelector):
                             "both be transformers, or neither should be.")
         self.source_estimator = source_estimator
         self.target_estimator = target_estimator
+        self._is_final = False
 
     def get_metadata_routing(self):
         routing = MetadataRouter(owner=self.__class__.__name__).add_self_request(self)
