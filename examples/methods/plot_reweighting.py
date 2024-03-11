@@ -50,9 +50,9 @@ from skada.utils import extract_source_indices
 #     reweighting method>`
 #   * :ref:`Kernel Mean Matching<Illustration of the Kernel Mean Matching method>`
 #
-# For more details, look at [1].
+# For more details, look at [3].
 #
-# .. [1] [Sugiyama et al., 2008] Sugiyama, M., Suzuki, T., Nakajima, S., Kashima, H.,
+# .. [3] [Sugiyama et al., 2008] Sugiyama, M., Suzuki, T., Nakajima, S., Kashima, H.,
 #        von Bünau, P., and Kawanabe, M. (2008). Direct importance estimation for
 #        covariate shift adaptation. Annals of the Institute of Statistical
 #        Mathematics, 60(4):699–746.
@@ -230,9 +230,9 @@ create_plots(clf, weights=weights, name="Reweight Density")
 # normally distributed, and thus approximating the probability functions for both source
 # and target set, and setting the weight to be the ratio of the two.
 #
-# See [2] for details.
+# See [1] for details.
 #
-# .. [2]  Hidetoshi Shimodaira. Improving predictive inference under
+# .. [1]  Hidetoshi Shimodaira. Improving predictive inference under
 #         covariate shift by weighting the log-likelihood function.
 #         In Journal of Statistical Planning and Inference, 2000.
 
@@ -254,9 +254,9 @@ create_plots(clf, weights=weights, name="Gaussian Reweight Density")
 # when trying to maximize the log-likelihood function. Such approach is effective in
 # cases of covariate shift.
 #
-# See [3] for details.
+# See [1] for details.
 #
-# .. [3]    Hidetoshi Shimodaira. Improving predictive inference under
+# .. [1]    Hidetoshi Shimodaira. Improving predictive inference under
 #           covariate shift by weighting the log-likelihood function.
 #           In Journal of Statistical Planning and Inference, 2000.
 
@@ -282,9 +282,9 @@ create_plots(clf, weights=weights, name="Discr. Reweight Density")
 # :math:`p_{source}(x)` to its estimate :math:`p_{target}(x) = w(x)p_{source}(x)`
 # is minimized.
 #
-# See [4] for details.
+# See [3] for details.
 #
-# .. [4] Masashi Sugiyama et. al. Direct Importance Estimation with Model Selection
+# .. [3] Masashi Sugiyama et. al. Direct Importance Estimation with Model Selection
 #        and Its Application to Covariate Shift Adaptation.
 #        In NeurIPS, 2007.
 
@@ -312,9 +312,9 @@ create_plots(clf, weights=weights, name="KLIEP")
 # counting the number of points in the target set that are closer to
 # it than any other points from the source dataset.
 #
-# See [5] for details.
+# See [24] for details.
 #
-# .. [5] Loog, M. (2012).
+# .. [24] Loog, M. (2012).
 #        Nearest neighbor-based importance weighting.
 #        In 2012 IEEE International Workshop on Machine
 #        Learning for Signal Processing, pages 1–6. IEEE
@@ -341,9 +341,9 @@ create_plots(clf, weights=weights, name="1NN Reweight Density")
 # This methods works without any estimation of the assumption, by matching distribution
 # between training and testing sets in feature space.
 #
-# See [6] for details.
+# See [25] for details.
 #
-# .. [6] J. Huang, A. Gretton, K. Borgwardt, B. Schölkopf and A. J. Smola.
+# .. [25] J. Huang, A. Gretton, K. Borgwardt, B. Schölkopf and A. J. Smola.
 #        Correcting sample selection bias by unlabeled data. In NIPS, 2007.
 
 # We define our classifier, `clf` is a da pipeline
