@@ -32,7 +32,7 @@ from .utils import (
 EPS = np.finfo(float).eps
 
 
-class ReweightDensityAdapter(BaseAdapter):
+class DensityReweightAdapter(BaseAdapter):
     """Adapter based on re-weighting samples using density estimation.
 
     Parameters
@@ -121,7 +121,7 @@ class ReweightDensityAdapter(BaseAdapter):
         return AdaptationOutput(X, sample_weight=weights)
 
 
-def ReweightDensity(
+def DensityReweight(
     base_estimator=None,
     weight_estimator=None,
 ):
@@ -138,18 +138,18 @@ def ReweightDensity(
     Returns
     -------
     pipeline : sklearn pipeline
-        Pipeline containing the ReweightDensity adapter and the base estimator.
+        Pipeline containing the DensityReweight adapter and the base estimator.
     """
     if base_estimator is None:
         base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
 
     return make_da_pipeline(
-        ReweightDensityAdapter(weight_estimator=weight_estimator),
+        DensityReweightAdapter(weight_estimator=weight_estimator),
         base_estimator,
     )
 
 
-class GaussianReweightDensityAdapter(BaseAdapter):
+class GaussianReweightAdapter(BaseAdapter):
     """Gaussian approximation re-weighting method.
 
     See [1]_ for details.
@@ -255,7 +255,7 @@ class GaussianReweightDensityAdapter(BaseAdapter):
         return AdaptationOutput(X, sample_weight=weights)
 
 
-def GaussianReweightDensity(
+def GaussianReweight(
     base_estimator=None,
     reg="auto",
 ):
@@ -278,7 +278,7 @@ def GaussianReweightDensity(
     Returns
     -------
     pipeline : sklearn pipeline
-        Pipeline containing the GaussianReweightDensity adapter and the
+        Pipeline containing the GaussianReweight adapter and the
         base estimator.
 
     References
@@ -291,12 +291,12 @@ def GaussianReweightDensity(
         base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
 
     return make_da_pipeline(
-        GaussianReweightDensityAdapter(reg=reg),
+        GaussianReweightAdapter(reg=reg),
         base_estimator,
     )
 
 
-class DiscriminatorReweightDensityAdapter(BaseAdapter):
+class DiscriminatorReweightAdapter(BaseAdapter):
     """Gaussian approximation re-weighting method.
 
     See [1]_ for details.
@@ -390,7 +390,7 @@ class DiscriminatorReweightDensityAdapter(BaseAdapter):
         return AdaptationOutput(X, sample_weight=weights)
 
 
-def DiscriminatorReweightDensity(base_estimator=None, domain_classifier=None):
+def DiscriminatorReweight(base_estimator=None, domain_classifier=None):
     """Discriminator re-weighting pipeline adapter and estimator.
 
     see [1]_ for details.
@@ -406,7 +406,7 @@ def DiscriminatorReweightDensity(base_estimator=None, domain_classifier=None):
     Returns
     -------
     pipeline : sklearn pipeline
-        Pipeline containing the DiscriminatorReweightDensity adapter and the
+        Pipeline containing the DiscriminatorReweight adapter and the
         base estimator.
 
     References
@@ -419,7 +419,7 @@ def DiscriminatorReweightDensity(base_estimator=None, domain_classifier=None):
         base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
 
     return make_da_pipeline(
-        DiscriminatorReweightDensityAdapter(domain_classifier=domain_classifier),
+        DiscriminatorReweightAdapter(domain_classifier=domain_classifier),
         base_estimator,
     )
 
@@ -676,7 +676,7 @@ def KLIEP(
     )
 
 
-class NearestNeighborDensityAdapter(BaseAdapter):
+class NearestNeighborReweightAdapter(BaseAdapter):
     """Adapter based on re-weighting samples using a 1NN,
 
     See: [Loog, 2012] Loog, M. (2012).
@@ -810,7 +810,7 @@ class NearestNeighborDensityAdapter(BaseAdapter):
         return AdaptationOutput(X=X, sample_weight=weights)
 
 
-def NearestNeighborReweightDensity(
+def NearestNeighborReweight(
     base_estimator=None,
     laplace_smoothing=False,
     weights="uniform",
@@ -908,13 +908,13 @@ def NearestNeighborReweightDensity(
     Returns
     -------
     pipeline : sklearn pipeline
-        Pipeline containing the ReweightDensity adapter and the base estimator.
+        Pipeline containing the DensityReweight adapter and the base estimator.
     """
     if base_estimator is None:
         base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
 
     return make_da_pipeline(
-        NearestNeighborDensityAdapter(
+        NearestNeighborReweightAdapter(
             laplace_smoothing=laplace_smoothing,
             weights=weights,
             algorithm=algorithm,
@@ -1409,7 +1409,7 @@ def MMDTarSReweight(
     Returns
     -------
     pipeline : sklearn pipeline
-        Pipeline containing the ReweightDensity adapter and the base estimator.
+        Pipeline containing the DensityReweight adapter and the base estimator.
 
     References
     ----------

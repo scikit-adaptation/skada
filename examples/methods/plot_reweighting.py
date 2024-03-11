@@ -23,12 +23,12 @@ from sklearn.neighbors import KernelDensity
 from skada import (
     KLIEP,
     KMM,
-    DiscriminatorReweightDensity,
-    GaussianReweightDensity,
-    ReweightDensity,
+    DensityReweight,
+    DiscriminatorReweight,
+    GaussianReweight,
+    NearestNeighborReweight,
     source_target_split,
 )
-from skada._reweight import NearestNeighborReweightDensity
 from skada.datasets import make_shifted_datasets
 from skada.utils import extract_source_indices
 
@@ -42,9 +42,9 @@ from skada.utils import extract_source_indices
 # well suited to predicting labels from points drawn from the target distribution.
 #
 # Reweighting methods implemented and illustrated are the following:
-#   * :ref:`Reweight Density<Illustration of the Reweight Density method>`
-#   * :ref:`Gaussian Reweight Density<Illustration of the Gaussian reweighting method>`
-#   * :ref:`Discr. Reweight Density<Illustration of the Discr. reweighting method>`
+#   * :ref:`Density Reweighting<Illustration of the Density Reweighting method>`
+#   * :ref:`Gaussian Reweighting<Illustration of the Gaussian reweighting method>`
+#   * :ref:`Discr. Reweighting<Illustration of the Discr. reweighting method>`
 #   * :ref:`KLIEP<Illustration of the KLIEP method>`
 #   * :ref:`Nearest Neighbor reweighting<Illustration of the Nearest Neighbor
 #     reweighting method>`
@@ -120,7 +120,7 @@ ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
 scores_dict = {}
 
 
-def create_plots(
+def plot_weights_and_classifier(
     clf,
     weights,
     name="Without DA",
@@ -193,7 +193,7 @@ def create_plots(
 
 clf = base_classifier
 clf.fit(Xs, ys)
-create_plots(
+plot_weights_and_classifier(
     base_classifier,
     name="Without DA",
     weights=np.array([2] * Xs.shape[0]),
@@ -201,14 +201,14 @@ create_plots(
 )
 
 # %%
-#     Illustration of the Reweight Density method
+#     Illustration of the Density Reweighting method
 # ------------------------------------------
 #
 # This method is trying to compute the optimal weights as a ratio of two probability
 # functions, by default, it is the ratio of two kernel densities estimations.
 
 # We define our classifier, `clf` is a da pipeline
-clf = ReweightDensity(
+clf = DensityReweight(
     base_estimator=base_classifier,
     weight_estimator=KernelDensity(bandwidth=0.5),
 )
@@ -221,7 +221,7 @@ weight_estimator = clf[0].base_estimator_
 idx = extract_source_indices(sample_domain)
 weights = weight_estimator.adapt(X, sample_domain=sample_domain).sample_weight[idx]
 
-create_plots(clf, weights=weights, name="Reweight Density")
+plot_weights_and_classifier(clf, weights=weights, name="Density Reweighting")
 
 # %%
 #     Illustration of the Gaussian reweighting method
@@ -237,14 +237,14 @@ create_plots(clf, weights=weights, name="Reweight Density")
 #         In Journal of Statistical Planning and Inference, 2000.
 
 # We define our classifier, `clf` is a da pipeline
-clf = GaussianReweightDensity(base_classifier)
+clf = GaussianReweight(base_classifier)
 clf.fit(X, y, sample_domain=sample_domain)
 # We get the weights
 weight_estimator = clf[0].base_estimator_
 idx = extract_source_indices(sample_domain)
 weights = weight_estimator.adapt(X, sample_domain=sample_domain).sample_weight[idx]
 
-create_plots(clf, weights=weights, name="Gaussian Reweight Density")
+plot_weights_and_classifier(clf, weights=weights, name="Gaussian Reweighting")
 
 # %%
 #     Illustration of the Discr. reweighting method
@@ -261,7 +261,7 @@ create_plots(clf, weights=weights, name="Gaussian Reweight Density")
 #           In Journal of Statistical Planning and Inference, 2000.
 
 # We define our classifier, `clf` is a da pipeline
-clf = DiscriminatorReweightDensity(base_classifier)
+clf = DiscriminatorReweight(base_classifier)
 clf.fit(X, y, sample_domain=sample_domain)
 
 # We get the weights:
@@ -271,7 +271,7 @@ weight_estimator = clf[0].base_estimator_
 idx = extract_source_indices(sample_domain)
 weights = weight_estimator.adapt(X, sample_domain=sample_domain).sample_weight[idx]
 
-create_plots(clf, weights=weights, name="Discr. Reweight Density")
+plot_weights_and_classifier(clf, weights=weights, name="Discr. Reweighting")
 
 # %%
 #     Illustration of the KLIEP method
@@ -301,7 +301,7 @@ weight_estimator = clf[0].base_estimator_
 idx = extract_source_indices(sample_domain)
 weights = weight_estimator.adapt(X, sample_domain=sample_domain).sample_weight[idx]
 
-create_plots(clf, weights=weights, name="KLIEP")
+plot_weights_and_classifier(clf, weights=weights, name="KLIEP")
 
 # %%
 #     Illustration of the Nearest Neighbor reweighting method
@@ -320,7 +320,7 @@ create_plots(clf, weights=weights, name="KLIEP")
 #        Learning for Signal Processing, pages 1–6. IEEE
 
 # We define our classifier, `clf` is a da pipeline
-clf = NearestNeighborReweightDensity(base_classifier, laplace_smoothing=True)
+clf = NearestNeighborReweight(base_classifier, laplace_smoothing=True)
 clf.fit(X, y, sample_domain=sample_domain)
 
 # We get the weights:
@@ -330,7 +330,7 @@ weight_estimator = clf[0].base_estimator_
 idx = extract_source_indices(sample_domain)
 weights = weight_estimator.adapt(X, sample_domain=sample_domain).sample_weight[idx]
 
-create_plots(clf, weights=weights, name="1NN Reweight Density")
+plot_weights_and_classifier(clf, weights=weights, name="1NN Reweighting")
 
 # %%
 #     Illustration of the Kernel Mean Matching method
@@ -357,7 +357,7 @@ weight_estimator = clf[0].base_estimator_
 idx = extract_source_indices(sample_domain)
 weights = weight_estimator.adapt(X, sample_domain=sample_domain).sample_weight[idx]
 
-create_plots(
+plot_weights_and_classifier(
     clf,
     weights=weights,
     name="Kernel Mean Matching",
@@ -375,7 +375,7 @@ weight_estimator = clf[0].base_estimator_
 idx = extract_source_indices(sample_domain)
 weights = weight_estimator.adapt(X, sample_domain=sample_domain).sample_weight[idx]
 
-create_plots(
+plot_weights_and_classifier(
     clf,
     weights=weights,
     name="Kernel Mean Matching",

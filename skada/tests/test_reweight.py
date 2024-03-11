@@ -12,18 +12,18 @@ from sklearn.linear_model import LogisticRegression, Ridge
 from skada import (
     KLIEP,
     KMM,
-    DiscriminatorReweightDensity,
-    DiscriminatorReweightDensityAdapter,
-    GaussianReweightDensity,
-    GaussianReweightDensityAdapter,
+    DensityReweight,
+    DensityReweightAdapter,
+    DiscriminatorReweight,
+    DiscriminatorReweightAdapter,
+    GaussianReweight,
+    GaussianReweightAdapter,
     KLIEPAdapter,
     KMMAdapter,
     MMDTarSReweight,
     MMDTarSReweightAdapter,
-    NearestNeighborDensityAdapter,
-    NearestNeighborReweightDensity,
-    ReweightDensity,
-    ReweightDensityAdapter,
+    NearestNeighborReweight,
+    NearestNeighborReweightAdapter,
     make_da_pipeline,
     source_target_split,
 )
@@ -33,33 +33,33 @@ from skada import (
     "estimator",
     [
         make_da_pipeline(
-            ReweightDensityAdapter(),
+            DensityReweightAdapter(),
             LogisticRegression().set_fit_request(sample_weight=True),
         ),
-        ReweightDensity(),
+        DensityReweight(),
         make_da_pipeline(
-            GaussianReweightDensityAdapter(),
+            GaussianReweightAdapter(),
             LogisticRegression().set_fit_request(sample_weight=True),
         ),
-        GaussianReweightDensity(),
+        GaussianReweight(),
         make_da_pipeline(
-            DiscriminatorReweightDensityAdapter(),
+            DiscriminatorReweightAdapter(),
             LogisticRegression().set_fit_request(sample_weight=True),
         ),
-        DiscriminatorReweightDensity(),
+        DiscriminatorReweight(),
         make_da_pipeline(
             KLIEPAdapter(gamma=[0.1, 1], random_state=42),
             LogisticRegression().set_fit_request(sample_weight=True),
         ),
         KLIEP(gamma=[0.1, 1], random_state=42),
         KLIEP(gamma=0.2),
-        NearestNeighborReweightDensity(
+        NearestNeighborReweight(
             LogisticRegression().set_fit_request(sample_weight=True),
             laplace_smoothing=True,
         ),
-        NearestNeighborReweightDensity(laplace_smoothing=True),
+        NearestNeighborReweight(laplace_smoothing=True),
         make_da_pipeline(
-            NearestNeighborDensityAdapter(laplace_smoothing=True),
+            NearestNeighborReweightAdapter(laplace_smoothing=True),
             LogisticRegression().set_fit_request(sample_weight=True),
         ),
         make_da_pipeline(
@@ -91,19 +91,19 @@ def test_reweight_estimator(estimator, da_dataset):
     "estimator",
     [
         make_da_pipeline(
-            ReweightDensityAdapter(), Ridge().set_fit_request(sample_weight=True)
+            DensityReweightAdapter(), Ridge().set_fit_request(sample_weight=True)
         ),
-        ReweightDensity(Ridge().set_fit_request(sample_weight=True)),
+        DensityReweight(Ridge().set_fit_request(sample_weight=True)),
         make_da_pipeline(
-            GaussianReweightDensityAdapter(),
+            GaussianReweightAdapter(),
             Ridge().set_fit_request(sample_weight=True),
         ),
-        GaussianReweightDensity(Ridge().set_fit_request(sample_weight=True)),
+        GaussianReweight(Ridge().set_fit_request(sample_weight=True)),
         make_da_pipeline(
-            DiscriminatorReweightDensityAdapter(),
+            DiscriminatorReweightAdapter(),
             Ridge().set_fit_request(sample_weight=True),
         ),
-        DiscriminatorReweightDensity(Ridge().set_fit_request(sample_weight=True)),
+        DiscriminatorReweight(Ridge().set_fit_request(sample_weight=True)),
         make_da_pipeline(
             KLIEPAdapter(gamma=[0.1, 1], random_state=42),
             Ridge().set_fit_request(sample_weight=True),
@@ -168,9 +168,9 @@ def _base_test_new_X_adapt(estimator, da_dataset):
 @pytest.mark.parametrize(
     "estimator",
     [
-        ReweightDensityAdapter(),
-        GaussianReweightDensityAdapter(),
-        DiscriminatorReweightDensityAdapter(),
+        DensityReweightAdapter(),
+        GaussianReweightAdapter(),
+        DiscriminatorReweightAdapter(),
         KLIEPAdapter(gamma=[0.1, 1], random_state=42),
         KMMAdapter(gamma=0.1, smooth_weights=True),
         MMDTarSReweightAdapter(gamma=1.0),
@@ -185,9 +185,9 @@ def test_new_X_adapt(estimator, da_dataset, da_reg_dataset):
 @pytest.mark.parametrize(
     "estimator",
     [
-        ReweightDensityAdapter(),
-        GaussianReweightDensityAdapter(),
-        DiscriminatorReweightDensityAdapter(),
+        DensityReweightAdapter(),
+        GaussianReweightAdapter(),
+        DiscriminatorReweightAdapter(),
         KLIEPAdapter(gamma=[0.1, 1], random_state=42),
         KMMAdapter(gamma=0.1, smooth_weights=True),
         MMDTarSReweightAdapter(gamma=1.0),

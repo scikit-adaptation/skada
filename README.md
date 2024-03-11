@@ -96,8 +96,8 @@ done with the `set_fit_requires` method. For instance, with `LogisticRegression`
 would use `LogisticRegression().set_fit_requires('sample_weight')`:
 
 ```python
-from skada import GaussianReweightDensityAdapter, make_da_pipeline
-pipe = make_da_pipeline(GaussianReweightDensityAdapter(),
+from skada import GaussianReweightAdapter, make_da_pipeline
+pipe = make_da_pipeline(GaussianReweightAdapter(),
                         LogisticRegression().set_fit_request(sample_weight=True))
 ```
 
