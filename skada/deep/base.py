@@ -6,14 +6,13 @@
 from abc import abstractmethod
 
 import torch
-from torch.utils.data import DataLoader, Sampler
 from skorch import NeuralNetClassifier
-
-from .utils import _register_forwards_hook
-
-from skada.utils import extract_source_indices
+from torch.utils.data import DataLoader, Sampler
 
 from skada.base import _DAMetadataRequesterMixin
+from skada.utils import extract_source_indices
+
+from .utils import _register_forwards_hook
 
 
 class DomainAwareCriterion(torch.nn.Module):
@@ -252,7 +251,7 @@ class DomainAwareModule(torch.nn.Module):
             if self.domain_classifier_ is not None:
                 domain_pred_s = self.domain_classifier_(features_s)
                 domain_pred_t = self.domain_classifier_(features_t)
-                domain_pred = torch.empty((len(sample_domain)))
+                domain_pred = torch.empty(len(sample_domain))
                 domain_pred[source_idx] = domain_pred_s
                 domain_pred[~source_idx] = domain_pred_t
             else:
@@ -348,7 +347,7 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         return super().fit(X, y, is_fit=True, **fit_params)
 
     def predict(self, X, sample_domain=None, **predict_params):
-        """model prediction
+        """Model prediction
 
         Parameters
         ----------
@@ -387,7 +386,7 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         return super().predict(X, **predict_params)
 
     def score(self, X, y, sample_domain=None, **score_params):
-        """model score
+        """Model score
 
         Parameters
         ----------
@@ -415,7 +414,7 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         return super().score(X, y, **score_params)
 
     def predict_features(self, X):
-        """get features
+        """Get features
 
         Parameters
         ----------

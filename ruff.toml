@@ -1,6 +1,5 @@
 exclude = [
     "base.py",  # XXX to fix
-    "utils.py",  # XXX to fix
     "conftest.py",
 ]
 
@@ -36,4 +35,7 @@ ignore-decorators = [
 ]
 "skada/deep/tests/test_*.py" = [
     "E402", # Module level import not at top of file
+]
+"skada/utils.py" = [
+    "D103", # Seems like ruff's linter bug
 ]
