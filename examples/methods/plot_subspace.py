@@ -1,9 +1,9 @@
 """
-Subspace method example on covariate shift dataset
+Subspace method example on subspace shift dataset
 ====================================================
 
 An example of the subspace methods on a dataset subject
-to covariate shift
+to subspace shift
 """
 
 # Author:   Ruben Bueno <ruben.bueno@polytechnique.edu>
@@ -279,9 +279,9 @@ create_plots(clf, "Subspace Alignment")
 #     Illustration of the Transfer Component Analysis method
 # ------------------------------------------
 #
-# The goal of Transfer Component Analysis (or TCA) is to learn some transfer
-# components across domains in a reproducing kernel Hilbert space using maximum
-# mean discrepancy (mmd).
+# The goal of Transfer Component Analysis (TCA) is to learn some transfer
+# components across domains in a reproducing kernel Hilbert space using Maximum
+# Mean Discrepancy (MMD)
 #
 # See [2] for details:
 #
@@ -299,7 +299,7 @@ create_plots(clf, "TCA")
 #
 # In most of the previous works, we explored two learning strategies independently for
 # domain adaptation: feature matching and instance reweighting. Transfer Joint Matching
-# or TJM aims to use both, by adding a constant to tradeoff between to two.
+# (TJM) aims to use both, by adding a constant to tradeoff between to two.
 #
 # See [3] for details:
 #
@@ -316,7 +316,7 @@ create_plots(
 
 
 # %%
-#     Comparison of score between reweighting methods:
+#     Comparison of score between subspace methods:
 # ------------------------------------------
 
 
