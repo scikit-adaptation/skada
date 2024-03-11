@@ -221,3 +221,29 @@ def test_kmm_new_X_adapt(da_dataset):
 
     assert np.allclose(res1["sample_weight"], res3["sample_weight"])
     assert not np.allclose(res1["sample_weight"], res2["sample_weight"])
+
+
+def test_adaptation_output_propagation(da_reg_dataset):
+    X, y, sample_domain = da_reg_dataset
+
+    from sklearn.base import BaseEstimator
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.utils.metadata_routing import _MetadataRequester
+
+    class FakeEstimator(BaseEstimator, _MetadataRequester):
+        __metadata_request__fit = {"sample_weight": True}
+        __metadata_request__predict = {"sample_weight": True}
+
+        def fit(self, _X, _y, sample_weight=None):
+            assert sample_weight is not None
+            return self
+
+        def predict(self, X, sample_weight=None):
+            assert sample_weight is not None
+            return X
+
+    clf = make_da_pipeline(ReweightDensityAdapter(), StandardScaler(), FakeEstimator())
+
+    # check no errors are raised
+    clf.fit(X, y, sample_domain=sample_domain)
+    clf.predict(X)
