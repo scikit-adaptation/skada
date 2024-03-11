@@ -7,7 +7,10 @@
 
 import numpy as np
 import pytest
+from sklearn.base import BaseEstimator
 from sklearn.linear_model import LogisticRegression, Ridge
+from sklearn.preprocessing import StandardScaler
+from sklearn.utils.metadata_routing import _MetadataRequester
 
 from skada import (
     KLIEP,
@@ -223,12 +226,8 @@ def test_kmm_new_X_adapt(da_dataset):
     assert not np.allclose(res1["sample_weight"], res2["sample_weight"])
 
 
-def test_adaptation_output_propagation(da_reg_dataset):
+def test_adaptation_output_propagation_multiple_steps(da_reg_dataset):
     X, y, sample_domain = da_reg_dataset
-
-    from sklearn.base import BaseEstimator
-    from sklearn.preprocessing import StandardScaler
-    from sklearn.utils.metadata_routing import _MetadataRequester
 
     class FakeEstimator(BaseEstimator, _MetadataRequester):
         __metadata_request__fit = {"sample_weight": True}
