@@ -4,15 +4,14 @@
 #
 # License: BSD 3-Clause
 
-"""
-Utilities to produce datasets for testing and benchmarking.
-"""
+"""Utilities to produce datasets for testing and benchmarking."""
 
 from ._base import (
     DomainAwareDataset,
     get_data_home,
     select_domain,
 )
+from ._mnist_usps import load_mnist_usps
 from ._office import (
     Office31CategoriesPreset,
     Office31Domain,
@@ -22,26 +21,25 @@ from ._office import (
     fetch_office31_surf_all,
 )
 from ._samples_generator import (
+    make_dataset_from_moons_distribution,
     make_shifted_blobs,
     make_shifted_datasets,
-    make_dataset_from_moons_distribution,
     make_variable_frequency_dataset,
 )
-from ._mnist_usps import load_mnist_usps
 
 __all__ = [
-    'DomainAwareDataset',
-    'Office31CategoriesPreset',
-    'Office31Domain',
-    'get_data_home',
-    'fetch_office31_decaf',
-    'fetch_office31_decaf_all',
-    'fetch_office31_surf',
-    'fetch_office31_surf_all',
-    'make_shifted_blobs',
-    'make_shifted_datasets',
-    'make_dataset_from_moons_distribution',
-    'make_variable_frequency_dataset',
-    'select_domain',
-    'load_mnist_usps',
+    "DomainAwareDataset",
+    "Office31CategoriesPreset",
+    "Office31Domain",
+    "get_data_home",
+    "fetch_office31_decaf",
+    "fetch_office31_decaf_all",
+    "fetch_office31_surf",
+    "fetch_office31_surf_all",
+    "make_shifted_blobs",
+    "make_shifted_datasets",
+    "make_dataset_from_moons_distribution",
+    "make_variable_frequency_dataset",
+    "select_domain",
+    "load_mnist_usps",
 ]

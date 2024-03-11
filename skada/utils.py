@@ -68,23 +68,24 @@ def check_X_y_domain(
     sample_domain : array
         Array specifying the domain labels for each sample.
     """
-    X = check_array(X, input_name='X', allow_nd=allow_nd)
-    y = check_array(y, force_all_finite=True, ensure_2d=False, input_name='y')
+    X = check_array(X, input_name="X", allow_nd=allow_nd)
+    y = check_array(y, force_all_finite=True, ensure_2d=False, input_name="y")
     check_consistent_length(X, y)
 
     if sample_domain is None and not allow_auto_sample_domain:
-        raise ValueError("Either 'sample_domain' or 'allow_auto_sample_domain' "
-                         "should be set")
+        raise ValueError(
+            "Either 'sample_domain' or 'allow_auto_sample_domain' " "should be set"
+        )
     elif sample_domain is None and allow_auto_sample_domain:
         y_type = _check_y_masking(y)
-        sample_domain = _DEFAULT_SOURCE_DOMAIN_LABEL*np.ones_like(y)
+        sample_domain = _DEFAULT_SOURCE_DOMAIN_LABEL * np.ones_like(y)
         # labels masked with -1 (for classification) are recognized as targets,
         # labels masked with nan (for regression) are recognized as targets,
         # the rest is treated as a source
-        if y_type == 'classification':
-            mask = (y == _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL)
+        if y_type == "classification":
+            mask = y == _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
         else:
-            mask = (np.isnan(y))
+            mask = np.isnan(y)
         sample_domain[mask] = _DEFAULT_TARGET_DOMAIN_LABEL
 
     source_idx = extract_source_indices(sample_domain)
@@ -95,17 +96,25 @@ def check_X_y_domain(
     n_targets = np.unique(sample_domain[~source_idx]).shape[0]
 
     if not allow_source and n_sources > 0:
-        raise ValueError(f"Number of sources provided is {n_sources} "
-                         "and 'allow_source' is set to False")
+        raise ValueError(
+            f"Number of sources provided is {n_sources} "
+            "and 'allow_source' is set to False"
+        )
     if not allow_target and n_targets > 0:
-        raise ValueError(f"Number of targets provided is {n_targets} "
-                         "and 'allow_target' is set to False")
+        raise ValueError(
+            f"Number of targets provided is {n_targets} "
+            "and 'allow_target' is set to False"
+        )
     if not allow_multi_source and n_sources > 1:
-        raise ValueError(f"Number of sources provided is {n_sources} "
-                         "and 'allow_multi_source' is set to False")
+        raise ValueError(
+            f"Number of sources provided is {n_sources} "
+            "and 'allow_multi_source' is set to False"
+        )
     if not allow_multi_target and n_sources > 1:
-        raise ValueError(f"Number of targets provided is {n_targets} "
-                         "and 'allow_multi_target' is set to False")
+        raise ValueError(
+            f"Number of targets provided is {n_targets} "
+            "and 'allow_multi_target' is set to False"
+        )
 
     return X, y, sample_domain
 
@@ -153,17 +162,18 @@ def check_X_domain(
     sample_domain : array
         Combined domain labels for source and target domains.
     """
-    X = check_array(X, input_name='X')
+    X = check_array(X, input_name="X")
 
     if sample_domain is None and not allow_auto_sample_domain:
-        raise ValueError("Either 'sample_domain' or 'allow_auto_sample_domain' "
-                         "should be set")
+        raise ValueError(
+            "Either 'sample_domain' or 'allow_auto_sample_domain' " "should be set"
+        )
     elif sample_domain is None and allow_auto_sample_domain:
         # default target domain when sample_domain is not given
         # The idea is that with no labels we always assume
         # target domain (_DEFAULT_TARGET_DOMAIN_ONLY_LABEL)
-        sample_domain = (
-            _DEFAULT_TARGET_DOMAIN_ONLY_LABEL * np.ones(X.shape[0], dtype=np.int32)
+        sample_domain = _DEFAULT_TARGET_DOMAIN_ONLY_LABEL * np.ones(
+            X.shape[0], dtype=np.int32
         )
 
     source_idx = extract_source_indices(sample_domain)
@@ -180,17 +190,25 @@ def check_X_domain(
     n_targets = np.unique(sample_domain[~source_idx]).shape[0]
 
     if not allow_source and n_sources > 0:
-        raise ValueError(f"Number of sources provided is {n_sources} "
-                         "and 'allow_source' is set to False")
+        raise ValueError(
+            f"Number of sources provided is {n_sources} "
+            "and 'allow_source' is set to False"
+        )
     if not allow_target and n_targets > 0:
-        raise ValueError(f"Number of targets provided is {n_targets} "
-                         "and 'allow_target' is set to False")
+        raise ValueError(
+            f"Number of targets provided is {n_targets} "
+            "and 'allow_target' is set to False"
+        )
     if not allow_multi_source and n_sources > 1:
-        raise ValueError(f"Number of sources provided is {n_sources} "
-                         "and 'allow_multi_source' is set to False")
+        raise ValueError(
+            f"Number of sources provided is {n_sources} "
+            "and 'allow_multi_source' is set to False"
+        )
     if not allow_multi_target and n_sources > 1:
-        raise ValueError(f"Number of targets provided is {n_targets} "
-                         "and 'allow_multi_target' is set to False")
+        raise ValueError(
+            f"Number of targets provided is {n_targets} "
+            "and 'allow_multi_target' is set to False"
+        )
 
     return X, sample_domain
 
@@ -209,13 +227,10 @@ def extract_source_indices(sample_domain):
         Boolean array indicating source indices.
     """
     sample_domain = check_array(
-        sample_domain,
-        dtype=np.int32,
-        ensure_2d=False,
-        input_name='sample_domain'
+        sample_domain, dtype=np.int32, ensure_2d=False, input_name="sample_domain"
     )
 
-    source_idx = (sample_domain >= 0)
+    source_idx = sample_domain >= 0
     return source_idx
 
 
@@ -241,17 +256,14 @@ def extract_domains_indices(sample_domain, split_source_target=False):
         - target_idx: keys < 0
     """
     sample_domain = check_array(
-        sample_domain,
-        dtype=np.int32,
-        ensure_2d=False,
-        input_name='sample_domain'
+        sample_domain, dtype=np.int32, ensure_2d=False, input_name="sample_domain"
     )
 
     domain_idx = {}
 
     unique_domains = np.unique(sample_domain)
     for domain in unique_domains:
-        source_idx = (sample_domain == domain)
+        source_idx = sample_domain == domain
         domain_idx[domain] = np.flatnonzero(source_idx)
 
     if split_source_target:
@@ -262,10 +274,7 @@ def extract_domains_indices(sample_domain, split_source_target=False):
         return domain_idx
 
 
-def source_target_split(
-    *arrays,
-    sample_domain
-):
+def source_target_split(*arrays, sample_domain):
     r"""Split data into source and target domains
 
     Parameters
@@ -290,17 +299,18 @@ def source_target_split(
 
     source_idx = extract_source_indices(sample_domain)
 
-    return list(chain.from_iterable(
-        (a[source_idx], a[~source_idx]) if a is not None else (None, None)
-        for a in arrays
-    ))
+    return list(
+        chain.from_iterable(
+            (a[source_idx], a[~source_idx]) if a is not None else (None, None)
+            for a in arrays
+        )
+    )
 
 
 def source_target_merge(
-    *arrays,
-    sample_domain : Optional[np.ndarray] = None
+    *arrays, sample_domain: Optional[np.ndarray] = None
 ) -> Sequence[np.ndarray]:
-    f""" Merge source and target domain data based on sample domain labels.
+    f"""Merge source and target domain data based on sample domain labels.
 
     Parameters
     ----------
@@ -360,8 +370,7 @@ def source_target_merge(
     {_DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL}
     ])
     """
-
-    arrays = list(arrays)   # Convert to list to be able to modify it
+    arrays = list(arrays)  # Convert to list to be able to modify it
 
     # ################ Check *arrays #################
     if len(arrays) < 2:
@@ -374,16 +383,16 @@ def source_target_merge(
         if arrays[i] is None or arrays[i].shape[0] == 0:
             arrays[i] = np.array([])
 
-        if arrays[i+1] is None or arrays[i+1].shape[0] == 0:
-            arrays[i+1] = np.array([])
+        if arrays[i + 1] is None or arrays[i + 1].shape[0] == 0:
+            arrays[i + 1] = np.array([])
 
         # Check no pair is empty
-        if (np.size(arrays[i]) == 0 and np.size(arrays[i+1]) == 0):
+        if np.size(arrays[i]) == 0 and np.size(arrays[i + 1]) == 0:
             raise ValueError("Only one array can be None or empty in each pair")
 
         # Check consistent dim of arrays
-        if (np.size(arrays[i]) != 0 and np.size(arrays[i+1]) != 0):
-            if arrays[i].shape[1:] != arrays[i+1].shape[1:]:
+        if np.size(arrays[i]) != 0 and np.size(arrays[i + 1]) != 0:
+            if arrays[i].shape[1:] != arrays[i + 1].shape[1:]:
                 raise ValueError(
                     "Inconsistent number of features in source-target arrays"
                 )
@@ -399,14 +408,14 @@ def source_target_merge(
         # By assuming that the first array is the source and the second the target
         source_assumed_index = 0
         target_assumed_index = 1
-        sample_domain = np.concatenate((
-            _DEFAULT_SOURCE_DOMAIN_LABEL*np.ones(
-                arrays[source_assumed_index].shape[0]
-            ),
-            _DEFAULT_TARGET_DOMAIN_LABEL*np.ones(
-                arrays[target_assumed_index].shape[0]
+        sample_domain = np.concatenate(
+            (
+                _DEFAULT_SOURCE_DOMAIN_LABEL
+                * np.ones(arrays[source_assumed_index].shape[0]),
+                _DEFAULT_TARGET_DOMAIN_LABEL
+                * np.ones(arrays[target_assumed_index].shape[0]),
             )
-        ))
+        )
 
     # To test afterward if the number of samples in source-target arrays
     # and the number inferred in the sample_domain are consistent
@@ -418,14 +427,13 @@ def source_target_merge(
     merges = []  # List of merged arrays
 
     for i in range(0, len(arrays), 2):
-
         # If one of the array is empty, we need to infer its values
         index_is_empty = None  # Index of the array that was None
         if np.size(arrays[i]) == 0:
             index_is_empty = i
 
-        if np.size(arrays[i+1]) == 0:
-            index_is_empty = i+1
+        if np.size(arrays[i + 1]) == 0:
+            index_is_empty = i + 1
 
         if index_is_empty is not None:
             # We need to infer the value of the empty array in the pair
@@ -433,28 +441,24 @@ def source_target_merge(
             #    "One of the arrays in a pair is empty, it will be inferred"
             # )
 
-            pair_index = i+1 if index_is_empty == i else i
+            pair_index = i + 1 if index_is_empty == i else i
 
             y_type = type_of_target(arrays[pair_index])
-            if y_type == 'binary' or y_type == 'multiclass':
+            if y_type == "binary" or y_type == "multiclass":
                 default_masked_label = _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
             else:
                 default_masked_label = _DEFAULT_MASKED_TARGET_REGRESSION_LABEL
 
-            arrays[index_is_empty] = (
-                default_masked_label *
-                np.ones(
-                    (sample_domain.shape[0] - arrays[pair_index].shape[0],) +
-                    arrays[pair_index].shape[1:]
-                )
+            arrays[index_is_empty] = default_masked_label * np.ones(
+                (sample_domain.shape[0] - arrays[pair_index].shape[0],)
+                + arrays[pair_index].shape[1:]
             )
 
         # Check consistent number of samples in source-target arrays
         # and the number inferred in the sample_domain
         if (sample_domain is not None) and (sample_domain.shape[0] != 0):
-            if (
-                (arrays[i].shape[0] != source_samples) or
-                (arrays[i+1].shape[0] != target_samples)
+            if (arrays[i].shape[0] != source_samples) or (
+                arrays[i + 1].shape[0] != target_samples
             ):
                 raise ValueError(
                     "Inconsistent number of samples in source-target arrays "
@@ -462,17 +466,13 @@ def source_target_merge(
                 )
 
         merges.append(
-            _merge_arrays(arrays[i], arrays[i+1], sample_domain=sample_domain)
+            _merge_arrays(arrays[i], arrays[i + 1], sample_domain=sample_domain)
         )
 
     return (*merges, sample_domain)
 
 
-def _merge_arrays(
-    array_source,
-    array_target,
-    sample_domain
-):
+def _merge_arrays(array_source, array_target, sample_domain):
     """Merge source and target domain data based on sample domain labels.
 
     Parameters
@@ -497,22 +497,31 @@ def _merge_arrays(
         output[sample_domain < 0] = array_target
 
     elif array_source.shape[0] > 0:
-        output = np.zeros_like(
-            array_source, dtype=array_source.dtype
-        )
+        output = np.zeros_like(array_source, dtype=array_source.dtype)
         output[sample_domain >= 0] = array_source
 
     else:
-        output = np.zeros_like(
-            array_target, dtype=array_target.dtype
-        )
+        output = np.zeros_like(array_target, dtype=array_target.dtype)
         output[sample_domain < 0] = array_target
 
     return output
 
 
-def qp_solve(Q, c=None, A=None, b=None, Aeq=None, beq=None, lb=None, ub=None,
-             x0=None, tol=1e-6, max_iter=1000, verbose=False, log=False):
+def qp_solve(
+    Q,
+    c=None,
+    A=None,
+    b=None,
+    Aeq=None,
+    beq=None,
+    lb=None,
+    ub=None,
+    x0=None,
+    tol=1e-6,
+    max_iter=1000,
+    verbose=False,
+    log=False,
+):
     r"""Solves a standard quadratic program
 
     Solve the following optimization problem:
@@ -579,14 +588,16 @@ def qp_solve(Q, c=None, A=None, b=None, Aeq=None, beq=None, lb=None, ub=None,
 
     # Objective function
     if c is None:
+
         def func(x):
-            return (1/2) * x @ (Q @ x)
+            return (1 / 2) * x @ (Q @ x)
 
         def jac(x):
             return Q @ x
     else:
+
         def func(x):
-            return (1/2) * x @ (Q @ x) + x @ c
+            return (1 / 2) * x @ (Q @ x) + x @ c
 
         def jac(x):
             return Q @ x + c
@@ -606,20 +617,21 @@ def qp_solve(Q, c=None, A=None, b=None, Aeq=None, beq=None, lb=None, ub=None,
             bounds = [(b1, b2) for b1, b2 in zip(lb, ub)]
 
     # Optimization
-    results = minimize(func,
-                       x0=x0,
-                       method="SLSQP",
-                       jac=jac,
-                       bounds=bounds,
-                       constraints=constraints,
-                       tol=tol,
-                       options={"maxiter": max_iter,
-                                "disp": verbose})
+    results = minimize(
+        func,
+        x0=x0,
+        method="SLSQP",
+        jac=jac,
+        bounds=bounds,
+        constraints=constraints,
+        tol=tol,
+        options={"maxiter": max_iter, "disp": verbose},
+    )
 
     if not results.success:
         warnings.warn(results.message)
 
-    outputs = (results['x'], results['fun'])
+    outputs = (results["x"], results["fun"])
 
     if log:
         outputs += (results,)
@@ -628,7 +640,7 @@ def qp_solve(Q, c=None, A=None, b=None, Aeq=None, beq=None, lb=None, ub=None,
 
 
 def torch_minimize(loss, x0, tol=1e-6, max_iter=1000):
-    r""" Solves unconstrained optimization problem using pytorch
+    r"""Solves unconstrained optimization problem using pytorch
 
     Solve the following optimization problem:
 
@@ -663,10 +675,7 @@ def torch_minimize(loss, x0, tol=1e-6, max_iter=1000):
     x0 = [torch.tensor(x, requires_grad=True, dtype=torch.float64) for x in x0]
 
     optimizer = torch.optim.LBFGS(
-        x0,
-        max_iter=max_iter,
-        tolerance_grad=tol,
-        line_search_fn="strong_wolfe"
+        x0, max_iter=max_iter, tolerance_grad=tol, line_search_fn="strong_wolfe"
     )
 
     def closure():

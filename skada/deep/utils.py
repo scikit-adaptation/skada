@@ -49,6 +49,4 @@ def check_generator(seed):
         return torch.random.manual_seed(seed)
     if isinstance(seed, torch.Generator):
         return seed
-    raise ValueError(
-        "%r cannot be used to seed a torch.Generator instance" % seed
-    )
+    raise ValueError("%r cannot be used to seed a torch.Generator instance" % seed)
