@@ -1,6 +1,4 @@
-exclude = [
-    "skada/base.py",
-]
+exclude = []
 
 [lint]
 select = ["A", "B006", "D", "E", "F", "I", "W", "UP"]
@@ -37,4 +35,7 @@ ignore-decorators = [
 ]
 "skada/utils.py" = [
     "D103", # Seems like ruff's linter bug
+]
+"skada/base.py" = [
+    "D101", "D102", # xxx(okachaiev): More work on the documentation is required
 ]
