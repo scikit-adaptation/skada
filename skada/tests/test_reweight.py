@@ -228,6 +228,9 @@ def test_kmm_new_X_adapt(da_dataset):
 
 def test_adaptation_output_propagation_multiple_steps(da_reg_dataset):
     X, y, sample_domain = da_reg_dataset
+    _, X_target, _, target_domain = source_target_split(
+        X, sample_domain, sample_domain=sample_domain
+    )
 
     class FakeEstimator(BaseEstimator, _MetadataRequester):
         __metadata_request__fit = {"sample_weight": True}
@@ -238,11 +241,12 @@ def test_adaptation_output_propagation_multiple_steps(da_reg_dataset):
             return self
 
         def predict(self, X, sample_weight=None):
-            assert sample_weight is not None
+            # xxx(okachaiev): i need to come up with a more accurate test
+            assert sample_weight is None
             return X
 
     clf = make_da_pipeline(ReweightDensityAdapter(), StandardScaler(), FakeEstimator())
 
     # check no errors are raised
     clf.fit(X, y, sample_domain=sample_domain)
-    clf.predict(X)
+    clf.predict(X_target, sample_domain=target_domain)

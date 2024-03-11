@@ -106,7 +106,8 @@ class ReweightDensityAdapter(BaseAdapter):
         X, sample_domain = check_X_domain(X, sample_domain)
         source_idx = extract_source_indices(sample_domain)
 
-        # xxx(okachaiev): move this to API
+        # xxx(okachaiev): this if/else statement is used in pretty
+        #                 much every adapter. move to the API?
         if source_idx.sum() > 0:
             (source_idx,) = np.where(source_idx)
             ws = self.weight_estimator_source_.score_samples(X[source_idx])
