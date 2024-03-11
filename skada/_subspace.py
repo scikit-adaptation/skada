@@ -2,10 +2,13 @@
 #         Remi Flamary <remi.flamary@polytechnique.edu>
 #         Oleksii Kachaiev <kachayev@gmail.com>
 #         Ruben Bueno <ruben.bueno@polytechnique.edu>
+#         Antoine Collas <contact@antoinecollas.fr>
 #
 # License: BSD 3-Clause
 
+
 import numpy as np
+import scipy.linalg
 from sklearn.decomposition import PCA
 from sklearn.metrics.pairwise import pairwise_kernels
 from sklearn.svm import SVC
@@ -13,7 +16,12 @@ from sklearn.utils import check_random_state
 
 from ._pipeline import make_da_pipeline
 from .base import BaseAdapter
-from .utils import check_X_domain, source_target_merge, source_target_split
+from .utils import (
+    check_X_domain,
+    extract_source_indices,
+    source_target_merge,
+    source_target_split,
+)
 
 
 class SubspaceAlignmentAdapter(BaseAdapter):
@@ -380,7 +388,7 @@ class TransferJointMatchingAdapter(BaseAdapter):
         of the source and target data.
     random_state : int, default=None
         The seed for random number generation.
-    tradeoff : float, default=0
+    tradeoff : float, default=1e-2
         The tradeoff constant for the TJM algorithm.
         It serves to trade off feature matching and instance
         reweighting.
@@ -389,6 +397,8 @@ class TransferJointMatchingAdapter(BaseAdapter):
         fitting.
     kernel : kernel object, default='rbf'
         The kernel computed between data.
+    verbose : bool, default=False
+        If True, print the loss value at each iteration.
 
     Attributes
     ----------
@@ -408,9 +418,10 @@ class TransferJointMatchingAdapter(BaseAdapter):
         self,
         n_components=None,
         random_state=None,
-        tradeoff=0,
+        tradeoff=1e-2,
         max_iter=100,
         kernel="rbf",
+        verbose=False,
     ):
         super().__init__()
         self.n_components = n_components
@@ -418,6 +429,7 @@ class TransferJointMatchingAdapter(BaseAdapter):
         self.random_state = random_state
         self.kernel = kernel
         self.max_iter = max_iter
+        self.verbose = verbose
 
     def adapt(self, X, y=None, sample_domain=None, **kwargs):
         """Predict adaptation (weights, sample or labels).
@@ -464,9 +476,9 @@ class TransferJointMatchingAdapter(BaseAdapter):
         return X_
 
     def _get_mmd_matrix(self, ns, nt, sample_domain):
-        Mss = 1 / ns**2 * np.ones((ns, ns))
-        Mtt = 1 / nt**2 * np.ones((nt, nt))
-        Mst = -1 / (ns * nt) * np.ones((ns, nt))
+        Mss = (1 / (ns**2)) * np.ones((ns, ns))
+        Mtt = (1 / (nt**2)) * np.ones((nt, nt))
+        Mst = -(1 / (ns * nt)) * np.ones((ns, nt))
         M = np.block([[Mss, Mst], [Mst.T, Mtt]])
         return M
 
@@ -507,35 +519,64 @@ class TransferJointMatchingAdapter(BaseAdapter):
         else:
             n_components = self.n_components
         self.random_state_ = check_random_state(self.random_state)
-
-        n = X.shape[0]
-        H = np.identity(n) - 1 / n * np.ones((n, n))
-        M = self._get_mmd_matrix(X_source.shape[0], X_target.shape[0], sample_domain)
         self.X_source_ = X_source
         self.X_target_ = X_target
+
+        n = X.shape[0]
+        source_mask = extract_source_indices(sample_domain)
+
+        H = np.identity(n) - 1 / n * np.ones((n, n))
         K = self._get_kernel_matrix(X_source, X_target)
-        M /= np.linalg.norm(M, ord="fr" "o")
+        M = self._get_mmd_matrix(X_source.shape[0], X_target.shape[0], sample_domain)
+        M /= np.linalg.norm(M)
         G = np.identity(n)
 
-        self.A_ = np.identity(n)[:, n - n_components :]
+        # minimization of the objective function
+        # \min_{A} tr(A^T K M K A) + tradeoff * (||A_s||_{2, 1} + ||A_t||_F^2)
+        # s.t. A^T K H K^T A = I
+        EPS_eigval = 1e-12
         for i in range(self.max_iter):
-            B = self.tradeoff * G + K @ M @ K
-            C = K @ H @ K
-            solution = np.linalg.solve(B, C)
-            phi, A = np.linalg.eigh(solution)
-            indices = np.argsort(np.abs(phi))
-            A = A[indices]
-            A = np.real(A[:, n - n_components :])
-            for j in range(n):
-                if sample_domain[j] < 0:
-                    G[j, j] = 1
-                else:
-                    a = A[j]
-                    if np.array_equal(a, np.zeros(a.shape)):
-                        G[j, j] = 0
-                    else:
-                        G[j, j] = 1 / (2 * np.linalg.norm(a))
-            self.A_ = A
+            import ipdb
+
+            ipdb.set_trace()
+
+            # update A
+            B = K @ M @ K.T + self.tradeoff * G
+            B = B + EPS_eigval * np.identity(n)
+            C = K @ H @ K.T
+            C = C + EPS_eigval * np.identity(n)
+            phi, A = scipy.linalg.eigh(B, C)
+            phi = phi + EPS_eigval
+            indices = np.argsort(phi)[:n_components]
+            A = A[:, indices]
+
+            # update G
+            A_norms = np.linalg.norm(A, axis=1)
+            G = np.zeros(n, dtype=np.float64)
+            G[A_norms != 0] = 1 / (2 * A_norms[A_norms != 0] + EPS_eigval)
+            G[~source_mask] = 1
+            G = np.diag(G)
+
+            # print objective function and constraint satisfaction
+            if self.verbose:
+                loss = np.trace(A.T @ K @ M @ K @ A)
+                reg = (
+                    np.linalg.norm(A[source_mask], axis=1).sum()
+                    + np.linalg.norm(A[~source_mask]) ** 2
+                )
+                loss_total = loss + self.tradeoff * reg
+                print(
+                    f"iter {i}: loss={loss_total:.4f}, loss_mmd={loss:.4f}, "
+                    f"reg={reg:.4f}"
+                )
+                mat = A.T @ K @ H @ K.T @ A
+                cond = np.allclose(mat, np.identity(n_components))
+                print(
+                    f"Constraint satisfaction: {cond}, dist="
+                    f"{np.linalg.norm(mat - np.identity(n_components))}"
+                )
+
+        self.A_ = A
 
         return self
 
@@ -544,9 +585,9 @@ def TransferJointMatching(
     base_estimator=None,
     random_state=None,
     n_components=1,
-    tradeoff=0,
+    tradeoff=1e-2,
     kernel="rbf",
-    max_iter=10,
+    max_iter=100,
 ):
     """
 
@@ -560,7 +601,7 @@ def TransferJointMatching(
         of the source and target data.
     random_state : int, default=None
         The seed for random number generation.
-    tradeoff : float, default=0
+    tradeoff : float, default=1e-2
         The tradeoff constant for the TJM algorithm.
         It serves to trade off feature matching and instance
         reweighting.
