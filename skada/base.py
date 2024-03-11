@@ -58,7 +58,7 @@ class AdaptationOutput:
         if isinstance(output, self.__class__):
             for k, v in self.params.items():
                 if k not in output.params:
-                    output.params[k] = v
+                    output[k] = v
             return output
         else:
             self.X = output
@@ -423,15 +423,14 @@ class Shared(BaseSelector):
             routed_params = self.routing_.fit_transform._route_params(params=params)
             output = self.base_estimator_.adapt(X, **routed_params)
         else:
-            # output = self.base_estimator_.transform(X, **routed_params)
-            output = self._route_to_estimator('transform', X, **params)
+            output = self.transform(X, **params)
         return output
 
     # xxx(okachaiev): fail if unknown domain is given
-    def _route_to_estimator(self, method_name, X, y=None, **params):
+    def _route_to_estimator(self, method_name, X_container, y=None, **params):
         check_is_fitted(self)
         request = getattr(self.routing_, method_name)
-        X, routed_params = self._merge_and_route_params(request, X, params)
+        X, routed_params = self._merge_and_route_params(request, X_container, params)
         method = getattr(self.base_estimator_, method_name)
         output = method(X, **routed_params) if y is None else method(
             X, y, **routed_params
