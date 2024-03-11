@@ -30,6 +30,8 @@ from skada.datasets import make_shifted_datasets
 #     The subspaces methods
 # ------------------------------------------
 #
+# Firstly we are in the case of unsupervised domain adaptation, it means that
+# we know the labels of the source data but not from the target data.
 # The goal of subspace is to project data from a d dimensional space
 # into a d' dimensional space with d'<d.
 # This kind of da method is especially good when we work with subspace
