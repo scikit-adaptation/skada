@@ -1,5 +1,4 @@
 exclude = [
-    "__init__.py",
     "base.py",  # XXX to fix
     "utils.py",  # XXX to fix
     "conftest.py",
