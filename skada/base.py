@@ -47,12 +47,22 @@ def _estimator_has(attr, base_attr_name='base_estimator'):
                               has_estimator_selector(estimator))
 
 
-class AdaptationOutput(Bunch):
+class AdaptationOutput:
     """Container object for multi-key adaptation output."""
 
-    def __init__(self, X, **kwargs):
+    def __init__(self, X, **params):
         self.X = X
-        super().__init__(**kwargs)
+        self.params = params
+
+    def __iter__(self):
+        return iter(self.params)
+
+    def __getitem__(self, k):
+        return self.params[k]
+
+    def __setitem__(self, k, v):
+        self.params[k] = v
+        return self
 
 
 class IncompatibleMetadataError(UnsetMetadataPassedError):
@@ -275,7 +285,7 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
     def _route_and_merge_params(self, routing_request, X_input, params):
         if isinstance(X_input, AdaptationOutput):
             X_out = X_input.X
-            for k, v in X_input.items():
+            for k, v in X_input.params.items():
                 if v is not None:
                     params[k] = v
         else:
