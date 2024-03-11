@@ -1,5 +1,6 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Remi Flamary <remi.flamary@polytechnique.edu>
+#         Oleksii Kachaiev <kachayev@gmail.com>
 #
 # License: BSD 3-Clause
 
@@ -7,6 +8,7 @@ from abc import abstractmethod
 
 import torch
 from skorch import NeuralNetClassifier
+from torch import nn
 from torch.utils.data import DataLoader, Sampler
 
 from skada.base import _DAMetadataRequesterMixin
@@ -15,8 +17,8 @@ from skada.utils import extract_source_indices
 from .utils import _register_forwards_hook
 
 
-class DomainAwareCriterion(torch.nn.Module):
-    """Criterion for domain aware loss
+class DomainAwareCriterion(nn.Module):
+    """Criterion for domain aware loss.
 
     Parameters
     ----------
@@ -31,7 +33,7 @@ class DomainAwareCriterion(torch.nn.Module):
     """
 
     def __init__(self, criterion, adapt_criterion, reg=1):
-        super(DomainAwareCriterion, self).__init__()
+        super().__init__()
         self.criterion = criterion
         self.adapt_criterion = adapt_criterion
         self.reg = reg
@@ -84,11 +86,8 @@ class DomainAwareCriterion(torch.nn.Module):
         )
 
 
-class BaseDALoss(torch.nn.Module):
-    def __init__(
-        self,
-    ):
-        super(BaseDALoss, self).__init__()
+class BaseDALoss(nn.Module):
+    """Abstract class for domain aware loss."""
 
     @abstractmethod
     def forward(
@@ -101,7 +100,7 @@ class BaseDALoss(torch.nn.Module):
         features_s,
         features_t,
     ):
-        """Compute the domain adaptation loss
+        """Compute the domain adaptation loss.
 
         Parameters
         ----------
@@ -208,11 +207,11 @@ class DomainBalancedDataLoader(DataLoader):
         )
 
 
-class DomainAwareModule(torch.nn.Module):
-    """Domain aware module
+class DomainAwareModule(nn.Module):
+    """Domain aware module.
 
     A domain aware module allowing to separate the source and target and
-    compute their respective prediction and feaures.
+    compute their respective prediction and features.
 
     Parameters
     ----------
@@ -226,8 +225,7 @@ class DomainAwareModule(torch.nn.Module):
         domain. Could be None.
     """
 
-    def __init__(self, module, layer_name, domain_classifier=None):
-        super(DomainAwareModule, self).__init__()
+    def __init__(self, module: nn.Module, layer_name: str, domain_classifier=None):
         self.module_ = module
         self.domain_classifier_ = domain_classifier
         self.layer_name = layer_name
@@ -237,6 +235,18 @@ class DomainAwareModule(torch.nn.Module):
         )
 
     def forward(self, X, sample_domain=None, is_fit=False, return_features=False):
+        """
+        Parameters
+        ----------
+        X : torch.Tensor
+            Dataset samples.
+        sample_domain : torch.Tensor, optional (default=None)
+            Domain label of each samples.
+        is_fit : boolean, optional (default=False)
+            ???
+        return_features : boolean, optional (default=False)
+            If set to True, returns intermediate layer activations.
+        """
         if is_fit:
             source_idx = extract_source_indices(sample_domain)
 
@@ -271,11 +281,10 @@ class DomainAwareModule(torch.nn.Module):
                 features,
                 sample_domain,
             )
+        elif return_features:
+            return self.module_(X), self.intermediate_layers[self.layer_name]
         else:
-            if return_features:
-                return self.module_(X), self.intermediate_layers[self.layer_name]
-            else:
-                return self.module_(X)
+            return self.module_(X)
 
 
 class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):

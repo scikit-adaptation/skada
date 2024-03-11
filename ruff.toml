@@ -1,5 +1,5 @@
 exclude = [
-    "base.py",  # XXX to fix
+    "skada/base.py",
 ]
 
 [lint]

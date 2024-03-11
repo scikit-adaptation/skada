@@ -597,10 +597,11 @@ class SelectSourceTarget(BaseSelector):
             ("target", target_estimator, ~source_masks),
         ]:
             if domain_masks.sum() == 0:
-                # if we don't have either source or target, we should conclude that fitting
-                # was not successful, otherwise prediction might be not possible
+                # if we don't have either source or target, we should conclude
+                # that fitting was not successful, otherwise prediction might
+                # be not possible
                 raise ValueError(
-                    "`SelectSourceTarget` requires both source and target samples for fitting. "
+                    "`SelectSourceTarget` requires both source and target samples for fitting. "  # noqa
                     f"'{domain_type}' samples are missing in the input provided."
                 )
             X_masked, y_masked, params_masked = _apply_domain_masks(
