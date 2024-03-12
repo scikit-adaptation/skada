@@ -171,7 +171,7 @@ def create_plots(
         )
 
         ax.set_xticks(()), ax.set_yticks(())
-        ax.set_xlim(x_min, x_max), ax.set_ylim(-50, 50)
+        ax.set_ylim(-50, 50)
         ax.set_title("Full dataset projected on the subspace", fontsize=12)
 
         ax = axes[1]
@@ -184,8 +184,8 @@ def create_plots(
             alpha=0.5,
             s=size,
         )
-
-        x_ = list(np.linspace(x_min, x_max, 100).reshape(-1, 1))
+        m, M = min(Xt_adapted), max(Xt_adapted)
+        x_ = list(np.linspace(m - abs(m) / 4, M + abs(M) / 4, 100).reshape(-1, 1))
         y_ = list(clf_on_subspace.predict(x_))
         ax.scatter(
             x_ * 100,
@@ -195,7 +195,7 @@ def create_plots(
             alpha=0.02,
             s=size,
         )
-        ax.set_xlim(x_min, x_max), ax.set_ylim(-50, 50)
+        ax.set_ylim(-50, 50)
         ax.set_title("Accuracy on target projected on the subspace", fontsize=12)
     else:
         ax = axes[0]
@@ -309,7 +309,10 @@ create_plots(clf, "TCA")
 #         Transfer joint matching for unsupervised domain adaptation. In IEEE Conference
 #         on Computer Vision and Pattern Recognition (CVPR), pages 1410–1417.
 
-clf = TransferJointMatching(base_classifier, tradeoff=0.1, n_components=1, max_iter=20)
+
+clf = TransferJointMatching(
+    base_classifier, kernel="linear", tradeoff=0.1, n_components=1, max_iter=20, tol=0
+)
 clf.fit(X, y, sample_domain=sample_domain)
 create_plots(
     clf,

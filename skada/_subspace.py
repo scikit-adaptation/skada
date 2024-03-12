@@ -397,6 +397,9 @@ class TransferJointMatchingAdapter(BaseAdapter):
         fitting.
     kernel : kernel object, default='rbf'
         The kernel computed between data.
+    tol : float, default=0.01
+        The threshold for the differences between losses on two iteration
+        before the algorithm stops
     verbose : bool, default=False
         If True, print the loss value at each iteration.
 
@@ -421,7 +424,8 @@ class TransferJointMatchingAdapter(BaseAdapter):
         tradeoff=1e-2,
         max_iter=100,
         kernel="rbf",
-        verbose=False,
+        tol=0.01,
+        verbose=True,
     ):
         super().__init__()
         self.n_components = n_components
@@ -429,6 +433,7 @@ class TransferJointMatchingAdapter(BaseAdapter):
         self.random_state = random_state
         self.kernel = kernel
         self.max_iter = max_iter
+        self.tol = tol
         self.verbose = verbose
 
     def adapt(self, X, y=None, sample_domain=None, **kwargs):
@@ -535,16 +540,18 @@ class TransferJointMatchingAdapter(BaseAdapter):
         # \min_{A} tr(A^T K M K A) + tradeoff * (||A_s||_{2, 1} + ||A_t||_F^2)
         # s.t. A^T K H K^T A = I
         EPS_eigval = 1e-12
+        # We take something that will force at least one iteration since loss>=0:
+        last_loss = -2 * self.tol
         for i in range(self.max_iter):
             # update A
             B = K @ M @ K.T + self.tradeoff * G
-            B = B + EPS_eigval * np.identity(n)
             C = K @ H @ K.T
+            B = B + EPS_eigval * np.identity(n)
             C = C + EPS_eigval * np.identity(n)
             solution = scipy.linalg.solve(B, C)
             phi, A = scipy.linalg.eigh(solution)
             phi = phi + EPS_eigval
-            indices = np.argsort(-np.abs(phi))[:n_components]
+            indices = np.argsort(phi)[:n_components]
             A = A[:, indices]
 
             # update G
@@ -554,14 +561,14 @@ class TransferJointMatchingAdapter(BaseAdapter):
             G[~source_mask] = 1
             G = np.diag(G)
 
+            loss = np.trace(A.T @ K @ M @ K @ A)
+            reg = (
+                np.linalg.norm(A[source_mask], axis=1).sum()
+                + np.linalg.norm(A[~source_mask]) ** 2
+            )
+            loss_total = loss + self.tradeoff * reg
             # print objective function and constraint satisfaction
             if self.verbose:
-                loss = np.trace(A.T @ K @ M @ K @ A)
-                reg = (
-                    np.linalg.norm(A[source_mask], axis=1).sum()
-                    + np.linalg.norm(A[~source_mask]) ** 2
-                )
-                loss_total = loss + self.tradeoff * reg
                 print(
                     f"iter {i}: loss={loss_total:.4f}, loss_mmd={loss:.4f}, "
                     f"reg={reg:.4f}"
@@ -573,6 +580,11 @@ class TransferJointMatchingAdapter(BaseAdapter):
                     f"{np.linalg.norm(mat - np.identity(n_components))}"
                 )
                 print(mat)
+
+            if np.abs(last_loss - loss_total) < self.tol:
+                break
+            else:
+                last_loss = loss_total
 
         self.A_ = A
 
@@ -586,6 +598,7 @@ def TransferJointMatching(
     tradeoff=1e-2,
     kernel="rbf",
     max_iter=100,
+    tol=0.01,
 ):
     """
 
@@ -608,6 +621,7 @@ def TransferJointMatching(
         fitting.
     kernel : kernel object, default='rbf'
         The kernel computed between data.
+    tol :
 
     Returns
     -------
@@ -632,6 +646,7 @@ def TransferJointMatching(
             n_components=n_components,
             kernel=kernel,
             max_iter=max_iter,
+            tol=tol,
         ),
         base_estimator,
     )
