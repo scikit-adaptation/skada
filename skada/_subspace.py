@@ -7,6 +7,8 @@
 # License: BSD 3-Clause
 
 
+import warnings
+
 import numpy as np
 import scipy.linalg
 from sklearn.decomposition import PCA
@@ -549,6 +551,12 @@ class TransferJointMatchingAdapter(BaseAdapter):
             B = B + EPS_eigval * np.identity(n)
             C = C + EPS_eigval * np.identity(n)
             phi, A = scipy.linalg.eigh(B, C)
+            error_eigv = np.linalg.norm(B @ A - C @ A @ np.diag(phi))
+            if error_eigv > 1e-5:
+                warnings.warn(
+                    "The solution of the generalized eigenvalue problem "
+                    "is not accurate."
+                )
             phi = phi + EPS_eigval
             indices = np.argsort(phi)[:n_components]
             A = A[:, indices]
