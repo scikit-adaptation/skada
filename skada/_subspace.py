@@ -548,8 +548,7 @@ class TransferJointMatchingAdapter(BaseAdapter):
             C = K @ H @ K.T
             B = B + EPS_eigval * np.identity(n)
             C = C + EPS_eigval * np.identity(n)
-            solution = scipy.linalg.solve(B, C)
-            phi, A = scipy.linalg.eigh(solution)
+            phi, A = scipy.linalg.eigh(B, C)
             phi = phi + EPS_eigval
             indices = np.argsort(phi)[:n_components]
             A = A[:, indices]
