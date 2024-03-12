@@ -28,6 +28,11 @@ from skada import (
     make_da_pipeline,
     source_target_split,
 )
+from skada.base import (
+    SelectSource,
+    SelectSourceTarget,
+    SelectTarget,
+)
 
 
 @pytest.mark.parametrize(
@@ -226,7 +231,16 @@ def test_kmm_new_X_adapt(da_dataset):
     assert not np.allclose(res1["sample_weight"], res2["sample_weight"])
 
 
-def test_adaptation_output_propagation_multiple_steps(da_reg_dataset):
+@pytest.mark.parametrize(
+    "mediator",
+    [
+        StandardScaler(),
+        SelectSource(StandardScaler()),
+        SelectTarget(StandardScaler()),
+        SelectSourceTarget(StandardScaler()),
+    ],
+)
+def test_adaptation_output_propagation_multiple_steps(da_reg_dataset, mediator):
     X, y, sample_domain = da_reg_dataset
     _, X_target, _, target_domain = source_target_split(
         X, sample_domain, sample_domain=sample_domain
@@ -245,8 +259,21 @@ def test_adaptation_output_propagation_multiple_steps(da_reg_dataset):
             assert sample_weight is None
             return X
 
-    clf = make_da_pipeline(ReweightDensityAdapter(), StandardScaler(), FakeEstimator())
+    clf = make_da_pipeline(ReweightDensityAdapter(), mediator, FakeEstimator())
 
     # check no errors are raised
     clf.fit(X, y, sample_domain=sample_domain)
     clf.predict(X_target, sample_domain=target_domain)
+
+
+def test_merge_adaptation_output(da_reg_dataset):
+    X, y, sample_domain = da_reg_dataset
+
+    clf = make_da_pipeline(
+        SelectSourceTarget(ReweightDensityAdapter()),
+        Ridge().set_fit_request(sample_weight=True),
+    )
+
+    # check no errors are raised
+    clf.fit(X, y, sample_domain=sample_domain)
+    clf.predict(X)

@@ -312,7 +312,7 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
     def score(self, X, y, **params):
         return self._route_to_estimator('score', X, y=y, **params)
 
-    def _merge_and_route_params(self, routing_request, X_container, params):
+    def _unwrap_from_container(self, X_container, params):
         if isinstance(X_container, AdaptationOutput):
             X_out = X_container.X
             for k, v in X_container.params.items():
@@ -327,6 +327,10 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
         )
         params['sample_domain'] = sample_domain
 
+        return X_out, params
+
+    def _merge_and_route_params(self, routing_request, X_container, params):
+        X_out, params = self._unwrap_from_container(X_container, params)
         if self._is_final or not self._is_transformer:
             # xxx(okachaiev): there's still at least a single scenario where such condition
             # fails. consider the following pipeline: adapter -> transformer -> estimator.
@@ -520,15 +524,11 @@ class _BaseSelectDomain(Shared):
             Array of boolean masks.
         """
 
-    def fit(self, X, y, **params):
-        if y is not None:
-            X, y, sample_domain = check_X_y_domain(X, y, sample_domain=params.get('sample_domain'))
-        else:
-            X, sample_domain = check_X_domain(X, sample_domain=params.get('sample_domain'))
-        params['sample_domain'] = sample_domain
-        filter_masks = self._select_indices(sample_domain)
-        X, y, params = _apply_domain_masks(X, y, params, masks=filter_masks)
-        return super().fit(X, y, **params)
+    def fit(self, X_container, y, **params):
+        X_input, params = self._unwrap_from_container(X_container, params)
+        filter_masks = self._select_indices(params['sample_domain'])
+        X_input, y, params = _apply_domain_masks(X_input, y, params, masks=filter_masks)
+        return super().fit(X_input, y, **params)
 
 
 class SelectSource(_BaseSelectDomain):
