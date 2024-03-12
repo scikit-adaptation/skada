@@ -425,7 +425,7 @@ class TransferJointMatchingAdapter(BaseAdapter):
         max_iter=100,
         kernel="rbf",
         tol=0.01,
-        verbose=True,
+        verbose=False,
     ):
         super().__init__()
         self.n_components = n_components
@@ -554,17 +554,20 @@ class TransferJointMatchingAdapter(BaseAdapter):
             A = A[:, indices]
 
             # update G
-            # A_norms = np.linalg.norm(A, axis=1)
+            A_norms = np.linalg.norm(A, axis=1)
             G = np.zeros(n, dtype=np.float64)
             # ||A_s||_{2, 1}
-            # G[A_norms != 0] = 1 / (2 * A_norms[A_norms != 0] + EPS_eigval)
+            G[A_norms != 0] = 1 / (2 * A_norms[A_norms != 0] + EPS_eigval)
             # ||A_t||_F^2
             G[~source_mask] = 1
             G = np.diag(G)
 
             loss = np.trace(A.T @ K @ M @ K @ A)
             # np.linalg.norm(A[source_mask], axis=1).sum()
-            reg = np.linalg.norm(A[~source_mask]) ** 2
+            reg = (
+                np.sum(np.linalg.norm(A[source_mask], axis=1))
+                + np.linalg.norm(A[~source_mask]) ** 2
+            )
             loss_total = loss + self.tradeoff * reg
             # print objective function and constraint satisfaction
             if self.verbose:
@@ -578,7 +581,6 @@ class TransferJointMatchingAdapter(BaseAdapter):
                     f"Constraint satisfaction: {cond}, dist="
                     f"{np.linalg.norm(mat - np.identity(n_components))}"
                 )
-                print(mat)
 
             if np.abs(last_loss - loss_total) < self.tol:
                 break

@@ -309,14 +309,22 @@ create_plots(clf, "TCA")
 #         Transfer joint matching for unsupervised domain adaptation. In IEEE Conference
 #         on Computer Vision and Pattern Recognition (CVPR), pages 1410–1417.
 
-
 clf = TransferJointMatching(
-    base_classifier, kernel="linear", tradeoff=0.1, n_components=1, max_iter=20, tol=0
+    base_classifier, kernel="linear", tradeoff=0, n_components=1, max_iter=20, tol=0.1
 )
 clf.fit(X, y, sample_domain=sample_domain)
 create_plots(
     clf,
-    "TransferJointMatching",
+    "TransferJointMatching with linear kernel",
+)
+
+clf = TransferJointMatching(
+    base_classifier, kernel="rbf", tradeoff=0.1, n_components=1, max_iter=20, tol=0.1
+)
+clf.fit(X, y, sample_domain=sample_domain)
+create_plots(
+    clf,
+    "TransferJointMatching with rbf kernel",
 )
 
 
