@@ -554,17 +554,17 @@ class TransferJointMatchingAdapter(BaseAdapter):
             A = A[:, indices]
 
             # update G
-            A_norms = np.linalg.norm(A, axis=1)
+            # A_norms = np.linalg.norm(A, axis=1)
             G = np.zeros(n, dtype=np.float64)
-            G[A_norms != 0] = 1 / (2 * A_norms[A_norms != 0] + EPS_eigval)
+            # ||A_s||_{2, 1}
+            # G[A_norms != 0] = 1 / (2 * A_norms[A_norms != 0] + EPS_eigval)
+            # ||A_t||_F^2
             G[~source_mask] = 1
             G = np.diag(G)
 
             loss = np.trace(A.T @ K @ M @ K @ A)
-            reg = (
-                np.linalg.norm(A[source_mask], axis=1).sum()
-                + np.linalg.norm(A[~source_mask]) ** 2
-            )
+            # np.linalg.norm(A[source_mask], axis=1).sum()
+            reg = np.linalg.norm(A[~source_mask]) ** 2
             loss_total = loss + self.tradeoff * reg
             # print objective function and constraint satisfaction
             if self.verbose:
