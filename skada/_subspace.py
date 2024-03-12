@@ -551,15 +551,15 @@ class TransferJointMatchingAdapter(BaseAdapter):
             B = B + EPS_eigval * np.identity(n)
             C = C + EPS_eigval * np.identity(n)
             phi, A = scipy.linalg.eigh(B, C)
+            phi = phi + EPS_eigval
+            indices = np.argsort(phi)[:n_components]
+            phi, A = phi[indices], A[:, indices]
             error_eigv = np.linalg.norm(B @ A - C @ A @ np.diag(phi))
             if error_eigv > 1e-5:
                 warnings.warn(
                     "The solution of the generalized eigenvalue problem "
                     "is not accurate."
                 )
-            phi = phi + EPS_eigval
-            indices = np.argsort(phi)[:n_components]
-            A = A[:, indices]
 
             # update G
             A_norms = np.linalg.norm(A, axis=1)
