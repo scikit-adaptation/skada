@@ -198,6 +198,7 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
         self.base_estimator = base_estimator
         self.base_estimator.set_params(**kwargs)
         self._is_final = False
+        self._is_transformer = hasattr(base_estimator, 'transform')
 
     def get_metadata_routing(self):
         return (
@@ -326,9 +327,7 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
         )
         params['sample_domain'] = sample_domain
 
-        if not self._is_final:
-            routed_params = {k: params[k] for k in routing_request._consumes(params=params)}
-        else:
+        if self._is_final or not self._is_transformer:
             # xxx(okachaiev): there's still at least a single scenario where such condition
             # fails. consider the following pipeline: adapter -> transformer -> estimator.
             # assuming that adapter produces weights that are consumed by the transformer,
@@ -352,6 +351,8 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
                             ) from e
                 # re-raise exception if the problem was not caused by the adapter
                 raise e
+        else:
+            routed_params = {k: params[k] for k in routing_request._consumes(params=params)}
         return X_out, routed_params
 
     def _remove_masked(self, X, y, routed_params):
@@ -554,7 +555,10 @@ class SelectSourceTarget(BaseSelector):
                             "both be transformers, or neither should be.")
         self.source_estimator = source_estimator
         self.target_estimator = target_estimator
+        # xxx(okachaiev): the fact that we need to put those variables
+        # here means that the choice of the base class is suboptimal
         self._is_final = False
+        self._is_transformer = hasattr(source_estimator, 'transform')
 
     def get_metadata_routing(self):
         routing = MetadataRouter(owner=self.__class__.__name__).add_self_request(self)

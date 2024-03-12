@@ -158,10 +158,20 @@ def test_selector_inherits_routing(estimator_cls):
 def test_selector_rejects_incompatible_adaptation_output():
     X = AdaptationOutput(np.ones((10, 2)), sample_weight=np.zeros(10))
     y = np.zeros(10)
-    estimator = Shared(LogisticRegression())
 
+    # fails if this is an estimator (not transformer)
+    estimator = Shared(LogisticRegression())
     with pytest.raises(IncompatibleMetadataError):
         estimator.fit(X, y)
+
+    # fails if this is the last estimator transformer
+    estimator = Shared(StandardScaler())._mark_as_final()
+    with pytest.raises(IncompatibleMetadataError):
+        estimator.fit(X, y)
+
+    # does not fail for non-final transformer
+    estimator = Shared(StandardScaler())._unmark_as_final()
+    estimator.fit(X, y)
 
 
 @pytest.mark.parametrize(
