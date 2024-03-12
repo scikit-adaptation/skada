@@ -580,15 +580,14 @@ class TransferJointMatchingAdapter(BaseAdapter):
             # print objective function and constraint satisfaction
             if self.verbose:
                 print(
-                    f"iter {i}: loss={loss_total:.4f}, loss_mmd={loss:.4f}, "
-                    f"reg={reg:.4f}"
+                    f"iter {i}: loss={loss_total:.3e}, loss_mmd={loss:.3e}, "
+                    f"reg={reg:.3e}"
                 )
                 mat = A.T @ K @ H @ K.T @ A
                 cond = np.allclose(mat, np.identity(n_components))
-                print(
-                    f"Constraint satisfaction: {cond}, dist="
-                    f"{np.linalg.norm(mat - np.identity(n_components))}"
-                )
+                dist = np.linalg.norm(mat - np.identity(n_components))
+                print(f"Constraint satisfaction: {cond}, dist={dist:.3e}")
+                print(f"Error of generalized eigendecomposition: {error_eigv:.3e}")
 
             if np.abs(last_loss - loss_total) < self.tol:
                 break
