@@ -539,7 +539,7 @@ class TransferJointMatchingAdapter(BaseAdapter):
         # minimization of the objective function
         # \min_{A} tr(A^T K M K A) + tradeoff * (||A_s||_{2, 1} + ||A_t||_F^2)
         # s.t. A^T K H K^T A = I
-        EPS_eigval = 1e-12
+        EPS_eigval = 1e-10
         # We take something that will force at least one iteration since loss>=0:
         last_loss = -2 * self.tol
         for i in range(self.max_iter):
