@@ -411,11 +411,10 @@ class TransferJointMatchingAdapter(BaseAdapter):
 
     References
     ----------
-    .. [1]
-            [Long et al., 2014] Long, M., Wang, J., Ding, G., Sun, J., and Yu, P.
-            (2014). Transfer joint matching for unsupervised domain adaptation.
-            In IEEE Conference on Computer Vision and Pattern Recognition (CVPR),
-            pages 1410–1417
+    .. [23]  [Long et al., 2014] Long, M., Wang, J., Ding, G., Sun, J., and Yu, P.
+             (2014). Transfer joint matching for unsupervised domain adaptation.
+             In IEEE Conference on Computer Vision and Pattern Recognition (CVPR),
+             pages 1410–1417
 
     """
 
@@ -538,11 +537,7 @@ class TransferJointMatchingAdapter(BaseAdapter):
         M /= np.linalg.norm(M, ord="fro")
         G = np.identity(n)
 
-        # minimization of the objective function
-        # \min_{A} tr(A^T K M K A) + tradeoff * (||A_s||_{2, 1} + ||A_t||_F^2)
-        # s.t. A^T K H K^T A = I
         EPS_eigval = 1e-10
-        # We take something that will force at least one iteration since loss>=0:
         last_loss = -2 * self.tol
         for i in range(self.max_iter):
             # update A
@@ -564,14 +559,11 @@ class TransferJointMatchingAdapter(BaseAdapter):
             # update G
             A_norms = np.linalg.norm(A, axis=1)
             G = np.zeros(n, dtype=np.float64)
-            # ||A_s||_{2, 1}
             G[A_norms != 0] = 1 / (2 * A_norms[A_norms != 0] + EPS_eigval)
-            # ||A_t||_F^2
             G[~source_mask] = 1
             G = np.diag(G)
 
             loss = np.trace(A.T @ K @ M @ K @ A)
-            # np.linalg.norm(A[source_mask], axis=1).sum()
             reg = (
                 np.sum(np.linalg.norm(A[source_mask], axis=1))
                 + np.linalg.norm(A[~source_mask]) ** 2
@@ -589,7 +581,7 @@ class TransferJointMatchingAdapter(BaseAdapter):
                 print(f"Constraint satisfaction: {cond}, dist={dist:.3e}")
                 print(f"Error of generalized eigendecomposition: {error_eigv:.3e}")
 
-            if np.abs(last_loss - loss_total) < self.tol:
+            if last_loss == 0 or np.abs(last_loss - loss_total) / last_loss < self.tol:
                 break
             else:
                 last_loss = loss_total
@@ -638,11 +630,10 @@ def TransferJointMatching(
 
     References
     ----------
-    .. [1]
-        [Long et al., 2014] Long, M., Wang, J., Ding, G., Sun, J., and Yu, P.
-        (2014). Transfer joint matching for unsupervised domain adaptation.
-        In IEEE Conference on Computer Vision and Pattern Recognition (CVPR),
-        pages 1410–1417
+    .. [23]  [Long et al., 2014] Long, M., Wang, J., Ding, G., Sun, J., and Yu, P.
+             (2014). Transfer joint matching for unsupervised domain adaptation.
+             In IEEE Conference on Computer Vision and Pattern Recognition (CVPR),
+             pages 1410–1417
     """
     if base_estimator is None:
         base_estimator = SVC()

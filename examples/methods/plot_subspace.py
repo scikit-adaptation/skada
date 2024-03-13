@@ -303,24 +303,13 @@ create_plots(clf, "TCA")
 # domain adaptation: feature matching and instance reweighting. Transfer Joint Matching
 # (TJM) aims to use both, by adding a constant to tradeoff between to two.
 #
-# See [3] for details:
+# See [23] for details:
 #
-# .. [3] Long et al., 2014] Long, M., Wang, J., Ding, G., Sun, J., and Yu, P. (2014).
+# .. [23] Long et al., 2014] Long, M., Wang, J., Ding, G., Sun, J., and Yu, P. (2014).
 #         Transfer joint matching for unsupervised domain adaptation. In IEEE Conference
 #         on Computer Vision and Pattern Recognition (CVPR), pages 1410–1417.
 
-clf = TransferJointMatching(
-    base_classifier, kernel="linear", tradeoff=0, n_components=1, max_iter=20, tol=0.1
-)
-clf.fit(X, y, sample_domain=sample_domain)
-create_plots(
-    clf,
-    "TransferJointMatching with linear kernel",
-)
-
-clf = TransferJointMatching(
-    base_classifier, kernel="rbf", tradeoff=0.1, n_components=1, max_iter=20, tol=0.1
-)
+clf = TransferJointMatching(base_classifier, tradeoff=0.1, n_components=1)
 clf.fit(X, y, sample_domain=sample_domain)
 create_plots(
     clf,

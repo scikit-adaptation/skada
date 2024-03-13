@@ -194,3 +194,5 @@ The library is distributed under the 3-Clause BSD license.
 [21] Bruzzone, Lorenzo & Marconcini, Mattia. (2010). [Domain Adaptation Problems: A DASVM Classification Technique and a Circular Validation Strategy](https://rslab.disi.unitn.it/papers/R82-PAMI.pdf). IEEE transactions on pattern analysis and machine intelligence. 32. 770-87. 10.1109/TPAMI.2009.57. 
 
 [22] Zhang, K., Schölkopf, B., Muandet, K., Wang, Z. (2013). [Domain Adaptation under Target and Conditional Shift](http://proceedings.mlr.press/v28/zhang13d.pdf). In International Conference on Machine Learning (pp. 819-827). PMLR.
+
+[23] Long, M., Wang, J., Ding, G., Sun, J., and Yu, P. (2014). [Transfer joint matching for unsupervised domain adaptation. In IEEE Conference on Computer Vision and Pattern Recognition (CVPR), pages 1410–1417](https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=a279f53f386ac78345b67e13c1808880c718efdf)
