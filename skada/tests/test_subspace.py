@@ -32,9 +32,9 @@ from skada.datasets import DomainAwareDataset
             TransferComponentAnalysisAdapter(n_components=2), LogisticRegression()
         ),
         TransferComponentAnalysis(n_components=2),
-        TransferJointMatching(n_components=1, tradeoff=0.1),
+        TransferJointMatching(n_components=2, kernel="linear"),
         make_da_pipeline(
-            TransferJointMatchingAdapter(n_components=1, tradeoff=0.1, verbose=True),
+            TransferJointMatchingAdapter(n_components=2, kernel="linear", verbose=True),
             LogisticRegression(),
         ),
     ],
