@@ -110,7 +110,7 @@ ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
 scores_dict = {}
 
 
-def create_plots(
+def plot_subspace_and_classifier(
     clf,
     name="Without DA",
     suptitle=None,
@@ -253,7 +253,7 @@ def create_plots(
 
 clf = base_classifier
 clf.fit(Xs, ys)
-create_plots(
+plot_subspace_and_classifier(
     base_classifier, "Without DA", suptitle="Illustration of the classifier with no DA"
 )
 
@@ -275,7 +275,7 @@ create_plots(
 
 clf = SubspaceAlignment(base_classifier, n_components=1)
 clf.fit(X, y, sample_domain=sample_domain)
-create_plots(clf, "Subspace Alignment")
+plot_subspace_and_classifier(clf, "Subspace Alignment")
 
 # %%
 #     Illustration of the Transfer Component Analysis method
@@ -293,7 +293,7 @@ create_plots(clf, "Subspace Alignment")
 
 clf = TransferComponentAnalysis(base_classifier, n_components=1, mu=2)
 clf.fit(X, y, sample_domain=sample_domain)
-create_plots(clf, "TCA")
+plot_subspace_and_classifier(clf, "TCA")
 
 # %%
 #     Illustration of the Transfer Joint Matching method
@@ -311,7 +311,7 @@ create_plots(clf, "TCA")
 
 clf = TransferJointMatching(base_classifier, tradeoff=0.1, n_components=1)
 clf.fit(X, y, sample_domain=sample_domain)
-create_plots(
+plot_subspace_and_classifier(
     clf,
     "TransferJointMatching with rbf kernel",
 )
