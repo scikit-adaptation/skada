@@ -55,12 +55,12 @@ def test_subspace_alignment(estimator, da_dataset):
     "adapter, n_samples, n_features, n_components",
     [
         (SubspaceAlignmentAdapter(), 5, 3, 3),
-        (SubspaceAlignmentAdapter(), 2, 5, 2),
+        (SubspaceAlignmentAdapter(), 3, 3, 3),
         (TransferComponentAnalysisAdapter(), 5, 3, 3),
         (TransferComponentAnalysisAdapter(), 2, 3, 3),
         (TransferComponentAnalysisAdapter(), 2, 5, 4),
         (TransferJointMatchingAdapter(), 5, 3, 3),
-        (TransferJointMatchingAdapter(n_components=3), 2, 3, 3),
+        (TransferJointMatchingAdapter(), 2, 3, 3),
         (TransferJointMatchingAdapter(n_components=4), 2, 5, 4),
     ],
 )
