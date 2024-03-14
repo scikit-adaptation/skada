@@ -121,7 +121,7 @@ The list of adapters that were moved to a new API:
 * `OTMappingAdapter`
 * `DiscriminatorReweightAdapter`
 * `GaussianReweightAdapter`
-* `KLIEPAdapter`
+* `KLIEPReweightAdapter`
 * `DensityReweightAdapter`
 * `SubspaceAlignmentAdapter`
 * `TransferComponentAnalysisAdapter`

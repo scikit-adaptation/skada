@@ -424,10 +424,10 @@ def DiscriminatorReweight(base_estimator=None, domain_classifier=None):
     )
 
 
-class KLIEPAdapter(BaseAdapter):
-    """Kullback-Leibler Importance Estimation Procedure (KLIEP).
+class KLIEPReweightAdapter(BaseAdapter):
+    """Kullback-Leibler Importance Estimation Procedure (KLIEPReweight).
 
-    The idea of KLIEP is to find an importance estimate w(x) such that
+    The idea of KLIEPReweight is to find an importance estimate w(x) such that
     the Kullback-Leibler (KL) divergence between the source input density
     p_source(x) to its estimate p_target(x) = w(x)p_source(x) is minimized.
 
@@ -615,7 +615,7 @@ class KLIEPAdapter(BaseAdapter):
         return AdaptationOutput(X, sample_weight=weights)
 
 
-def KLIEP(
+def KLIEPReweight(
     base_estimator=None,
     gamma=1.0,
     cv=5,
@@ -624,7 +624,7 @@ def KLIEP(
     max_iter=1000,
     random_state=None,
 ):
-    """KLIEP pipeline adapter and estimator.
+    """KLIEPReweight pipeline adapter and estimator.
 
     see [1]_ for details.
 
@@ -653,7 +653,7 @@ def KLIEP(
     Returns
     -------
     pipeline : sklearn pipeline
-        Pipeline containing the KLIEP adapter and the base estimator.
+        Pipeline containing the KLIEPReweight adapter and the base estimator.
 
     References
     ----------
@@ -664,7 +664,7 @@ def KLIEP(
     if base_estimator is None:
         base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
     return make_da_pipeline(
-        KLIEPAdapter(
+        KLIEPReweightAdapter(
             gamma=gamma,
             cv=cv,
             n_centers=n_centers,
@@ -928,10 +928,10 @@ def NearestNeighborReweight(
     )
 
 
-class KMMAdapter(BaseAdapter):
-    """Kernel Mean Matching (KMM).
+class KMMReweightAdapter(BaseAdapter):
+    """Kernel Mean Matching (KMMReweight).
 
-    The idea of KMM is to find an importance estimate w(x) such that
+    The idea of KMMReweight is to find an importance estimate w(x) such that
     the Maximum Mean Discrepancy (MMD) divergence between the target
     input density p_target(x) and the reweighted source input density
     w(x)p_source(x) is minimized.
@@ -951,7 +951,7 @@ class KMMAdapter(BaseAdapter):
     B : float, default=1000.
         Weight upper bound.
     eps : float, default=None
-        KMM tolerance parameter. If `None`, eps is set to
+        KMMReweight tolerance parameter. If `None`, eps is set to
         (sqrt(n_samples_source) - 1) / sqrt(n_samples_source).
     tol : float, default=1e-6
         Tolerance for the stopping criterion in the optimization.
@@ -1125,7 +1125,7 @@ class KMMAdapter(BaseAdapter):
         return AdaptationOutput(X=X, sample_weight=weights)
 
 
-def KMM(
+def KMMReweight(
     base_estimator=None,
     kernel="rbf",
     gamma=None,
@@ -1137,7 +1137,7 @@ def KMM(
     max_iter=1000,
     smooth_weights=False,
 ):
-    """KMM pipeline adapter and estimator.
+    """KMMReweight pipeline adapter and estimator.
 
     see [1]_ for details.
 
@@ -1156,7 +1156,7 @@ def KMM(
     B : float, default=1000.
         Weight upper bound.
     eps : float, default=None
-        KMM tolerance parameter. If `None`, eps is set to
+        KMMReweight tolerance parameter. If `None`, eps is set to
         (sqrt(n_samples_source) - 1) / sqrt(n_samples_source).
     tol : float, default=1e-6
         Tolerance for the stopping criterion in the optimization.
@@ -1164,12 +1164,12 @@ def KMM(
         Number of maximum iteration before stopping the optimization.
     smooth_weights : bool, default=False
         If True, the weights are "smoothed" using the kernel function.
-        Pipeline containing the KMM adapter and the base estimator.
+        Pipeline containing the KMMReweight adapter and the base estimator.
 
     Returns
     -------
     pipeline : sklearn pipeline
-        Pipeline containing the KMM adapter and the base estimator.
+        Pipeline containing the KMMReweight adapter and the base estimator.
 
     References
     ----------
@@ -1180,7 +1180,7 @@ def KMM(
     if base_estimator is None:
         base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
     return make_da_pipeline(
-        KMMAdapter(
+        KMMReweightAdapter(
             kernel=kernel,
             gamma=gamma,
             degree=degree,

@@ -21,11 +21,11 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KernelDensity
 
 from skada import (
-    KLIEP,
-    KMM,
     DensityReweight,
     DiscriminatorReweight,
     GaussianReweight,
+    KLIEPReweight,
+    KMMReweight,
     NearestNeighborReweight,
     source_target_split,
 )
@@ -45,7 +45,7 @@ from skada.utils import extract_source_indices
 #   * :ref:`Density Reweighting<Illustration of the Density Reweighting method>`
 #   * :ref:`Gaussian Reweighting<Illustration of the Gaussian reweighting method>`
 #   * :ref:`Discr. Reweighting<Illustration of the Discr. reweighting method>`
-#   * :ref:`KLIEP<Illustration of the KLIEP method>`
+#   * :ref:`KLIEPReweight<Illustration of the KLIEPReweight method>`
 #   * :ref:`Nearest Neighbor reweighting<Illustration of the Nearest Neighbor
 #     reweighting method>`
 #   * :ref:`Kernel Mean Matching<Illustration of the Kernel Mean Matching method>`
@@ -274,10 +274,10 @@ weights = weight_estimator.adapt(X, sample_domain=sample_domain).sample_weight[i
 plot_weights_and_classifier(clf, weights=weights, name="Discr. Reweighting")
 
 # %%
-#     Illustration of the KLIEP method
+#     Illustration of the KLIEPReweight method
 # ------------------------------------------
 #
-# The idea of KLIEP is to find an importance estimate :math:`w(x)` such that
+# The idea of KLIEPReweight is to find an importance estimate :math:`w(x)` such that
 # the Kullback-Leibler (KL) divergence between the source input density
 # :math:`p_{source}(x)` to its estimate :math:`p_{target}(x) = w(x)p_{source}(x)`
 # is minimized.
@@ -289,7 +289,7 @@ plot_weights_and_classifier(clf, weights=weights, name="Discr. Reweighting")
 #        In NeurIPS, 2007.
 
 # We define our classifier, `clf` is a da pipeline
-clf = KLIEP(
+clf = KLIEPReweight(
     LogisticRegression().set_fit_request(sample_weight=True), gamma=[1, 0.1, 0.001]
 )
 clf.fit(X, y, sample_domain=sample_domain)
@@ -301,7 +301,7 @@ weight_estimator = clf[0].base_estimator_
 idx = extract_source_indices(sample_domain)
 weights = weight_estimator.adapt(X, sample_domain=sample_domain).sample_weight[idx]
 
-plot_weights_and_classifier(clf, weights=weights, name="KLIEP")
+plot_weights_and_classifier(clf, weights=weights, name="KLIEPReweight")
 
 # %%
 #     Illustration of the Nearest Neighbor reweighting method
@@ -337,7 +337,7 @@ plot_weights_and_classifier(clf, weights=weights, name="1NN Reweighting")
 # ------------------------------------------
 # .. _Kernel Mean Matching
 #
-# This example illustrates the use of KMM method [6] to correct covariate-shift.
+# This example illustrates the use of KMMReweight method [6] to correct covariate-shift.
 # This methods works without any estimation of the assumption, by matching distribution
 # between training and testing sets in feature space.
 #
@@ -347,7 +347,7 @@ plot_weights_and_classifier(clf, weights=weights, name="1NN Reweighting")
 #        Correcting sample selection bias by unlabeled data. In NIPS, 2007.
 
 # We define our classifier, `clf` is a da pipeline
-clf = KMM(base_classifier, gamma=10.0, max_iter=1000, smooth_weights=False)
+clf = KMMReweight(base_classifier, gamma=10.0, max_iter=1000, smooth_weights=False)
 clf.fit(X, y, sample_domain=sample_domain)
 
 # We get the weights:
@@ -361,11 +361,11 @@ plot_weights_and_classifier(
     clf,
     weights=weights,
     name="Kernel Mean Matching",
-    suptitle="Illustration of KMM without weights smoothing",
+    suptitle="Illustration of KMMReweight without weights smoothing",
 )
 
 # We define our classifier, `clf` is a da pipeline
-clf = KMM(base_classifier, gamma=10.0, max_iter=1000, smooth_weights=True)
+clf = KMMReweight(base_classifier, gamma=10.0, max_iter=1000, smooth_weights=True)
 clf.fit(X, y, sample_domain=sample_domain)
 
 # We get the weights:
@@ -379,7 +379,7 @@ plot_weights_and_classifier(
     clf,
     weights=weights,
     name="Kernel Mean Matching",
-    suptitle="Illustration of KMM with weights smoothing",
+    suptitle="Illustration of KMMReweight with weights smoothing",
 )
 
 # %%

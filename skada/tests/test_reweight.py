@@ -10,16 +10,16 @@ import pytest
 from sklearn.linear_model import LogisticRegression, Ridge
 
 from skada import (
-    KLIEP,
-    KMM,
     DensityReweight,
     DensityReweightAdapter,
     DiscriminatorReweight,
     DiscriminatorReweightAdapter,
     GaussianReweight,
     GaussianReweightAdapter,
-    KLIEPAdapter,
-    KMMAdapter,
+    KLIEPReweight,
+    KLIEPReweightAdapter,
+    KMMReweight,
+    KMMReweightAdapter,
     MMDTarSReweight,
     MMDTarSReweightAdapter,
     NearestNeighborReweight,
@@ -48,11 +48,11 @@ from skada import (
         ),
         DiscriminatorReweight(),
         make_da_pipeline(
-            KLIEPAdapter(gamma=[0.1, 1], random_state=42),
+            KLIEPReweightAdapter(gamma=[0.1, 1], random_state=42),
             LogisticRegression().set_fit_request(sample_weight=True),
         ),
-        KLIEP(gamma=[0.1, 1], random_state=42),
-        KLIEP(gamma=0.2),
+        KLIEPReweight(gamma=[0.1, 1], random_state=42),
+        KLIEPReweight(gamma=0.2),
         NearestNeighborReweight(
             LogisticRegression().set_fit_request(sample_weight=True),
             laplace_smoothing=True,
@@ -63,11 +63,11 @@ from skada import (
             LogisticRegression().set_fit_request(sample_weight=True),
         ),
         make_da_pipeline(
-            KMMAdapter(gamma=0.1),
+            KMMReweightAdapter(gamma=0.1),
             LogisticRegression().set_fit_request(sample_weight=True),
         ),
-        KMM(),
-        KMM(eps=0.1),
+        KMMReweight(),
+        KMMReweight(eps=0.1),
         make_da_pipeline(
             MMDTarSReweightAdapter(gamma=1.0),
             LogisticRegression().set_fit_request(sample_weight=True),
@@ -105,18 +105,18 @@ def test_reweight_estimator(estimator, da_dataset):
         ),
         DiscriminatorReweight(Ridge().set_fit_request(sample_weight=True)),
         make_da_pipeline(
-            KLIEPAdapter(gamma=[0.1, 1], random_state=42),
+            KLIEPReweightAdapter(gamma=[0.1, 1], random_state=42),
             Ridge().set_fit_request(sample_weight=True),
         ),
-        KLIEP(
+        KLIEPReweight(
             Ridge().set_fit_request(sample_weight=True), gamma=[0.1, 1], random_state=42
         ),
-        KLIEP(Ridge().set_fit_request(sample_weight=True), gamma=0.2),
+        KLIEPReweight(Ridge().set_fit_request(sample_weight=True), gamma=0.2),
         make_da_pipeline(
-            KMMAdapter(gamma=0.1), Ridge().set_fit_request(sample_weight=True)
+            KMMReweightAdapter(gamma=0.1), Ridge().set_fit_request(sample_weight=True)
         ),
-        KMM(Ridge().set_fit_request(sample_weight=True)),
-        KMM(Ridge().set_fit_request(sample_weight=True), eps=0.1),
+        KMMReweight(Ridge().set_fit_request(sample_weight=True)),
+        KMMReweight(Ridge().set_fit_request(sample_weight=True), eps=0.1),
         make_da_pipeline(
             MMDTarSReweightAdapter(gamma=1.0),
             Ridge().set_fit_request(sample_weight=True),
@@ -171,8 +171,8 @@ def _base_test_new_X_adapt(estimator, da_dataset):
         DensityReweightAdapter(),
         GaussianReweightAdapter(),
         DiscriminatorReweightAdapter(),
-        KLIEPAdapter(gamma=[0.1, 1], random_state=42),
-        KMMAdapter(gamma=0.1, smooth_weights=True),
+        KLIEPReweightAdapter(gamma=[0.1, 1], random_state=42),
+        KMMReweightAdapter(gamma=0.1, smooth_weights=True),
         MMDTarSReweightAdapter(gamma=1.0),
     ],
 )
@@ -188,8 +188,8 @@ def test_new_X_adapt(estimator, da_dataset, da_reg_dataset):
         DensityReweightAdapter(),
         GaussianReweightAdapter(),
         DiscriminatorReweightAdapter(),
-        KLIEPAdapter(gamma=[0.1, 1], random_state=42),
-        KMMAdapter(gamma=0.1, smooth_weights=True),
+        KLIEPReweightAdapter(gamma=[0.1, 1], random_state=42),
+        KMMReweightAdapter(gamma=0.1, smooth_weights=True),
         MMDTarSReweightAdapter(gamma=1.0),
     ],
 )
@@ -201,7 +201,7 @@ def test_reweight_warning(da_dataset):
     X_train, y_train, sample_domain = da_dataset.pack_train(
         as_sources=["s"], as_targets=["t"]
     )
-    estimator = KLIEPAdapter(gamma=0.1, max_iter=0)
+    estimator = KLIEPReweightAdapter(gamma=0.1, max_iter=0)
     estimator.fit(X_train, y_train, sample_domain=sample_domain)
 
     with pytest.warns(
@@ -210,22 +210,22 @@ def test_reweight_warning(da_dataset):
         estimator.fit(X_train, y_train, sample_domain=sample_domain)
 
 
-def test_kmm_kernel_error():
+def test_KMMReweight_kernel_error():
     with pytest.raises(ValueError, match="got 'hello'"):
-        KMMAdapter(kernel="hello")
+        KMMReweightAdapter(kernel="hello")
 
 
-# KMM.adapt behavior should be the same when smooth weights is True or
+# KMMReweight.adapt behavior should be the same when smooth weights is True or
 # when X_source differs between fit and adapt.
-def test_kmm_new_X_adapt(da_dataset):
+def test_KMMReweight_new_X_adapt(da_dataset):
     X_train, y_train, sample_domain = da_dataset.pack_train(
         as_sources=["s"], as_targets=["t"]
     )
-    estimator = KMMAdapter(smooth_weights=True)
+    estimator = KMMReweightAdapter(smooth_weights=True)
     estimator.fit(X_train, sample_domain=sample_domain)
     res1 = estimator.adapt(X_train, sample_domain=sample_domain)
 
-    estimator = KMMAdapter(smooth_weights=False)
+    estimator = KMMReweightAdapter(smooth_weights=False)
     estimator.fit(X_train, sample_domain=sample_domain)
     res2 = estimator.adapt(X_train, sample_domain=sample_domain)
     res3 = estimator.adapt(X_train + 1e-8, sample_domain=sample_domain)

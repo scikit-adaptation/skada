@@ -23,7 +23,7 @@ Sample reweighting DA methods
    DensityReweight
    GaussianReweight
    DiscriminatorReweight
-   KLIEP
+   KLIEPReweight
    NearestNeighborReweight
    MMDTarSReweight
 

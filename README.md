@@ -22,7 +22,7 @@ The following algorithms are currently implemented.
 
 ### Domain adaptation algorithms
 
-- Sample reweighting methods (Gaussian [1], Discriminant [2], KLIEP [3],
+- Sample reweighting methods (Gaussian [1], Discriminant [2], KLIEPReweight [3],
   DensityRatio [4], TarS [22])
 - Sample mapping methods (CORAL [5], Optimal Transport DA OTDA [6], LinearMonge [7], LS-ConS [22])
 - Subspace methods (SubspaceAlignment [8], TCA [9])
