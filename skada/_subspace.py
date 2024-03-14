@@ -388,8 +388,6 @@ class TransferJointMatchingAdapter(BaseAdapter):
         The numbers of components to learn with PCA.
         Should be less or equal to the number of samples
         of the source and target data.
-    random_state : int, default=None
-        The seed for random number generation.
     tradeoff : float, default=1e-2
         The tradeoff constant for the TJM algorithm.
         It serves to trade off feature matching and instance
@@ -421,7 +419,6 @@ class TransferJointMatchingAdapter(BaseAdapter):
     def __init__(
         self,
         n_components=None,
-        random_state=None,
         tradeoff=1e-2,
         max_iter=100,
         kernel="rbf",
@@ -431,7 +428,6 @@ class TransferJointMatchingAdapter(BaseAdapter):
         super().__init__()
         self.n_components = n_components
         self.tradeoff = tradeoff
-        self.random_state = random_state
         self.kernel = kernel
         self.max_iter = max_iter
         self.tol = tol
@@ -524,7 +520,6 @@ class TransferJointMatchingAdapter(BaseAdapter):
             n_components = min(min(X_source.shape), min(X_target.shape))
         else:
             n_components = self.n_components
-        self.random_state_ = check_random_state(self.random_state)
         self.X_source_ = X_source
         self.X_target_ = X_target
 
@@ -593,8 +588,7 @@ class TransferJointMatchingAdapter(BaseAdapter):
 
 def TransferJointMatching(
     base_estimator=None,
-    random_state=None,
-    n_components=1,
+    n_components=None,
     tradeoff=1e-2,
     kernel="rbf",
     max_iter=100,
@@ -610,8 +604,6 @@ def TransferJointMatching(
         The numbers of components to learn with PCA.
         Should be less or equal to the number of samples
         of the source and target data.
-    random_state : int, default=None
-        The seed for random number generation.
     tradeoff : float, default=1e-2
         The tradeoff constant for the TJM algorithm.
         It serves to trade off feature matching and instance
@@ -640,7 +632,6 @@ def TransferJointMatching(
 
     return make_da_pipeline(
         TransferJointMatchingAdapter(
-            random_state=random_state,
             tradeoff=tradeoff,
             n_components=n_components,
             kernel=kernel,
