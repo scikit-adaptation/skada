@@ -133,7 +133,7 @@ class SubspaceAlignmentAdapter(BaseAdapter):
         X_source, X_target = source_target_split(X, sample_domain=sample_domain)
 
         if self.n_components is None:
-            n_components = min(min(X_source.shape), min(X_target.shape))
+            n_components = min(X.shape[0], X.shape[1])
         else:
             n_components = self.n_components
         self.random_state_ = check_random_state(self.random_state)
@@ -517,7 +517,7 @@ class TransferJointMatchingAdapter(BaseAdapter):
         X_source, X_target = source_target_split(X, sample_domain=sample_domain)
 
         if self.n_components is None:
-            n_components = min(min(X_source.shape), min(X_target.shape))
+            n_components = min(X.shape[0], X.shape[1])
         else:
             n_components = self.n_components
         self.X_source_ = X_source
