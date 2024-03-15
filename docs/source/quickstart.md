@@ -119,10 +119,10 @@ The list of adapters that were moved to a new API:
 * `EntropicOTMappingAdapter`
 * `LinearOTMappingAdapter`
 * `OTMappingAdapter`
-* `DiscriminatorReweightDensityAdapter`
-* `GaussianReweightDensityAdapter`
-* `KLIEPAdapter`
-* `ReweightDensityAdapter`
+* `DiscriminatorReweightAdapter`
+* `GaussianReweightAdapter`
+* `KLIEPReweightAdapter`
+* `DensityReweightAdapter`
 * `SubspaceAlignmentAdapter`
 * `TransferComponentAnalysisAdapter`
 
@@ -195,7 +195,7 @@ The `SupervisedScorer` is a unique scorer that necessitates special consideratio
 ```python
 X, y, sample_domain = da_dataset.pack_train(as_sources=['s'], as_targets=['t'])
 estimator = make_da_pipeline(
-    ReweightDensityAdapter(),
+    DensityReweightAdapter(),
     LogisticRegression().set_score_request(sample_weight=True),
 )
 cv = ShuffleSplit(n_splits=3, test_size=0.3, random_state=0)
@@ -293,10 +293,10 @@ Let's load a DA dataset:
 
 Now let's define a DA estimator to evaluate on this data:
 
-    >>> from skada import ReweightDensity
+    >>> from skada import DensityReweight
     >>> from sklearn.linear_model import LogisticRegression
     >>> base_estimator = LogisticRegression()
-    >>> estimator = ReweightDensity(base_estimator=base_estimator)
+    >>> estimator = DensityReweight(base_estimator=base_estimator)
 
 Having a distribution shift between the two domains means that if the
 validation is done on samples from source like shown in the images

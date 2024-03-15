@@ -14,7 +14,7 @@ from sklearn.model_selection import ShuffleSplit, cross_validate
 from sklearn.svm import SVC
 
 from skada import (
-    ReweightDensityAdapter,
+    DensityReweightAdapter,
     SubspaceAlignmentAdapter,
     make_da_pipeline,
 )
@@ -42,7 +42,7 @@ from skada.metrics import (
 def test_generic_scorer(scorer, da_dataset):
     X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
     estimator = make_da_pipeline(
-        ReweightDensityAdapter(),
+        DensityReweightAdapter(),
         LogisticRegression()
         .set_fit_request(sample_weight=True)
         .set_score_request(sample_weight=True),
@@ -64,7 +64,7 @@ def test_supervised_scorer(da_dataset):
     """`SupervisedScorer` requires unmasked target label to be available."""
     X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
     estimator = make_da_pipeline(
-        ReweightDensityAdapter(),
+        DensityReweightAdapter(),
         LogisticRegression()
         .set_fit_request(sample_weight=True)
         .set_score_request(sample_weight=True),
@@ -96,7 +96,7 @@ def test_supervised_scorer(da_dataset):
 def test_scorer_with_entropy_requires_predict_proba(scorer, da_dataset):
     X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
     estimator = make_da_pipeline(
-        ReweightDensityAdapter(), SVC().set_fit_request(sample_weight=True)
+        DensityReweightAdapter(), SVC().set_fit_request(sample_weight=True)
     )
     estimator.fit(X, y, sample_domain=sample_domain)
     with pytest.raises(AttributeError):
@@ -133,7 +133,7 @@ def test_scorer_with_log_proba():
 def test_prediction_entropy_scorer_reduction(da_dataset):
     X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
     estimator = make_da_pipeline(
-        ReweightDensityAdapter(),
+        DensityReweightAdapter(),
         LogisticRegression().set_fit_request(sample_weight=True),
     )
 
@@ -166,7 +166,7 @@ def test_prediction_entropy_scorer_reduction(da_dataset):
 def test_circular_validation(da_dataset):
     X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
     estimator = make_da_pipeline(
-        ReweightDensityAdapter(),
+        DensityReweightAdapter(),
         LogisticRegression().set_fit_request(sample_weight=True),
     )
 
@@ -197,7 +197,7 @@ def test_circular_validation(da_dataset):
         label="regression",
     )
     estimator_regression = make_da_pipeline(
-        ReweightDensityAdapter(),
+        DensityReweightAdapter(),
         LinearRegression().set_fit_request(sample_weight=True),
     )
     estimator_regression.fit(X, y, sample_domain=sample_domain)
