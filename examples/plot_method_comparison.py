@@ -24,17 +24,18 @@ from sklearn.svm import SVC
 
 from skada import (
     CORAL,
-    KLIEP,
     ClassRegularizerOTMapping,
-    DiscriminatorReweightDensity,
+    DensityReweight,
+    DiscriminatorReweight,
     EntropicOTMapping,
-    GaussianReweightDensity,
+    GaussianReweight,
     JDOTClassifier,
+    KLIEPReweight,
     LinearOTMapping,
     MMDLSConSMapping,
     MMDTarSReweight,
+    NearestNeighborReweight,
     OTMapping,
-    ReweightDensity,
     SubspaceAlignment,
     TransferComponentAnalysis,
 )
@@ -49,7 +50,8 @@ names = [
     "Reweight Density",
     "Gaussian Reweight",
     "Discr. Reweight",
-    "KLIEP",
+    "KLIEPReweight",
+    "1NN Reweight Density",
     "MMD TarS",
     "Subspace Alignment",
     "TCA",
@@ -64,13 +66,14 @@ names = [
 
 classifiers = [
     SVC(),
-    ReweightDensity(
+    DensityReweight(
         base_estimator=SVC().set_fit_request(sample_weight=True),
         weight_estimator=KernelDensity(bandwidth=0.5),
     ),
-    GaussianReweightDensity(SVC().set_fit_request(sample_weight=True)),
-    DiscriminatorReweightDensity(SVC().set_fit_request(sample_weight=True)),
-    KLIEP(SVC().set_fit_request(sample_weight=True), gamma=[1, 0.1, 0.001]),
+    GaussianReweight(SVC().set_fit_request(sample_weight=True)),
+    DiscriminatorReweight(SVC().set_fit_request(sample_weight=True)),
+    KLIEPReweight(SVC().set_fit_request(sample_weight=True), gamma=[1, 0.1, 0.001]),
+    NearestNeighborReweight(SVC().set_fit_request(sample_weight=True)),
     MMDTarSReweight(SVC().set_fit_request(sample_weight=True), gamma=1),
     SubspaceAlignment(base_estimator=SVC(), n_components=1),
     TransferComponentAnalysis(base_estimator=SVC(), n_components=1, mu=0.5),

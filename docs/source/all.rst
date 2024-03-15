@@ -20,10 +20,11 @@ Sample reweighting DA methods
    :toctree: gen_modules/
    :template: function.rst
 
-   ReweightDensity
-   GaussianReweightDensity
-   DiscriminatorReweightDensity
-   KLIEP
+   DensityReweight
+   GaussianReweight
+   DiscriminatorReweight
+   KLIEPReweight
+   NearestNeighborReweight
    MMDTarSReweight
 
 Sample mapping and alignment DA methods
