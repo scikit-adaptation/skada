@@ -622,7 +622,7 @@ def TransferJointMatching(
 
     References
     ----------
-    .. [23]  [Long et al., 2014] Long, M., Wang, J., Ding, G., Sun, J., and Yu, P.
+    .. [26]  [Long et al., 2014] Long, M., Wang, J., Ding, G., Sun, J., and Yu, P.
              (2014). Transfer joint matching for unsupervised domain adaptation.
              In IEEE Conference on Computer Vision and Pattern Recognition (CVPR),
              pages 1410–1417

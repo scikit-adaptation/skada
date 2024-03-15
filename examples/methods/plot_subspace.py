@@ -303,9 +303,9 @@ plot_subspace_and_classifier(clf, "TCA")
 # domain adaptation: feature matching and instance reweighting. Transfer Joint Matching
 # (TJM) aims to use both, by adding a constant to tradeoff between to two.
 #
-# See [23] for details:
+# See [26] for details:
 #
-# .. [23] Long et al., 2014] Long, M., Wang, J., Ding, G., Sun, J., and Yu, P. (2014).
+# .. [26] Long et al., 2014] Long, M., Wang, J., Ding, G., Sun, J., and Yu, P. (2014).
 #         Transfer joint matching for unsupervised domain adaptation. In IEEE Conference
 #         on Computer Vision and Pattern Recognition (CVPR), pages 1410–1417.
 
