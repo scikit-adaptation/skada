@@ -73,7 +73,8 @@ Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 
 x_min, x_max = -2.4, 2.4
 y_min, y_max = -2.4, 2.4
-
+target_marker = "v"
+source_marker = "^"
 
 figsize = (8, 4)
 figure, axes = plt.subplots(1, 2, figsize=figsize)
@@ -83,7 +84,9 @@ colormap = ListedColormap(["#FFA056", "#6C4C7C"])
 ax = axes[0]
 ax.set_title("Source data")
 # Plot the source points:
-ax.scatter(Xs[:, 0], Xs[:, 1], c=ys, cmap=colormap, alpha=0.7, s=[15])
+ax.scatter(
+    Xs[:, 0], Xs[:, 1], c=ys, cmap=colormap, alpha=0.7, s=[15], marker=source_marker
+)
 
 ax.set_xticks(()), ax.set_yticks(())
 ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
@@ -92,8 +95,9 @@ ax = axes[1]
 
 ax.set_title("Target data")
 # Plot the target points:
-ax.scatter(Xt[:, 0], Xt[:, 1], c=ys, cmap=colormap, alpha=0.1, s=[15])
-ax.scatter(Xt[:, 0], Xt[:, 1], c=yt, cmap=colormap, alpha=0.7, s=[15])
+ax.scatter(
+    Xt[:, 0], Xt[:, 1], c=yt, cmap=colormap, alpha=0.7, s=[15], marker=target_marker
+)
 figure.suptitle("Plot of the dataset", fontsize=16, y=1)
 ax.set_xticks(()), ax.set_yticks(())
 ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
@@ -134,12 +138,7 @@ def plot_subspace_and_classifier(
 
     # Plot the target points:
     ax.scatter(
-        Xt[:, 0],
-        Xt[:, 1],
-        c=yt,
-        cmap=colormap,
-        alpha=0.7,
-        s=[15],
+        Xt[:, 0], Xt[:, 1], c=yt, cmap=colormap, alpha=0.7, s=[15], marker=target_marker
     )
 
     ax.set_xticks(()), ax.set_yticks(())
@@ -159,15 +158,27 @@ def plot_subspace_and_classifier(
         clf_on_subspace = clf.named_steps[keys[1]].base_estimator_
 
         ax = axes[0]
+
         # Plot the source points:
-        X_subspace = subspace_estimator.adapt(X)
+        Xs_subspace = subspace_estimator.adapt(Xs)
+        Xt_subspace = subspace_estimator.adapt(Xt)
         ax.scatter(
-            X_subspace,
-            [0] * X.shape[0],
-            c=y,
+            Xs_subspace,
+            [1] * Xs.shape[0],
+            c=ys,
             cmap=colormap,
             alpha=0.5,
             s=size,
+            marker=source_marker,
+        )
+        ax.scatter(
+            Xt_subspace,
+            [-1] * Xt.shape[0],
+            c=yt,
+            cmap=colormap,
+            alpha=0.5,
+            s=size,
+            marker=target_marker,
         )
 
         ax.set_xticks(()), ax.set_yticks(())
@@ -183,6 +194,7 @@ def plot_subspace_and_classifier(
             cmap=colormap,
             alpha=0.5,
             s=size,
+            marker=target_marker,
         )
         m, M = min(Xt_adapted), max(Xt_adapted)
         x_ = list(np.linspace(m - abs(m) / 4, M + abs(M) / 4, 100).reshape(-1, 1))
@@ -199,15 +211,23 @@ def plot_subspace_and_classifier(
         ax.set_title("Accuracy on target projected on the subspace", fontsize=12)
     else:
         ax = axes[0]
-        # Plot the source points:
-        X_subspace = X
         ax.scatter(
-            X_subspace[:, 0],
-            X_subspace[:, 1],
-            c=y,
+            Xs[:, 0],
+            Xs[:, 1],
+            c=ys,
             cmap=colormap,
             alpha=0.5,
             s=size,
+            marker=source_marker,
+        )
+        ax.scatter(
+            Xt[:, 0],
+            Xt[:, 1],
+            c=yt,
+            cmap=colormap,
+            alpha=0.5,
+            s=size,
+            marker=target_marker,
         )
 
         ax.set_xticks(()), ax.set_yticks(())
@@ -234,6 +254,7 @@ def plot_subspace_and_classifier(
             cmap=colormap,
             alpha=0.7,
             s=[15],
+            marker=source_marker,
         )
 
         ax.set_xticks(()), ax.set_yticks(())
