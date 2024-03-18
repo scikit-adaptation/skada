@@ -1,6 +1,7 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Remi Flamary <remi.flamary@polytechnique.edu>
 #         Oleksii Kachaiev <kachayev@gmail.com>
+#         Bueno Ruben <ruben.bueno@polytechnique.edu>
 #         Antoine Collas <contact@antoinecollas.fr>
 #
 # License: BSD 3-Clause
@@ -12,7 +13,7 @@ from scipy.stats import multivariate_normal
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics.pairwise import KERNEL_PARAMS, pairwise_distances, pairwise_kernels
 from sklearn.model_selection import check_cv
-from sklearn.neighbors import KernelDensity
+from sklearn.neighbors import KernelDensity, KNeighborsClassifier
 from sklearn.svm import SVC
 from sklearn.utils import check_random_state
 from sklearn.utils.validation import check_is_fitted
@@ -31,7 +32,7 @@ from .utils import (
 EPS = np.finfo(float).eps
 
 
-class ReweightDensityAdapter(BaseAdapter):
+class DensityReweightAdapter(BaseAdapter):
     """Adapter based on re-weighting samples using density estimation.
 
     Parameters
@@ -121,7 +122,7 @@ class ReweightDensityAdapter(BaseAdapter):
         return AdaptationOutput(X, sample_weight=weights)
 
 
-def ReweightDensity(
+def DensityReweight(
     base_estimator=None,
     weight_estimator=None,
 ):
@@ -138,18 +139,18 @@ def ReweightDensity(
     Returns
     -------
     pipeline : sklearn pipeline
-        Pipeline containing the ReweightDensity adapter and the base estimator.
+        Pipeline containing the DensityReweight adapter and the base estimator.
     """
     if base_estimator is None:
         base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
 
     return make_da_pipeline(
-        ReweightDensityAdapter(weight_estimator=weight_estimator),
+        DensityReweightAdapter(weight_estimator=weight_estimator),
         base_estimator,
     )
 
 
-class GaussianReweightDensityAdapter(BaseAdapter):
+class GaussianReweightAdapter(BaseAdapter):
     """Gaussian approximation re-weighting method.
 
     See [1]_ for details.
@@ -255,7 +256,7 @@ class GaussianReweightDensityAdapter(BaseAdapter):
         return AdaptationOutput(X, sample_weight=weights)
 
 
-def GaussianReweightDensity(
+def GaussianReweight(
     base_estimator=None,
     reg="auto",
 ):
@@ -278,7 +279,7 @@ def GaussianReweightDensity(
     Returns
     -------
     pipeline : sklearn pipeline
-        Pipeline containing the GaussianReweightDensity adapter and the
+        Pipeline containing the GaussianReweight adapter and the
         base estimator.
 
     References
@@ -291,12 +292,12 @@ def GaussianReweightDensity(
         base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
 
     return make_da_pipeline(
-        GaussianReweightDensityAdapter(reg=reg),
+        GaussianReweightAdapter(reg=reg),
         base_estimator,
     )
 
 
-class DiscriminatorReweightDensityAdapter(BaseAdapter):
+class DiscriminatorReweightAdapter(BaseAdapter):
     """Gaussian approximation re-weighting method.
 
     See [1]_ for details.
@@ -390,7 +391,7 @@ class DiscriminatorReweightDensityAdapter(BaseAdapter):
         return AdaptationOutput(X, sample_weight=weights)
 
 
-def DiscriminatorReweightDensity(base_estimator=None, domain_classifier=None):
+def DiscriminatorReweight(base_estimator=None, domain_classifier=None):
     """Discriminator re-weighting pipeline adapter and estimator.
 
     see [1]_ for details.
@@ -406,7 +407,7 @@ def DiscriminatorReweightDensity(base_estimator=None, domain_classifier=None):
     Returns
     -------
     pipeline : sklearn pipeline
-        Pipeline containing the DiscriminatorReweightDensity adapter and the
+        Pipeline containing the DiscriminatorReweight adapter and the
         base estimator.
 
     References
@@ -419,15 +420,15 @@ def DiscriminatorReweightDensity(base_estimator=None, domain_classifier=None):
         base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
 
     return make_da_pipeline(
-        DiscriminatorReweightDensityAdapter(domain_classifier=domain_classifier),
+        DiscriminatorReweightAdapter(domain_classifier=domain_classifier),
         base_estimator,
     )
 
 
-class KLIEPAdapter(BaseAdapter):
-    """Kullback-Leibler Importance Estimation Procedure (KLIEP).
+class KLIEPReweightAdapter(BaseAdapter):
+    """Kullback-Leibler Importance Estimation Procedure (KLIEPReweight).
 
-    The idea of KLIEP is to find an importance estimate w(x) such that
+    The idea of KLIEPReweight is to find an importance estimate w(x) such that
     the Kullback-Leibler (KL) divergence between the source input density
     p_source(x) to its estimate p_target(x) = w(x)p_source(x) is minimized.
 
@@ -615,7 +616,7 @@ class KLIEPAdapter(BaseAdapter):
         return AdaptationOutput(X, sample_weight=weights)
 
 
-def KLIEP(
+def KLIEPReweight(
     base_estimator=None,
     gamma=1.0,
     cv=5,
@@ -624,7 +625,7 @@ def KLIEP(
     max_iter=1000,
     random_state=None,
 ):
-    """KLIEP pipeline adapter and estimator.
+    """KLIEPReweight pipeline adapter and estimator.
 
     see [1]_ for details.
 
@@ -653,7 +654,7 @@ def KLIEP(
     Returns
     -------
     pipeline : sklearn pipeline
-        Pipeline containing the KLIEP adapter and the base estimator.
+        Pipeline containing the KLIEPReweight adapter and the base estimator.
 
     References
     ----------
@@ -664,7 +665,7 @@ def KLIEP(
     if base_estimator is None:
         base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
     return make_da_pipeline(
-        KLIEPAdapter(
+        KLIEPReweightAdapter(
             gamma=gamma,
             cv=cv,
             n_centers=n_centers,
@@ -676,10 +677,262 @@ def KLIEP(
     )
 
 
-class KMMAdapter(BaseAdapter):
-    """Kernel Mean Matching (KMM).
+class NearestNeighborReweightAdapter(BaseAdapter):
+    """Adapter based on re-weighting samples using a 1NN,
 
-    The idea of KMM is to find an importance estimate w(x) such that
+    See: [Loog, 2012] Loog, M. (2012).
+    Nearest neighbor-based importance weighting.
+    In 2012 IEEE International Workshop on Machine
+    Learning for Signal Processing, pages 1–6. IEEE.
+
+    Parameters
+    ----------
+    base_estimator : estimator object, optional
+        The estimator to use to estimate the densities of source and target
+        observations. If None, a KNeighborsClassifier(n_neighbors=1) estimator
+        is used.
+
+    Attributes
+    ----------
+    weight_estimator_source_ : object
+        The estimator object fitted on the source data.
+    weight_estimator_target_ : object
+        The estimator object fitted on the target data.
+    """
+
+    def __init__(
+        self,
+        weights="uniform",
+        algorithm="auto",
+        leaf_size=30,
+        p=2,
+        metric="minkowski",
+        metric_params=None,
+        n_jobs=None,
+        laplace_smoothing=False,
+    ):
+        super().__init__()
+        self.weights = weights
+        self.algorithm = algorithm
+        self.leaf_size = leaf_size
+        self.p = p
+        self.metric = metric
+        self.metric_params = metric_params
+        self.n_jobs = n_jobs
+        self.laplace_smoothing = laplace_smoothing
+        self.base_estimator = KNeighborsClassifier(
+            n_neighbors=1,
+            weights=self.weights,
+            algorithm=self.algorithm,
+            leaf_size=self.leaf_size,
+            p=self.p,
+            metric=self.metric,
+            metric_params=self.metric_params,
+            n_jobs=self.n_jobs,
+        )
+
+    def fit(self, X, y=None, sample_domain=None):
+        """Fit adaptation parameters.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
+        X, sample_domain = check_X_domain(X, sample_domain)
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+        self.X_source_fit = X_source
+        indices_source = np.arange(X_source.shape[0])
+
+        self.estimator_ = clone(self.base_estimator)
+        self.estimator_.fit(X_source, indices_source)
+
+        return self
+
+    def get_weights(self, Xs, Xt):
+        indices_source = np.arange(Xs.shape[0])
+        estimator = clone(self.base_estimator)
+        estimator.fit(Xs, indices_source)
+        predictions = estimator.predict(Xt)
+
+        unique, counts = np.unique(predictions, return_counts=True)
+        weights = np.ones(Xs.shape[0]) * float(self.laplace_smoothing)
+        weights[unique] += counts
+        return weights
+
+    def adapt(self, X, y=None, sample_domain=None):
+        """Predict adaptation (weights, sample or labels).
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        output : :class:`skada.base.AdaptationOutput`
+            Dictionary-like object, with the following attributes.
+
+            X_t : array-like, shape (n_samples, n_components)
+                The data (same as X).
+            weights : array-like, shape (n_samples,)
+                The weights of the samples.
+        """
+        check_is_fitted(self)
+        X, sample_domain = check_X_domain(X, sample_domain)
+        source_idx = extract_source_indices(sample_domain)
+
+        # xxx(okachaiev): move this to API
+        if source_idx.sum() > 0:
+            (source_idx,) = np.where(source_idx)
+            indices_source = np.arange(X[source_idx].shape[0])
+            if np.array_equal(self.X_source_fit, X[source_idx]):
+                estimator = self.estimator_
+            else:
+                estimator = clone(self.base_estimator)
+                estimator.fit(X[source_idx], indices_source)
+            weights = np.ones(X.shape[0])
+            weights[source_idx] = self.get_weights(X[source_idx], X[~source_idx])
+        else:
+            weights = None
+        return AdaptationOutput(X=X, sample_weight=weights)
+
+
+def NearestNeighborReweight(
+    base_estimator=None,
+    laplace_smoothing=False,
+    weights="uniform",
+    algorithm="auto",
+    leaf_size=30,
+    p=2,
+    metric="minkowski",
+    metric_params=None,
+    n_jobs=None,
+):
+    """Density re-weighting pipeline adapter and estimator.
+
+    The last 7 parameters are the parameters from the 1NN estimator that
+    will be used to estimate the weights in the `adapt` method
+
+    Parameters
+    ----------
+    base_estimator : sklearn estimator, default=None
+        estimator used for fitting and prediction
+
+    laplace_smoothing : bool, default=False, optional
+        True if we want to use laplace smoothing, and
+        thus adding 1 to all our weights (to prevent some
+        of them to be 0)
+
+    weights : {'uniform', 'distance'}, callable or None, default='uniform'
+        Weight function used in prediction.  Possible values:
+
+        - 'uniform' : uniform weights.  All points in each neighborhood
+          are weighted equally.
+        - 'distance' : weight points by the inverse of their distance.
+          in this case, closer neighbors of a query point will have a
+          greater influence than neighbors which are further away.
+        - [callable] : a user-defined function which accepts an
+          array of distances, and returns an array of the same shape
+          containing the weights.
+
+        Refer to the example entitled
+        :ref:`sphx_glr_auto_examples_neighbors_plot_classification.py`
+        showing the impact of the `weights` parameter on the decision
+        boundary.
+
+    algorithm : {'auto', 'ball_tree', 'kd_tree', 'brute'}, default='auto'
+        Algorithm used to compute the nearest neighbors:
+
+        - 'ball_tree' will use :class:`BallTree`
+        - 'kd_tree' will use :class:`KDTree`
+        - 'brute' will use a brute-force search.
+        - 'auto' will attempt to decide the most appropriate algorithm
+          based on the values passed to :meth:`fit` method.
+
+        Note: fitting on sparse input will override the setting of
+        this parameter, using brute force.
+
+    leaf_size : int, default=30
+        Leaf size passed to BallTree or KDTree.  This can affect the
+        speed of the construction and query, as well as the memory
+        required to store the tree.  The optimal value depends on the
+        nature of the problem.
+
+    p : float, default=2
+        Power parameter for the Minkowski metric. When p = 1, this is equivalent
+        to using manhattan_distance (l1), and euclidean_distance (l2) for p = 2.
+        For arbitrary p, minkowski_distance (l_p) is used. This parameter is expected
+        to be positive.
+
+    metric : str or callable, default='minkowski'
+        Metric to use for distance computation. Default is "minkowski", which
+        results in the standard Euclidean distance when p = 2. See the
+        documentation of `scipy.spatial.distance
+        <https://docs.scipy.org/doc/scipy/reference/spatial.distance.html>`_ and
+        the metrics listed in
+        :class:`~sklearn.metrics.pairwise.distance_metrics` for valid metric
+        values.
+
+        If metric is "precomputed", X is assumed to be a distance matrix and
+        must be square during fit. X may be a :term:`sparse graph`, in which
+        case only "nonzero" elements may be considered neighbors.
+
+        If metric is a callable function, it takes two arrays representing 1D
+        vectors as inputs and must return one value indicating the distance
+        between those vectors. This works for Scipy's metrics, but is less
+        efficient than passing the metric name as a string.
+
+    metric_params : dict, default=None
+        Additional keyword arguments for the metric function.
+
+    n_jobs : int, default=None
+        The number of parallel jobs to run for neighbors search.
+        ``None`` means 1 unless in a :obj:`joblib.parallel_backend` context.
+        ``-1`` means using all processors. See :term:`Glossary <n_jobs>`
+        for more details.
+        Doesn't affect :meth:`fit` method.
+
+    Returns
+    -------
+    pipeline : sklearn pipeline
+        Pipeline containing the DensityReweight adapter and the base estimator.
+    """
+    if base_estimator is None:
+        base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
+
+    return make_da_pipeline(
+        NearestNeighborReweightAdapter(
+            laplace_smoothing=laplace_smoothing,
+            weights=weights,
+            algorithm=algorithm,
+            leaf_size=leaf_size,
+            p=p,
+            metric=metric,
+            metric_params=metric_params,
+            n_jobs=n_jobs,
+        ),
+        base_estimator,
+    )
+
+
+class KMMReweightAdapter(BaseAdapter):
+    """Kernel Mean Matching (KMMReweight).
+
+    The idea of KMMReweight is to find an importance estimate w(x) such that
     the Maximum Mean Discrepancy (MMD) divergence between the target
     input density p_target(x) and the reweighted source input density
     w(x)p_source(x) is minimized.
@@ -699,7 +952,7 @@ class KMMAdapter(BaseAdapter):
     B : float, default=1000.
         Weight upper bound.
     eps : float, default=None
-        KMM tolerance parameter. If `None`, eps is set to
+        KMMReweight tolerance parameter. If `None`, eps is set to
         (sqrt(n_samples_source) - 1) / sqrt(n_samples_source).
     tol : float, default=1e-6
         Tolerance for the stopping criterion in the optimization.
@@ -873,7 +1126,7 @@ class KMMAdapter(BaseAdapter):
         return AdaptationOutput(X, sample_weight=weights)
 
 
-def KMM(
+def KMMReweight(
     base_estimator=None,
     kernel="rbf",
     gamma=None,
@@ -885,7 +1138,7 @@ def KMM(
     max_iter=1000,
     smooth_weights=False,
 ):
-    """KMM pipeline adapter and estimator.
+    """KMMReweight pipeline adapter and estimator.
 
     see [1]_ for details.
 
@@ -904,7 +1157,7 @@ def KMM(
     B : float, default=1000.
         Weight upper bound.
     eps : float, default=None
-        KMM tolerance parameter. If `None`, eps is set to
+        KMMReweight tolerance parameter. If `None`, eps is set to
         (sqrt(n_samples_source) - 1) / sqrt(n_samples_source).
     tol : float, default=1e-6
         Tolerance for the stopping criterion in the optimization.
@@ -912,11 +1165,12 @@ def KMM(
         Number of maximum iteration before stopping the optimization.
     smooth_weights : bool, default=False
         If True, the weights are "smoothed" using the kernel function.
+        Pipeline containing the KMMReweight adapter and the base estimator.
 
     Returns
     -------
     pipeline : sklearn pipeline
-        Pipeline containing the KMM adapter and the base estimator.
+        Pipeline containing the KMMReweight adapter and the base estimator.
 
     References
     ----------
@@ -927,7 +1181,7 @@ def KMM(
     if base_estimator is None:
         base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
     return make_da_pipeline(
-        KMMAdapter(
+        KMMReweightAdapter(
             kernel=kernel,
             gamma=gamma,
             degree=degree,
@@ -1156,7 +1410,7 @@ def MMDTarSReweight(
     Returns
     -------
     pipeline : sklearn pipeline
-        Pipeline containing the ReweightDensity adapter and the base estimator.
+        Pipeline containing the DensityReweight adapter and the base estimator.
 
     References
     ----------
