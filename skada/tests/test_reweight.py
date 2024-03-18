@@ -270,7 +270,7 @@ def test_adaptation_output_propagation_multiple_steps(da_reg_dataset, mediator):
             assert sample_weight is None
             return X
 
-    clf = make_da_pipeline(ReweightDensityAdapter(), mediator, FakeEstimator())
+    clf = make_da_pipeline(DensityReweightAdapter(), mediator, FakeEstimator())
 
     # check no errors are raised
     clf.fit(X, y, sample_domain=sample_domain)
@@ -281,7 +281,7 @@ def test_merge_adaptation_output(da_reg_dataset):
     X, y, sample_domain = da_reg_dataset
 
     clf = make_da_pipeline(
-        SelectSourceTarget(ReweightDensityAdapter()),
+        SelectSourceTarget(DensityReweightAdapter()),
         Ridge().set_fit_request(sample_weight=True),
     )
 
