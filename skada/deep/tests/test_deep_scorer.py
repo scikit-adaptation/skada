@@ -7,34 +7,18 @@ import pytest
 import torch
 
 from skada.deep.base import (
-    BaseDALoss,
     DomainAwareCriterion,
     DomainAwareModule,
     DomainAwareNet,
     DomainBalancedDataLoader,
 )
-from skada.deep.modules import ToyModuleClassification2D
+from skada.deep.losses import TestLoss
+from skada.deep.modules import ToyModule2D
 from skada.metrics import (
     DeepEmbeddedValidation,
     PredictionEntropyScorer,
     SoftNeighborhoodDensity,
 )
-
-
-class TestLoss(BaseDALoss):
-    """Test Loss to check the deep API"""
-
-    def __init__(
-        self,
-    ):
-        super().__init__()
-
-    def forward(
-        self,
-        *args,
-    ):
-        """Compute the domain adaptation loss"""
-        return 0
 
 
 @pytest.mark.parametrize(
@@ -49,7 +33,7 @@ def test_generic_scorer_on_deepmodel(scorer, da_dataset):
     X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
     X_test, y_test, sample_domain_test = da_dataset.pack_test(as_targets=["t"])
 
-    module = ToyModuleClassification2D()
+    module = ToyModule2D(proba=True)
 
     estimator = DomainAwareNet(
         DomainAwareModule(module, "dropout"),

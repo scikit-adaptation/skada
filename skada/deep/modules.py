@@ -1,6 +1,6 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Remi Flamary <remi.flamary@polytechnique.edu>
-#         Remi Flamary <remi.flamary@polytechnique.edu>
+#         Yanis Lalou <yanis.lalou@polytechnique.edu>
 #
 # License: BSD 3-Clause
 import torch
@@ -11,33 +11,12 @@ from torch.autograd import Function
 class ToyModule2D(torch.nn.Module):
     """XXX add docstring here."""
 
-    def __init__(self, n_classes=2, num_features=10, nonlin=torch.nn.ReLU()):
-        super().__init__()
-
-        self.dense0 = torch.nn.Linear(2, num_features)
-        self.nonlin = nonlin
-        self.dropout = torch.nn.Dropout(0.5)
-        self.dense1 = torch.nn.Linear(num_features, n_classes)
-
-    def forward(
-        self,
-        X,
+    def __init__(
+        self, n_classes=2, num_features=10, nonlin=torch.nn.ReLU(), proba=False
     ):
-        """XXX add docstring here."""
-        X = self.nonlin(self.dense0(X))
-        X = self.dropout(X)
-        X = self.dense1(X)
-        return X
-
-
-class ToyModuleClassification2D(torch.nn.Module):
-    """XXX add docstring here."""
-
-    # Last layer is a softmax to get probabilities
-    # Mandatory to test the PredictionEntropyScorer scorer
-
-    def __init__(self, n_classes=2, num_features=10, nonlin=torch.nn.ReLU()):
         super().__init__()
+
+        self.proba = proba
 
         self.dense0 = torch.nn.Linear(2, num_features)
         self.nonlin = nonlin
@@ -53,7 +32,10 @@ class ToyModuleClassification2D(torch.nn.Module):
         X = self.nonlin(self.dense0(X))
         X = self.dropout(X)
         X = self.dense1(X)
-        X = self.softmax(X)
+        if self.proba:
+            # Last layer is a softmax to get probabilities
+            # Mandatory to test the PredictionEntropyScorer scorer
+            X = self.softmax(X)
         return X
 
 
