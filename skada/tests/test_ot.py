@@ -10,6 +10,7 @@ from sklearn.svm import SVC
 
 from skada import JDOTClassifier, JDOTRegressor, make_da_pipeline
 from skada._ot import get_jdot_class_cost_matrix, get_tgt_loss_jdot_class
+from skada.metrics import PredictionEntropyScorer
 from skada.utils import source_target_split
 
 
@@ -91,6 +92,12 @@ def test_JDOTClassifier(da_multiclass_dataset, da_binary_dataset):
         # JDOT with default base estimator
         jdot = JDOTClassifier()
         jdot.fit(X, y, sample_domain=sample_domain)
+
+        # with scorer needing predict_proba
+        scorer = PredictionEntropyScorer()
+        jdot = JDOTClassifier(base_estimator=SVC(probability=True))
+        jdot.fit(X, y, sample_domain=sample_domain)
+        scorer._score(jdot, X, y, sample_domain=sample_domain)
 
         # test raise error
         with np.testing.assert_raises(ValueError):
