@@ -627,7 +627,8 @@ class SelectSourceTarget(BaseSelector):
         check_is_fitted(self)
         return self.estimators_[domain]
 
-    def fit(self, X, y, **params):
+    def fit(self, X_container, y, **params):
+        X, params = self._unwrap_from_container(X_container, params)
         # xxx(okachaiev): seems like we have this block of code rather often
         #                 maybe should be a helper
         if y is not None:
@@ -659,8 +660,9 @@ class SelectSourceTarget(BaseSelector):
         self.estimators_ = estimators
         return self
 
-    def _route_to_estimator(self, method_name, X, y=None, **params):
+    def _route_to_estimator(self, method_name, X_container, y=None, **params):
         check_is_fitted(self)
+        X, params = self._unwrap_from_container(X_container, params)
         if y is not None:
             X, y, sample_domain = check_X_y_domain(X, y, sample_domain=params.get('sample_domain'))
         else:
@@ -689,8 +691,12 @@ class SelectSourceTarget(BaseSelector):
         return output
 
     @available_if(_estimator_has('transform', base_attr_name='source_estimator'))
-    def transform(self, X, **params):
-        return self._route_to_estimator('transform', X, **params)
+    def transform(self, X_container, **params):
+        # xxx(okachaiev): code duplication
+        output = self._route_to_estimator('transform', X_container, **params)
+        if not self._is_final and isinstance(X_container, AdaptationOutput):
+            output = X_container.merge_into(output)
+        return output
 
     # xxx(okachaiev): i guess this should return 'True' only if both
     # estimators have the same method. though practical advantage is,
