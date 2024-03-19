@@ -93,6 +93,12 @@ def test_JDOTClassifier(da_multiclass_dataset, da_binary_dataset):
         jdot = JDOTClassifier()
         jdot.fit(X, y, sample_domain=sample_domain)
 
+        # No predict_proba method in base estimator
+        with np.testing.assert_raises(AttributeError):
+            jdot = JDOTClassifier(base_estimator=SVC(probability=False), metric="hinge")
+            jdot.fit(X, y, sample_domain=sample_domain)
+            _ = jdot.predict_proba(X)
+
         # with scorer needing predict_proba
         scorer = PredictionEntropyScorer()
         jdot = JDOTClassifier(base_estimator=SVC(probability=True))
