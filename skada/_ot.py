@@ -730,7 +730,7 @@ class JDOTClassifier(DAEstimator):
         return self.estimator_.predict(X)
 
     def _check_proba(self):
-        if hasattr(self.base_estimator "predict_proba"):
+        if hasattr(self.base_estimator, "predict_proba"):
             return True
         else:
             raise AttributeError(
