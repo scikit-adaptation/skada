@@ -8,7 +8,7 @@ import pytest
 pytest.importorskip("torch")
 
 import numpy as np
-import pytest
+import torch
 
 from skada.datasets import make_shifted_datasets
 from skada.deep import DAN, DeepCoral
@@ -16,6 +16,10 @@ from skada.deep.modules import ToyModule2D
 
 
 def test_deepcoral():
+    # Set seed for reproducibility
+    np.random.seed(42)
+    torch.manual_seed(42)
+
     module = ToyModule2D()
     module.eval()
 
@@ -60,6 +64,10 @@ def test_deepcoral():
     ],
 )
 def test_dan(sigmas):
+    # Set seed for reproducibility
+    np.random.seed(42)
+    torch.manual_seed(42)
+
     module = ToyModule2D()
     module.eval()
 
@@ -79,7 +87,7 @@ def test_dan(sigmas):
         sigmas=sigmas,
         layer_name="dropout",
         batch_size=10,
-        max_epochs=5,
+        max_epochs=10,
         train_split=None,
     )
 
