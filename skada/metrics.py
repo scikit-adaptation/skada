@@ -410,15 +410,9 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         features_train = transformer(X_train)
         features_val = transformer(X_val)
         features_target = transformer(X[~source_idx])
-
-        if hasattr(features_train, "get"):
-            # The transformer comes not from a deep model,
-            # we need to extract the features
-            features_train = features_train.get("X")
-            features_val = features_val.get("X")
-            features_target = features_target.get("X")
-        else:
+        if not isinstance(features_train, np.ndarray):
             # The transformer comes from a deep model
+            # and returns a torch.Tensor
             features_train = features_train.detach().numpy()
             features_val = features_val.detach().numpy()
             features_target = features_target.detach().numpy()
