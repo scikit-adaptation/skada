@@ -10,6 +10,7 @@ import ot
 from sklearn.base import clone
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.preprocessing import OneHotEncoder
+from sklearn.utils.metaestimators import available_if
 from sklearn.utils.validation import check_is_fitted
 
 from .base import DAEstimator
@@ -728,7 +729,26 @@ class JDOTClassifier(DAEstimator):
             )
         return self.estimator_.predict(X)
 
-    def score(self, X, y, sample_domain=None, *, sample_weight=None):
+    def _check_proba(self):
+        if hasattr(self.base_estimator, "predict_proba"):
+            return True
+        else:
+            raise AttributeError(
+                "The base estimator does not have a predict_proba method"
+            )
+
+    @available_if(_check_proba)
+    def predict_proba(self, X, sample_domain=None, *, sample_weight=None):
+        """Predict using the model"""
+        check_is_fitted(self)
+        if sample_domain is not None and np.any(sample_domain >= 0):
+            warnings.warn(
+                "Source domain detected. Predictor is trained on target"
+                "and prediction might be biased."
+            )
+        return self.estimator_.predict_proba(X)
+
+    def score(self, X, y, sample_domain=None, *, sample_weight=None, **kwargs):
         """Return the scores of the prediction"""
         check_is_fitted(self)
         if sample_domain is not None and np.any(sample_domain >= 0):
