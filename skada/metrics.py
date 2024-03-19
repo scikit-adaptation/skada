@@ -20,6 +20,8 @@ from sklearn.utils import check_random_state
 from sklearn.utils.extmath import softmax
 from sklearn.utils.metadata_routing import _MetadataRequester, get_routing_for_object
 
+from skada.base import AdaptationOutput
+
 from ._utils import (
     _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
     _DEFAULT_MASKED_TARGET_REGRESSION_LABEL,
@@ -410,7 +412,17 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         features_train = transformer(X_train)
         features_val = transformer(X_val)
         features_target = transformer(X[~source_idx])
-        if not isinstance(features_train, np.ndarray):
+
+        # 3 cases:
+        # - features_train is an AdaptationOutput --> call get('X')
+        # - features_train is a numpy array --> Do nothing
+        # - features_train is a torch.Tensor --> call detach().numpy()
+        if isinstance(features_train, AdaptationOutput):
+            features_train = features_train.get("X")
+            features_val = features_val.get("X")
+            features_target = features_target.get("X")
+
+        elif not isinstance(features_train, np.ndarray):
             # The transformer comes from a deep model
             # and returns a torch.Tensor
             features_train = features_train.detach().numpy()
