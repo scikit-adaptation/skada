@@ -1,5 +1,6 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Oleksii Kachaiev <kachayev@gmail.com>
+#         Yanis Lalou <yanis.lalou@polytechnique.edu>
 #
 # License: BSD 3-Clause
 import pytest
@@ -8,10 +9,15 @@ pytest.importorskip("torch")
 
 import numpy as np
 import pytest
+import torch
 
 from skada.datasets import make_shifted_datasets
 from skada.deep import DAN, DeepCoral
 from skada.deep.modules import ToyModule2D
+
+# Set seed for reproducibility
+np.random.seed(42)
+torch.manual_seed(42)
 
 
 def test_deepcoral():
