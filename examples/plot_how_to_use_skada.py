@@ -24,7 +24,7 @@ from sklearn.svm import SVC
 from skada import (
     CORAL,
     CORALAdapter,
-    GaussianReweightDensityAdapter,
+    GaussianReweightAdapter,
     PerDomain,
     SelectSource,
     make_da_pipeline,
@@ -136,7 +136,7 @@ print("Accuracy on target:", pipe.score(Xt, yt))
 # concept drift).
 pipe = make_da_pipeline(
     StandardScaler(),
-    GaussianReweightDensityAdapter(),
+    GaussianReweightAdapter(),
     LogisticRegression().set_fit_request(sample_weight=True),
 )
 pipe.fit(X, y, sample_domain=sample_domain)

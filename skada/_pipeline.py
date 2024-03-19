@@ -151,7 +151,15 @@ def _name_estimators(estimators):
     names = []
 
     for estimator in estimators:
-        name = type(estimator.base_estimator).__name__.lower()
+        # xxx(okachaiev): this logic gets progressively more
+        # awkward. maybe we just need to make sure that default
+        # 'Shared' selector does not get into a way of setting
+        # parameters, but all others are just fine to be more
+        # verbose
+        if hasattr(estimator, "base_estimator"):
+            name = type(estimator.base_estimator).__name__.lower()
+        else:
+            name = estimator.__class__.__name__.lower()
         if isinstance(estimator, PerDomain):
             name = "perdomain_" + name
         names.append(name)
