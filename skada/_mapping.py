@@ -102,7 +102,7 @@ class OTMappingAdapter(BaseOTMappingAdapter):
     """Domain Adaptation Using Optimal Transport.
 
     See [6]_ for details.
-    
+
     Parameters
     ----------
     metric : str, optional (default="sqeuclidean")
@@ -188,7 +188,7 @@ class EntropicOTMappingAdapter(BaseOTMappingAdapter):
     """Domain Adaptation Using Optimal Transport.
 
     See [6]_ for details.
-    
+
     Parameters
     ----------
     reg_e : float, default=1
@@ -299,7 +299,7 @@ class ClassRegularizerOTMappingAdapter(BaseOTMappingAdapter):
     """Domain Adaptation Using Optimal Transport.
 
     See [6]_ for details.
-    
+
     Parameters
     ----------
     reg_e : float, default=1
@@ -556,7 +556,7 @@ class CORALAdapter(BaseAdapter):
     """Estimator based on Correlation Alignment [1]_.
 
     See [5]_ for details.
-    
+
     Parameters
     ----------
     reg : 'auto' or float, default="auto"
