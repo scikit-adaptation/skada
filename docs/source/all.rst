@@ -36,6 +36,7 @@ Sample mapping and alignment DA methods
 
    SubspaceAlignment
    TransferComponentAnalysis
+   TransferJointMatching
    CORAL
    OTMapping
    EntropicOTMapping
