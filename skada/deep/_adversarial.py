@@ -26,7 +26,7 @@ class DANNLoss(BaseDALoss):
     This loss tries to minimize the divergence between features with
     adversarial method. The weights are updated to make harder
     to classify domains (i.e., remove domain-specific features).
-    
+
     See [15]_ for details.
 
     Parameters
