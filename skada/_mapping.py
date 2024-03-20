@@ -922,7 +922,7 @@ def MMDLSConSMapping(
     References
     ----------
     .. [21] Kun Zhang et. al. Domain Adaptation under Target and Conditional Shift
-           In ICML, 2013.
+            In ICML, 2013.
     """
     if base_estimator is None:
         base_estimator = SVC(kernel="rbf")
