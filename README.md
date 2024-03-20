@@ -23,8 +23,8 @@ The following algorithms are currently implemented.
 ### Domain adaptation algorithms
 
 - Sample reweighting methods (Gaussian [1], Discriminant [2], KLIEPReweight [3],
-  DensityRatio [4], TarS [22])
-- Sample mapping methods (CORAL [5], Optimal Transport DA OTDA [6], LinearMonge [7], LS-ConS [22])
+  DensityRatio [4], TarS [21])
+- Sample mapping methods (CORAL [5], Optimal Transport DA OTDA [6], LinearMonge [7], LS-ConS [21])
 - Subspace methods (SubspaceAlignment [8], TCA [9])
 - Other methods (JDOT [10], DASVM [11])
 
@@ -46,7 +46,7 @@ estimator and an `Adapter` that can be used in a DA pipeline with
 - Prediction entropy [18]
 - Soft neighborhood density [19]
 - Deep Embedded Validation (DEV) [20]
-- Circular Validation [21]
+- Circular Validation [11]
 
 
 ## Installation
