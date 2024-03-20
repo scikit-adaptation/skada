@@ -679,7 +679,7 @@ def KLIEPReweight(
 class NearestNeighborReweightAdapter(BaseAdapter):
     """Adapter based on re-weighting samples using a 1NN,
 
-    See [22]_ for details. 
+    See [22]_ for details.
 
     Parameters
     ----------
@@ -697,7 +697,7 @@ class NearestNeighborReweightAdapter(BaseAdapter):
 
     References
     ----------
-    .. [22] Nearest neighbor-based importance weighting. 
+    .. [22] Nearest neighbor-based importance weighting.
             In 2012 IEEE International Workshop on Machine
             Learning for Signal Processing, pages 1–6. IEEE.
     """
@@ -830,7 +830,7 @@ def NearestNeighborReweight(
     will be used to estimate the weights in the `adapt` method
 
     See [22]_ for details.
-    
+
     Parameters
     ----------
     base_estimator : sklearn estimator, default=None
@@ -914,10 +914,10 @@ def NearestNeighborReweight(
     -------
     pipeline : sklearn pipeline
         Pipeline containing the DensityReweight adapter and the base estimator.
-        
+
     References
     ----------
-    .. [22] Nearest neighbor-based importance weighting. 
+    .. [22] Nearest neighbor-based importance weighting.
             In 2012 IEEE International Workshop on Machine
             Learning for Signal Processing, pages 1–6. IEEE.
     """
