@@ -697,9 +697,9 @@ class NearestNeighborReweightAdapter(BaseAdapter):
 
     References
     ----------
-    .. [22] Masashi Sugiyama et. al. Direct Importance Estimation with Model Selection
-           and Its Application to Covariate Shift Adaptation.
-           In NeurIPS, 2007.
+    .. [22] Nearest neighbor-based importance weighting. 
+            In 2012 IEEE International Workshop on Machine
+            Learning for Signal Processing, pages 1–6. IEEE.
     """
 
     def __init__(
@@ -917,9 +917,9 @@ def NearestNeighborReweight(
         
     References
     ----------
-    .. [22] Masashi Sugiyama et. al. Direct Importance Estimation with Model Selection
-           and Its Application to Covariate Shift Adaptation.
-           In NeurIPS, 2007.
+    .. [22] Nearest neighbor-based importance weighting. 
+            In 2012 IEEE International Workshop on Machine
+            Learning for Signal Processing, pages 1–6. IEEE.
     """
     if base_estimator is None:
         base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
@@ -981,8 +981,8 @@ class KMMReweightAdapter(BaseAdapter):
     References
     ----------
     .. [23] J. Huang, A. Gretton, K. Borgwardt, B. Schölkopf and A. J. Smola.
-           'Correcting sample selection bias by unlabeled data.'
-           In NIPS, 2007.
+            'Correcting sample selection bias by unlabeled data.'
+            In NIPS, 2007.
     """
 
     def __init__(
@@ -1185,8 +1185,8 @@ def KMMReweight(
     References
     ----------
     .. [23] J. Huang, A. Gretton, K. Borgwardt, B. Schölkopf and A. J. Smola.
-           'Correcting sample selection bias by unlabeled data.'
-           In NIPS, 2007.
+            'Correcting sample selection bias by unlabeled data.'
+            In NIPS, 2007.
     """
     if base_estimator is None:
         base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
@@ -1243,7 +1243,7 @@ class MMDTarSReweightAdapter(BaseAdapter):
     References
     ----------
     .. [21] Kun Zhang et. al. Domain Adaptation under Target and Conditional Shift
-           In ICML, 2013.
+            In ICML, 2013.
     """
 
     def __init__(self, gamma, reg=1e-10, tol=1e-6, max_iter=1000):
@@ -1425,7 +1425,7 @@ def MMDTarSReweight(
     References
     ----------
     .. [21] Kun Zhang et. al. Domain Adaptation under Target and Conditional Shift
-           In ICML, 2013.
+            In ICML, 2013.
     """
     if base_estimator is None:
         base_estimator = SVC().set_fit_request(sample_weight=True)

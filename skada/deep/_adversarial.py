@@ -25,8 +25,9 @@ class DANNLoss(BaseDALoss):
 
     This loss tries to minimize the divergence between features with
     adversarial method. The weights are updated to make harder
-    to classify domains (i.e., remove domain-specific features)
-    See [15]_.
+    to classify domains (i.e., remove domain-specific features).
+    
+    See [15]_ for details.
 
     Parameters
     ----------
@@ -36,7 +37,7 @@ class DANNLoss(BaseDALoss):
 
     References
     ----------
-    .. [15]  Yaroslav Ganin et. al. Domain-Adversarial Training
+    .. [15] Yaroslav Ganin et. al. Domain-Adversarial Training
             of Neural Networks  In Journal of Machine Learning
             Research, 2016.
     """
@@ -115,7 +116,7 @@ def DANN(
 
     References
     ----------
-    .. [15]  Yaroslav Ganin et. al. Domain-Adversarial Training
+    .. [15] Yaroslav Ganin et. al. Domain-Adversarial Training
             of Neural Networks  In Journal of Machine Learning
             Research, 2016.
     """
@@ -160,7 +161,7 @@ class CDANLoss(BaseDALoss):
 
     References
     ----------
-    .. [16]  Mingsheng Long et. al. Conditional Adversarial Domain Adaptation
+    .. [16] Mingsheng Long et. al. Conditional Adversarial Domain Adaptation
             In NeurIPS, 2016.
     """
 
@@ -221,7 +222,7 @@ class CDANModule(DomainAwareModule):
 
     References
     ----------
-    .. [16]  Mingsheng Long et. al. Conditional Adversarial Domain Adaptation
+    .. [16] Mingsheng Long et. al. Conditional Adversarial Domain Adaptation
             In NeurIPS, 2016.
     """
 
@@ -312,7 +313,7 @@ def CDAN(
 ):
     """Conditional Domain Adversarial Networks (CDAN).
 
-    From [1]_.
+    From [16]_.
 
     Parameters
     ----------
@@ -344,7 +345,7 @@ def CDAN(
 
     References
     ----------
-    .. [1]  Mingsheng Long et. al. Conditional Adversarial Domain Adaptation
+    .. [16]  Mingsheng Long et. al. Conditional Adversarial Domain Adaptation
             In NeurIPS, 2016.
     """
     if domain_classifier is None:

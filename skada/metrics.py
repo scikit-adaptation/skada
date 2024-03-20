@@ -85,7 +85,7 @@ class SupervisedScorer(_BaseDomainAwareScorer):
 class ImportanceWeightedScorer(_BaseDomainAwareScorer):
     """Score based on source data using sample weight.
 
-    See [1]_ for details.
+    See [17]_ for details.
 
     Parameters
     ----------
@@ -113,7 +113,7 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
 
     References
     ----------
-    .. [1]  Masashi Sugiyama. Covariate Shift Adaptation
+    .. [17] Masashi Sugiyama et al. Covariate Shift Adaptation
             by Importance Weighted Cross Validation.
             Journal of Machine Learning Research, 2007.
     """
@@ -186,7 +186,7 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
 class PredictionEntropyScorer(_BaseDomainAwareScorer):
     """Score based on the entropy of predictions on unsupervised dataset.
 
-    See [1]_ for details.
+    See [18]_ for details.
 
     Parameters
     ----------
@@ -209,7 +209,7 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
 
     References
     ----------
-    .. [1]  Pietro Morerio. Minimal-Entropy correlation alignment
+    .. [18] Pietro Morerio et al. Minimal-Entropy correlation alignment
             for unsupervised deep domain adaptation.
             ICLR, 2018.
     """
@@ -262,7 +262,7 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
 class SoftNeighborhoodDensity(_BaseDomainAwareScorer):
     """Score based on the entropy of similarity between unsupervised dataset.
 
-    See [1]_ for details.
+    See [19]_ for details.
 
     Parameters
     ----------
@@ -276,7 +276,7 @@ class SoftNeighborhoodDensity(_BaseDomainAwareScorer):
 
     References
     ----------
-    .. [1]  Kuniaki Saito. Tune it the Right Way: Unsupervised Validation
+    .. [19] Kuniaki Saito et al. Tune it the Right Way: Unsupervised Validation
             of Domain Adaptation via Soft Neighborhood Density.
             International Conference on Computer Vision, 2021.
     """
@@ -311,7 +311,7 @@ class SoftNeighborhoodDensity(_BaseDomainAwareScorer):
 class DeepEmbeddedValidation(_BaseDomainAwareScorer):
     """Loss based on source data using features representation to weight samples.
 
-    See [1]_ for details.
+    See [20]_ for details.
 
     Parameters
     ----------
@@ -332,7 +332,7 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
 
     References
     ----------
-    .. [1]  Kaichao You. Towards Accurate Model Selection
+    .. [20] Kaichao You et al. Towards Accurate Model Selection
             in Deep Unsupervised Domain Adaptation.
             ICML, 2019.
     """
@@ -412,7 +412,7 @@ class CircularValidation(_BaseDomainAwareScorer):
     computed using the source_scorer between the true source labels and
     the predicted source labels.
 
-    See [21]_ for details.
+    See [11]_ for details.
 
     Parameters
     ----------
@@ -426,9 +426,9 @@ class CircularValidation(_BaseDomainAwareScorer):
 
     References
     ----------
-    .. [21]  Bruzzone, Lorenzo & Marconcini, Mattia.
-            Domain Adaptation Problems: A DASVM Classification Technique
-            and a Circular Validation Strategy. IEEE, 2010.
+    .. [11] Bruzzone, L., & Marconcini, M. 'Domain adaptation problems: A DASVM
+            classification technique and a circular validation strategy.'
+            IEEE transactions on pattern analysis and machine intelligence, (2009).
     """
 
     def __init__(
