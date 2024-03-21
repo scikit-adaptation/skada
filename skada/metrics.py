@@ -486,20 +486,22 @@ class CircularValidation(_BaseDomainAwareScorer):
                 y[source_idx], np.ones_like(y[source_idx]) * y_pred_target[0]
             )
         else:
-            # We need to re-encode the target labels
-            # since some estimator like XGBoost
-            # only supports labels in [0, num_classes-1]
-            # and y_pred_target may not be in this range
-            le = LabelEncoder()
-            le.fit(y_pred_target)
-            y_pred_target = le.transform(y_pred_target)
+            y_type = _find_y_type(y[source_idx])
+
+            if y_type == Y_Type.DISCRETE:
+                # We need to re-encode the target labels
+                # since some estimator like XGBoost
+                # only supports labels in [0, num_classes-1]
+                # and y_pred_target may not be in this range
+                le = LabelEncoder()
+                le.fit(y_pred_target)
+                y_pred_target = le.transform(y_pred_target)
 
             backward_sample_domain = -sample_domain
 
             backward_y = np.zeros_like(y)
             backward_y[~source_idx] = y_pred_target
 
-            y_type = _find_y_type(y[source_idx])
             if y_type == Y_Type.DISCRETE:
                 backward_y[source_idx] = _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
             else:
@@ -508,8 +510,9 @@ class CircularValidation(_BaseDomainAwareScorer):
             backward_estimator.fit(X, backward_y, sample_domain=backward_sample_domain)
             y_pred_source = backward_estimator.predict(X[source_idx])
 
-            # We go back to the original labels
-            y_pred_source = le.inverse_transform(y_pred_source)
+            if y_type == Y_Type.DISCRETE:
+                # We go back to the original labels
+                y_pred_source = le.inverse_transform(y_pred_source)
 
             # We can now compute the score
             score = self.source_scorer(y[source_idx], y_pred_source)
