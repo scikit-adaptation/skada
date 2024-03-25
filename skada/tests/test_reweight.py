@@ -27,7 +27,7 @@ from skada import (
     make_da_pipeline,
     source_target_split,
 )
-from skada.datasets import make_shifted_datasets
+from skada.utils import source_target_merge
 
 
 @pytest.mark.parametrize(
@@ -178,9 +178,31 @@ def _base_test_new_X_adapt(estimator, da_dataset):
     ],
 )
 def test_new_X_adapt(estimator, da_dataset, da_reg_dataset):
-    da_dataset = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    # Test when X_source.shape[0] < X_target.shape[0]
+    X_train, y_train, sample_domain = da_dataset.pack_train(
+        as_sources=["s"], as_targets=["t"]
+    )
+    Xs, Xt, ys, yt = source_target_split(X_train, y_train, sample_domain=sample_domain)
+    Xt = np.concatenate((Xt, Xt), axis=0)
+    yt = np.concatenate((yt, yt), axis=0)
 
-    _base_test_new_X_adapt(estimator, da_dataset)
+    X_train, y_train, sample_domain = source_target_merge(Xs, Xt, ys, yt)
+    assert Xs.shape[0] < Xt.shape[0]
+
+    _base_test_new_X_adapt(estimator, (X_train, y_train, sample_domain))
+
+    # Test when X_source.shape[0] > X_target.shape[0]
+    X_train, y_train, sample_domain = da_dataset.pack_train(
+        as_sources=["s"], as_targets=["t"]
+    )
+    Xs, Xt, ys, yt = source_target_split(X_train, y_train, sample_domain=sample_domain)
+    Xs = np.concatenate((Xs, Xs), axis=0)
+    ys = np.concatenate((ys, ys), axis=0)
+
+    X_train, y_train, sample_domain = source_target_merge(Xs, Xt, ys, yt)
+    assert Xs.shape[0] > Xt.shape[0]
+
+    _base_test_new_X_adapt(estimator, (X_train, y_train, sample_domain))
 
 
 @pytest.mark.parametrize(
@@ -233,50 +255,3 @@ def test_KMMReweight_new_X_adapt(da_dataset):
 
     assert np.allclose(res1["sample_weight"], res3["sample_weight"])
     assert not np.allclose(res1["sample_weight"], res2["sample_weight"])
-
-
-@pytest.mark.parametrize(
-    "estimator",
-    [
-        DensityReweightAdapter(),
-        GaussianReweightAdapter(),
-        DiscriminatorReweightAdapter(),
-        KLIEPReweightAdapter(gamma=[0.1, 1], random_state=42),
-        KMMReweightAdapter(gamma=0.1, smooth_weights=True),
-        MMDTarSReweightAdapter(gamma=1.0),
-    ],
-)
-def test_X_source_target_different_size(estimator):
-    # Test when X_source.shape[0] > X_target.shape[0]
-    X, y, sample_domain = make_shifted_datasets(
-        n_samples_source=20,
-        n_samples_target=10,
-        shift="covariate_shift",
-        noise=None,
-        return_dataset=False,
-    )
-
-    X_source, X_target, y_source, y_target = source_target_split(
-        X, y, sample_domain=sample_domain
-    )
-    assert X_source.shape[0] > X_target.shape[0]
-
-    # No exception should be raised
-    estimator.fit(X, y, sample_domain=sample_domain)
-
-    # Test when X_source.shape[0] < X_target.shape[0]
-    X, y, sample_domain = make_shifted_datasets(
-        n_samples_source=10,
-        n_samples_target=20,
-        shift="covariate_shift",
-        noise=None,
-        return_dataset=False,
-    )
-
-    X_source, X_target, y_source, y_target = source_target_split(
-        X, y, sample_domain=sample_domain
-    )
-    assert X_source.shape[0] < X_target.shape[0]
-
-    # No exception should be raised
-    estimator.fit(X, y, sample_domain=sample_domain)

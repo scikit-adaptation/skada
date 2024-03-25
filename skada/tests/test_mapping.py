@@ -9,6 +9,8 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression, Ridge
 from sklearn.svm import SVC
 
+from skada.utils import source_target_merge
+
 try:
     import torch
 except ImportError:
@@ -32,7 +34,7 @@ from skada import (
     make_da_pipeline,
     source_target_split,
 )
-from skada.datasets import DomainAwareDataset, make_shifted_datasets
+from skada.datasets import DomainAwareDataset
 
 
 @pytest.mark.parametrize(
@@ -172,9 +174,31 @@ def _base_test_new_X_adapt(estimator, da_dataset):
     ],
 )
 def test_new_X_adapt(estimator, da_dataset):
-    da_dataset = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    # Test when X_source.shape[0] < X_target.shape[0]
+    X_train, y_train, sample_domain = da_dataset.pack_train(
+        as_sources=["s"], as_targets=["t"]
+    )
+    Xs, Xt, ys, yt = source_target_split(X_train, y_train, sample_domain=sample_domain)
+    Xt = np.concatenate((Xt, Xt), axis=0)
+    yt = np.concatenate((yt, yt), axis=0)
 
-    _base_test_new_X_adapt(estimator, da_dataset)
+    X_train, y_train, sample_domain = source_target_merge(Xs, Xt, ys, yt)
+    assert Xs.shape[0] < Xt.shape[0]
+
+    _base_test_new_X_adapt(estimator, (X_train, y_train, sample_domain))
+
+    # Test when X_source.shape[0] > X_target.shape[0]
+    X_train, y_train, sample_domain = da_dataset.pack_train(
+        as_sources=["s"], as_targets=["t"]
+    )
+    Xs, Xt, ys, yt = source_target_split(X_train, y_train, sample_domain=sample_domain)
+    Xs = np.concatenate((Xs, Xs), axis=0)
+    ys = np.concatenate((ys, ys), axis=0)
+
+    X_train, y_train, sample_domain = source_target_merge(Xs, Xt, ys, yt)
+    assert Xs.shape[0] > Xt.shape[0]
+
+    _base_test_new_X_adapt(estimator, (X_train, y_train, sample_domain))
 
 
 @pytest.mark.parametrize(
@@ -192,54 +216,3 @@ def test_new_X_adapt(estimator, da_dataset):
 )
 def test_reg_new_X_adapt(estimator, da_reg_dataset):
     _base_test_new_X_adapt(estimator, da_reg_dataset)
-
-
-@pytest.mark.parametrize(
-    "estimator",
-    [
-        OTMappingAdapter(),
-        EntropicOTMappingAdapter(),
-        ClassRegularizerOTMappingAdapter(norm="lpl1"),
-        ClassRegularizerOTMappingAdapter(norm="l1l2"),
-        LinearOTMappingAdapter(),
-        CORALAdapter(),
-        pytest.param(
-            MMDLSConSMappingAdapter(gamma=1e-3),
-            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
-        ),
-    ],
-)
-def test_X_source_target_different_size(estimator):
-    # Test when X_source.shape[0] > X_target.shape[0]
-    X, y, sample_domain = make_shifted_datasets(
-        n_samples_source=20,
-        n_samples_target=10,
-        shift="covariate_shift",
-        noise=None,
-        return_dataset=False,
-    )
-
-    X_source, X_target, y_source, y_target = source_target_split(
-        X, y, sample_domain=sample_domain
-    )
-    assert X_source.shape[0] > X_target.shape[0]
-
-    # No exception should be raised
-    estimator.fit(X, y, sample_domain=sample_domain)
-
-    # Test when X_source.shape[0] < X_target.shape[0]
-    X, y, sample_domain = make_shifted_datasets(
-        n_samples_source=10,
-        n_samples_target=20,
-        shift="covariate_shift",
-        noise=None,
-        return_dataset=False,
-    )
-
-    X_source, X_target, y_source, y_target = source_target_split(
-        X, y, sample_domain=sample_domain
-    )
-    assert X_source.shape[0] < X_target.shape[0]
-
-    # No exception should be raised
-    estimator.fit(X, y, sample_domain=sample_domain)
