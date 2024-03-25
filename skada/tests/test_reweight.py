@@ -31,6 +31,8 @@ from skada import (
     source_target_split,
 )
 from skada.base import (
+    AdaptationOutput,
+    BaseAdapter,
     SelectSource,
     SelectSourceTarget,
     SelectTarget,
@@ -279,12 +281,28 @@ def test_adaptation_output_propagation_multiple_steps(da_reg_dataset, mediator):
 
 def test_merge_adaptation_output(da_reg_dataset):
     X, y, sample_domain = da_reg_dataset
+    _, X_target, _, target_domain = source_target_split(
+        X, sample_domain, sample_domain=sample_domain
+    )
+
+    class FakeAdapter(BaseAdapter):
+        def __init__(self, output_sign):
+            self.output_sign = output_sign
+
+        def fit(self, X, y=None, *, sample_domain=None):
+            self.fitted_ = True
+            return self
+
+        def adapt(self, X, y=None, sample_domain=None):
+            return AdaptationOutput(
+                X, sample_weight=np.ones(X.shape[0]) * self.output_sign
+            )
 
     clf = make_da_pipeline(
-        SelectSourceTarget(DensityReweightAdapter()),
+        SelectSourceTarget(FakeAdapter(-1), FakeAdapter(1)),
         Ridge().set_fit_request(sample_weight=True),
     )
 
     # check no errors are raised
     clf.fit(X, y, sample_domain=sample_domain)
-    clf.predict(X)
+    clf.predict(X_target, sample_domain=target_domain)
