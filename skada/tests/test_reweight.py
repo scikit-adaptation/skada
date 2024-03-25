@@ -48,7 +48,7 @@ from skada import (
         ),
         DiscriminatorReweight(),
         make_da_pipeline(
-            KLIEPReweightAdapter(gamma=[0.1, 1], random_state=42),
+            KLIEPReweightAdapter(gamma=[0.1, 1, "auto", "scale"], random_state=42),
             LogisticRegression().set_fit_request(sample_weight=True),
         ),
         KLIEPReweight(gamma=[0.1, 1], random_state=42),
@@ -105,7 +105,7 @@ def test_reweight_estimator(estimator, da_dataset):
         ),
         DiscriminatorReweight(Ridge().set_fit_request(sample_weight=True)),
         make_da_pipeline(
-            KLIEPReweightAdapter(gamma=[0.1, 1], random_state=42),
+            KLIEPReweightAdapter(gamma=[0.1, 1, "auto", "scale"], random_state=42),
             Ridge().set_fit_request(sample_weight=True),
         ),
         KLIEPReweight(
@@ -171,7 +171,7 @@ def _base_test_new_X_adapt(estimator, da_dataset):
         DensityReweightAdapter(),
         GaussianReweightAdapter(),
         DiscriminatorReweightAdapter(),
-        KLIEPReweightAdapter(gamma=[0.1, 1], random_state=42),
+        KLIEPReweightAdapter(gamma=[0.1, 1, "auto", "scale"], random_state=42),
         KMMReweightAdapter(gamma=0.1, smooth_weights=True),
         MMDTarSReweightAdapter(gamma=1.0),
     ],
@@ -188,7 +188,7 @@ def test_new_X_adapt(estimator, da_dataset, da_reg_dataset):
         DensityReweightAdapter(),
         GaussianReweightAdapter(),
         DiscriminatorReweightAdapter(),
-        KLIEPReweightAdapter(gamma=[0.1, 1], random_state=42),
+        KLIEPReweightAdapter(gamma=[0.1, 1, "auto", "scale"], random_state=42),
         KMMReweightAdapter(gamma=0.1, smooth_weights=True),
         MMDTarSReweightAdapter(gamma=1.0),
     ],
