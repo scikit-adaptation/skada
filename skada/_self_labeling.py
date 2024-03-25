@@ -2,8 +2,10 @@
 DASVM estimator
 ===============
 
-The DASVM method comes from [21].
-
+The DASVM method comes from [11].
+.. [11] Bruzzone, L., & Marconcini, M. 'Domain adaptation problems: A DASVM
+        classification technique and a circular validation strategy.'
+        IEEE transactions on pattern analysis and machine intelligence, (2009).
 """
 # Author: Ruben Bueno <ruben.bueno@polytechnique.edu>
 #
@@ -39,6 +41,12 @@ class DASVMClassifier(DAEstimator):
     save_indices : Bool
         True if this object should remembers all the values of
             `index_source_deleted` and `index_target_added`
+
+    References
+    ----------
+    .. [11] Bruzzone, L., & Marconcini, M. 'Domain adaptation problems: A DASVM
+            classification technique and a circular validation strategy.'
+            IEEE transactions on pattern analysis and machine intelligence, (2009).
     """
 
     def __init__(
