@@ -264,7 +264,7 @@ def test_adaptation_output_propagation_multiple_steps(da_reg_dataset, mediator):
         __metadata_request__predict = {"sample_weight": True}
 
         def fit(self, _X, _y, sample_weight=None):
-            assert sample_weight is not None
+            assert sample_weight.shape[0] > 0
             return self
 
         def predict(self, X, sample_weight=None):
@@ -286,8 +286,8 @@ def test_merge_adaptation_output(da_reg_dataset):
     )
 
     class FakeAdapter(BaseAdapter):
-        def __init__(self, output_sign):
-            self.output_sign = output_sign
+        def __init__(self, multiplier):
+            self.multiplier = multiplier
 
         def fit(self, X, y=None, *, sample_domain=None):
             self.fitted_ = True
@@ -295,11 +295,11 @@ def test_merge_adaptation_output(da_reg_dataset):
 
         def adapt(self, X, y=None, sample_domain=None):
             return AdaptationOutput(
-                X, sample_weight=np.ones(X.shape[0]) * self.output_sign
+                X, sample_weight=np.ones(X.shape[0]) * self.multiplier
             )
 
     clf = make_da_pipeline(
-        SelectSourceTarget(FakeAdapter(-1), FakeAdapter(1)),
+        SelectSourceTarget(FakeAdapter(1.0), FakeAdapter(2.0)),
         Ridge().set_fit_request(sample_weight=True),
     )
 
