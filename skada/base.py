@@ -345,7 +345,7 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
                 if isinstance(X_container, AdaptationOutput):
                     for k in X_container:
                         marker = routing_request.requests.get(k)
-                        if v is not None and marker is None:
+                        if X_container[k] is not None and marker is None:
                             method = routing_request.method
                             raise IncompatibleMetadataError(
                                 f"The adapter provided '{k}' parameter which is not explicitly set as "  # noqa
