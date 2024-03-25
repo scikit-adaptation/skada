@@ -769,7 +769,7 @@ class MMDLSConSMappingAdapter(BaseAdapter):
         # compute R
         if discrete:
             self.classes_ = classes = torch.unique(y_source).numpy()
-            R = torch.zeros((X_source.shape[0], len(classes)), dtype=torch.float64)
+            R = torch.zeros((m, len(classes)), dtype=torch.float64)
             for i, c in enumerate(classes):
                 R[:, i] = (y_source == c).int()
         else:
