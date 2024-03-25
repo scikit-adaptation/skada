@@ -92,7 +92,7 @@ class GradientReversalLayer(Function):
 
 
 class DomainClassifier(nn.Module):
-    """Classifier Architecture from DANN paper [1]_.
+    """Classifier Architecture from DANN paper [15]_.
 
     Parameters
     ----------
@@ -104,7 +104,7 @@ class DomainClassifier(nn.Module):
 
     References
     ----------
-    .. [1]  Yaroslav Ganin et. al. Domain-Adversarial Training
+    .. [15]  Yaroslav Ganin et. al. Domain-Adversarial Training
             of Neural Networks  In Journal of Machine Learning
             Research, 2016.
     """
