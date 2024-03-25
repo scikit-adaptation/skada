@@ -424,9 +424,17 @@ class PerDomain(BaseSelector):
         # xxx(okachaiev): use check_*_domain to derive default domain labels
         sample_domain = params['sample_domain']
         output = None
-        for domain_label in np.unique(sample_domain):
+        lst_domains = np.unique(sample_domain)
+        # test if default target domain and unique target during fit and replace label
+        for domain_label in lst_domains:
             # xxx(okachaiev): fail if unknown domain is given
-            method = getattr(self.estimators_[domain_label], method_name)
+            try:
+                method = getattr(self.estimators_[domain_label], method_name)
+            except KeyError:
+                raise ValueError(
+                    f"Domain label {domain_label} is not present in the "
+                    "fitted estimators."
+                )
             idx, = np.where(sample_domain == domain_label)
             X_domain = X[idx]
             y_domain = y[idx] if y is not None else None

@@ -62,6 +62,15 @@ DA pipeline
 
    make_da_pipeline
 
+.. autosummary::
+   :toctree: gen_modules/
+   :template: class.rst
+
+   Shared
+   PerDomain
+   SourceSelect
+   TargetSelect
+
 Utilities
 ^^^^^^^^^
 
