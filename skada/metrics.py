@@ -15,7 +15,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import balanced_accuracy_score, check_scoring
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KernelDensity
-from sklearn.preprocessing import Normalizer
+from sklearn.preprocessing import LabelEncoder, Normalizer
 from sklearn.utils import check_random_state
 from sklearn.utils.extmath import softmax
 from sklearn.utils.metadata_routing import _MetadataRequester, get_routing_for_object
@@ -88,7 +88,7 @@ class SupervisedScorer(_BaseDomainAwareScorer):
 class ImportanceWeightedScorer(_BaseDomainAwareScorer):
     """Score based on source data using sample weight.
 
-    See [1]_ for details.
+    See [17]_ for details.
 
     Parameters
     ----------
@@ -116,7 +116,7 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
 
     References
     ----------
-    .. [1]  Masashi Sugiyama. Covariate Shift Adaptation
+    .. [17] Masashi Sugiyama et al. Covariate Shift Adaptation
             by Importance Weighted Cross Validation.
             Journal of Machine Learning Research, 2007.
     """
@@ -189,7 +189,7 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
 class PredictionEntropyScorer(_BaseDomainAwareScorer):
     """Score based on the entropy of predictions on unsupervised dataset.
 
-    See [1]_ for details.
+    See [18]_ for details.
 
     Parameters
     ----------
@@ -212,7 +212,7 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
 
     References
     ----------
-    .. [1]  Pietro Morerio. Minimal-Entropy correlation alignment
+    .. [18] Pietro Morerio et al. Minimal-Entropy correlation alignment
             for unsupervised deep domain adaptation.
             ICLR, 2018.
     """
@@ -265,7 +265,7 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
 class SoftNeighborhoodDensity(_BaseDomainAwareScorer):
     """Score based on the entropy of similarity between unsupervised dataset.
 
-    See [1]_ for details.
+    See [19]_ for details.
 
     Parameters
     ----------
@@ -279,7 +279,7 @@ class SoftNeighborhoodDensity(_BaseDomainAwareScorer):
 
     References
     ----------
-    .. [1]  Kuniaki Saito. Tune it the Right Way: Unsupervised Validation
+    .. [19] Kuniaki Saito et al. Tune it the Right Way: Unsupervised Validation
             of Domain Adaptation via Soft Neighborhood Density.
             International Conference on Computer Vision, 2021.
     """
@@ -314,7 +314,7 @@ class SoftNeighborhoodDensity(_BaseDomainAwareScorer):
 class DeepEmbeddedValidation(_BaseDomainAwareScorer):
     """Loss based on source data using features representation to weight samples.
 
-    See [1]_ for details.
+    See [20]_ for details.
 
     Parameters
     ----------
@@ -335,7 +335,7 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
 
     References
     ----------
-    .. [1]  Kaichao You. Towards Accurate Model Selection
+    .. [20] Kaichao You et al. Towards Accurate Model Selection
             in Deep Unsupervised Domain Adaptation.
             ICML, 2019.
     """
@@ -489,7 +489,7 @@ class CircularValidation(_BaseDomainAwareScorer):
     computed using the source_scorer between the true source labels and
     the predicted source labels.
 
-    See [21]_ for details.
+    See [11]_ for details.
 
     Parameters
     ----------
@@ -503,9 +503,9 @@ class CircularValidation(_BaseDomainAwareScorer):
 
     References
     ----------
-    .. [21]  Bruzzone, Lorenzo & Marconcini, Mattia.
-            Domain Adaptation Problems: A DASVM Classification Technique
-            and a Circular Validation Strategy. IEEE, 2010.
+    .. [11] Bruzzone, L., & Marconcini, M. 'Domain adaptation problems: A DASVM
+            classification technique and a circular validation strategy.'
+            IEEE transactions on pattern analysis and machine intelligence, (2009).
     """
 
     def __init__(
@@ -563,12 +563,22 @@ class CircularValidation(_BaseDomainAwareScorer):
                 y[source_idx], np.ones_like(y[source_idx]) * y_pred_target[0]
             )
         else:
+            y_type = _find_y_type(y[source_idx])
+
+            if y_type == Y_Type.DISCRETE:
+                # We need to re-encode the target labels
+                # since some estimator like XGBoost
+                # only supports labels in [0, num_classes-1]
+                # and y_pred_target may not be in this range
+                le = LabelEncoder()
+                le.fit(y_pred_target)
+                y_pred_target = le.transform(y_pred_target)
+
             backward_sample_domain = -sample_domain
 
             backward_y = np.zeros_like(y)
             backward_y[~source_idx] = y_pred_target
 
-            y_type = _find_y_type(y[source_idx])
             if y_type == Y_Type.DISCRETE:
                 backward_y[source_idx] = _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
             else:
@@ -577,6 +587,11 @@ class CircularValidation(_BaseDomainAwareScorer):
             backward_estimator.fit(X, backward_y, sample_domain=backward_sample_domain)
             y_pred_source = backward_estimator.predict(X[source_idx])
 
+            if y_type == Y_Type.DISCRETE:
+                # We go back to the original labels
+                y_pred_source = le.inverse_transform(y_pred_source)
+
+            # We can now compute the score
             score = self.source_scorer(y[source_idx], y_pred_source)
 
         return self._sign * score
