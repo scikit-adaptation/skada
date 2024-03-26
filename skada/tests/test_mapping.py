@@ -9,8 +9,6 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression, Ridge
 from sklearn.svm import SVC
 
-from skada.utils import source_target_merge
-
 try:
     import torch
 except ImportError:
@@ -34,7 +32,7 @@ from skada import (
     make_da_pipeline,
     source_target_split,
 )
-from skada.datasets import DomainAwareDataset
+from skada.datasets import DomainAwareDataset, make_shifted_datasets
 
 
 @pytest.mark.parametrize(
@@ -159,46 +157,50 @@ def _base_test_new_X_adapt(estimator, da_dataset):
 
 
 @pytest.mark.parametrize(
-    "estimator",
+    "estimator, n_samples_source, n_samples_target",
     [
-        OTMappingAdapter(),
-        EntropicOTMappingAdapter(),
-        ClassRegularizerOTMappingAdapter(norm="lpl1"),
-        ClassRegularizerOTMappingAdapter(norm="l1l2"),
-        LinearOTMappingAdapter(),
-        CORALAdapter(),
-        pytest.param(
-            MMDLSConSMappingAdapter(gamma=1e-3),
-            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+        (OTMappingAdapter(), 10, 100),
+        (OTMappingAdapter(), 100, 10),
+        (EntropicOTMappingAdapter(), 10, 100),
+        (EntropicOTMappingAdapter(), 100, 10),
+        (ClassRegularizerOTMappingAdapter(norm="lpl1"), 10, 100),
+        (ClassRegularizerOTMappingAdapter(norm="lpl1"), 100, 10),
+        (ClassRegularizerOTMappingAdapter(norm="l1l2"), 10, 100),
+        (ClassRegularizerOTMappingAdapter(norm="l1l2"), 100, 10),
+        (LinearOTMappingAdapter(), 10, 100),
+        (LinearOTMappingAdapter(), 100, 10),
+        (CORALAdapter(), 10, 100),
+        (CORALAdapter(), 100, 10),
+        (
+            pytest.param(
+                MMDLSConSMappingAdapter(gamma=1e-3),
+                marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+            ),
+            10,
+            100,
+        ),
+        (
+            pytest.param(
+                MMDLSConSMappingAdapter(gamma=1e-3),
+                marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+            ),
+            100,
+            10,
         ),
     ],
 )
-def test_new_X_adapt(estimator, da_dataset):
-    # Test when X_source.shape[0] < X_target.shape[0]
-    X_train, y_train, sample_domain = da_dataset.pack_train(
-        as_sources=["s"], as_targets=["t"]
+def test_new_X_adapt(estimator, da_dataset, n_samples_source, n_samples_target):
+    da_dataset = make_shifted_datasets(
+        n_samples_source=n_samples_source,
+        n_samples_target=n_samples_target,
+        shift="concept_drift",
+        mean=0.5,
+        noise=0.3,
+        label="regression",
+        random_state=42,
     )
-    Xs, Xt, ys, yt = source_target_split(X_train, y_train, sample_domain=sample_domain)
-    Xt = np.concatenate((Xt, Xt), axis=0)
-    yt = np.concatenate((yt, yt), axis=0)
 
-    X_train, y_train, sample_domain = source_target_merge(Xs, Xt, ys, yt)
-    assert Xs.shape[0] < Xt.shape[0]
-
-    _base_test_new_X_adapt(estimator, (X_train, y_train, sample_domain))
-
-    # Test when X_source.shape[0] > X_target.shape[0]
-    X_train, y_train, sample_domain = da_dataset.pack_train(
-        as_sources=["s"], as_targets=["t"]
-    )
-    Xs, Xt, ys, yt = source_target_split(X_train, y_train, sample_domain=sample_domain)
-    Xs = np.concatenate((Xs, Xs), axis=0)
-    ys = np.concatenate((ys, ys), axis=0)
-
-    X_train, y_train, sample_domain = source_target_merge(Xs, Xt, ys, yt)
-    assert Xs.shape[0] > Xt.shape[0]
-
-    _base_test_new_X_adapt(estimator, (X_train, y_train, sample_domain))
+    _base_test_new_X_adapt(estimator, da_dataset)
 
 
 @pytest.mark.parametrize(

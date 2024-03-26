@@ -27,7 +27,7 @@ from skada import (
     make_da_pipeline,
     source_target_split,
 )
-from skada.utils import source_target_merge
+from skada.datasets import make_shifted_datasets
 
 
 @pytest.mark.parametrize(
@@ -167,42 +167,34 @@ def _base_test_new_X_adapt(estimator, da_dataset):
 
 
 @pytest.mark.parametrize(
-    "estimator",
+    "estimator, n_samples_source, n_samples_target",
     [
-        DensityReweightAdapter(),
-        GaussianReweightAdapter(),
-        DiscriminatorReweightAdapter(),
-        KLIEPReweightAdapter(gamma=[0.1, 1], random_state=42),
-        KMMReweightAdapter(gamma=0.1, smooth_weights=True),
-        MMDTarSReweightAdapter(gamma=1.0),
+        (DensityReweightAdapter(), 10, 100),
+        (DensityReweightAdapter(), 100, 10),
+        (GaussianReweightAdapter(), 10, 100),
+        (GaussianReweightAdapter(), 100, 10),
+        (DiscriminatorReweightAdapter(), 10, 100),
+        (DiscriminatorReweightAdapter(), 100, 10),
+        (KLIEPReweightAdapter(gamma=[0.1, 1], random_state=42), 10, 100),
+        (KLIEPReweightAdapter(gamma=[0.1, 1], random_state=42), 100, 10),
+        (KMMReweightAdapter(gamma=0.1, smooth_weights=True), 10, 100),
+        (KMMReweightAdapter(gamma=0.1, smooth_weights=True), 100, 10),
+        (MMDTarSReweightAdapter(gamma=1.0), 10, 100),
+        (MMDTarSReweightAdapter(gamma=1.0), 100, 10),
     ],
 )
-def test_new_X_adapt(estimator, da_dataset, da_reg_dataset):
-    # Test when X_source.shape[0] < X_target.shape[0]
-    X_train, y_train, sample_domain = da_dataset.pack_train(
-        as_sources=["s"], as_targets=["t"]
+def test_new_X_adapt(estimator, n_samples_source, n_samples_target):
+    da_dataset = make_shifted_datasets(
+        n_samples_source=n_samples_source,
+        n_samples_target=n_samples_target,
+        shift="concept_drift",
+        mean=0.5,
+        noise=0.3,
+        label="regression",
+        random_state=42,
     )
-    Xs, Xt, ys, yt = source_target_split(X_train, y_train, sample_domain=sample_domain)
-    Xt = np.concatenate((Xt, Xt), axis=0)
-    yt = np.concatenate((yt, yt), axis=0)
 
-    X_train, y_train, sample_domain = source_target_merge(Xs, Xt, ys, yt)
-    assert Xs.shape[0] < Xt.shape[0]
-
-    _base_test_new_X_adapt(estimator, (X_train, y_train, sample_domain))
-
-    # Test when X_source.shape[0] > X_target.shape[0]
-    X_train, y_train, sample_domain = da_dataset.pack_train(
-        as_sources=["s"], as_targets=["t"]
-    )
-    Xs, Xt, ys, yt = source_target_split(X_train, y_train, sample_domain=sample_domain)
-    Xs = np.concatenate((Xs, Xs), axis=0)
-    ys = np.concatenate((ys, ys), axis=0)
-
-    X_train, y_train, sample_domain = source_target_merge(Xs, Xt, ys, yt)
-    assert Xs.shape[0] > Xt.shape[0]
-
-    _base_test_new_X_adapt(estimator, (X_train, y_train, sample_domain))
+    _base_test_new_X_adapt(estimator, da_dataset)
 
 
 @pytest.mark.parametrize(
