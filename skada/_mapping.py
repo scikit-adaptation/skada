@@ -9,6 +9,7 @@ from abc import abstractmethod
 
 import numpy as np
 from ot import da
+from sklearn.decomposition import PCA
 from sklearn.metrics.pairwise import pairwise_distances
 from sklearn.svm import SVC
 
@@ -523,6 +524,8 @@ def _sqrtm(C):
         Matrix inverse square root of C.
     """
     eigvals, eigvecs = np.linalg.eigh(C)
+    if np.any(eigvals < 0):
+        eigvals += 1e-14
     return (eigvecs * np.sqrt(eigvals)) @ eigvecs.T
 
 
@@ -933,3 +936,177 @@ def MMDLSConSMapping(
         ),
         base_estimator,
     )
+
+
+def _gsvd(A, B):
+    """Generalized singular value decomposition.
+
+    Compute the generalized singular value decomposition of two matrices A and B.
+
+    Parameters
+    ----------
+    A : array-like, shape (d, d)
+        The first matrix.
+    B : array-like, shape (d, d)
+        The second matrix.
+
+    Returns
+    -------
+    U_A : array-like, shape (d, d)
+        The left singular vectors of A.
+    U_B : array-like, shape (d, d)
+        The left singular vectors of B.
+    S_A : array-like, shape (d, d)
+        The singular values of A.
+    S_B : array-like, shape (d, d)
+        The singular values of B.
+    Vt : array-like, shape (d, d)
+        The right singular vectors of A and B.
+    """
+    d = A.shape[0]
+    if A.shape != B.shape or A.shape[1] != d:
+        raise ValueError("A and B must have the same shape and be square matrices")
+
+    # computation as described in the construction section of
+    # https://en.wikipedia.org/wiki/Generalized_singular_value_decomposition
+    C = np.block([[A], [B]])
+    k = np.linalg.matrix_rank(C)
+    P, D, Vt = np.linalg.svd(C, full_matrices=False)
+    Vt = Vt[:d]
+    P11 = P[:d, :k]
+    P21 = P[d:, :k]
+    U_A, Sigma1, Wt = np.linalg.svd(P11, full_matrices=False)
+    P21_W = P21 @ Wt.T
+    Sigma2 = np.linalg.norm(P21_W, axis=0)
+    U_B = P21_W / Sigma2
+
+    S_A = np.diag(Sigma1) @ Wt @ np.diag(D)
+    S_B = np.diag(Sigma2) @ Wt @ np.diag(D)
+
+    return U_A, U_B, S_A, S_B, Vt
+
+
+class GFKAdapter(BaseAdapter):
+    """Domain Adaptation using an infinite number of subspaces between domains.
+
+    Geodesic Flow Kernel (GFK) maps the source and target domains to an infinite
+    dimensional space with an infinite number of subspaces. The subspaces are
+    taken from the geodesic flow of the Grassmann manifold between the source
+    and target domains.
+
+    See [5]_ for details.
+
+    Parameters
+    ----------
+    n_components : int, default=None
+        Number of components to keep. If None, all components are kept:
+        ``n_components == min(n_samples, n_features) - 1``.
+
+    Attributes
+    ----------
+    `G_sqrtm_` : array-like, shape (n_features, n_features)
+        The square root of kernel matrix.
+
+    References
+    ----------
+    .. [5] Boqing Gong et. al. Geodesic Flow Kernel for Unsupervised Domain Adaptation
+           In CVPR, 2012.
+    """
+
+    def __init__(self, n_components=None):
+        super().__init__()
+        self.n_components = n_components
+
+    def _set_n_components(self, X):
+        if self.n_components is None:
+            self.n_components = min(X.shape[0], X.shape[1]) - 1
+        elif self.n_components > min(X.shape[0], X.shape[1]) - 1:
+            raise ValueError(
+                "n_components must be less than min(n_samples, n_features) - 1"
+            )
+
+    def _compute_pca_subspace(self, X):
+        pca = PCA(n_components=self.n_components)
+        pca.fit(X)
+        return pca.components_.T
+
+    def _kernel_computation(self, X_source, X_target):
+        """Kernel computation for the GFK algorithm."""
+        P_S = self._compute_pca_subspace(X_source)
+        P_S_fat, _, _ = np.linalg.svd(P_S, full_matrices=True)
+        R_S = P_S_fat[:, self.n_components :]
+        P_T = self._compute_pca_subspace(X_target)
+
+        U_1, U_2, Gamma, _, Vt = _gsvd(P_S.T @ P_T, R_S.T @ P_T)
+
+        theta = np.arccos(Gamma)
+
+        Lambda_1 = 1 + np.sinc(2 * theta / np.pi)
+        Lambda_3 = 1 - np.sinc(2 * theta / np.pi)
+
+        EPS_TOL = 1e-14
+        Lambda_2 = np.zeros_like(theta)
+        Lambda_2[theta > EPS_TOL] = (np.cos(2 * theta) - 1) / (2 * theta)
+        Lambda_2[theta <= EPS_TOL] = 0
+
+        A = np.block([P_S @ U_1, R_S @ U_2])
+        B = np.block(
+            [
+                [np.diag(Lambda_1), np.diag(Lambda_2)],
+                [np.diag(Lambda_2), np.diag(Lambda_3)],
+            ]
+        )
+        C = np.block([[U_1.T @ P_S.T], [U_2.T @ R_S.T]])
+        G = A @ B @ C
+
+        return G
+
+    def fit(self, X, y=None, sample_domain=None, **kwargs):
+        """Fit adaptation parameters.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : Ignored
+            Ignored.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
+        X, sample_domain = check_X_domain(X, sample_domain)
+        self._set_n_components(X)
+
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+
+        G = self._kernel_computation(X_source, X_target)
+        self.G_sqrtm_ = _sqrtm(G)
+
+        return self
+
+    def adapt(self, X, y=None, sample_domain=None, **kwargs):
+        """Predict adaptation (weights, sample or labels).
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : Ignored
+            Ignored.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        X_t : array-like, shape (n_samples, n_components)
+            The data (same as X).
+        """
+        X, sample_domain = check_X_domain(X, sample_domain)
+
+        X_adapt = X @ self.G_sqrtm_.T
+
+        return X_adapt
