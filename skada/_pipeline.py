@@ -91,7 +91,7 @@ def make_da_pipeline(
                 if name is not None:
                     nested_name = f"{name}__{nested_name}"
                 names.append(nested_name)
-                estimators.append(nested_selector)
+                estimators.append(nested_selector._unmark_as_final())
         else:
             names.append(name)
             estimators.append(estimator)
@@ -102,6 +102,7 @@ def make_da_pipeline(
         (auto_name, step) if user_name is None else (user_name, step)
         for user_name, (auto_name, step) in zip(names, steps)
     ]
+    named_steps[-1][1]._mark_as_final()
     return Pipeline(named_steps, memory=memory, verbose=verbose)
 
 
