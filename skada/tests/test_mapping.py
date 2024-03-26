@@ -159,31 +159,31 @@ def _base_test_new_X_adapt(estimator, da_dataset):
 @pytest.mark.parametrize(
     "estimator, n_samples_source, n_samples_target",
     [
-        (OTMappingAdapter(), 5, 10),
-        (OTMappingAdapter(), 10, 5),
-        (EntropicOTMappingAdapter(), 5, 10),
-        (EntropicOTMappingAdapter(), 10, 5),
-        (ClassRegularizerOTMappingAdapter(norm="lpl1"), 5, 10),
-        (ClassRegularizerOTMappingAdapter(norm="lpl1"), 10, 5),
-        (ClassRegularizerOTMappingAdapter(norm="l1l2"), 5, 10),
-        (ClassRegularizerOTMappingAdapter(norm="l1l2"), 10, 5),
-        (LinearOTMappingAdapter(), 5, 10),
-        (LinearOTMappingAdapter(), 10, 5),
-        (CORALAdapter(), 5, 10),
-        (CORALAdapter(), 10, 5),
+        (OTMappingAdapter(), 2, 1),
+        (OTMappingAdapter(), 1, 2),
+        (EntropicOTMappingAdapter(), 2, 1),
+        (EntropicOTMappingAdapter(), 1, 2),
+        (ClassRegularizerOTMappingAdapter(norm="lpl1"), 2, 1),
+        (ClassRegularizerOTMappingAdapter(norm="lpl1"), 1, 2),
+        (ClassRegularizerOTMappingAdapter(norm="l1l2"), 2, 1),
+        (ClassRegularizerOTMappingAdapter(norm="l1l2"), 1, 2),
+        (LinearOTMappingAdapter(), 2, 1),
+        (LinearOTMappingAdapter(), 1, 2),
+        (CORALAdapter(), 2, 1),
+        (CORALAdapter(), 1, 2),
         (
             pytest.param(
                 MMDLSConSMappingAdapter(gamma=1e-3),
-                5,
-                10,
+                1,
+                2,
                 marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
             )
         ),
         (
             pytest.param(
                 MMDLSConSMappingAdapter(gamma=1e-3),
-                10,
-                5,
+                2,
+                1,
                 marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
             )
         ),
