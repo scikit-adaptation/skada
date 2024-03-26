@@ -168,18 +168,23 @@ def _base_test_new_X_adapt(estimator, da_dataset):
 @pytest.mark.parametrize(
     "estimator",
     [
-        DensityReweightAdapter(),
-        GaussianReweightAdapter(),
-        DiscriminatorReweightAdapter(),
-        KLIEPReweightAdapter(gamma=[0.1, 1], random_state=42),
-        KMMReweightAdapter(gamma=0.1, smooth_weights=True),
-        MMDTarSReweightAdapter(gamma=1.0),
+        (DensityReweightAdapter()),
+        (DensityReweightAdapter()),
+        (GaussianReweightAdapter()),
+        (GaussianReweightAdapter()),
+        (DiscriminatorReweightAdapter()),
+        (DiscriminatorReweightAdapter()),
+        (KLIEPReweightAdapter(gamma=[0.1, 1], random_state=42)),
+        (KLIEPReweightAdapter(gamma=[0.1, 1], random_state=42)),
+        (KMMReweightAdapter(gamma=0.1, smooth_weights=True)),
+        (KMMReweightAdapter(gamma=0.1, smooth_weights=True)),
+        (MMDTarSReweightAdapter(gamma=1.0)),
+        (MMDTarSReweightAdapter(gamma=1.0)),
     ],
 )
-def test_new_X_adapt(estimator, da_dataset, da_reg_dataset):
-    da_dataset = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
-
-    _base_test_new_X_adapt(estimator, da_dataset)
+def test_new_X_adapt(estimator, da_reg_datasets):
+    for dataset in da_reg_datasets:
+        _base_test_new_X_adapt(estimator, dataset)
 
 
 @pytest.mark.parametrize(
