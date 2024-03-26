@@ -27,7 +27,6 @@ from skada import (
     make_da_pipeline,
     source_target_split,
 )
-from skada.datasets import make_shifted_datasets
 
 
 @pytest.mark.parametrize(
@@ -167,34 +166,25 @@ def _base_test_new_X_adapt(estimator, da_dataset):
 
 
 @pytest.mark.parametrize(
-    "estimator, n_samples_source, n_samples_target",
+    "estimator",
     [
-        (DensityReweightAdapter(), 1, 2),
-        (DensityReweightAdapter(), 2, 1),
-        (GaussianReweightAdapter(), 1, 2),
-        (GaussianReweightAdapter(), 2, 1),
-        (DiscriminatorReweightAdapter(), 1, 2),
-        (DiscriminatorReweightAdapter(), 2, 1),
-        (KLIEPReweightAdapter(gamma=[0.1, 1], random_state=42), 1, 2),
-        (KLIEPReweightAdapter(gamma=[0.1, 1], random_state=42), 2, 1),
-        (KMMReweightAdapter(gamma=0.1, smooth_weights=True), 1, 2),
-        (KMMReweightAdapter(gamma=0.1, smooth_weights=True), 2, 1),
-        (MMDTarSReweightAdapter(gamma=1.0), 1, 2),
-        (MMDTarSReweightAdapter(gamma=1.0), 2, 1),
+        (DensityReweightAdapter()),
+        (DensityReweightAdapter()),
+        (GaussianReweightAdapter()),
+        (GaussianReweightAdapter()),
+        (DiscriminatorReweightAdapter()),
+        (DiscriminatorReweightAdapter()),
+        (KLIEPReweightAdapter(gamma=[0.1, 1], random_state=42)),
+        (KLIEPReweightAdapter(gamma=[0.1, 1], random_state=42)),
+        (KMMReweightAdapter(gamma=0.1, smooth_weights=True)),
+        (KMMReweightAdapter(gamma=0.1, smooth_weights=True)),
+        (MMDTarSReweightAdapter(gamma=1.0)),
+        (MMDTarSReweightAdapter(gamma=1.0)),
     ],
 )
-def test_new_X_adapt(estimator, n_samples_source, n_samples_target):
-    da_dataset = make_shifted_datasets(
-        n_samples_source=n_samples_source,
-        n_samples_target=n_samples_target,
-        shift="concept_drift",
-        mean=0.5,
-        noise=0.3,
-        label="regression",
-        random_state=42,
-    )
-
-    _base_test_new_X_adapt(estimator, da_dataset)
+def test_new_X_adapt(estimator, da_reg_datasets):
+    for dataset in da_reg_datasets:
+        _base_test_new_X_adapt(estimator, dataset)
 
 
 @pytest.mark.parametrize(

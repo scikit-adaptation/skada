@@ -34,6 +34,29 @@ def da_reg_dataset():
 
 
 @pytest.fixture(scope='session')
+def da_reg_datasets():
+    da_reg_dataset_1 = make_shifted_datasets(
+        n_samples_source=5,
+        n_samples_target=10,
+        shift="concept_drift",
+        mean=0.5,
+        noise=0.3,
+        label="regression",
+        random_state=42,
+    )
+
+    da_reg_dataset_2 = make_shifted_datasets(
+        n_samples_source=10,
+        n_samples_target=5,
+        shift="concept_drift",
+        mean=0.5,
+        noise=0.3,
+        label="regression",
+        random_state=42,
+    )
+    return da_reg_dataset_1, da_reg_dataset_2
+
+@pytest.fixture(scope='session')
 def da_multiclass_dataset():
     X, y, sample_domain = make_shifted_datasets(
         n_samples_source=20,

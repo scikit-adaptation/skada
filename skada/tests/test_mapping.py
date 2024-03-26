@@ -32,7 +32,7 @@ from skada import (
     make_da_pipeline,
     source_target_split,
 )
-from skada.datasets import DomainAwareDataset, make_shifted_datasets
+from skada.datasets import DomainAwareDataset
 
 
 @pytest.mark.parametrize(
@@ -157,50 +157,37 @@ def _base_test_new_X_adapt(estimator, da_dataset):
 
 
 @pytest.mark.parametrize(
-    "estimator, n_samples_source, n_samples_target",
+    "estimator",
     [
-        (OTMappingAdapter(), 2, 1),
-        (OTMappingAdapter(), 1, 2),
-        (EntropicOTMappingAdapter(), 2, 1),
-        (EntropicOTMappingAdapter(), 1, 2),
-        (ClassRegularizerOTMappingAdapter(norm="lpl1"), 2, 1),
-        (ClassRegularizerOTMappingAdapter(norm="lpl1"), 1, 2),
-        (ClassRegularizerOTMappingAdapter(norm="l1l2"), 2, 1),
-        (ClassRegularizerOTMappingAdapter(norm="l1l2"), 1, 2),
-        (LinearOTMappingAdapter(), 2, 1),
-        (LinearOTMappingAdapter(), 1, 2),
-        (CORALAdapter(), 2, 1),
-        (CORALAdapter(), 1, 2),
+        (OTMappingAdapter()),
+        (OTMappingAdapter()),
+        (EntropicOTMappingAdapter()),
+        (EntropicOTMappingAdapter()),
+        (ClassRegularizerOTMappingAdapter(norm="lpl1")),
+        (ClassRegularizerOTMappingAdapter(norm="lpl1")),
+        (ClassRegularizerOTMappingAdapter(norm="l1l2")),
+        (ClassRegularizerOTMappingAdapter(norm="l1l2")),
+        (LinearOTMappingAdapter()),
+        (LinearOTMappingAdapter()),
+        (CORALAdapter()),
+        (CORALAdapter()),
         (
             pytest.param(
                 MMDLSConSMappingAdapter(gamma=1e-3),
-                1,
-                2,
                 marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
             )
         ),
         (
             pytest.param(
                 MMDLSConSMappingAdapter(gamma=1e-3),
-                2,
-                1,
                 marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
             )
         ),
     ],
 )
-def test_new_X_adapt(estimator, da_dataset, n_samples_source, n_samples_target):
-    da_dataset = make_shifted_datasets(
-        n_samples_source=n_samples_source,
-        n_samples_target=n_samples_target,
-        shift="concept_drift",
-        mean=0.5,
-        noise=0.3,
-        label="regression",
-        random_state=42,
-    )
-
-    _base_test_new_X_adapt(estimator, da_dataset)
+def test_new_X_adapt(estimator, da_reg_datasets):
+    for dataset in da_reg_datasets:
+        _base_test_new_X_adapt(estimator, dataset)
 
 
 @pytest.mark.parametrize(
