@@ -9,6 +9,7 @@
 import warnings
 
 import numpy as np
+import scipy.sparse as sp
 from scipy.stats import multivariate_normal
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics.pairwise import KERNEL_PARAMS, pairwise_distances, pairwise_kernels
@@ -472,7 +473,7 @@ class KLIEPReweightAdapter(BaseAdapter):
 
     def __init__(
         self,
-        gamma,  # XXX use the auto/scale mode as done with sklearn SVC
+        gamma,
         cv=5,
         n_centers=100,
         tol=1e-6,
@@ -510,11 +511,12 @@ class KLIEPReweightAdapter(BaseAdapter):
         X_source, X_target = source_target_split(X, sample_domain=sample_domain)
 
         if isinstance(self.gamma, list):
+            self.gamma = [self._auto_scale_gammas(gamma, X) for gamma in self.gamma]
             self.best_gamma_ = self._likelihood_cross_validation(
                 self.gamma, X_source, X_target
             )
         else:
-            self.best_gamma_ = self.gamma
+            self.best_gamma_ = self._auto_scale_gammas(self.gamma, X)
         self.alpha_, self.centers_ = self._weights_optimization(
             self.best_gamma_, X_source, X_target
         )
@@ -613,6 +615,20 @@ class KLIEPReweightAdapter(BaseAdapter):
         else:
             weights = None
         return AdaptationOutput(X, sample_weight=weights)
+
+    def _auto_scale_gammas(self, gamma, X):
+        if isinstance(gamma, str):
+            # Code snippet from sklearn SVC
+            if gamma == "scale":
+                # var = E[X^2] - E[X]^2 if sparse
+                sparse = sp.issparse(X)
+                X_var = (X.multiply(X)).mean() - (X.mean()) ** 2 if sparse else X.var()
+                gamma = 1.0 / (X.shape[1] * X_var) if X_var != 0 else 1.0
+            elif gamma == "auto":
+                gamma = 1 / X.shape[1]
+        else:
+            gamma = gamma
+        return gamma
 
 
 def KLIEPReweight(
