@@ -174,18 +174,18 @@ def _base_test_new_X_adapt(estimator, da_dataset):
         (
             pytest.param(
                 MMDLSConSMappingAdapter(gamma=1e-3),
+                10,
+                100,
                 marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
-            ),
-            10,
-            100,
+            )
         ),
         (
             pytest.param(
                 MMDLSConSMappingAdapter(gamma=1e-3),
+                100,
+                10,
                 marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
-            ),
-            100,
-            10,
+            )
         ),
     ],
 )
