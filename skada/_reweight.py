@@ -1285,7 +1285,7 @@ class MMDTarSReweightAdapter(BaseAdapter):
         # compute R
         if discrete:
             self.classes_ = classes = np.unique(y_source)
-            R = np.zeros((X_target.shape[0], len(classes)))
+            R = np.zeros((m, len(classes)))
             for i, c in enumerate(classes):
                 R[:, i] = (y_source == c).astype(int)
         else:
