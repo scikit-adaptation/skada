@@ -381,9 +381,12 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
                 f"The estimator {estimator!r} does not."
             )
 
+        has_transform_method = False
+
         if not isinstance(estimator, BaseEstimator):
             # The estimator is a deep model
             transformer = estimator.predict_features
+            has_transform_method = True
         else:
             # We need to find the last layer of the pipeline with a transform method
             pipeline_steps = list(enumerate(estimator.named_steps.items()))
@@ -391,12 +394,8 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
             for index_transformer, (_, step_process) in reversed(pipeline_steps):
                 if hasattr(step_process, "transform"):
                     transformer = estimator[: index_transformer + 1].transform
+                    has_transform_method = True
                     break  # Stop after the first occurrence if there are multiple
-            else:
-                raise AttributeError(
-                    "The estimator passed should have a 'transform' method. "
-                    f"The estimator {estimator!r} does not."
-                )
 
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
         source_idx = extract_source_indices(sample_domain)
@@ -409,9 +408,15 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
             random_state=rng,
         )
 
-        features_train = transformer(X_train)
-        features_val = transformer(X_val)
-        features_target = transformer(X[~source_idx])
+        if has_transform_method:
+            features_train = transformer(X_train)
+            features_val = transformer(X_val)
+            features_target = transformer(X[~source_idx])
+        else:
+            # We use the input data as features
+            features_train = X_train
+            features_val = X_val
+            features_target = X[~source_idx]
 
         # 3 cases:
         # - features_train is an AdaptationOutput --> call get('X')
