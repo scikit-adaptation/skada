@@ -397,6 +397,13 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
                     has_transform_method = True
                     break  # Stop after the first occurrence if there are multiple
 
+        def identity(x):
+            return x
+
+        if not has_transform_method:
+            # We use the input data as features
+            transformer = identity
+
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
         source_idx = extract_source_indices(sample_domain)
         rng = check_random_state(self.random_state)
@@ -408,15 +415,9 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
             random_state=rng,
         )
 
-        if has_transform_method:
-            features_train = transformer(X_train)
-            features_val = transformer(X_val)
-            features_target = transformer(X[~source_idx])
-        else:
-            # We use the input data as features
-            features_train = X_train
-            features_val = X_val
-            features_target = X[~source_idx]
+        features_train = transformer(X_train)
+        features_val = transformer(X_val)
+        features_target = transformer(X[~source_idx])
 
         # 3 cases:
         # - features_train is an AdaptationOutput --> call get('X')
