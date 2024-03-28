@@ -17,6 +17,8 @@ except ImportError:
 @pytest.fixture(scope='function', autouse=True)
 def set_seed():
     np.random.seed(0)
+    if 'skada/deep/*.py' not in collect_ignore_glob:
+        torch.manual_seed(0)
 
 
 @pytest.fixture(scope='session')

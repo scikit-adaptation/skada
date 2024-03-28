@@ -1,5 +1,6 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Oleksii Kachaiev <kachayev@gmail.com>
+#         Yanis Lalou <yanis.lalou@polytechnique.edu>
 #
 # License: BSD 3-Clause
 import pytest
@@ -18,29 +19,8 @@ from skada.deep.base import (
     DomainBalancedDataLoader,
     DomainBalancedSampler,
 )
+from skada.deep.losses import TestLoss
 from skada.deep.modules import ToyModule2D
-
-
-class TestLoss(BaseDALoss):
-    """Test Loss to check the deep API"""
-
-    def __init__(
-        self,
-    ):
-        super().__init__()
-
-    def forward(
-        self,
-        y_s,
-        y_pred_s,
-        y_pred_t,
-        domain_pred_s,
-        domain_pred_t,
-        features_s,
-        features_t,
-    ):
-        """Compute the domain adaptation loss"""
-        return 0
 
 
 def test_domainawaretraining():
@@ -74,6 +54,7 @@ def test_domainawaretraining():
     method.fit(X, y, sample_domain=sample_domain)
 
     y_pred = method.predict(X_test, sample_domain_test)
+    _ = method.predict_proba(X, sample_domain)
     method.score(X_test, y_test, sample_domain_test)
 
     assert y_pred.shape[0] == X_test.shape[0]
@@ -88,6 +69,7 @@ def test_domainawaretraining():
     X_dict_test = {"X": X_test, "sample_domain": sample_domain_test}
 
     y_pred = method.predict(X_dict_test)
+    _ = method.predict_proba(X_dict)
     method.score(X_dict_test, y_test)
 
     assert y_pred.shape[0] == X_test.shape[0]
@@ -95,6 +77,7 @@ def test_domainawaretraining():
     # numpy input
     method.fit(X, y, sample_domain)
     y_pred = method.predict(X_test, sample_domain_test)
+    _ = method.predict_proba(X, sample_domain)
     method.score(X_test, y_test, sample_domain_test)
 
     assert y_pred.shape[0] == X_test.shape[0]
@@ -102,6 +85,7 @@ def test_domainawaretraining():
     # tensor input
     method.fit(torch.tensor(X), torch.tensor(y), torch.tensor(sample_domain))
     y_pred = method.predict(torch.tensor(X_test), torch.tensor(sample_domain_test))
+    _ = method.predict_proba(torch.tensor(X), torch.tensor(sample_domain))
     method.score(
         torch.tensor(X_test), torch.tensor(y_test), torch.tensor(sample_domain_test)
     )
@@ -124,6 +108,9 @@ def test_domainawaretraining():
         method.predict(
             torch_dataset,
         )
+        method.predict_proba(
+            torch_dataset,
+        )
 
     # Test keys name in the dict
     X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
@@ -136,6 +123,9 @@ def test_domainawaretraining():
 
     with pytest.raises(ValueError):
         method.predict(
+            X_dict,
+        )
+        method.predict_proba(
             X_dict,
         )
 
@@ -154,6 +144,9 @@ def test_domainawaretraining():
         method.predict(
             torch_dataset,
         )
+        method.predict_proba(
+            torch_dataset,
+        )
 
     X_dict = {"X": X.astype(np.float32), "bad_name": sample_domain}
     with pytest.raises(ValueError):
@@ -164,6 +157,9 @@ def test_domainawaretraining():
 
     with pytest.raises(ValueError):
         method.predict(
+            X_dict,
+        )
+        method.predict_proba(
             X_dict,
         )
 
@@ -180,6 +176,9 @@ def test_domainawaretraining():
 
     with pytest.raises(ValueError):
         method.predict(
+            torch_dataset,
+        )
+        method.predict_proba(
             torch_dataset,
         )
 

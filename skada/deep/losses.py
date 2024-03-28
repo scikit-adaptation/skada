@@ -1,5 +1,6 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Remi Flamary <remi.flamary@polytechnique.edu>
+#         Yanis Lalou <yanis.lalou@polytechnique.edu>
 #
 # License: BSD 3-Clause
 
@@ -8,6 +9,8 @@ from functools import partial
 import ot
 import skorch  # noqa: F401
 import torch  # noqa: F401
+
+from skada.deep.base import BaseDALoss
 
 
 def deepcoral_loss(cov, cov_target):
@@ -171,3 +174,25 @@ def dan_loss(features_s, features_t, sigmas=None):
     loss = _maximum_mean_discrepancy(features_s, features_t, kernel=gaussian_kernel)
 
     return loss
+
+
+class TestLoss(BaseDALoss):
+    """Test Loss to check the deep API"""
+
+    def __init__(
+        self,
+    ):
+        super().__init__()
+
+    def forward(
+        self,
+        y_s,
+        y_pred_s,
+        y_pred_t,
+        domain_pred_s,
+        domain_pred_t,
+        features_s,
+        features_t,
+    ):
+        """Compute the domain adaptation loss"""
+        return 0
