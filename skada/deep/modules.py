@@ -1,5 +1,6 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Remi Flamary <remi.flamary@polytechnique.edu>
+#         Yanis Lalou <yanis.lalou@polytechnique.edu>
 #
 # License: BSD 3-Clause
 import torch
@@ -10,13 +11,18 @@ from torch.autograd import Function
 class ToyModule2D(torch.nn.Module):
     """XXX add docstring here."""
 
-    def __init__(self, n_classes=2, num_features=10, nonlin=torch.nn.ReLU()):
+    def __init__(
+        self, n_classes=2, num_features=10, nonlin=torch.nn.ReLU(), proba=False
+    ):
         super().__init__()
+
+        self.proba = proba
 
         self.dense0 = torch.nn.Linear(2, num_features)
         self.nonlin = nonlin
         self.dropout = torch.nn.Dropout(0.5)
         self.dense1 = torch.nn.Linear(num_features, n_classes)
+        self.softmax = torch.nn.Softmax(dim=1)
 
     def forward(
         self,
@@ -26,6 +32,10 @@ class ToyModule2D(torch.nn.Module):
         X = self.nonlin(self.dense0(X))
         X = self.dropout(X)
         X = self.dense1(X)
+        if self.proba:
+            # Last layer is a softmax to get probabilities
+            # Mandatory to test the PredictionEntropyScorer scorer
+            X = self.softmax(X)
         return X
 
 
@@ -116,7 +126,7 @@ class DomainClassifier(nn.Module):
             nn.BatchNorm1d(100),
             nn.ReLU(),
             nn.Linear(100, n_classes),
-            nn.Sigmoid(),
+            nn.Softmax(),
         )
         self.alpha = alpha
 
