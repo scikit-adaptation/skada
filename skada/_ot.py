@@ -12,8 +12,14 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.utils.validation import check_is_fitted
 
-from .base import DAEstimator
-from .utils import source_target_split
+from ._utils import Y_Type, _find_y_type
+from .base import AdaptationOutput, BaseAdapter, DAEstimator
+from .utils import (
+    check_X_domain,
+    check_X_y_domain,
+    extract_source_indices,
+    source_target_split,
+)
 
 
 def get_jdot_class_cost_matrix(Ys, Xt, estimator=None, metric="multinomial"):
@@ -737,3 +743,72 @@ class JDOTClassifier(DAEstimator):
                 "and score might be biased."
             )
         return self.estimator_.score(X, y, sample_weight=sample_weight)
+
+
+class OTLabelPropAdapter(BaseAdapter):
+    """Label propagation using optimal transport plan.
+
+
+    Parameters
+    ----------
+    metric : str, default='sqeuclidean'
+        The metric to use for the cost matrix. Can be 'sqeuclidean' for
+        squared euclidean distance, 'euclidean' for euclidean distance,
+    reg : float, default=None
+        The entropic  regularization parameter for the optimal transport
+        problem. If None, the exact OT is solved, else it is used to weight
+        the entropy regularizationof the coupling matrix.
+    """
+
+    def __init__(self, metric="sqeuclidean", reg=None):
+        super().__init__()
+        self.metric = metric
+        self.reg = reg
+
+    def fit(self, X, y, sample_domain=None, *, sample_weight=None):
+        """Fit adaptation parameters"""
+        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        if sample_domain is not None:
+            Xs, Xt, ys, yt, ws, wt = source_target_split(
+                X, y, sample_weight, sample_domain=sample_domain
+            )
+        else:
+            Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
+
+        M = ot.dist(Xs, Xt, metric=self.metric)
+        G = ot.solve(M, ws, wt, reg=self.reg).plan
+
+        self.discrete_ = discrete = _find_y_type(ys) == Y_Type.DISCRETE
+        if discrete:
+            self.classes_ = classes = np.unique(ys)
+            Y = np.zeros((Xs.shape[0], len(classes)))
+            for i, c in enumerate(classes):
+                Y[:, i] = (ys == c).astype(int)
+            yht = G.T.dot(Y)
+            yht = np.argmax(yht, axis=1)
+            yht = classes[yht]
+        else:
+            Y = ys
+            yht = G.T.dot(Y) * Xt.shape[0]
+
+        self.G_ = G
+        self.Xt_ = Xt
+        self.yht_ = yht
+
+    def adapt(self, X, y=None, sample_domain=None, *, sample_weight=None):
+        """Adapt target samples to source domain"""
+        check_is_fitted(self)
+        X, sample_domain = check_X_domain(X, sample_domain)
+        source_idx = extract_source_indices(sample_domain)
+
+        if source_idx.sum() > 0:  # if source samples in target use estmated labels
+            Xout = self.Xt_
+            weights = Xout.shape[0] * self.G_.sum(0)
+            yout = self.yht_
+
+        else:
+            Xout = X
+            yout = y
+            weights = sample_weight
+
+        return AdaptationOutput(Xout, y=yout, sample_weight=weights)
