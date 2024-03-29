@@ -14,6 +14,7 @@ on a simple dataset will illustration of the API choice specific to DA.
 # %% imports
 import matplotlib.pyplot as plt
 import numpy as np
+from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV, cross_val_score
 from sklearn.pipeline import make_pipeline
@@ -24,6 +25,9 @@ from skada import (
     CORAL,
     CORALAdapter,
     GaussianReweightAdapter,
+    PerDomain,
+    SelectSource,
+    SelectSourceTarget,
     make_da_pipeline,
     source_target_split,
 )
@@ -51,6 +55,8 @@ X, y, sample_domain = make_shifted_datasets(
 
 # split source and target for visualization
 Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
+sample_domain_s = np.ones(Xs.shape[0])
+sample_domain_t = -np.ones(Xt.shape[0]) * 2
 
 # plot data
 plt.figure(1, (10, 5))
@@ -127,7 +133,8 @@ pipe.fit(X, y, sample_domain=sample_domain)
 
 print("Accuracy on target:", pipe.score(Xt, yt))
 
-# create a DA pipeline with GaussianReweight adapter
+# create a DA pipeline with GaussianReweight adapter (does not work well on
+# concept drift).
 pipe = make_da_pipeline(
     StandardScaler(),
     GaussianReweightAdapter(),
@@ -186,3 +193,77 @@ grid_search.fit(X, y, sample_domain=sample_domain)
 
 print("Best regularization parameter:", grid_search.best_params_["coraladapter__reg"])
 print("Accuracy on target:", np.mean(grid_search.predict(Xt) == yt))
+
+
+# %%
+# Advanced DA pipeline
+# --------------------
+#
+# The DA pipeline can be used with any estimator and any adapter. But more
+# importantly all estimators in the pipeline are wrapped automatically in what
+# we call in skada a :code:`Selector`. The selector is a wrapper that allows to
+# select what is passed during fit and predict/transform.
+#
+# For instance in the following we train one StandardScaler per domain but then
+# use a single SVC trained only on source. When predicting on target data the
+# pipeline will automatically use StandardScaler trained on target and the SVC
+# trained on source.
+
+# create a DA pipeline with SelectSourceTarget estimators
+
+pipe = make_da_pipeline(
+    SelectSourceTarget(StandardScaler()),
+    SelectSource(SVC()),
+)
+
+pipe.fit(X, y, sample_domain=sample_domain)
+
+print("Accuracy on source:", pipe.score(Xs, ys, sample_domain=sample_domain_s))
+print("Accuracy on target:", pipe.score(Xt, yt))  # target by default
+
+# Similarly one can use the PerDomain selector to train a different estimator
+# per domain. this allows to handle multiple source and target domains. In this
+# case :code:`sample_domain` must be provided during fit and predict/transform.
+
+pipe = make_da_pipeline(
+    PerDomain(StandardScaler()),
+    SelectSource(SVC()),
+)
+
+pipe.fit(X, y, sample_domain=sample_domain)
+
+print("Accuracy on all data:", pipe.score(X, y, sample_domain=sample_domain))
+
+# %%
+# One can use a default selector on the whole pipeline  which allows for
+# instance to train the whole pipeline only on the source Data  as follows:
+
+pipe_train_on_source = make_da_pipeline(
+    StandardScaler(),
+    SVC(),
+    default_selector=SelectSource,
+)
+
+pipe_train_on_source.fit(X, y, sample_domain=sample_domain)
+print("Accuracy on source:", pipe_train_on_source.score(Xs, ys))
+print("Accuracy on target:", pipe_train_on_source.score(Xt, yt))
+
+# %%
+# One can also use a default selector on the whole pipeline but overwrite it for
+# the last estimator. The example below estimate a StandardScaler and PCA per
+# domain but train the final SVC on source Data only.
+
+pipe_perdomain = make_da_pipeline(
+    StandardScaler(),
+    PCA(n_components=2),
+    SelectSource(SVC()),
+    default_selector=SelectSourceTarget,
+)
+
+pipe_perdomain.fit(X, y, sample_domain=sample_domain)
+print(
+    "Accuracy on source:", pipe_perdomain.score(Xs, ys, sample_domain=sample_domain_s)
+)
+print(
+    "Accuracy on target:", pipe_perdomain.score(Xt, yt, sample_domain=sample_domain_t)
+)

@@ -8,6 +8,7 @@ The DASVM method comes from [11].
         IEEE transactions on pattern analysis and machine intelligence, (2009).
 """
 # Author: Ruben Bueno <ruben.bueno@polytechnique.edu>
+#         Yanis Lalou <yanis.lalou@polytechnique.edu>
 #
 # License: BSD 3-Clause
 
@@ -16,6 +17,8 @@ import math
 import numpy as np
 from sklearn.base import clone
 from sklearn.svm import SVC
+from sklearn.utils.metaestimators import available_if
+from sklearn.utils.validation import check_is_fitted
 
 from skada.utils import check_X_y_domain, source_target_split
 
@@ -60,7 +63,7 @@ class DASVMClassifier(DAEstimator):
     ):
         super().__init__()
         if base_estimator is None:
-            self.base_estimator = SVC()
+            self.base_estimator = SVC(probability=True)
         else:
             self.base_estimator = base_estimator
         self.max_iter = max_iter
@@ -260,6 +263,22 @@ class DASVMClassifier(DAEstimator):
         `predict` method from the estimator we fitted
         """
         return self.base_estimator_.predict(X)
+
+    def _check_proba(self):
+        if hasattr(self.base_estimator, "predict_proba"):
+            return True
+        else:
+            raise AttributeError(
+                "The base estimator does not have a predict_proba method"
+            )
+
+    @available_if(_check_proba)
+    def predict_proba(self, X):
+        """Return predicted probabilities by the fitted estimator for `X`
+        `predict_proba` method from the estimator we fitted
+        """
+        check_is_fitted(self)
+        return self.base_estimator.predict_proba(X)
 
     def decision_function(self, X):
         """Return values of the decision function of the
