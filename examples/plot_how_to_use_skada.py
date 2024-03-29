@@ -27,6 +27,7 @@ from skada import (
     GaussianReweightAdapter,
     PerDomain,
     SelectSource,
+    SelectSourceTarget,
     make_da_pipeline,
     source_target_split,
 )
@@ -200,7 +201,7 @@ print("Accuracy on target:", np.mean(grid_search.predict(Xt) == yt))
 #
 # The DA pipeline can be used with any estimator and any adapter. But more
 # importantly all estimators in the pipeline are wrapped automatically in what
-# we call in skada a :code:`Selector. The selector is a wrapper that allows to
+# we call in skada a :code:`Selector``. The selector is a wrapper that allows to
 # select what is passed during fit and predict/transform.
 #
 # For instance in the following we train one StandardScaler per domain but then
@@ -208,17 +209,17 @@ print("Accuracy on target:", np.mean(grid_search.predict(Xt) == yt))
 # pipeline will automatically use StandardScaler trained on target and the SVC
 # trained on source.
 
-# create a DA pipeline with PerDomain estimators
+# create a DA pipeline with SelectSourceTarget estimators
 
 pipe = make_da_pipeline(
-    PerDomain(StandardScaler()),
+    SelectSourceTarget(StandardScaler()),
     SelectSource(SVC()),
 )
 
 pipe.fit(X, y, sample_domain=sample_domain)
 
 print("Accuracy on source:", pipe.score(Xs, ys, sample_domain=sample_domain_s))
-print("Accuracy on target:", pipe.score(Xt, yt, sample_domain=sample_domain_t))
+print("Accuracy on target:", pipe.score(Xt, yt))
 
 # %%
 # One can use a default selector on the whole pipeline  which allows for
