@@ -1,5 +1,6 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Oleksii Kachaiev <kachayev@gmail.com>
+#         Yanis Lalou <yanis.lalou@polytechnique.edu>
 #
 # License: BSD 3-Clause
 import pytest
@@ -7,7 +8,6 @@ import pytest
 pytest.importorskip("torch")
 
 import numpy as np
-import pytest
 
 from skada.datasets import make_shifted_datasets
 from skada.deep import DAN, DeepCoral
