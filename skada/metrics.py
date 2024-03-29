@@ -424,9 +424,9 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         # - features_train is a numpy array --> Do nothing
         # - features_train is a torch.Tensor --> call detach().numpy()
         if isinstance(features_train, AdaptationOutput):
-            features_train = features_train.get("X")
-            features_val = features_val.get("X")
-            features_target = features_target.get("X")
+            features_train = features_train.X
+            features_val = features_val.X
+            features_target = features_target.X
 
         elif not isinstance(features_train, np.ndarray):
             # The transformer comes from a deep model

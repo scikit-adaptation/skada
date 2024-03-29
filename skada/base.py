@@ -72,6 +72,9 @@ class AdaptationOutput:
     def items(self):
         return self.params.items()
 
+    def get(self, key, default_value=None):
+        return self.params.get(key, default_value)
+
     def __getattr__(self, attr_name):
         params = object.__getattribute__(self, 'params')
         if attr_name not in params:
