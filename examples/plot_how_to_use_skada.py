@@ -201,7 +201,7 @@ print("Accuracy on target:", np.mean(grid_search.predict(Xt) == yt))
 #
 # The DA pipeline can be used with any estimator and any adapter. But more
 # importantly all estimators in the pipeline are wrapped automatically in what
-# we call in skada a :code:`Selector``. The selector is a wrapper that allows to
+# we call in skada a :code:`Selector`. The selector is a wrapper that allows to
 # select what is passed during fit and predict/transform.
 #
 # For instance in the following we train one StandardScaler per domain but then
@@ -219,7 +219,20 @@ pipe = make_da_pipeline(
 pipe.fit(X, y, sample_domain=sample_domain)
 
 print("Accuracy on source:", pipe.score(Xs, ys, sample_domain=sample_domain_s))
-print("Accuracy on target:", pipe.score(Xt, yt))
+print("Accuracy on target:", pipe.score(Xt, yt))  # target by default
+
+# Similarly one can use the PerDomain selector to train a different estimator
+# per domain. this allows to handle multiple source and target domains. In this
+# case :code:`sample_domain` must be provided during fit and predict/transform.
+
+pipe = make_da_pipeline(
+    PerDomain(StandardScaler()),
+    SelectSource(SVC()),
+)
+
+pipe.fit(X, y, sample_domain=sample_domain)
+
+print("Accuracy on all data:", pipe.score(X, y, sample_domain=sample_domain))
 
 # %%
 # One can use a default selector on the whole pipeline  which allows for
@@ -244,7 +257,7 @@ pipe_perdomain = make_da_pipeline(
     StandardScaler(),
     PCA(n_components=2),
     SelectSource(SVC()),
-    default_selector=PerDomain,
+    default_selector=SelectSourceTarget,
 )
 
 pipe_perdomain.fit(X, y, sample_domain=sample_domain)
