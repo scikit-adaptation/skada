@@ -10,7 +10,6 @@ from typing import Literal, Optional, Union
 import numpy as np
 from sklearn.base import BaseEstimator, clone
 from sklearn.exceptions import UnsetMetadataPassedError
-from sklearn.utils import Bunch
 from sklearn.utils.metadata_routing import (
     MetadataRouter,
     MethodMapping,
@@ -56,13 +55,28 @@ class AdaptationOutput:
 
     def merge_into(self, output: Union[np.ndarray, "AdaptationOutput"]) -> "AdaptationOutput":
         if isinstance(output, self.__class__):
-            for k, v in self.params.items():
+            for k, v in self.items():
                 if k not in output.params:
                     output[k] = v
             return output
         else:
             self.X = output
             return self
+
+    def keys(self):
+        return self.params.keys()
+
+    def values(self):
+        return self.params.values()
+
+    def items(self):
+        return self.params.items()
+
+    def __getattr__(self, attr_name):
+        params = object.__getattribute__(self, 'params')
+        if attr_name not in params:
+            raise AttributeError()
+        return params[attr_name]
 
     def __iter__(self):
         return iter(self.params)
@@ -315,7 +329,7 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
     def _unwrap_from_container(self, X_container, params):
         if isinstance(X_container, AdaptationOutput):
             X_out = X_container.X
-            for k, v in X_container.params.items():
+            for k, v in X_container.items():
                 if v is not None:
                     params[k] = v
         else:
