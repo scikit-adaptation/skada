@@ -7,7 +7,10 @@
 
 import numpy as np
 import pytest
+from sklearn.base import BaseEstimator
 from sklearn.linear_model import LogisticRegression, Ridge
+from sklearn.preprocessing import StandardScaler
+from sklearn.utils.metadata_routing import _MetadataRequester
 
 from skada import (
     DensityReweight,
@@ -26,6 +29,13 @@ from skada import (
     NearestNeighborReweightAdapter,
     make_da_pipeline,
     source_target_split,
+)
+from skada.base import (
+    AdaptationOutput,
+    BaseAdapter,
+    SelectSource,
+    SelectSourceTarget,
+    SelectTarget,
 )
 
 
@@ -237,3 +247,67 @@ def test_KMMReweight_new_X_adapt(da_dataset):
 
     assert np.allclose(res1["sample_weight"], res3["sample_weight"])
     assert not np.allclose(res1["sample_weight"], res2["sample_weight"])
+
+
+@pytest.mark.parametrize(
+    "mediator",
+    [
+        StandardScaler(),
+        SelectSource(StandardScaler()),
+        SelectTarget(StandardScaler()),
+        SelectSourceTarget(StandardScaler()),
+    ],
+)
+def test_adaptation_output_propagation_multiple_steps(da_reg_dataset, mediator):
+    X, y, sample_domain = da_reg_dataset
+    _, X_target, _, target_domain = source_target_split(
+        X, sample_domain, sample_domain=sample_domain
+    )
+
+    class FakeEstimator(BaseEstimator, _MetadataRequester):
+        __metadata_request__fit = {"sample_weight": True}
+        __metadata_request__predict = {"sample_weight": True}
+
+        def fit(self, _X, _y, sample_weight=None):
+            assert sample_weight.shape[0] > 0
+            return self
+
+        def predict(self, X, sample_weight=None):
+            # xxx(okachaiev): i need to come up with a more accurate test
+            assert sample_weight is None
+            return X
+
+    clf = make_da_pipeline(DensityReweightAdapter(), mediator, FakeEstimator())
+
+    # check no errors are raised
+    clf.fit(X, y, sample_domain=sample_domain)
+    clf.predict(X_target, sample_domain=target_domain)
+
+
+def test_merge_adaptation_output(da_reg_dataset):
+    X, y, sample_domain = da_reg_dataset
+    _, X_target, _, target_domain = source_target_split(
+        X, sample_domain, sample_domain=sample_domain
+    )
+
+    class FakeAdapter(BaseAdapter):
+        def __init__(self, multiplier):
+            self.multiplier = multiplier
+
+        def fit(self, X, y=None, *, sample_domain=None):
+            self.fitted_ = True
+            return self
+
+        def adapt(self, X, y=None, sample_domain=None):
+            return AdaptationOutput(
+                X, sample_weight=np.ones(X.shape[0]) * self.multiplier
+            )
+
+    clf = make_da_pipeline(
+        SelectSourceTarget(FakeAdapter(1.0), FakeAdapter(2.0)),
+        Ridge().set_fit_request(sample_weight=True),
+    )
+
+    # check no errors are raised
+    clf.fit(X, y, sample_domain=sample_domain)
+    clf.predict(X_target, sample_domain=target_domain)

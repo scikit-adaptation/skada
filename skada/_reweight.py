@@ -108,7 +108,8 @@ class DensityReweightAdapter(BaseAdapter):
         X, sample_domain = check_X_domain(X, sample_domain)
         source_idx = extract_source_indices(sample_domain)
 
-        # xxx(okachaiev): move this to API
+        # xxx(okachaiev): this if/else statement is used in pretty
+        #                 much every adapter. move to the API?
         if source_idx.sum() > 0:
             (source_idx,) = np.where(source_idx)
             ws = self.weight_estimator_source_.score_samples(X[source_idx])
@@ -1149,7 +1150,7 @@ class KMMReweightAdapter(BaseAdapter):
             weights[source_idx] = source_weights
         else:
             weights = None
-        return AdaptationOutput(X=X, sample_weight=weights)
+        return AdaptationOutput(X, sample_weight=weights)
 
 
 def KMMReweight(
@@ -1406,7 +1407,7 @@ class MMDTarSReweightAdapter(BaseAdapter):
             weights += 1e-13  # avoid negative weights
         else:
             weights = None
-        return AdaptationOutput(X=X, sample_weight=weights)
+        return AdaptationOutput(X, sample_weight=weights)
 
 
 def MMDTarSReweight(
