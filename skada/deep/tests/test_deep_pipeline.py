@@ -7,12 +7,11 @@ pytest.importorskip("torch")
 
 import numpy as np
 import pytest
-
 from sklearn.preprocessing import StandardScaler
 
+from skada import make_da_pipeline
 from skada.deep import DeepCoral
 from skada.deep.modules import ToyModule2D
-from skada import make_da_pipeline
 
 
 def test_deepcoral(da_dataset):
@@ -28,9 +27,6 @@ def test_deepcoral(da_dataset):
         max_epochs=10,
         train_split=None,
     )
-    pipe = make_da_pipeline(
-        StandardScaler(),
-        model
-    )
+    pipe = make_da_pipeline(StandardScaler(), model)
     # model.fit(X.astype(np.float32), y, sample_domain=sample_domain)
     pipe.fit(X.astype(np.float32), y, sample_domain=sample_domain)

@@ -5,9 +5,11 @@
 # License: BSD 3-Clause
 
 from abc import abstractmethod
+from typing import Any, Dict
 
 import torch
 from torch.utils.data import DataLoader, Sampler
+from sklearn.base import _clone_parametrized
 from skorch import NeuralNetClassifier
 
 from .utils import _register_forwards_hook
@@ -234,9 +236,24 @@ class DomainAwareModule(torch.nn.Module):
         self.domain_classifier_ = domain_classifier
         self.layer_name = layer_name
         self.intermediate_layers = {}
+        self._setup_hooks()
+    
+    def _setup_hooks(self):
         _register_forwards_hook(
             self.module_, self.intermediate_layers, [self.layer_name]
         )
+
+    def get_params(self, deep=True) -> Dict[str, Any]:
+        return {
+            'module': self.module_,
+            'layer_name': self.layer_name,
+            'domain_classifier': self.domain_classifier_,
+        }
+
+    def __sklearn_clone__(self) -> torch.nn.Module:
+        estimator = _clone_parametrized(self, safe=True)
+        estimator._setup_hooks()
+        return estimator
 
     def forward(self, X, sample_domain=None, is_fit=False, return_features=False):
         if is_fit:
