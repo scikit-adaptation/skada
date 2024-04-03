@@ -13,6 +13,7 @@ The DASVM method comes from [11].
 # License: BSD 3-Clause
 
 import math
+import warnings
 
 import numpy as np
 from sklearn.base import clone
@@ -258,7 +259,7 @@ class DASVMClassifier(DAEstimator):
 
         return self
 
-    def predict(self, X):
+    def predict(self, X, **kwargs):
         """Return predicted value by the fitted estimator for `X`
         `predict` method from the estimator we fitted
         """
@@ -273,7 +274,7 @@ class DASVMClassifier(DAEstimator):
             )
 
     @available_if(_check_proba)
-    def predict_proba(self, X):
+    def predict_proba(self, X, **kwargs):
         """Return predicted probabilities by the fitted estimator for `X`
         `predict_proba` method from the estimator we fitted
         """
@@ -286,3 +287,13 @@ class DASVMClassifier(DAEstimator):
         `decision_function` method from the base_estimator_ we fitted
         """
         return self.base_estimator_.decision_function(X)
+
+    def score(self, X, y, sample_domain=None, *, sample_weight=None, **kwargs):
+        """Return the scores of the prediction"""
+        check_is_fitted(self)
+        if sample_domain is not None and np.any(sample_domain >= 0):
+            warnings.warn(
+                "Source domain detected. Predictor is trained on target"
+                "and score might be biased."
+            )
+        return self.base_estimator_.score(X, y, sample_weight=sample_weight)
