@@ -29,26 +29,8 @@ def test_deepcoral(da_dataset):
         train_split=None,
     )
     pipe = make_da_pipeline(
-        # StandardScaler(),
-        DeepCoral(
-            ToyModule2D(),
-            reg=1,
-            layer_name="dropout",
-            batch_size=10,
-            max_epochs=10,
-            train_split=None,
-        ),
+        StandardScaler(),
+        model
     )
     # model.fit(X.astype(np.float32), y, sample_domain=sample_domain)
     pipe.fit(X.astype(np.float32), y, sample_domain=sample_domain)
-
-    # X_test, y_test, sample_domain_test = dataset.pack_test(as_targets=["t"])
-
-    # y_pred = method.predict(X_test.astype(np.float32), sample_domain_test)
-
-    # assert y_pred.shape[0] == X_test.shape[0]
-
-    # history = method.history_
-
-    # assert history[0]["train_loss"] > history[-1]["train_loss"]
-
