@@ -355,10 +355,10 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         self.random_state = random_state
         self._sign = 1 if greater_is_better else -1
 
-    def _no_reduc_log_loss(self, y, y_pred):
+    def _no_reduc_log_loss(self, y, y_pred,criterion='cross_entropy_loss'):
         return np.array(
             [
-                self.cross_entropy_loss(y[i : i + 1], y_pred[i : i + 1])
+                self.loss_function(y[i : i + 1], y_pred[i : i + 1],criterion=criterion)
                 for i in range(len(y))
             ]
         )
@@ -457,33 +457,41 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         eta = -cov / var_w
         return self._sign * (np.mean(weighted_error) + eta * np.mean(weights) - eta)
 
-    def cross_entropy_loss(self, y_true, y_pred, epsilon=1e-15):
+
+    def loss_function(y_true, y_pred, criterion='cross_entropy_loss', epsilon=1e-15):
         """
-        Compute cross-entropy loss between true labels
-        and predicted probability estimates.
-
-        This loss allows to have a changing num_classes over the validation.
-
+        Compute loss between true labels and predicted probability estimates or scores.
+        
+        The loss function can be either cross-entropy loss or binary cross-entropy loss (BCELoss).
+        
         Parameters
         ----------
-        - y_true: true labels (integer labels).
-        - y_pred: predicted probabilities
-        - epsilon: a small constant to avoid numerical instability (default is 1e-15).
+        y_true: true labels (integer labels for cross_entropy and binary labels for bce).
+        y_pred: predicted probabilities or scores.
+        criterion: 'cross_entropy' for cross-entropy loss or 'bce' for binary cross-entropy loss.
+        epsilon: a small constant to avoid numerical instability (default is 1e-15).
 
         Returns
         -------
-        - Cross-entropy loss.
+        Loss value based on the selected criterion.
         """
-        num_classes = y_pred.shape[1]
-
-        # Convert integer labels to one-hot encoding
-        y_true_one_hot = np.eye(num_classes)[y_true]
-
-        # Clip predicted probabilities to avoid log(0) or log(1)
+        # Clip predicted probabilities to avoid log(0) or log(1), ensuring numerical stability
         y_pred = np.clip(y_pred, epsilon, 1 - epsilon)
 
-        cross_entropy = -np.sum(y_true_one_hot * np.log(y_pred))
-        return cross_entropy
+        if criterion == 'cross_entropy_loss':
+            num_classes = y_pred.shape[1]
+            y_true_one_hot = np.eye(num_classes)[y_true.astype(int)]
+            loss = -np.sum(y_true_one_hot * np.log(y_pred)) / y_true_one_hot.shape[0]
+        elif criterion == 'BCELoss':
+            # Compute binary cross-entropy
+            loss = -np.mean(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))
+        else:
+            raise ValueError("Invalid criterion specified. Must be 'cross_entropy' or 'bce'.")
+
+        return loss
+
+
+          
 
 
 class CircularValidation(_BaseDomainAwareScorer):
