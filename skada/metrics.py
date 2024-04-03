@@ -462,7 +462,7 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         """
         Compute loss between true labels and predicted probability estimates or scores.
         
-        The loss function can be either cross-entropy loss or binary cross-entropy loss (BCELoss).
+        The loss function can be either cross-entropy loss or binary cross-entropy loss
         
         Parameters
         ----------
