@@ -123,6 +123,17 @@ def _find_y_type(y):
         raise ValueError(f"Incompatible label type: {y_type}")
 
 
+def _apply_domain_masks(X, y, params, masks):
+    X = X[masks]
+    if y is not None:
+        y = y[masks]
+    params = {
+        k: v[masks] if (hasattr(v, "__len__") and len(v) == len(masks)) else v
+        for k, v in params.items()
+    }
+    return X, y, params
+
+
 def _remove_masked(X, y, params):
     """Internal API for removing masked samples before passing them
     to the estimator that does not accept 'sample_domain' (e.g. any
@@ -151,14 +162,5 @@ def _remove_masked(X, y, params):
         unmasked_idx = y != _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
     elif y_type == Y_Type.CONTINUOUS:
         unmasked_idx = np.isfinite(y)
-
-    X = X[unmasked_idx]
-    y = y[unmasked_idx]
-    params = {
-        # this is somewhat crude way to test is `v` is indexable
-        k: v[unmasked_idx]
-        if (hasattr(v, "__len__") and len(v) == len(unmasked_idx))
-        else v
-        for k, v in params.items()
-    }
+    X, y, params = _apply_domain_masks(X, y, params, masks=unmasked_idx)
     return X, y, params

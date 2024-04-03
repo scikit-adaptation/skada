@@ -18,7 +18,7 @@ from .utils import check_X_domain, source_target_merge, source_target_split
 class SubspaceAlignmentAdapter(BaseAdapter):
     """Domain Adaptation Using Subspace Alignment.
 
-    See [1]_ for details.
+    See [8]_ for details.
 
     Parameters
     ----------
@@ -40,7 +40,7 @@ class SubspaceAlignmentAdapter(BaseAdapter):
 
     References
     ----------
-    .. [1] Basura Fernando et. al. Unsupervised Visual
+    .. [8] Basura Fernando et. al. Unsupervised Visual
            Domain Adaptation Using Subspace Alignment.
            In IEEE International Conference on Computer Vision, 2013.
     """
@@ -144,7 +144,7 @@ def SubspaceAlignment(
 ):
     """Domain Adaptation Using Subspace Alignment.
 
-    See [1]_ for details.
+    See [8]_ for details.
 
     Parameters
     ----------
@@ -166,7 +166,7 @@ def SubspaceAlignment(
 
     References
     ----------
-    .. [1] Basura Fernando et. al. Unsupervised Visual
+    .. [8] Basura Fernando et. al. Unsupervised Visual
            Domain Adaptation Using Subspace Alignment.
            In IEEE International Conference on Computer Vision, 2013.
     """
@@ -185,7 +185,7 @@ def SubspaceAlignment(
 class TransferComponentAnalysisAdapter(BaseAdapter):
     """Transfer Component Analysis.
 
-    See [1]_ for details.
+    See [9]_ for details.
 
     Parameters
     ----------
@@ -214,7 +214,7 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
 
     References
     ----------
-    .. [1] Sinno Jialin Pan et. al. Domain Adaptation via
+    .. [9] Sinno Jialin Pan et. al. Domain Adaptation via
            Transfer Component Analysis. In IEEE Transactions
            on Neural Networks, 2011.
     """
@@ -330,7 +330,7 @@ def TransferComponentAnalysis(
 ):
     """Domain Adaptation Using Transfer Component Analysis.
 
-    See [1]_ for details.
+    See [9]_ for details.
 
     Parameters
     ----------
@@ -353,7 +353,7 @@ def TransferComponentAnalysis(
 
     References
     ----------
-    .. [1] Sinno Jialin Pan et. al. Domain Adaptation via
+    .. [9] Sinno Jialin Pan et. al. Domain Adaptation via
            Transfer Component Analysis. In IEEE Transactions
            on Neural Networks, 2011.
     """

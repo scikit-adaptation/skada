@@ -8,7 +8,9 @@ import pytest
 from sklearn.base import BaseEstimator
 from sklearn.datasets import make_regression
 from sklearn.linear_model import LogisticRegression
-from sklearn.utils.metadata_routing import get_routing_for_object
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
+from sklearn.utils.metadata_routing import _MetadataRequester, get_routing_for_object
 
 from skada import SubspaceAlignmentAdapter, make_da_pipeline
 from skada._utils import (
@@ -20,10 +22,13 @@ from skada.base import (
     AdaptationOutput,
     IncompatibleMetadataError,
     PerDomain,
+    SelectSource,
+    SelectSourceTarget,
+    SelectTarget,
     Shared,
 )
 from skada.datasets import make_shifted_datasets
-from skada.utils import extract_source_indices
+from skada.utils import extract_source_indices, source_target_split
 
 
 def test_base_selector_estimator_fetcher():
@@ -140,7 +145,9 @@ def test_base_selector_remove_masked_continuous():
     assert X_output.shape[0] == y_output.shape[0]
 
 
-@pytest.mark.parametrize("estimator_cls", [PerDomain, Shared])
+@pytest.mark.parametrize(
+    "estimator_cls", [PerDomain, Shared, SelectSource, SelectTarget]
+)
 def test_selector_inherits_routing(estimator_cls):
     lr = LogisticRegression().set_fit_request(sample_weight=True)
     estimator = estimator_cls(lr)
@@ -151,7 +158,198 @@ def test_selector_inherits_routing(estimator_cls):
 def test_selector_rejects_incompatible_adaptation_output():
     X = AdaptationOutput(np.ones((10, 2)), sample_weight=np.zeros(10))
     y = np.zeros(10)
-    estimator = Shared(LogisticRegression())
 
+    # fails if this is an estimator (not transformer)
+    estimator = Shared(LogisticRegression())
     with pytest.raises(IncompatibleMetadataError):
         estimator.fit(X, y)
+
+    # fails if this is the last estimator transformer
+    estimator = Shared(StandardScaler())._mark_as_final()
+    with pytest.raises(IncompatibleMetadataError):
+        estimator.fit(X, y)
+
+    # does not fail for non-final transformer
+    estimator = Shared(StandardScaler())._unmark_as_final()
+    estimator.fit(X, y)
+
+
+@pytest.mark.parametrize(
+    "selector_cls, side",
+    [
+        (SelectSource, "source"),
+        (SelectTarget, "target"),
+    ],
+)
+def test_source_selector_with_estimator(da_multiclass_dataset, selector_cls, side):
+    X, y, sample_domain = da_multiclass_dataset
+    X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+    output = {}
+
+    class FakeEstimator(BaseEstimator):
+        def fit(self, X, y=None):
+            output["n_X_samples"] = X.shape[0]
+            if y is not None:
+                output["n_y_samples"] = y.shape[0]
+            self.fitted_ = True
+
+        def predict(self, X):
+            output["n_predict_samples"] = X.shape[0]
+            return X
+
+    pipe = make_da_pipeline(selector_cls(FakeEstimator()))
+    pipe.fit(X, y, sample_domain=sample_domain)
+
+    # make sure both X and y are filtered out
+    correct_n_samples = (X_source if side == "source" else X_target).shape[0]
+    assert output["n_X_samples"] == correct_n_samples
+    assert output["n_y_samples"] == correct_n_samples
+
+    # make sure y=None works as well
+    pipe.fit(X, None, sample_domain=sample_domain)
+    assert output["n_X_samples"] == correct_n_samples
+
+    # should allow everything for predict
+    pipe.predict(X)
+    assert output["n_predict_samples"] == X.shape[0]
+
+
+@pytest.mark.parametrize(
+    "selector_cls, side",
+    [
+        (SelectSource, "source"),
+        (SelectTarget, "target"),
+    ],
+)
+def test_source_selector_with_transformer(da_multiclass_dataset, selector_cls, side):
+    X, y, sample_domain = da_multiclass_dataset
+    X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+    output = {}
+
+    class FakeTransformer(BaseEstimator):
+        def fit(self, X, y=None):
+            output["n_X_samples"] = X.shape[0]
+            self.fitted_ = True
+
+        def transform(self, X):
+            output["n_transform_samples"] = X.shape[0]
+            return X
+
+    pipe = make_da_pipeline(selector_cls(FakeTransformer()))
+    pipe.fit(X, sample_domain=sample_domain)
+
+    # make sure both X samples are filtered out
+    correct_n_samples = (X_source if side == "source" else X_target).shape[0]
+    assert output["n_X_samples"] == correct_n_samples
+
+    # make sure fit_transform gives the same result
+    pipe.fit_transform(X, None, sample_domain=sample_domain)
+    assert output["n_X_samples"] == correct_n_samples
+
+    # should allow everything for transform
+    pipe.transform(X)
+    assert output["n_transform_samples"] == X.shape[0]
+
+
+@pytest.mark.parametrize(
+    "selector_cls, side",
+    [
+        (SelectSource, "source"),
+        (SelectTarget, "target"),
+    ],
+)
+def test_source_selector_with_weights(da_multiclass_dataset, selector_cls, side):
+    X, y, sample_domain = da_multiclass_dataset
+    sample_weight = np.ones(X.shape[0])
+    X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+    output = {}
+
+    class FakeEstimator(BaseEstimator, _MetadataRequester):
+        __metadata_request__fit = {"sample_weight": True}
+        __metadata_request__predict = {"sample_weight": True}
+
+        def fit(self, X, y=None, sample_weight=None):
+            output["n_sample_weight"] = sample_weight.shape[0]
+            self.fitted_ = True
+
+        def predict(self, X, sample_weight=None):
+            output["n_predict_sample_weight"] = sample_weight.shape[0]
+            return X
+
+    pipe = make_da_pipeline(selector_cls(FakeEstimator()))
+    pipe.fit(X, y, sample_weight=sample_weight, sample_domain=sample_domain)
+
+    # make sure sample_weight is properly filtered out
+    correct_n_samples = (X_source if side == "source" else X_target).shape[0]
+    assert output["n_sample_weight"] == correct_n_samples
+
+    # should allow everything for predict
+    pipe.predict(X, sample_weight=sample_weight)
+    assert output["n_predict_sample_weight"] == X.shape[0]
+
+
+@pytest.mark.parametrize(
+    "source_estimator, target_estimator",
+    [(StandardScaler(), None), (StandardScaler(), StandardScaler())],
+)
+def test_source_target_selector(
+    da_multiclass_dataset, source_estimator, target_estimator
+):
+    X, y, sample_domain = da_multiclass_dataset
+    source_masks = extract_source_indices(sample_domain)
+    # make sure sources and targets have significantly different mean
+    X[source_masks] += 100 * np.ones((source_masks.sum(), X.shape[1]))
+
+    pipe = make_da_pipeline(
+        SelectSourceTarget(source_estimator, target_estimator),
+        SVC(),
+    )
+
+    # no errors should be raised
+    pipe.fit(X, y, sample_domain=sample_domain)
+
+    # no error is raised when only a single domain type is present
+    pipe.predict(X[~source_masks], sample_domain=sample_domain[~source_masks])
+
+    # make sure that scalers were trained on different inputs
+    correct_mean = np.zeros(X.shape[1])
+    source_estimator = pipe[0].get_estimator("source")
+    assert np.allclose(
+        source_estimator.transform(X[source_masks]).mean(0), correct_mean
+    )
+    assert not np.allclose(
+        source_estimator.transform(X[~source_masks]).mean(0), correct_mean
+    )
+
+    target_estimator = pipe[0].get_estimator("target")
+    assert not np.allclose(
+        target_estimator.transform(X[source_masks]).mean(0), correct_mean
+    )
+    assert np.allclose(
+        target_estimator.transform(X[~source_masks]).mean(0), correct_mean
+    )
+
+
+def test_source_target_selector_fails_on_missing_domain(da_multiclass_dataset):
+    X, y, sample_domain = da_multiclass_dataset
+    source_masks = extract_source_indices(sample_domain)
+    pipe = make_da_pipeline(SelectSourceTarget(StandardScaler()), SVC())
+
+    # fails without targets
+    with pytest.raises(ValueError):
+        pipe.fit(
+            X[source_masks], y[source_masks], sample_domain=sample_domain[source_masks]
+        )
+
+    # fails without sources
+    with pytest.raises(ValueError):
+        pipe.fit(
+            X[~source_masks],
+            y[~source_masks],
+            sample_domain=sample_domain[~source_masks],
+        )
+
+
+def test_source_target_selector_non_transformers():
+    with pytest.raises(TypeError):
+        SelectSourceTarget(StandardScaler(), SVC())

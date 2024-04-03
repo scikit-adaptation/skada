@@ -14,13 +14,14 @@ from sklearn.model_selection import ShuffleSplit, cross_validate
 from sklearn.svm import SVC
 
 from skada import (
-    ReweightDensityAdapter,
+    DensityReweightAdapter,
     SubspaceAlignmentAdapter,
     make_da_pipeline,
 )
 from skada.datasets import DomainAwareDataset, make_shifted_datasets
 from skada.metrics import (
     CircularValidation,
+    DeepEmbeddedValidation,
     ImportanceWeightedScorer,
     PredictionEntropyScorer,
     SoftNeighborhoodDensity,
@@ -34,13 +35,14 @@ from skada.metrics import (
         ImportanceWeightedScorer(),
         PredictionEntropyScorer(),
         SoftNeighborhoodDensity(),
+        DeepEmbeddedValidation(),
         CircularValidation(),
     ],
 )
 def test_generic_scorer(scorer, da_dataset):
     X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
     estimator = make_da_pipeline(
-        ReweightDensityAdapter(),
+        DensityReweightAdapter(),
         LogisticRegression()
         .set_fit_request(sample_weight=True)
         .set_score_request(sample_weight=True),
@@ -62,7 +64,7 @@ def test_supervised_scorer(da_dataset):
     """`SupervisedScorer` requires unmasked target label to be available."""
     X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
     estimator = make_da_pipeline(
-        ReweightDensityAdapter(),
+        DensityReweightAdapter(),
         LogisticRegression()
         .set_fit_request(sample_weight=True)
         .set_score_request(sample_weight=True),
@@ -94,7 +96,7 @@ def test_supervised_scorer(da_dataset):
 def test_scorer_with_entropy_requires_predict_proba(scorer, da_dataset):
     X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
     estimator = make_da_pipeline(
-        ReweightDensityAdapter(), SVC().set_fit_request(sample_weight=True)
+        DensityReweightAdapter(), SVC().set_fit_request(sample_weight=True)
     )
     estimator.fit(X, y, sample_domain=sample_domain)
     with pytest.raises(AttributeError):
@@ -131,7 +133,7 @@ def test_scorer_with_log_proba():
 def test_prediction_entropy_scorer_reduction(da_dataset):
     X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
     estimator = make_da_pipeline(
-        ReweightDensityAdapter(),
+        DensityReweightAdapter(),
         LogisticRegression().set_fit_request(sample_weight=True),
     )
 
@@ -164,7 +166,7 @@ def test_prediction_entropy_scorer_reduction(da_dataset):
 def test_circular_validation(da_dataset):
     X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
     estimator = make_da_pipeline(
-        ReweightDensityAdapter(),
+        DensityReweightAdapter(),
         LogisticRegression().set_fit_request(sample_weight=True),
     )
 
@@ -195,7 +197,7 @@ def test_circular_validation(da_dataset):
         label="regression",
     )
     estimator_regression = make_da_pipeline(
-        ReweightDensityAdapter(),
+        DensityReweightAdapter(),
         LinearRegression().set_fit_request(sample_weight=True),
     )
     estimator_regression.fit(X, y, sample_domain=sample_domain)
@@ -205,3 +207,24 @@ def test_circular_validation(da_dataset):
     )
     score = scorer._score(estimator_regression, X, y, sample_domain=sample_domain)
     assert ~np.isnan(score), "the score is computed"
+
+
+def test_deep_embedding_validation_no_transform(da_dataset):
+    # Test that the scorer runs
+    # even if the adapter does not have a `transform` method
+
+    scorer = DeepEmbeddedValidation()
+    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    estimator = make_da_pipeline(LogisticRegression())
+
+    cv = ShuffleSplit(n_splits=3, test_size=0.3, random_state=0)
+    scores = cross_validate(
+        estimator,
+        X,
+        y,
+        cv=cv,
+        params={"sample_domain": sample_domain},
+        scoring=scorer,
+    )["test_score"]
+    assert scores.shape[0] == 3, "evaluate 3 splits"
+    assert np.all(~np.isnan(scores)), "all scores are computed"
