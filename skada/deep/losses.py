@@ -1,5 +1,6 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Remi Flamary <remi.flamary@polytechnique.edu>
+#         Yanis Lalou <yanis.lalou@polytechnique.edu>
 #
 # License: BSD 3-Clause
 
@@ -9,10 +10,12 @@ import ot
 import skorch  # noqa: F401
 import torch  # noqa: F401
 
+from skada.deep.base import BaseDALoss
+
 
 def deepcoral_loss(cov, cov_target):
     """Estimate the Frobenius norm divide by 4*n**2
-       for DeepCORAL method [1]_.
+       for DeepCORAL method [12]_.
 
     Parameters
     ----------
@@ -28,7 +31,7 @@ def deepcoral_loss(cov, cov_target):
 
     References
     ----------
-    .. [1]  Baochen Sun and Kate Saenko. Deep coral:
+    .. [12] Baochen Sun and Kate Saenko. Deep coral:
             Correlation alignment for deep domain
             adaptation. In ECCV Workshops, 2016.
     """
@@ -47,7 +50,7 @@ def deepjdot_loss(
     target_sample_weights=None,
     criterion=None,
 ):
-    """Compute the OT loss for DeepJDOT method [1]_.
+    """Compute the OT loss for DeepJDOT method [13]_.
 
     Parameters
     ----------
@@ -78,7 +81,7 @@ def deepjdot_loss(
 
     References
     ----------
-    .. [1]  Bharath Bhushan Damodaran, Benjamin Kellenberger,
+    .. [13]  Bharath Bhushan Damodaran, Benjamin Kellenberger,
             Remi Flamary, Devis Tuia, and Nicolas Courty.
             DeepJDOT: Deep Joint Distribution Optimal Transport
             for Unsupervised Domain Adaptation. In ECCV 2018
@@ -132,7 +135,7 @@ def _maximum_mean_discrepancy(x, y, kernel):
 
 
 def dan_loss(features_s, features_t, sigmas=None):
-    """Define the mmd loss based on multi-kernel defined in [1]_.
+    """Define the mmd loss based on multi-kernel defined in [14]_.
 
     Parameters
     ----------
@@ -151,7 +154,7 @@ def dan_loss(features_s, features_t, sigmas=None):
 
     References
     ----------
-    .. [1]  Mingsheng Long et. al. Learning Transferable
+    .. [14]  Mingsheng Long et. al. Learning Transferable
             Features with Deep Adaptation Networks.
             In ICML, 2015.
     """
@@ -171,3 +174,25 @@ def dan_loss(features_s, features_t, sigmas=None):
     loss = _maximum_mean_discrepancy(features_s, features_t, kernel=gaussian_kernel)
 
     return loss
+
+
+class TestLoss(BaseDALoss):
+    """Test Loss to check the deep API"""
+
+    def __init__(
+        self,
+    ):
+        super().__init__()
+
+    def forward(
+        self,
+        y_s,
+        y_pred_s,
+        y_pred_t,
+        domain_pred_s,
+        domain_pred_t,
+        features_s,
+        features_t,
+    ):
+        """Compute the domain adaptation loss"""
+        return 0
