@@ -9,6 +9,7 @@
 import warnings
 
 import numpy as np
+import scipy.sparse as sp
 from scipy.stats import multivariate_normal
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics.pairwise import KERNEL_PARAMS, pairwise_distances, pairwise_kernels
@@ -107,7 +108,8 @@ class DensityReweightAdapter(BaseAdapter):
         X, sample_domain = check_X_domain(X, sample_domain)
         source_idx = extract_source_indices(sample_domain)
 
-        # xxx(okachaiev): move this to API
+        # xxx(okachaiev): this if/else statement is used in pretty
+        #                 much every adapter. move to the API?
         if source_idx.sum() > 0:
             (source_idx,) = np.where(source_idx)
             ws = self.weight_estimator_source_.score_samples(X[source_idx])
@@ -472,7 +474,7 @@ class KLIEPReweightAdapter(BaseAdapter):
 
     def __init__(
         self,
-        gamma,  # XXX use the auto/scale mode as done with sklearn SVC
+        gamma,
         cv=5,
         n_centers=100,
         tol=1e-6,
@@ -510,11 +512,12 @@ class KLIEPReweightAdapter(BaseAdapter):
         X_source, X_target = source_target_split(X, sample_domain=sample_domain)
 
         if isinstance(self.gamma, list):
+            self.gamma = [self._auto_scale_gammas(gamma, X) for gamma in self.gamma]
             self.best_gamma_ = self._likelihood_cross_validation(
                 self.gamma, X_source, X_target
             )
         else:
-            self.best_gamma_ = self.gamma
+            self.best_gamma_ = self._auto_scale_gammas(self.gamma, X)
         self.alpha_, self.centers_ = self._weights_optimization(
             self.best_gamma_, X_source, X_target
         )
@@ -614,6 +617,20 @@ class KLIEPReweightAdapter(BaseAdapter):
             weights = None
         return AdaptationOutput(X, sample_weight=weights)
 
+    def _auto_scale_gammas(self, gamma, X):
+        if isinstance(gamma, str):
+            # Code snippet from sklearn SVC
+            if gamma == "scale":
+                # var = E[X^2] - E[X]^2 if sparse
+                sparse = sp.issparse(X)
+                X_var = (X.multiply(X)).mean() - (X.mean()) ** 2 if sparse else X.var()
+                gamma = 1.0 / (X.shape[1] * X_var) if X_var != 0 else 1.0
+            elif gamma == "auto":
+                gamma = 1 / X.shape[1]
+        else:
+            gamma = gamma
+        return gamma
+
 
 def KLIEPReweight(
     base_estimator=None,
@@ -626,7 +643,7 @@ def KLIEPReweight(
 ):
     """KLIEPReweight pipeline adapter and estimator.
 
-    see [1]_ for details.
+    see [3]_ for details.
 
     Parameters
     ----------
@@ -657,7 +674,7 @@ def KLIEPReweight(
 
     References
     ----------
-    .. [1] Masashi Sugiyama et. al. Direct Importance Estimation with Model Selection
+    .. [3] Masashi Sugiyama et. al. Direct Importance Estimation with Model Selection
            and Its Application to Covariate Shift Adaptation.
            In NeurIPS, 2007.
     """
@@ -679,10 +696,7 @@ def KLIEPReweight(
 class NearestNeighborReweightAdapter(BaseAdapter):
     """Adapter based on re-weighting samples using a 1NN,
 
-    See: [Loog, 2012] Loog, M. (2012).
-    Nearest neighbor-based importance weighting.
-    In 2012 IEEE International Workshop on Machine
-    Learning for Signal Processing, pages 1–6. IEEE.
+    See [22]_ for details.
 
     Parameters
     ----------
@@ -697,6 +711,12 @@ class NearestNeighborReweightAdapter(BaseAdapter):
         The estimator object fitted on the source data.
     weight_estimator_target_ : object
         The estimator object fitted on the target data.
+
+    References
+    ----------
+    .. [22] Nearest neighbor-based importance weighting.
+            In 2012 IEEE International Workshop on Machine
+            Learning for Signal Processing, pages 1–6. IEEE.
     """
 
     def __init__(
@@ -826,6 +846,8 @@ def NearestNeighborReweight(
     The last 7 parameters are the parameters from the 1NN estimator that
     will be used to estimate the weights in the `adapt` method
 
+    See [22]_ for details.
+
     Parameters
     ----------
     base_estimator : sklearn estimator, default=None
@@ -909,6 +931,12 @@ def NearestNeighborReweight(
     -------
     pipeline : sklearn pipeline
         Pipeline containing the DensityReweight adapter and the base estimator.
+
+    References
+    ----------
+    .. [22] Nearest neighbor-based importance weighting.
+            In 2012 IEEE International Workshop on Machine
+            Learning for Signal Processing, pages 1–6. IEEE.
     """
     if base_estimator is None:
         base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
@@ -936,7 +964,7 @@ class KMMReweightAdapter(BaseAdapter):
     input density p_target(x) and the reweighted source input density
     w(x)p_source(x) is minimized.
 
-    See [1]_ for details.
+    See [23]_ for details.
 
     Parameters
     ----------
@@ -969,9 +997,9 @@ class KMMReweightAdapter(BaseAdapter):
 
     References
     ----------
-    .. [1] J. Huang, A. Gretton, K. Borgwardt, B. Schölkopf and A. J. Smola.
-           'Correcting sample selection bias by unlabeled data.'
-           In NIPS, 2007.
+    .. [23] J. Huang, A. Gretton, K. Borgwardt, B. Schölkopf and A. J. Smola.
+            'Correcting sample selection bias by unlabeled data.'
+            In NIPS, 2007.
     """
 
     def __init__(
@@ -1122,7 +1150,7 @@ class KMMReweightAdapter(BaseAdapter):
             weights[source_idx] = source_weights
         else:
             weights = None
-        return AdaptationOutput(X=X, sample_weight=weights)
+        return AdaptationOutput(X, sample_weight=weights)
 
 
 def KMMReweight(
@@ -1139,7 +1167,7 @@ def KMMReweight(
 ):
     """KMMReweight pipeline adapter and estimator.
 
-    see [1]_ for details.
+    see [23]_ for details.
 
     Parameters
     ----------
@@ -1173,9 +1201,9 @@ def KMMReweight(
 
     References
     ----------
-    .. [1] J. Huang, A. Gretton, K. Borgwardt, B. Schölkopf and A. J. Smola.
-           'Correcting sample selection bias by unlabeled data.'
-           In NIPS, 2007.
+    .. [23] J. Huang, A. Gretton, K. Borgwardt, B. Schölkopf and A. J. Smola.
+            'Correcting sample selection bias by unlabeled data.'
+            In NIPS, 2007.
     """
     if base_estimator is None:
         base_estimator = LogisticRegression().set_fit_request(sample_weight=True)
@@ -1203,7 +1231,7 @@ class MMDTarSReweightAdapter(BaseAdapter):
     p_source(x) to its estimate p_target(x) is minimized under the assumption
     of equal conditional distributions p(x|y) for both source and target domains.
 
-    See Section 3 of [4]_ for details.
+    See Section 3 of [21]_ for details.
 
     .. warning::
         This adapter uses a nearest neighbors approach to compute weights when adapting
@@ -1231,8 +1259,8 @@ class MMDTarSReweightAdapter(BaseAdapter):
 
     References
     ----------
-    .. [4] Kun Zhang et. al. Domain Adaptation under Target and Conditional Shift
-           In ICML, 2013.
+    .. [21] Kun Zhang et. al. Domain Adaptation under Target and Conditional Shift
+            In ICML, 2013.
     """
 
     def __init__(self, gamma, reg=1e-10, tol=1e-6, max_iter=1000):
@@ -1258,7 +1286,7 @@ class MMDTarSReweightAdapter(BaseAdapter):
         # compute R
         if discrete:
             self.classes_ = classes = np.unique(y_source)
-            R = np.zeros((X_target.shape[0], len(classes)))
+            R = np.zeros((m, len(classes)))
             for i, c in enumerate(classes):
                 R[:, i] = (y_source == c).astype(int)
         else:
@@ -1379,7 +1407,7 @@ class MMDTarSReweightAdapter(BaseAdapter):
             weights += 1e-13  # avoid negative weights
         else:
             weights = None
-        return AdaptationOutput(X=X, sample_weight=weights)
+        return AdaptationOutput(X, sample_weight=weights)
 
 
 def MMDTarSReweight(
@@ -1391,7 +1419,7 @@ def MMDTarSReweight(
 ):
     """Target shift reweighting using MMD.
 
-    See Section 3 of [4]_ for details.
+    See Section 3 of [21]_ for details.
 
     Parameters
     ----------
@@ -1413,8 +1441,8 @@ def MMDTarSReweight(
 
     References
     ----------
-    .. [4] Kun Zhang et. al. Domain Adaptation under Target and Conditional Shift
-           In ICML, 2013.
+    .. [21] Kun Zhang et. al. Domain Adaptation under Target and Conditional Shift
+            In ICML, 2013.
     """
     if base_estimator is None:
         base_estimator = SVC().set_fit_request(sample_weight=True)

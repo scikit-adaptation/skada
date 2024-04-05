@@ -29,7 +29,7 @@ from .utils import (
 class SubspaceAlignmentAdapter(BaseAdapter):
     """Domain Adaptation Using Subspace Alignment.
 
-    See [1]_ for details.
+    See [8]_ for details.
 
     Parameters
     ----------
