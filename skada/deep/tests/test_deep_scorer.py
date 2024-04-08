@@ -5,7 +5,10 @@
 import numpy as np
 import pytest
 import torch
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import ShuffleSplit, cross_validate
 
+from skada import make_da_pipeline
 from skada.deep.base import (
     DomainAwareCriterion,
     DomainAwareModule,
@@ -19,6 +22,7 @@ from skada.metrics import (
     PredictionEntropyScorer,
     SoftNeighborhoodDensity,
 )
+from skada.deep import DeepCoral
 
 
 @pytest.mark.parametrize(
@@ -44,6 +48,15 @@ def test_generic_scorer_on_deepmodel(scorer, da_dataset):
         train_split=None,
     )
 
+    estimator = DeepCoral(
+        ToyModule2D(proba=True),
+        reg=1,
+        layer_name="dropout",
+        batch_size=10,
+        max_epochs=10,
+        train_split=None,
+    )
+
     X = X.astype(np.float32)
     X_test = X_test.astype(np.float32)
 
@@ -53,6 +66,40 @@ def test_generic_scorer_on_deepmodel(scorer, da_dataset):
     estimator.predict(X_test, sample_domain=sample_domain_test)
     estimator.predict_proba(X, sample_domain=sample_domain)
 
-    scores = scorer._score(estimator, X, y, sample_domain)
+    scores = scorer(estimator, X, y, sample_domain)
 
     assert ~np.isnan(scores), "The score is computed"
+
+
+@pytest.mark.parametrize(
+    "scorer",
+    [
+        PredictionEntropyScorer(),
+        SoftNeighborhoodDensity(),
+        DeepEmbeddedValidation(),
+    ],
+)
+def test_generic_scorer(scorer, da_dataset):
+    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    estimator = make_da_pipeline(
+        StandardScaler(),
+        DeepCoral(
+            ToyModule2D(),
+            reg=1,
+            layer_name="dropout",
+            batch_size=10,
+            max_epochs=10,
+            train_split=None,
+        ),
+    )
+    cv = ShuffleSplit(n_splits=3, test_size=0.3, random_state=0)
+    scores = cross_validate(
+        estimator,
+        X.astype(np.float32),
+        y,
+        cv=cv,
+        params={"sample_domain": sample_domain},
+        scoring=scorer,
+    )['test_score']
+    assert scores.shape[0] == 3, "evaluate 3 splits"
+    assert np.all(~np.isnan(scores)), "all scores are computed"
