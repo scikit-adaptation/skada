@@ -49,8 +49,9 @@ def _estimator_has(attr, base_attr_name='base_estimator'):
 class AdaptationOutput:
     """Container object for multi-key adaptation output."""
 
-    def __init__(self, X, **params):
+    def __init__(self, X, y=None, **params):
         self.X = X
+        self.y = y
         self.params = params
 
     def merge_into(self, output: Union[np.ndarray, "AdaptationOutput"]) -> "AdaptationOutput":
@@ -58,6 +59,12 @@ class AdaptationOutput:
             for k, v in self.items():
                 if k not in output.params:
                     output[k] = v
+            # xxx(okachaiev): it might be easier to achieve if we
+            # force adaptation output to always carry information
+            # about (X, y) disregarding of changes made. for example,
+            # by always wrapping what was returned from the adapter
+            if self.y is not None and output.y is None:
+                output.y = self.y
             return output
         else:
             self.X = output
@@ -329,14 +336,16 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
     def score(self, X, y, **params):
         return self._route_to_estimator('score', X, y=y, **params)
 
-    def _unwrap_from_container(self, X_container, params):
+    def _unwrap_from_container(self, X_container, y_input, params):
         if isinstance(X_container, AdaptationOutput):
             X_out = X_container.X
+            y_out = X_container.y if X_container.y is not None else y_input
             for k, v in X_container.items():
                 if v is not None:
                     params[k] = v
         else:
             X_out = X_container
+            y_out = y_input
 
         X_out, sample_domain = check_X_domain(
             X_out,
@@ -344,10 +353,10 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
         )
         params['sample_domain'] = sample_domain
 
-        return X_out, params
+        return X_out, y_out, params
 
-    def _merge_and_route_params(self, routing_request, X_container, params):
-        X_out, params = self._unwrap_from_container(X_container, params)
+    def _merge_and_route_params(self, routing_request, X_container, y_input, params):
+        X_out, y_out, params = self._unwrap_from_container(X_container, y_input, params)
         if self._is_final or not self._is_transformer:
             # xxx(okachaiev): there's still at least a single scenario where such condition
             # fails. consider the following pipeline: adapter -> transformer -> estimator.
@@ -374,7 +383,7 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
                 raise e
         else:
             routed_params = {k: params[k] for k in routing_request._consumes(params=params)}
-        return X_out, routed_params
+        return X_out, y_out, routed_params
 
     def _remove_masked(self, X, y, routed_params):
         """Removes masked inputs before passing them to a downstream (base) estimator,
@@ -426,7 +435,7 @@ class Shared(BaseSelector):
 
     def fit(self, X, y, **params):
         routing = get_routing_for_object(self.base_estimator)
-        X, routed_params = self._merge_and_route_params(routing.fit, X, params)
+        X, y, routed_params = self._merge_and_route_params(routing.fit, X, y, params)
         X, y, routed_params = self._remove_masked(X, y, routed_params)
         estimator = clone(self.base_estimator)
         estimator.fit(X, y, **routed_params)
@@ -452,7 +461,7 @@ class Shared(BaseSelector):
     def _route_to_estimator(self, method_name, X_container, y=None, **params):
         check_is_fitted(self)
         request = getattr(self.routing_, method_name)
-        X, routed_params = self._merge_and_route_params(request, X_container, params)
+        X, y, routed_params = self._merge_and_route_params(request, X_container, y, params)
         method = getattr(self.base_estimator_, method_name)
         output = method(X, **routed_params) if y is None else method(
             X, y, **routed_params
@@ -470,7 +479,7 @@ class PerDomain(BaseSelector):
     def fit(self, X, y, **params):
         sample_domain = params['sample_domain']
         routing = get_routing_for_object(self.base_estimator)
-        X, routed_params = self._merge_and_route_params(routing.fit, X, params)
+        X, y, routed_params = self._merge_and_route_params(routing.fit, X, y, params)
         X, y, routed_params = self._remove_masked(X, y, routed_params)
         estimators = {}
         for domain_label in np.unique(sample_domain):
@@ -489,7 +498,7 @@ class PerDomain(BaseSelector):
     def _route_to_estimator(self, method_name, X, y=None, **params):
         check_is_fitted(self)
         request = getattr(self.routing_, method_name)
-        X, routed_params = self._merge_and_route_params(request, X, params)
+        X, y, routed_params = self._merge_and_route_params(request, X, y, params)
         # xxx(okachaiev): use check_*_domain to derive default domain labels
         sample_domain = params['sample_domain']
         output = None
@@ -550,10 +559,10 @@ class _BaseSelectDomain(Shared):
         """
 
     def fit(self, X_container, y, **params):
-        X_input, params = self._unwrap_from_container(X_container, params)
+        X_input, y_input, params = self._unwrap_from_container(X_container, y, params)
         filter_masks = self._select_indices(params['sample_domain'])
-        X_input, y, params = _apply_domain_masks(X_input, y, params, masks=filter_masks)
-        return super().fit(X_input, y, **params)
+        X_input, y_input, params = _apply_domain_masks(X_input, y_input, params, masks=filter_masks)
+        return super().fit(X_input, y_input, **params)
 
 
 class SelectSource(_BaseSelectDomain):
@@ -653,7 +662,7 @@ class SelectSourceTarget(BaseSelector):
         return self.estimators_[domain]
 
     def fit(self, X_container, y, **params):
-        X, params = self._unwrap_from_container(X_container, params)
+        X, y, params = self._unwrap_from_container(X_container, y, params)
         # xxx(okachaiev): seems like we have this block of code rather often
         #                 maybe should be a helper
         if y is not None:
@@ -677,10 +686,15 @@ class SelectSourceTarget(BaseSelector):
                 )
             X_masked, y_masked, params_masked = _apply_domain_masks(X, y, params, masks=domain_masks)
             routing = get_routing_for_object(base_estimator)
-            X_masked, routed_params = self._merge_and_route_params(routing.fit, X_masked, params_masked)
+            X_masked, y_masked, routed_params = self._merge_and_route_params(
+                routing.fit,
+                X_masked,
+                y_masked,
+                params_masked
+            )
             X_masked, y_masked, routed_params = self._remove_masked(X_masked, y_masked, routed_params)
             estimator = clone(base_estimator)
-            estimator.fit(X_masked, y_masked, **routed_params)
+            estimator.fit(X_masked, y=y_masked, **routed_params)
             estimators[domain_type] = estimator
         self.estimators_ = estimators
         return self
@@ -706,7 +720,7 @@ class SelectSourceTarget(BaseSelector):
 
     def _route_to_estimator(self, method_name, X_container, y=None, **params):
         check_is_fitted(self)
-        X, params = self._unwrap_from_container(X_container, params)
+        X, y, params = self._unwrap_from_container(X_container, y, params)
         if y is not None:
             X, y, sample_domain = check_X_y_domain(X, y, sample_domain=params.get('sample_domain'))
         else:
@@ -723,7 +737,12 @@ class SelectSourceTarget(BaseSelector):
                 continue
             X_domain, y_domain, params_domain = _apply_domain_masks(X, y, params, masks=domain_masks)
             request = getattr(get_routing_for_object(domain_estimator), method_name)
-            X_domain, routed_params = self._merge_and_route_params(request, X_domain, params_domain)
+            X_domain, y_domain, routed_params = self._merge_and_route_params(
+                request,
+                X_domain,
+                y_domain,
+                params_domain
+            )
             method = getattr(domain_estimator, method_name)
             if y_domain is None or method_name == 'transform':
                 domain_output = method(X_domain, **routed_params)
