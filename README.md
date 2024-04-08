@@ -195,4 +195,10 @@ The library is distributed under the 3-Clause BSD license.
 
 [22] Loog, M. (2012). Nearest neighbor-based importance weighting. In 2012 IEEE International Workshop on Machine Learning for Signal Processing, pages 1–6. IEEE (https://arxiv.org/pdf/2102.02291.pdf)
 
-[23] J. Huang, A. Gretton, K. Borgwardt, B. Schölkopf and A. J. Smola. Correcting sample selection bias by unlabeled data. In NIPS, 2007. (https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=07117994f0971b2fc2df95adb373c31c3d313442)
+[23] Domain Adaptation Problems: A DASVM ClassificationTechnique and a Circular Validation StrategyLorenzo Bruzzone, Fellow, IEEE, and Mattia Marconcini, Member, IEEE (https://rslab.disi.unitn.it/papers/R82-PAMI.pdf)
+
+[24] Loog, M. (2012). Nearest neighbor-based importance weighting. In 2012 IEEE International Workshop on Machine Learning for Signal Processing, pages 1–6. IEEE (https://arxiv.org/pdf/2102.02291.pdf)
+
+[25] J. Huang, A. Gretton, K. Borgwardt, B. Schölkopf and A. J. Smola. Correcting sample selection bias by unlabeled data. In NIPS, 2007. (https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=07117994f0971b2fc2df95adb373c31c3d313442)
+
+[26] Long, M., Wang, J., Ding, G., Sun, J., and Yu, P. (2014). [Transfer joint matching for unsupervised domain adaptation. In IEEE Conference on Computer Vision and Pattern Recognition (CVPR), pages 1410–1417](https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=a279f53f386ac78345b67e13c1808880c718efdf)
