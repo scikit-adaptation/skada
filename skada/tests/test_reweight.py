@@ -322,7 +322,6 @@ def test_adaptation_output_propagate_labels(da_reg_dataset):
     estimator_output = {}
 
     class FakeAdapter(BaseAdapter):
-        __metadata_request__fit = {"y": True}
         __metadata_request__transform = {"y": True}
 
         def fit(self, X, y=None, *, sample_domain=None):
@@ -330,16 +329,17 @@ def test_adaptation_output_propagate_labels(da_reg_dataset):
             return self
 
         def adapt(self, X, y=None, sample_domain=None):
-            y[::2] = np.nan
-            return AdaptationOutput(X, y)
+            if y is not None:
+                y[::2] = np.nan
+            return AdaptationOutput(X, y=y)
 
     class FakeEstimator(DAEstimator):
         def fit(self, X, y=None, **params):
+            estimator_output["shape"] = X.shape
             self.fitted_ = True
             return self
 
-        def predict(self, X, *, sample_domain=None):
-            estimator_output["shape"] = X.shape
+        def predict(self, X, sample_domain=None):
             return X
 
     clf = make_da_pipeline(
@@ -348,8 +348,8 @@ def test_adaptation_output_propagate_labels(da_reg_dataset):
     )
 
     # check no errors are raised
-    clf.fit(X, y, sample_domain=sample_domain)
-    clf.predict(X_target, y=y, sample_domain=target_domain)
+    clf.fit(X, y=y, sample_domain=sample_domain)
+    clf.predict(X_target, sample_domain=target_domain)
 
     # output should contain only half of targets
-    estimator_output["shape"][0] = X_target.shape[0] // 2
+    assert estimator_output["shape"][0] == X.shape[0] // 2

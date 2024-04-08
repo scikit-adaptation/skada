@@ -308,8 +308,8 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
         """
 
     @available_if(_estimator_has('transform'))
-    def transform(self, X_container, y=None, **params):
-        output = self._route_to_estimator('transform', X_container, y=y, **params)
+    def transform(self, X_container, **params):
+        output = self._route_to_estimator('transform', X_container, **params)
         # If the original input was an `AdaptationOutput` container,
         # we should either wrap the output back into container, or
         # merge a pair of containers if the `output` itself is an instance
@@ -318,7 +318,7 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
         # In such a case, the `output` is supposed to be consumable from
         # the common sklearn API.
         if not self._is_final and isinstance(X_container, AdaptationOutput):
-            output = X_container.merge_into(output, y=y)
+            output = X_container.merge_into(output)
         return output
 
     def predict(self, X, **params):
@@ -462,14 +462,15 @@ class Shared(BaseSelector):
         return output
 
     # xxx(okachaiev): fail if unknown domain is given
-    def _route_to_estimator(self, method_name, X_container, y=None, **params):
+    def _route_to_estimator(self, method_name, X_container, **params):
         check_is_fitted(self)
         request = getattr(self.routing_, method_name)
-        X, y, routed_params = self._merge_and_route_params(request, X_container, y, params)
+        X, _, routed_params = self._merge_and_route_params(request, X_container, None, params)
         method = getattr(self.base_estimator_, method_name)
-        output = method(X, **routed_params) if y is None else method(
-            X, y, **routed_params
-        )
+        # output = method(X, **routed_params) if y is None else method(
+        #     X, y, **routed_params
+        # )
+        output = method(X, **routed_params)
         return output
 
 
