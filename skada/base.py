@@ -329,7 +329,7 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
     def score(self, X, y, **params):
         return self._route_to_estimator('score', X, y=y, **params)
 
-    def _unwrap_from_container(self, X_container, params):
+    def _unwrap_from_container(self, X_container, params, y=None):
         if isinstance(X_container, AdaptationOutput):
             X_out = X_container.X
             for k, v in X_container.items():
@@ -338,10 +338,17 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
         else:
             X_out = X_container
 
-        X_out, sample_domain = check_X_domain(
-            X_out,
-            sample_domain=params.get('sample_domain')
-        )
+        if y is not None:
+            X_out, y, sample_domain = check_X_y_domain(
+                X_out,
+                y,
+                sample_domain=params.get('sample_domain')
+            )
+        else:
+            X_out, sample_domain = check_X_domain(
+                X_out,
+                sample_domain=params.get('sample_domain')
+            )
         params['sample_domain'] = sample_domain
 
         return X_out, params
@@ -550,7 +557,7 @@ class _BaseSelectDomain(Shared):
         """
 
     def fit(self, X_container, y, **params):
-        X_input, params = self._unwrap_from_container(X_container, params)
+        X_input, params = self._unwrap_from_container(X_container, params, y)
         filter_masks = self._select_indices(params['sample_domain'])
         X_input, y, params = _apply_domain_masks(X_input, y, params, masks=filter_masks)
         return super().fit(X_input, y, **params)
