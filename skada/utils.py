@@ -19,6 +19,7 @@ from skada._utils import (
     _DEFAULT_TARGET_DOMAIN_LABEL,
     _DEFAULT_TARGET_DOMAIN_ONLY_LABEL,
     _check_y_masking,
+    Y_Type,
 )
 
 
@@ -81,7 +82,7 @@ def check_X_y_domain(
         # labels masked with -1 (for classification) are recognized as targets,
         # labels masked with nan (for regression) are recognized as targets,
         # the rest is treated as a source
-        if y_type == 'classification':
+        if y_type == Y_Type.DISCRETE:
             mask = (y == _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL)
         else:
             mask = (np.isnan(y))
@@ -436,7 +437,7 @@ def source_target_merge(
             pair_index = i+1 if index_is_empty == i else i
 
             y_type = type_of_target(arrays[pair_index])
-            if y_type == 'binary' or y_type == 'multiclass':
+            if y_type == Y_Type.DISCRETE:
                 default_masked_label = _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
             else:
                 default_masked_label = _DEFAULT_MASKED_TARGET_REGRESSION_LABEL
