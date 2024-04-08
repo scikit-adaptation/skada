@@ -54,7 +54,7 @@ class AdaptationOutput:
         self.y = y
         self.params = params
 
-    def merge_into(self, output: Union[np.ndarray, "AdaptationOutput"]) -> "AdaptationOutput":
+    def merge_into(self, output: Union[np.ndarray, "AdaptationOutput"], y=None) -> "AdaptationOutput":
         if isinstance(output, self.__class__):
             for k, v in self.items():
                 if k not in output.params:
@@ -65,9 +65,13 @@ class AdaptationOutput:
             # by always wrapping what was returned from the adapter
             if self.y is not None and output.y is None:
                 output.y = self.y
+            elif y is not None and output.y is None:
+                output.y = y
             return output
         else:
             self.X = output
+            if y is not None and self.y is None:
+                self.y = y
             return self
 
     def keys(self):
@@ -113,7 +117,7 @@ class IncompatibleMetadataError(UnsetMetadataPassedError):
         super().__init__(message=message, unrequested_params={}, routed_params={})
 
 
-class BaseAdapter(BaseEstimator):
+class BaseAdapter(BaseEstimator, _MetadataRequester):
 
     __metadata_request__fit = {'sample_domain': True}
     __metadata_request__transform = {'sample_domain': True, 'allow_source': True}
@@ -304,8 +308,8 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
         """
 
     @available_if(_estimator_has('transform'))
-    def transform(self, X_container, **params):
-        output = self._route_to_estimator('transform', X_container, **params)
+    def transform(self, X_container, y=None, **params):
+        output = self._route_to_estimator('transform', X_container, y=y, **params)
         # If the original input was an `AdaptationOutput` container,
         # we should either wrap the output back into container, or
         # merge a pair of containers if the `output` itself is an instance
@@ -314,7 +318,7 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
         # In such a case, the `output` is supposed to be consumable from
         # the common sklearn API.
         if not self._is_final and isinstance(X_container, AdaptationOutput):
-            output = X_container.merge_into(output)
+            output = X_container.merge_into(output, y=y)
         return output
 
     def predict(self, X, **params):
@@ -452,9 +456,9 @@ class Shared(BaseSelector):
             # xxx(okachaiev): adapt should take 'y' as well, as in many cases
             # we need to bound estimator fitting to a sub-group of the input
             routed_params = self.routing_.fit_transform._route_params(params=params)
-            output = self.base_estimator_.adapt(X, **routed_params)
+            output = self.base_estimator_.adapt(X, y=y, **routed_params)
         else:
-            output = self.transform(X, **params)
+            output = self.transform(X, y=y, **params)
         return output
 
     # xxx(okachaiev): fail if unknown domain is given

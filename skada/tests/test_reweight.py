@@ -33,6 +33,7 @@ from skada import (
 from skada.base import (
     AdaptationOutput,
     BaseAdapter,
+    DAEstimator,
     SelectSource,
     SelectSourceTarget,
     SelectTarget,
@@ -311,3 +312,44 @@ def test_merge_adaptation_output(da_reg_dataset):
     # check no errors are raised
     clf.fit(X, y, sample_domain=sample_domain)
     clf.predict(X_target, sample_domain=target_domain)
+
+
+def test_adaptation_output_propagate_labels(da_reg_dataset):
+    X, y, sample_domain = da_reg_dataset
+    _, X_target, _, target_domain = source_target_split(
+        X, sample_domain, sample_domain=sample_domain
+    )
+    estimator_output = {}
+
+    class FakeAdapter(BaseAdapter):
+        __metadata_request__fit = {"y": True}
+        __metadata_request__transform = {"y": True}
+
+        def fit(self, X, y=None, *, sample_domain=None):
+            self.fitted_ = True
+            return self
+
+        def adapt(self, X, y=None, sample_domain=None):
+            y[::2] = np.nan
+            return AdaptationOutput(X, y)
+
+    class FakeEstimator(DAEstimator):
+        def fit(self, X, y=None, **params):
+            self.fitted_ = True
+            return self
+
+        def predict(self, X, *, sample_domain=None):
+            estimator_output["shape"] = X.shape
+            return X
+
+    clf = make_da_pipeline(
+        FakeAdapter(),
+        FakeEstimator(),
+    )
+
+    # check no errors are raised
+    clf.fit(X, y, sample_domain=sample_domain)
+    clf.predict(X_target, y=y, sample_domain=target_domain)
+
+    # output should contain only half of targets
+    estimator_output["shape"][0] = X_target.shape[0] // 2
