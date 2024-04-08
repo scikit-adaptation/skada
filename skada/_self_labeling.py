@@ -263,7 +263,7 @@ class DASVMClassifier(DAEstimator):
         """Return predicted value by the fitted estimator for `X`
         `predict` method from the estimator we fitted
         """
-        return self.base_estimator_.predict(X)
+        return self.base_estimator_.predict(X, **kwargs)
 
     def _check_proba(self):
         if hasattr(self.base_estimator, "predict_proba"):
@@ -279,7 +279,7 @@ class DASVMClassifier(DAEstimator):
         `predict_proba` method from the estimator we fitted
         """
         check_is_fitted(self)
-        return self.base_estimator.predict_proba(X)
+        return self.base_estimator.predict_proba(X, **kwargs)
 
     def decision_function(self, X):
         """Return values of the decision function of the
@@ -296,4 +296,4 @@ class DASVMClassifier(DAEstimator):
                 "Source domain detected. Predictor is trained on target"
                 "and score might be biased."
             )
-        return self.base_estimator_.score(X, y, sample_weight=sample_weight)
+        return self.base_estimator_.score(X, y, sample_weight=sample_weight, **kwargs)
