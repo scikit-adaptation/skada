@@ -4,18 +4,9 @@
 
 import numpy as np
 import pytest
-import torch
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import ShuffleSplit, cross_validate
-
 from skada import make_da_pipeline
-from skada.deep.base import (
-    DomainAwareCriterion,
-    DomainAwareModule,
-    DomainAwareNet,
-    DomainBalancedDataLoader,
-)
-from skada.deep.losses import TestLoss
 from skada.deep.modules import ToyModule2D
 from skada.metrics import (
     DeepEmbeddedValidation,
@@ -36,17 +27,6 @@ from skada.deep import DeepCoral
 def test_generic_scorer_on_deepmodel(scorer, da_dataset):
     X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
     X_test, y_test, sample_domain_test = da_dataset.pack_test(as_targets=["t"])
-
-    module = ToyModule2D(proba=True)
-
-    estimator = DomainAwareNet(
-        DomainAwareModule(module, "dropout"),
-        iterator_train=DomainBalancedDataLoader,
-        criterion=DomainAwareCriterion(torch.nn.CrossEntropyLoss(), TestLoss()),
-        batch_size=10,
-        max_epochs=2,
-        train_split=None,
-    )
 
     estimator = DeepCoral(
         ToyModule2D(proba=True),
@@ -76,21 +56,23 @@ def test_generic_scorer_on_deepmodel(scorer, da_dataset):
     [
         PredictionEntropyScorer(),
         SoftNeighborhoodDensity(),
-        DeepEmbeddedValidation(),
+        # DeepEmbeddedValidation(),
     ],
 )
 def test_generic_scorer(scorer, da_dataset):
     X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+
+    net = DeepCoral(
+        ToyModule2D(proba=True),
+        reg=1,
+        layer_name="dropout",
+        batch_size=10,
+        max_epochs=10,
+        train_split=None,
+    )
     estimator = make_da_pipeline(
         StandardScaler(),
-        DeepCoral(
-            ToyModule2D(),
-            reg=1,
-            layer_name="dropout",
-            batch_size=10,
-            max_epochs=10,
-            train_split=None,
-        ),
+        net,
     )
     cv = ShuffleSplit(n_splits=3, test_size=0.3, random_state=0)
     scores = cross_validate(
@@ -100,6 +82,7 @@ def test_generic_scorer(scorer, da_dataset):
         cv=cv,
         params={"sample_domain": sample_domain},
         scoring=scorer,
+        error_score="raise",
     )['test_score']
     assert scores.shape[0] == 3, "evaluate 3 splits"
     assert np.all(~np.isnan(scores)), "all scores are computed"

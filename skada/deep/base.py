@@ -138,7 +138,7 @@ class DomainBalancedSampler(Sampler):
         The dataset to sample from.
     """
 
-    def __init__(self, dataset):
+    def __init__(self, dataset, batch_size):
         self.dataset = dataset
         self.positive_indices = [
             idx for idx, sample in enumerate(dataset) if sample[0]["sample_domain"] >= 0
@@ -146,7 +146,9 @@ class DomainBalancedSampler(Sampler):
         self.negative_indices = [
             idx for idx, sample in enumerate(dataset) if sample[0]["sample_domain"] < 0
         ]
-        self.num_samples = len(self.positive_indices)
+        self.num_samples = (
+            len(self.positive_indices) - len(self.positive_indices) % batch_size
+        )
 
     def __iter__(self):
         positive_sampler = torch.utils.data.sampler.RandomSampler(self.positive_indices)
@@ -195,7 +197,7 @@ class DomainBalancedDataLoader(DataLoader):
         worker_init_fn=None,
         multiprocessing_context=None,
     ):
-        sampler = DomainBalancedSampler(dataset)
+        sampler = DomainBalancedSampler(dataset, batch_size)
         super().__init__(
             dataset,
             2 * batch_size,
@@ -230,22 +232,22 @@ class DomainAwareModule(torch.nn.Module):
         domain. Could be None.
     """
 
-    def __init__(self, module, layer_name, domain_classifier=None):
+    def __init__(self, base_module, layer_name, domain_classifier=None):
         super(DomainAwareModule, self).__init__()
-        self.module_ = module
+        self.base_module_ = base_module
         self.domain_classifier_ = domain_classifier
         self.layer_name = layer_name
         self.intermediate_layers = {}
         self._setup_hooks()
-    
+
     def _setup_hooks(self):
         _register_forwards_hook(
-            self.module_, self.intermediate_layers, [self.layer_name]
+            self.base_module_, self.intermediate_layers, [self.layer_name]
         )
 
     def get_params(self, deep=True) -> Dict[str, Any]:
         return {
-            'module': self.module_,
+            'base_module': self.base_module_,
             'layer_name': self.layer_name,
             'domain_classifier': self.domain_classifier_,
         }
@@ -262,9 +264,9 @@ class DomainAwareModule(torch.nn.Module):
             X_s = X[source_idx]
             X_t = X[~source_idx]
             # predict
-            y_pred_s = self.module_(X_s)
+            y_pred_s = self.base_module_(X_s)
             features_s = self.intermediate_layers[self.layer_name]
-            y_pred_t = self.module_(X_t)
+            y_pred_t = self.base_module_(X_t)
             features_t = self.intermediate_layers[self.layer_name]
 
             if self.domain_classifier_ is not None:
@@ -292,9 +294,9 @@ class DomainAwareModule(torch.nn.Module):
             )
         else:
             if return_features:
-                return self.module_(X), self.intermediate_layers[self.layer_name]
+                return self.base_module_(X), self.intermediate_layers[self.layer_name]
             else:
-                return self.module_(X)
+                return self.base_module_(X)
 
 
 class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
@@ -485,7 +487,7 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         if not torch.is_tensor(X):
             X = torch.tensor(X)
 
-        _, features = self.module(
+        _, features = self.module_(
             X, sample_domain=None, is_fit=False, return_features=True
         )
         return features
