@@ -484,6 +484,9 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
             sample.
             If X is a dataset, the dataset should return a dict..
         """
+        if not self.initialized_:
+            self.initialize()
+
         if not torch.is_tensor(X):
             X = torch.tensor(X)
 
