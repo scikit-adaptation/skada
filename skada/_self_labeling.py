@@ -53,6 +53,20 @@ class DASVMClassifier(DAEstimator):
             IEEE transactions on pattern analysis and machine intelligence, (2009).
     """
 
+    __metadata_request__fit = {"sample_domain": True}
+    __metadata_request__partial_fit = {"sample_domain": False}
+    __metadata_request__predict = {"sample_domain": False, "allow_source": False}
+    __metadata_request__predict_proba = {"sample_domain": False, "allow_source": False}
+    __metadata_request__predict_log_proba = {
+        "sample_domain": False,
+        "allow_source": False,
+    }
+    __metadata_request__score = {"sample_domain": False, "allow_source": False}
+    __metadata_request__decision_function = {
+        "sample_domain": False,
+        "allow_source": False,
+    }
+
     def __init__(
         self,
         base_estimator=None,

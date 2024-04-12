@@ -79,9 +79,6 @@ def test_dasvm_estimator_predict_proba():
         and clf_dasvm.predict_proba(X).shape[1] == np.unique(y).shape[0]
     ), "Wrong length of the predicted probabilities when using `predict_proba` method"
 
-    # The `DASVMClassifier` should accept sample_domain as an argument
-    clf_dasvm.predict_proba(X, sample_domain=sample_domain)
-
     # Test with a base estimator that does not support predict_proba
     clf_dasvm = DASVMClassifier(k=3, base_estimator=SVC(probability=False)).fit(
         X, y, sample_domain=sample_domain
