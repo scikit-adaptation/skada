@@ -14,6 +14,7 @@ from skada.utils import (
     extract_domains_indices,
     extract_source_indices,
     qp_solve,
+    frank_wolfe,
     source_target_merge,
     source_target_split,
     torch_minimize,
@@ -504,6 +505,67 @@ def test_qp_solve():
 
     with pytest.warns(UserWarning, match="Iteration limit reached"):
         qp_solve(Q, c, Aeq=Aeq, beq=beq, lb=lb, max_iter=1)
+
+
+def test_qp_solve_frank_wolfe():
+    Q = np.array([[2.0, 0.5], [0.5, 1.0]])
+    c = np.array([1.0, 1.0])
+
+    Aeq = np.array([[1.0, 1.0]])
+    beq = np.array([1.0])
+
+    A = np.array([[1.0, 1.0]])
+    b = np.array([1.0])
+
+    A2 = np.array([[1.0, 1.0],
+                   [-1.0, -1.0]])
+    b2 = np.array([1., -1.])
+
+    b3 = np.array([1., 0.])
+
+    lb = np.array([0.0, 0.0])
+
+    sol1 = np.array([0.25, 0.75])
+
+    res = qp_solve(Q, c, Aeq=Aeq, beq=beq, lb=lb,
+                   solver="frank-wolfe")
+    assert np.abs(res[0] - sol1).sum() < 0.01
+
+    res = qp_solve(Q, c, A=A, b=b,
+                   solver="frank-wolfe")
+    assert np.abs(res[0] - sol1).sum() < 0.01
+
+    res = qp_solve(Q, c, A=A2, b=b2,
+                   solver="frank-wolfe")
+    assert np.abs(res[0] - sol1).sum() < 0.01
+
+    res = qp_solve(Q, A=A2, b=b3, solver="frank-wolfe")
+    assert np.abs(res[0] - np.zeros(2)).sum() < 0.01
+
+    with pytest.raises(ValueError, match="`A` or `Aeq` must be given"):
+        qp_solve(Q, c, solver="frank-wolfe")
+
+
+def test_frank_wolfe():
+    Q = np.array([[2., .5],
+                  [.5, 1.]])
+    c = np.array([1., 1.])
+
+    Aeq = np.array([1., 1.])
+
+    sol = np.array([0.25, 0.75])
+
+    def jac(x):
+        return Q @ x + c
+
+    x1 = frank_wolfe(jac, Aeq, 1., 1., max_iter=1000)
+    assert np.abs(x1 - sol).sum() < 0.01
+
+    x2 = frank_wolfe(jac, Aeq, 1., 1., max_iter=10000)
+    assert np.abs(x2 - sol).sum() < np.abs(x1 - sol).sum()
+
+    x1 = frank_wolfe(jac, Aeq, .5, 1., max_iter=1000)
+    assert np.abs(x1 - sol/2).sum() < 0.01
 
 
 @pytest.mark.skipif(not torch, reason="PyTorch not installed")

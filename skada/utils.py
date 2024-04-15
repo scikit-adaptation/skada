@@ -512,9 +512,10 @@ def _merge_arrays(
     return output
 
 
-def qp_solve(Q, c=None, A=None, b=None, Aeq=None, beq=None, lb=None, ub=None,
-             x0=None, tol=1e-6, max_iter=1000, verbose=False, log=False):
-    r"""Solves a standard quadratic program
+def qp_solve(Q, c=None, A=None, b=None, Aeq=None, beq=None,
+             lb=None, ub=None, x0=None, tol=1e-6, max_iter=1000,
+             verbose=False, log=False, solver="scipy"):
+    r""" Solves a standard quadratic program
 
     Solve the following optimization problem:
 
@@ -528,7 +529,103 @@ def qp_solve(Q, c=None, A=None, b=None, Aeq=None, beq=None, lb=None, ub=None,
 
         A_{eq} x = b_{eq}
 
-    Return val as None if optimization failed.
+    Return val as None if optmization failed.
+
+    All constraint parameters are optional, they will be ignore is left at
+    default value None.
+
+    Note that the Frank-wolfe solver can only be used to solve
+    optimization problem defined as follows:
+
+    .. math::
+        \min_x \quad  \frac{1}{2}x^TQx + x^Tc
+
+        A_{eq} x = b_{eq}
+
+        x >= 0
+
+    Or,
+
+    .. math::
+        \min_x \quad  \frac{1}{2}x^TQx + x^Tc
+
+        A x <= b
+
+        x >= 0
+
+    With Aeq and beq of respective dimension (1,d) and (1,),
+    and A and b of respective dimension (1,d) and (1,) or
+    (2,d) and (2,), with A[0] and A[1] colinear.
+
+    Parameters
+    ----------
+    Q : (d,d) ndarray, float64, optional
+        Quadratic cost matrix matrix
+    c : (d,) ndarray, float64, optional
+        Linear cost vector
+    A : (n,d) ndarray, float64, optional
+        Linear inequality constraint matrix.
+    b : (n,) ndarray, float64, optional
+        Linear inequality constraint vector.
+    Aeq : (n,d) ndarray, float64, optional
+        Linear equality constraint matrix .
+    beq : (n,) ndarray, float64, optional
+        Linear equality constraint vector.   .
+    lb : (d) ndarray, float64, optional
+        Lower bound constraint, -np.inf if not provided.
+    ub : (d) ndarray, float64, optional
+        Upper bound constraint, np.inf if not provided.
+    x0 : (d,) ndarray, float64, optional
+        Initialization. Ones by default.
+    tol : float, optional
+        Tolerance for termination.
+    max_iter : int, optional
+        Maximum number of iterations to perform.
+    verbose : boolean, optional
+        Print optimization informations.
+    log : boolean, optional
+        Return a dictionary with optim informations in adition to x and val
+    solver : str, optional default='scipy'
+        Available solvers : 'scipy', 'frank-wolfe'
+
+    Returns
+    -------
+    x: (d,) ndarray
+        Optimal solution x
+    val: float
+        optimal value of the objective (None if optimization error)
+    log: dict
+        Optional log output
+    """
+    solver_list = ["scipy", "frank-wolfe"]
+
+    if solver == "scipy":
+        return _qp_solve_scipy(Q, c, A, b, Aeq, beq, lb, ub,
+                               x0, tol, max_iter, verbose, log)
+    elif solver == "frank-wolfe":
+        return _qp_solve_frank_wolfe(Q, c, A, b, Aeq, beq,
+                                     x0, max_iter)
+    else:
+        raise ValueError("`solver` argument should be included in %s,"
+                         " got '%s'" % (solver_list, str(solver)))
+
+
+def _qp_solve_scipy(Q, c=None, A=None, b=None, Aeq=None, beq=None,
+                    lb=None, ub=None, x0=None, tol=1e-6, max_iter=1000,
+                    verbose=False, log=False):
+    r""" Solves a standard quadratic program
+
+    Solve the following optimization problem:
+
+    .. math::
+        \min_x \quad  \frac{1}{2}x^TQx + x^Tc
+
+
+        lb <= x <= ub
+
+        Ax <= b
+
+        A_{eq} x = b_{eq}
 
     All constraint parameters are optional, they will be ignore is left at
     default value None.
@@ -558,9 +655,9 @@ def qp_solve(Q, c=None, A=None, b=None, Aeq=None, beq=None, lb=None, ub=None,
     max_iter : int, optional
         Maximum number of iterations to perform.
     verbose : boolean, optional
-        Print optimization information.
+        Print optimization informations.
     log : boolean, optional
-        Return a dictionary with optim information in addition to x and val
+        Return a dictionary with optim informations in adition to x and val
 
     Returns
     -------
@@ -626,6 +723,142 @@ def qp_solve(Q, c=None, A=None, b=None, Aeq=None, beq=None, lb=None, ub=None,
         outputs += (results,)
 
     return outputs
+
+
+def _qp_solve_frank_wolfe(Q, c=None, A=None, b=None,
+                          Aeq=None, beq=None, x0=None,
+                          max_iter=1000):
+    r""" Solves a quadratic program with Frank-Wolfe algorithm
+
+    Solve the following optimization problem:
+
+    .. math::
+        \min_x \quad  \frac{1}{2}x^TQx + x^Tc
+
+        A_{eq} x = b_{eq}
+
+        x >= 0
+
+    Or,
+
+    .. math::
+        \min_x \quad  \frac{1}{2}x^TQx + x^Tc
+
+        A x <= b
+
+        x >= 0
+
+    With Aeq and beq of respective dimension (1,d) and (1,),
+    and A and b of respective dimension (1,d) and (1,) or
+    (2,d) and (2,), with A[0] and A[1] colinear.
+
+    All constraint parameters are optional, they will be ignore is left at
+    default value None.
+
+    Parameters
+    ----------
+    Q : (d,d) ndarray, float64, optional
+        Quadratic cost matrix matrix
+    c : (d,) ndarray, float64, optional
+        Linear cost vector
+    A : (n,d) ndarray, float64, optional
+        Linear inequality constraint matrix.
+    b : (n,) ndarray, float64, optional
+        Linear inequality constraint vector.
+    Aeq : (n,d) ndarray, float64, optional
+        Linear equality constraint matrix .
+    beq : (n,) ndarray, float64, optional
+        Linear equality constraint vector.
+    x0 : (d,) ndarray, float64, optional
+        Initialization. Ones by default.
+    max_iter : int, optional
+        Maximum number of iterations to perform.
+
+    Returns
+    -------
+    x: (d,) ndarray
+        Optimal solution x
+    val: float
+        optimal value of the objective (None if optimization error)
+    """
+    if c is None:
+        def func(x):
+            return (1/2) * x @ (Q @ x)
+
+        def jac(x):
+            return Q @ x
+    else:
+        def func(x):
+            return (1/2) * x @ (Q @ x) + x @ c
+
+        def jac(x):
+            return Q @ x + c
+
+    if Aeq is not None:
+        x = frank_wolfe(jac, Aeq[0], beq[0], beq[0],
+                        x0, max_iter)
+    elif A is not None:
+        if A.shape[0] > 1:
+            x = frank_wolfe(jac, A[0], -b[1], b[0],
+                            x0, max_iter)
+        else:
+            x = frank_wolfe(jac, A[0], b[0], b[0],
+                            x0, max_iter)
+    else:
+        raise ValueError("`A` or `Aeq` must be given when"
+                         " using the 'frank-wolfe' solver")
+    return x, func(x)
+
+
+def frank_wolfe(jac, c, clb=1., cub=1., x0=None, max_iter=1000):
+    r"""Frank-Wolfe algorithm for convex programming
+
+    Solve the following convex optimization problem:
+
+    .. math::
+        \min_x \quad  f(x)
+
+        clb <= \\langle x, c \\rangle <= cub
+
+        x >= 0
+
+    Parameters
+    ----------
+    jac : callable
+        The jacobian of f, return a vector of shape (d,).
+    c : (d,) ndarray, float64
+        Linear constraint vector.
+    clb : float64, optional, default=1.
+        Lower bound of the linear constraint.
+    cub : float64, optional, default=1.
+        Upper bound of the linear constraint.
+    max_iter : int, optional, default=1000
+        Maximum number of iterations to perform.
+
+    Returns
+    -------
+    x: (d,) ndarray
+        Optimal solution x
+    """
+    inv_c = 1. / c
+
+    if x0 is None:
+        x0 = inv_c * ((cub - clb) / 2) / c.shape[0]
+
+    x = np.copy(x0)
+
+    for k in range(1, max_iter+1):
+        grad = jac(x)
+        product = grad * inv_c
+        index = np.argmin(product)
+        vect = np.zeros(c.shape[0])
+        if product[index] >= 0:
+            vect[index] = inv_c[index] * clb
+        else:
+            vect[index] = inv_c[index] * cub
+        lr = 2. / (k + 1.)
+        x = (1 - lr) * x + lr * vect
+    return x
 
 
 def torch_minimize(loss, x0, tol=1e-6, max_iter=1000):
