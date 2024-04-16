@@ -987,7 +987,7 @@ class KMMReweightAdapter(BaseAdapter):
         Number of maximum iteration before stopping the optimization.
     smooth_weights : bool, default=False
         If True, the weights are "smoothed" using the kernel function.
-    solver : string, default='qp_scipy'
+    solver : string, default='frank-wolfe'
         Available solvers : ['frank-wolfe', 'scipy'].
 
     Attributes
@@ -1199,7 +1199,7 @@ def KMMReweight(
     smooth_weights : bool, default=False
         If True, the weights are "smoothed" using the kernel function.
         Pipeline containing the KMMReweight adapter and the base estimator.
-    solver : string, default='qp_scipy'
+    solver : string, default='frank-wolfe'
         Available solvers : ['frank-wolfe', 'scipy'].
 
     Returns

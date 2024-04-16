@@ -79,6 +79,7 @@ from skada.base import (
         KMMReweight(),
         KMMReweight(eps=0.1),
         KMMReweight(solver="frank-wolfe"),
+        KMMReweight(solver="scipy"),
         make_da_pipeline(
             MMDTarSReweightAdapter(gamma=1.0),
             LogisticRegression().set_fit_request(sample_weight=True),

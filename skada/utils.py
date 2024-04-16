@@ -529,10 +529,10 @@ def qp_solve(Q, c=None, A=None, b=None, Aeq=None, beq=None,
 
         A_{eq} x = b_{eq}
 
-    Return val as None if optmization failed.
+    Return val as None if optimization failed.
 
-    All constraint parameters are optional, they will be ignore is left at
-    default value None.
+    All constraint parameters are optional, they will be ignored
+    if set as None.
 
     Note that the Frank-wolfe solver can only be used to solve
     optimization problem defined as follows:
@@ -582,9 +582,9 @@ def qp_solve(Q, c=None, A=None, b=None, Aeq=None, beq=None,
     max_iter : int, optional
         Maximum number of iterations to perform.
     verbose : boolean, optional
-        Print optimization informations.
+        Print optimization information.
     log : boolean, optional
-        Return a dictionary with optim informations in adition to x and val
+        Return a dictionary with optim information in addition to x and val
     solver : str, optional default='scipy'
         Available solvers : 'scipy', 'frank-wolfe'
 
@@ -627,8 +627,8 @@ def _qp_solve_scipy(Q, c=None, A=None, b=None, Aeq=None, beq=None,
 
         A_{eq} x = b_{eq}
 
-    All constraint parameters are optional, they will be ignore is left at
-    default value None.
+    All constraint parameters are optional, they will be ignored
+    if set as None.
 
     Parameters
     ----------
@@ -655,9 +655,9 @@ def _qp_solve_scipy(Q, c=None, A=None, b=None, Aeq=None, beq=None,
     max_iter : int, optional
         Maximum number of iterations to perform.
     verbose : boolean, optional
-        Print optimization informations.
+        Print optimization information.
     log : boolean, optional
-        Return a dictionary with optim informations in adition to x and val
+        Return a dictionary with optim information in addition to x and val
 
     Returns
     -------
@@ -750,10 +750,7 @@ def _qp_solve_frank_wolfe(Q, c=None, A=None, b=None,
 
     With Aeq and beq of respective dimension (1,d) and (1,),
     and A and b of respective dimension (1,d) and (1,) or
-    (2,d) and (2,), with A[0] and A[1] colinear.
-
-    All constraint parameters are optional, they will be ignore is left at
-    default value None.
+    (2,d) and (2,), with A[0] = -A[1] and b[0] >= -b[1].
 
     Parameters
     ----------
@@ -781,6 +778,24 @@ def _qp_solve_frank_wolfe(Q, c=None, A=None, b=None,
     val: float
         optimal value of the objective (None if optimization error)
     """
+    if Aeq is not None and Aeq.shape[0] > 1:
+        raise ValueError("`Aeq.shape[0]` must be equal to 1"
+                         " when using the 'frank-wolfe' solver,"
+                         " got '%s'" % str(Aeq.shape[0]))
+    if A is not None:
+        if A.shape[0] > 2:
+            raise ValueError("`A.shape[2]` must be lower than 2"
+                             " when using the 'frank-wolfe' solver,"
+                             " got '%s'" % str(A.shape[0]))
+        if A.shape[0] == 2:
+            if not np.allclose(A[0], -A[1]):
+                raise ValueError("`A[0]` must be equal to `-A[1]`"
+                                 " when using the 'frank-wolfe' solver"
+                                 " with A.shape[0]=2")
+            if b[0] < -b[1]:
+                raise ValueError("`b[0]` must be greater or equal to"
+                                 " `-b[1]` when using the 'frank-wolfe'"
+                                 " solver with A.shape[0]=2")
     if c is None:
         def func(x):
             return (1/2) * x @ (Q @ x)
@@ -845,7 +860,7 @@ def frank_wolfe(jac, c, clb=1., cub=1., x0=None, max_iter=1000):
     if x0 is None:
         x0 = inv_c * ((cub - clb) / 2) / c.shape[0]
 
-    x = np.copy(x0)
+    x = x0
 
     for k in range(1, max_iter+1):
         grad = jac(x)

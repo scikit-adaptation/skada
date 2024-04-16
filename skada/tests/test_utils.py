@@ -529,21 +529,44 @@ def test_qp_solve_frank_wolfe():
 
     res = qp_solve(Q, c, Aeq=Aeq, beq=beq, lb=lb,
                    solver="frank-wolfe")
-    assert np.abs(res[0] - sol1).sum() < 0.01
+    assert np.allclose(res[0], sol1, atol=1e-3)
 
     res = qp_solve(Q, c, A=A, b=b,
                    solver="frank-wolfe")
-    assert np.abs(res[0] - sol1).sum() < 0.01
+    assert np.allclose(res[0], sol1, atol=1e-3)
 
     res = qp_solve(Q, c, A=A2, b=b2,
                    solver="frank-wolfe")
-    assert np.abs(res[0] - sol1).sum() < 0.01
+    assert np.allclose(res[0], sol1, atol=1e-3)
 
     res = qp_solve(Q, A=A2, b=b3, solver="frank-wolfe")
-    assert np.abs(res[0] - np.zeros(2)).sum() < 0.01
+    assert np.allclose(res[0], np.zeros(2), atol=1e-3)
+
+    res_scipy = qp_solve(Q, c, Aeq=Aeq, beq=beq, lb=lb,
+                         max_iter=10000, solver="scipy")
+    res_fw = qp_solve(Q, c, Aeq=Aeq, beq=beq, lb=lb,
+                      max_iter=10000, solver="frank-wolfe")
+    assert np.allclose(res_scipy[0], res_fw[0], atol=1e-4)
 
     with pytest.raises(ValueError, match="`A` or `Aeq` must be given"):
         qp_solve(Q, c, solver="frank-wolfe")
+
+    with pytest.raises(ValueError, match="must be equal to 1"):
+        qp_solve(Q, c, Aeq=np.eye(2), beq=np.ones(2),
+                 solver="frank-wolfe")
+
+    with pytest.raises(ValueError, match="must be lower than 2"):
+        qp_solve(Q, c, A=np.eye(3), b=np.ones(3),
+                 solver="frank-wolfe")
+
+    with pytest.raises(ValueError, match="must be equal to `-A"):
+        qp_solve(Q, c, A=np.eye(2), b=np.ones(2),
+                 solver="frank-wolfe")
+
+    with pytest.raises(ValueError,
+                       match="must be greater or equal to"):
+        qp_solve(Q, c, A=A2, b=np.array([1., -2.]),
+                 solver="frank-wolfe")
 
 
 def test_frank_wolfe():
@@ -558,14 +581,14 @@ def test_frank_wolfe():
     def jac(x):
         return Q @ x + c
 
-    x1 = frank_wolfe(jac, Aeq, 1., 1., max_iter=1000)
-    assert np.abs(x1 - sol).sum() < 0.01
+    x1 = frank_wolfe(jac, Aeq, clb=1., cub=1., max_iter=1000)
+    assert np.allclose(x1, sol, atol=1e-3)
 
-    x2 = frank_wolfe(jac, Aeq, 1., 1., max_iter=10000)
+    x2 = frank_wolfe(jac, Aeq, clb=1., cub=1., max_iter=10000)
     assert np.abs(x2 - sol).sum() < np.abs(x1 - sol).sum()
 
-    x1 = frank_wolfe(jac, Aeq, .5, 1., max_iter=1000)
-    assert np.abs(x1 - sol/2).sum() < 0.01
+    x1 = frank_wolfe(jac, Aeq, clb=.5, cub=1., max_iter=1000)
+    assert np.allclose(x1, sol/2, atol=1e-3)
 
 
 @pytest.mark.skipif(not torch, reason="PyTorch not installed")
