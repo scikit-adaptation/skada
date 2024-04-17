@@ -3,20 +3,22 @@
 # License: BSD 3-Clause
 
 
-import numpy as np
-from sklearn.base import clone
-from sklearn.utils.validation import check_is_fitted
-from sklearn.linear_model import LinearRegression, LogisticRegression
-from sklearn.preprocessing import OneHotEncoder
-from .base import DAEstimator
-from .utils import source_target_split
-import ot
 import warnings
 
+import numpy as np
+import ot
+from sklearn.base import clone
+from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.utils.metaestimators import available_if
+from sklearn.utils.validation import check_is_fitted
 
-def get_jdot_class_cost_matrix(Ys, Xt, estimator=None, metric='multinomial'):
-    """Compute the cost matrix for the joint distribution optimal transport
-    classification problem.
+from .base import DAEstimator
+from .utils import source_target_split
+
+
+def get_jdot_class_cost_matrix(Ys, Xt, estimator=None, metric="multinomial"):
+    """Cost matrix for joint distribution optimal transport classification problem.
 
     Parameters
     ----------
@@ -26,7 +28,7 @@ def get_jdot_class_cost_matrix(Ys, Xt, estimator=None, metric='multinomial'):
         Target domain samples.
     estimator : object
         The already fitted estimator to be used for the classification task. This
-        estimator should optimize a classification loss coresponding to the
+        estimator should optimize a classification loss corresponding to the
         given metric and provide compatible predict method (decision_function of
         predict_proba). If None, a constant prediction is used.
     metric : str, default='multinomial'
@@ -45,44 +47,45 @@ def get_jdot_class_cost_matrix(Ys, Xt, estimator=None, metric='multinomial'):
          Systems (NIPS), 2017.
 
     """
-
     if estimator is None:
-        M = np.ones((Ys.shape[0], Xt.shape[0]))*10
+        M = np.ones((Ys.shape[0], Xt.shape[0])) * 10
         return M
 
-    if metric == 'multinomial':
-        if hasattr(estimator, 'predict_log_proba'):
+    if metric == "multinomial":
+        if hasattr(estimator, "predict_log_proba"):
             Yt_pred = estimator.predict_log_proba(Xt)
-            M = - np.sum(Ys[:, None, :]*Yt_pred[None, :, :], 2)
-        elif hasattr(estimator, 'predict_proba'):
+            M = -np.sum(Ys[:, None, :] * Yt_pred[None, :, :], 2)
+        elif hasattr(estimator, "predict_proba"):
             Yt_pred = estimator.predict_proba(Xt)
-            M = - np.sum(Ys[:, None, :]*np.log(Yt_pred[None, :, :]+1e-16), 2)
+            M = -np.sum(Ys[:, None, :] * np.log(Yt_pred[None, :, :] + 1e-16), 2)
         else:
             raise ValueError(
-                'Estimator must have predict_proba or predict_log_proba'
-                ' method for cce loss')
+                "Estimator must have predict_proba or predict_log_proba"
+                " method for cce loss"
+            )
 
-    elif metric == 'hinge':
+    elif metric == "hinge":
         Ys = 2 * Ys - 1  # make Y -1/1 for hinge loss
 
-        if hasattr(estimator, 'decision_function'):
+        if hasattr(estimator, "decision_function"):
             Yt_pred = estimator.decision_function(Xt)
             if len(Yt_pred.shape) == 1:
                 Yt_pred = np.repeat(Yt_pred.reshape(-1, 1), 2, axis=1)
             M = np.maximum(0, 1 - Ys[:, None, :] * Yt_pred[None, :, :]).sum(2)
         else:
             raise ValueError(
-                'Estimator must have decision_function method for hinge loss')
+                "Estimator must have decision_function method for hinge loss"
+            )
     else:
-        raise ValueError('Unknown metric')
+        raise ValueError("Unknown metric")
 
     return M
 
 
 def get_data_jdot_class(Xt, Yth, labels, thr_weights=1e-6):
-    """Get the data for the joint distribution optimal transport
-    classification problem. This function will repeat sample to allow for
-    training on uncertain labels.
+    """Get data for the joint distribution optimal transport classification problem.
+
+    This function will repeat sample to allow for training on uncertain labels.
 
     Parameters
     ----------
@@ -111,7 +114,7 @@ def get_data_jdot_class(Xt, Yth, labels, thr_weights=1e-6):
          Systems (NIPS), 2017.
 
     """
-    thr = thr_weights*np.max(Yth)
+    thr = thr_weights * np.max(Yth)
 
     Xh = np.repeat(Xt, Yth.shape[1], axis=0)
     yh = np.tile(labels, Yth.shape[0])
@@ -126,13 +129,11 @@ def get_data_jdot_class(Xt, Yth, labels, thr_weights=1e-6):
     return Xh, yh, wh
 
 
-def get_tgt_loss_jdot_class(Xh, yh, wh, estimator, metric='multinomial'):
-    """ Compute the target loss for the joint distribution optimal transport
-    classification problem.
+def get_tgt_loss_jdot_class(Xh, yh, wh, estimator, metric="multinomial"):
+    """Get target loss for joint distribution optimal transport classification problem.
 
     Parameters
     ----------
-
     Xh : array-like of shape (n_samples, n_features)
         The transported source domain samples.
     yh : array-like of shape (n_samples,)
@@ -141,7 +142,7 @@ def get_tgt_loss_jdot_class(Xh, yh, wh, estimator, metric='multinomial'):
         The transported source domain weights.
     estimator : object
         The already fitted estimator to be used for the classification task. This
-        estimator should optimize a classification loss coresponding to the
+        estimator should optimize a classification loss corresponding to the
         given metric and provide compatible predict method (decision_function of
         predict_proba).
     metric : str, default='multinomial'
@@ -151,7 +152,6 @@ def get_tgt_loss_jdot_class(Xh, yh, wh, estimator, metric='multinomial'):
 
     Returns
     -------
-
     loss : float
         The target labels losses.
 
@@ -162,38 +162,50 @@ def get_tgt_loss_jdot_class(Xh, yh, wh, estimator, metric='multinomial'):
          Systems (NIPS), 2017.
 
     """
-
-    if metric == 'multinomial':
-        if hasattr(estimator, 'predict_log_proba'):
+    if metric == "multinomial":
+        if hasattr(estimator, "predict_log_proba"):
             Yh_pred = estimator.predict_log_proba(Xh)
-            loss = - np.sum(yh*Yh_pred, 1).dot(wh)
-        elif hasattr(estimator, 'predict_proba'):
+            loss = -np.sum(yh * Yh_pred, 1).dot(wh)
+        elif hasattr(estimator, "predict_proba"):
             Yh_pred = estimator.predict_proba(Xh)
-            loss = - np.sum(yh*np.log(Yh_pred+1e-16), 1).dot(wh)
+            loss = -np.sum(yh * np.log(Yh_pred + 1e-16), 1).dot(wh)
         else:
             raise ValueError(
-                'Estimator must have predict_proba or predict_log_proba method'
-                ' for multinomial loss')
+                "Estimator must have predict_proba or predict_log_proba method"
+                " for multinomial loss"
+            )
 
-    elif metric == 'hinge':
+    elif metric == "hinge":
         yh = 2 * yh - 1  # make Y -1/1 for hinge loss
 
-        if hasattr(estimator, 'decision_function'):
+        if hasattr(estimator, "decision_function"):
             Yh_pred = estimator.decision_function(Xh)
             if len(Yh_pred.shape) == 1:  # handle binary classification
                 Yh_pred = np.repeat(Yh_pred.reshape(-1, 1), 2, axis=1)
             loss = np.sum(np.maximum(0, 1 - yh * Yh_pred), 1).dot(wh)
         else:
             raise ValueError(
-                'Estimator must have decision_function method for hinge loss')
+                "Estimator must have decision_function method for hinge loss"
+            )
     else:
-        raise ValueError('Unknown metric')
+        raise ValueError("Unknown metric")
 
     return loss
 
 
-def solve_jdot_regression(base_estimator, Xs, ys, Xt, alpha=0.5, ws=None, wt=None,
-                          n_iter_max=100, tol=1e-5, verbose=False, **kwargs):
+def solve_jdot_regression(
+    base_estimator,
+    Xs,
+    ys,
+    Xt,
+    alpha=0.5,
+    ws=None,
+    wt=None,
+    n_iter_max=100,
+    tol=1e-5,
+    verbose=False,
+    **kwargs,
+):
     """Solve the joint distribution optimal transport regression problem [10]
 
     .. warning::
@@ -251,7 +263,6 @@ def solve_jdot_regression(base_estimator, Xs, ys, Xt, alpha=0.5, ws=None, wt=Non
         Systems (NIPS), 2017.
 
     """
-
     estimator = clone(base_estimator)
 
     # compute feature distance matrix
@@ -261,13 +272,13 @@ def solve_jdot_regression(base_estimator, Xs, ys, Xt, alpha=0.5, ws=None, wt=Non
     nt = Xt.shape[0]
     if ws is None:
         a = np.ones((len(ys),)) / len(ys)
-    else :
+    else:
         a = ws / ws.sum()
     if wt is None:
         b = np.ones((nt,)) / nt
     else:
         b = wt / wt.sum()
-        kwargs['sample_weight'] = wt  # add it as sample_weight for fit
+        kwargs["sample_weight"] = wt  # add it as sample_weight for fit
 
     lst_loss_ot = []
     lst_loss_tgt_labels = []
@@ -275,7 +286,6 @@ def solve_jdot_regression(base_estimator, Xs, ys, Xt, alpha=0.5, ws=None, wt=Non
     Ml = ot.dist(ys.reshape(-1, 1), np.zeros((nt, 1)))
 
     for i in range(n_iter_max):
-
         if i > 0:
             # update the cost matrix
             M = (1 - alpha) * Mf + alpha * Ml
@@ -303,11 +313,11 @@ def solve_jdot_regression(base_estimator, Xs, ys, Xt, alpha=0.5, ws=None, wt=Non
         Ml = ot.dist(ys.reshape(-1, 1), y_pred.reshape(-1, 1))
 
         # compute the loss
-        loss_tgt_labels = np.mean((yth - y_pred)**2)
+        loss_tgt_labels = np.mean((yth - y_pred) ** 2)
         lst_loss_tgt_labels.append(loss_tgt_labels)
 
         if verbose:
-            print(f'iter={i}, loss_ot={loss_ot}, loss_tgt_labels={loss_tgt_labels}')
+            print(f"iter={i}, loss_ot={loss_ot}, loss_tgt_labels={loss_tgt_labels}")
 
         # break on tol OT loss
         if i > 0 and abs(lst_loss_ot[-1] - lst_loss_ot[-2]) < tol:
@@ -319,15 +329,26 @@ def solve_jdot_regression(base_estimator, Xs, ys, Xt, alpha=0.5, ws=None, wt=Non
 
         # update the cost matrix
         if i == n_iter_max - 1:
-            warnings.warn('Maximum number of iterations reached.')
+            warnings.warn("Maximum number of iterations reached.")
 
     return estimator, lst_loss_ot, lst_loss_tgt_labels, sol
 
 
-def solve_jdot_classification(base_estimator, Xs, ys, Xt, alpha=0.5, ws=None, wt=None,
-                              metric='multinomial',
-                              n_iter_max=100, tol=1e-5, verbose=False,
-                              thr_weights=1e-6, **kwargs):
+def solve_jdot_classification(
+    base_estimator,
+    Xs,
+    ys,
+    Xt,
+    alpha=0.5,
+    ws=None,
+    wt=None,
+    metric="multinomial",
+    n_iter_max=100,
+    tol=1e-5,
+    verbose=False,
+    thr_weights=1e-6,
+    **kwargs,
+):
     """Solve the joint distribution optimal transport classification problem [10]
 
     .. warning::
@@ -393,7 +414,6 @@ def solve_jdot_classification(base_estimator, Xs, ys, Xt, alpha=0.5, ws=None, wt
          Systems (NIPS), 2017.
 
     """
-
     estimator = clone(base_estimator)
 
     # compute feature distance matrix
@@ -403,7 +423,7 @@ def solve_jdot_classification(base_estimator, Xs, ys, Xt, alpha=0.5, ws=None, wt
     nt = Xt.shape[0]
     if ws is None:
         a = np.ones((len(ys),)) / len(ys)
-    else :
+    else:
         a = ws / ws.sum()
     if wt is None:
         b = np.ones((nt,)) / nt
@@ -419,7 +439,6 @@ def solve_jdot_classification(base_estimator, Xs, ys, Xt, alpha=0.5, ws=None, wt
     Ml = get_jdot_class_cost_matrix(ys, Xt, None, metric=metric)
 
     for i in range(n_iter_max):
-
         if i > 0:
             # update the cost matrix
             M = (1 - alpha) * Mf + alpha * Ml
@@ -440,7 +459,7 @@ def solve_jdot_classification(base_estimator, Xs, ys, Xt, alpha=0.5, ws=None, wt
         # compute the transported labels
         Yth = T.T.dot(Ys) * nt  # not normalized because weights used in fit
 
-        # cerate reweighted taregt data for classification
+        # create reweighted taregt data for classification
         Xh, yh, wh = get_data_jdot_class(Xt, Yth, labels, thr_weights=thr_weights)
 
         # fit the estimator
@@ -449,12 +468,16 @@ def solve_jdot_classification(base_estimator, Xs, ys, Xt, alpha=0.5, ws=None, wt
         Ml = get_jdot_class_cost_matrix(Ys, Xt, estimator, metric=metric)
 
         # compute the losses
-        loss_tgt_labels = get_tgt_loss_jdot_class(
-            Xh, encoder.transform(yh[:, None]), wh, estimator, metric=metric)/nt
+        loss_tgt_labels = (
+            get_tgt_loss_jdot_class(
+                Xh, encoder.transform(yh[:, None]), wh, estimator, metric=metric
+            )
+            / nt
+        )
         lst_loss_tgt_labels.append(loss_tgt_labels)
 
         if verbose:
-            print(f'iter={i}, loss_ot={loss_ot}, loss_tgt_labels={loss_tgt_labels}')
+            print(f"iter={i}, loss_ot={loss_ot}, loss_tgt_labels={loss_tgt_labels}")
 
         # break on tol OT loss
         if i > 0 and abs(lst_loss_ot[-1] - lst_loss_ot[-2]) < tol:
@@ -466,7 +489,7 @@ def solve_jdot_classification(base_estimator, Xs, ys, Xt, alpha=0.5, ws=None, wt
 
         # update the cost matrix
         if i == n_iter_max - 1:
-            warnings.warn('Maximum number of iterations reached.')
+            warnings.warn("Maximum number of iterations reached.")
 
     return estimator, lst_loss_ot, lst_loss_tgt_labels, sol
 
@@ -519,15 +542,24 @@ class JDOTRegressor(DAEstimator):
 
     """
 
-    def __init__(self, base_estimator=None, alpha=0.5, n_iter_max=100,
-                 tol=1e-5, verbose=False, **kwargs):
+    def __init__(
+        self,
+        base_estimator=None,
+        alpha=0.5,
+        n_iter_max=100,
+        tol=1e-5,
+        verbose=False,
+        **kwargs,
+    ):
         if base_estimator is None:
             base_estimator = LinearRegression()
         else:
-            if not hasattr(base_estimator, 'fit') or not hasattr(
-                    base_estimator, 'predict'):
-                raise ValueError('base_estimator must be a regressor with'
-                                 ' fit and predict methods')
+            if not hasattr(base_estimator, "fit") or not hasattr(
+                base_estimator, "predict"
+            ):
+                raise ValueError(
+                    "base_estimator must be a regressor with" " fit and predict methods"
+                )
         self.base_estimator = base_estimator
         self.kwargs = kwargs
         self.alpha = alpha
@@ -537,13 +569,23 @@ class JDOTRegressor(DAEstimator):
 
     def fit(self, X, y=None, sample_domain=None, *, sample_weight=None):
         """Fit adaptation parameters"""
-
         Xs, Xt, ys, yt, ws, wt = source_target_split(
-            X, y, sample_weight, sample_domain=sample_domain)
+            X, y, sample_weight, sample_domain=sample_domain
+        )
 
-        res = solve_jdot_regression(self.base_estimator, Xs, ys, Xt, ws=ws, wt=wt,
-                                    alpha=self.alpha, n_iter_max=self.n_iter_max,
-                                    tol=self.tol, verbose=self.verbose, **self.kwargs)
+        res = solve_jdot_regression(
+            self.base_estimator,
+            Xs,
+            ys,
+            Xt,
+            ws=ws,
+            wt=wt,
+            alpha=self.alpha,
+            n_iter_max=self.n_iter_max,
+            tol=self.tol,
+            verbose=self.verbose,
+            **self.kwargs,
+        )
 
         self.estimator_, self.lst_loss_ot_, self.lst_loss_tgt_labels_, self.sol_ = res
 
@@ -552,8 +594,9 @@ class JDOTRegressor(DAEstimator):
         check_is_fitted(self)
         if sample_domain is not None and np.any(sample_domain >= 0):
             warnings.warn(
-                'Source domain detected. Predictor is trained on target'
-                'and prediction might be biased.')
+                "Source domain detected. Predictor is trained on target"
+                "and prediction might be biased."
+            )
         return self.estimator_.predict(X)
 
     def score(self, X, y, sample_domain=None, *, sample_weight=None):
@@ -561,8 +604,9 @@ class JDOTRegressor(DAEstimator):
         check_is_fitted(self)
         if sample_domain is not None and np.any(sample_domain >= 0):
             warnings.warn(
-                'Source domain detected. Predictor is trained on target'
-                'and score might be biased.')
+                "Source domain detected. Predictor is trained on target"
+                "and score might be biased."
+            )
         return self.estimator_.score(X, y, sample_weight=sample_weight)
 
 
@@ -622,15 +666,26 @@ class JDOTClassifier(DAEstimator):
 
     """
 
-    def __init__(self, base_estimator=None, alpha=0.5, metric='multinomial',
-                 n_iter_max=100, tol=1e-5, verbose=False, thr_weights=1e-6, **kwargs):
+    def __init__(
+        self,
+        base_estimator=None,
+        alpha=0.5,
+        metric="multinomial",
+        n_iter_max=100,
+        tol=1e-5,
+        verbose=False,
+        thr_weights=1e-6,
+        **kwargs,
+    ):
         if base_estimator is None:
-            base_estimator = LogisticRegression(multi_class='multinomial')
+            base_estimator = LogisticRegression(multi_class="multinomial")
         else:
-            if not hasattr(base_estimator, 'fit') or not hasattr(
-                    base_estimator, 'predict'):
-                raise ValueError('base_estimator must be a regressor with'
-                                 ' fit and predict methods')
+            if not hasattr(base_estimator, "fit") or not hasattr(
+                base_estimator, "predict"
+            ):
+                raise ValueError(
+                    "base_estimator must be a regressor with" " fit and predict methods"
+                )
         self.base_estimator = base_estimator
         self.kwargs = kwargs
         self.alpha = alpha
@@ -642,9 +697,9 @@ class JDOTClassifier(DAEstimator):
 
     def fit(self, X, y=None, sample_domain=None, *, sample_weight=None):
         """Fit adaptation parameters"""
-
         Xs, Xt, ys, yt, ws, wt = source_target_split(
-            X, y, sample_weight, sample_domain=sample_domain)
+            X, y, sample_weight, sample_domain=sample_domain
+        )
 
         res = solve_jdot_classification(
             self.base_estimator,
@@ -659,7 +714,8 @@ class JDOTClassifier(DAEstimator):
             tol=self.tol,
             verbose=self.verbose,
             thr_weights=self.thr_weights,
-            **self.kwargs)
+            **self.kwargs,
+        )
 
         self.estimator_, self.lst_loss_ot_, self.lst_loss_tgt_labels_, self.sol_ = res
 
@@ -668,15 +724,36 @@ class JDOTClassifier(DAEstimator):
         check_is_fitted(self)
         if sample_domain is not None and np.any(sample_domain >= 0):
             warnings.warn(
-                'Source domain detected. Predictor is trained on target'
-                'and prediction might be biased.')
+                "Source domain detected. Predictor is trained on target"
+                "and prediction might be biased."
+            )
         return self.estimator_.predict(X)
 
-    def score(self, X, y, sample_domain=None, *, sample_weight=None):
+    def _check_proba(self):
+        if hasattr(self.base_estimator, "predict_proba"):
+            return True
+        else:
+            raise AttributeError(
+                "The base estimator does not have a predict_proba method"
+            )
+
+    @available_if(_check_proba)
+    def predict_proba(self, X, sample_domain=None, *, sample_weight=None):
+        """Predict using the model"""
+        check_is_fitted(self)
+        if sample_domain is not None and np.any(sample_domain >= 0):
+            warnings.warn(
+                "Source domain detected. Predictor is trained on target"
+                "and prediction might be biased."
+            )
+        return self.estimator_.predict_proba(X)
+
+    def score(self, X, y, sample_domain=None, *, sample_weight=None, **kwargs):
         """Return the scores of the prediction"""
         check_is_fitted(self)
         if sample_domain is not None and np.any(sample_domain >= 0):
             warnings.warn(
-                'Source domain detected. Predictor is trained on target'
-                'and score might be biased.')
+                "Source domain detected. Predictor is trained on target"
+                "and score might be biased."
+            )
         return self.estimator_.score(X, y, sample_weight=sample_weight)

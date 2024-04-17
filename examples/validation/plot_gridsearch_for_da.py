@@ -8,17 +8,17 @@ with `GridSearchCV <https://scikit-learn.org/stable/modules/generated/sklearn.mo
 # %%
 # Prepare dataset and the estimator
 
-import matplotlib.pyplot as plt
+import warnings
 
-from sklearn.svm import SVC
-from sklearn.model_selection import GridSearchCV, ShuffleSplit
+import matplotlib.pyplot as plt
 from sklearn.inspection import DecisionBoundaryDisplay
+from sklearn.model_selection import GridSearchCV, ShuffleSplit
+from sklearn.svm import SVC
 
 from skada import EntropicOTMapping
 from skada.datasets import make_shifted_datasets
 from skada.metrics import PredictionEntropyScorer
 
-import warnings
 warnings.filterwarnings("ignore")
 
 
@@ -29,10 +29,10 @@ dataset = make_shifted_datasets(
     label="binary",
     noise=0.4,
     random_state=42,
-    return_dataset=True
+    return_dataset=True,
 )
-X, y, sample_domain = dataset.pack_train(as_sources=['s'], as_targets=['t'])
-X_target, y_target, _ = dataset.pack_test(as_targets=['t'])
+X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+X_target, y_target, _ = dataset.pack_test(as_targets=["t"])
 
 # %%
 # Run grid search
@@ -49,7 +49,7 @@ grid_search = GridSearchCV(
 
 grid_search.fit(X, y, sample_domain=sample_domain)
 
-best_reg_e = grid_search.best_params_['entropicotmappingadapter__reg_e']
+best_reg_e = grid_search.best_params_["entropicotmappingadapter__reg_e"]
 print(f"Best regularization parameter: {best_reg_e}")
 
 # %%
@@ -57,7 +57,7 @@ print(f"Best regularization parameter: {best_reg_e}")
 
 plt.plot(
     grid_search.cv_results_["param_entropicotmappingadapter__reg_e"],
-    grid_search.cv_results_["mean_test_score"]
+    grid_search.cv_results_["mean_test_score"],
 )
 plt.xlabel("Regulariation parameter")
 plt.ylabel("Prediction entropy score")
@@ -70,7 +70,7 @@ DecisionBoundaryDisplay.from_estimator(
     X_target,
     alpha=0.8,
     eps=0.5,
-    response_method='predict',
+    response_method="predict",
 )
 
 # Plot the target points

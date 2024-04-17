@@ -5,7 +5,6 @@
 # License: BSD 3-Clause
 
 from collections import defaultdict
-
 from typing import Callable, Optional, Union
 
 from joblib import Memory
@@ -14,10 +13,9 @@ from sklearn.pipeline import Pipeline
 
 from .base import BaseSelector, PerDomain, Shared
 
-
 _DEFAULT_SELECTORS = {
-    'shared': Shared,
-    'per_domain': PerDomain,
+    "shared": Shared,
+    "per_domain": PerDomain,
 }
 
 
@@ -26,7 +24,7 @@ def make_da_pipeline(
     *steps,
     memory: Optional[Memory] = None,
     verbose: bool = False,
-    default_selector: Union[str, Callable[[BaseEstimator], BaseSelector]] = 'shared',
+    default_selector: Union[str, Callable[[BaseEstimator], BaseSelector]] = "shared",
 ) -> Pipeline:
     """Construct a :class:`~sklearn.pipeline.Pipeline` from the given estimators.
 
@@ -93,7 +91,7 @@ def make_da_pipeline(
                 if name is not None:
                     nested_name = f"{name}__{nested_name}"
                 names.append(nested_name)
-                estimators.append(nested_selector)
+                estimators.append(nested_selector._unmark_as_final())
         else:
             names.append(name)
             estimators.append(estimator)
@@ -104,24 +102,29 @@ def make_da_pipeline(
         (auto_name, step) if user_name is None else (user_name, step)
         for user_name, (auto_name, step) in zip(names, steps)
     ]
+    named_steps[-1][1]._mark_as_final()
     return Pipeline(named_steps, memory=memory, verbose=verbose)
 
 
 def _wrap_with_selector(
     estimator: BaseEstimator,
-    selector: Union[str, Callable[[BaseEstimator], BaseSelector]]
+    selector: Union[str, Callable[[BaseEstimator], BaseSelector]],
 ) -> BaseSelector:
     if not isinstance(estimator, BaseSelector):
         if callable(selector):
             estimator = selector(estimator)
             if not isinstance(estimator, BaseSelector):
-                raise ValueError("Callable `default_selector` has to return `BaseSelector` "  # noqa: E501
-                                 f"instance, got {type(estimator)} instead.")
+                raise ValueError(
+                    "Callable `default_selector` has to return `BaseSelector` "  # noqa: E501
+                    f"instance, got {type(estimator)} instead."
+                )
         elif isinstance(selector, str):
             selector_cls = _DEFAULT_SELECTORS.get(selector)
             if selector_cls is None:
-                raise ValueError(f"Unsupported `default_selector` name: {selector}."
-                                 f"Use one of {_DEFAULT_SELECTORS.keys().join(', ')}")
+                raise ValueError(
+                    f"Unsupported `default_selector` name: {selector}."
+                    f"Use one of {_DEFAULT_SELECTORS.keys().join(', ')}"
+                )
             estimator = selector_cls(estimator)
         else:
             raise ValueError(f"Unsupported `default_selector` type: {type(selector)}")
@@ -130,11 +133,10 @@ def _wrap_with_selector(
 
 def _wrap_with_selectors(
     estimators: [BaseEstimator],
-    default_selector: Union[str, Callable[[BaseEstimator], BaseSelector]]
+    default_selector: Union[str, Callable[[BaseEstimator], BaseSelector]],
 ) -> [BaseEstimator]:
     return [
-        (_wrap_with_selector(estimator, default_selector))
-        for estimator in estimators
+        (_wrap_with_selector(estimator, default_selector)) for estimator in estimators
     ]
 
 
@@ -150,9 +152,17 @@ def _name_estimators(estimators):
     names = []
 
     for estimator in estimators:
-        name = type(estimator.base_estimator).__name__.lower()
+        # xxx(okachaiev): this logic gets progressively more
+        # awkward. maybe we just need to make sure that default
+        # 'Shared' selector does not get into a way of setting
+        # parameters, but all others are just fine to be more
+        # verbose
+        if hasattr(estimator, "base_estimator"):
+            name = type(estimator.base_estimator).__name__.lower()
+        else:
+            name = estimator.__class__.__name__.lower()
         if isinstance(estimator, PerDomain):
-            name = 'perdomain_' + name
+            name = "perdomain_" + name
         names.append(name)
 
     namecount = defaultdict(int)

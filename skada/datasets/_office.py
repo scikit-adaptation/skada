@@ -4,15 +4,15 @@
 #
 # License: BSD 3-Clause
 
-from collections import namedtuple
-from enum import Enum
 import fnmatch
 import os
-from pathlib import Path
 import tarfile
 import time
-from typing import Callable, List, Optional, Tuple, Union
 import warnings
+from collections import namedtuple
+from enum import Enum
+from pathlib import Path
+from typing import Callable, List, Optional, Tuple, Union
 
 import numpy as np
 from scipy.io import loadmat
@@ -20,9 +20,8 @@ from sklearn.datasets import load_files
 from sklearn.datasets._base import RemoteFileMetadata, _fetch_remote
 from sklearn.utils import Bunch
 
-from ._base import get_data_home, DomainAwareDataset
 from .._utils import _logger
-
+from ._base import DomainAwareDataset, get_data_home
 
 FileLoaderSpec = namedtuple(
     "FileLoaderSpec",
@@ -34,8 +33,8 @@ FileLoaderSpec = namedtuple(
         "data_key",
         "dtype",
         "dim",
-        "remote"
-    ]
+        "remote",
+    ],
 )
 
 _SURF_LOADER = FileLoaderSpec(
@@ -50,7 +49,7 @@ _SURF_LOADER = FileLoaderSpec(
         filename="domain_adaptation_features_20110616.tar.gz",
         url="https://figshare.com/ndownloader/files/41786493?private_link=dfe6af3ef4f0f9ae93b9",  # noqa: E501
         checksum="1bb83153343eb0d2c44f66ee63990639176855b2b894fae17ef82c7198123291",
-    )
+    ),
 )
 
 _DECAF_LOADER = FileLoaderSpec(
@@ -65,20 +64,20 @@ _DECAF_LOADER = FileLoaderSpec(
         filename="domain_adaptation_decaf_features_20140430.tar.gz",
         url="https://figshare.com/ndownloader/files/41786427?private_link=e145dd18e3d010c1f6d9",  # noqa: E501
         checksum="ea13d8ced0fb629937f25f4a4670e0e75fc1955fb439f4ac412e129dd78a19ee",
-    )
+    ),
 )
 
 _CATEGORIES_CALTECH256 = [
-    'back_pack',
-    'bike',
-    'calculator',
-    'headphones',
-    'keyboard',
-    'laptop_computer',
-    'monitor',
-    'mouse',
-    'mug',
-    'projector',
+    "back_pack",
+    "bike",
+    "calculator",
+    "headphones",
+    "keyboard",
+    "laptop_computer",
+    "monitor",
+    "mouse",
+    "mug",
+    "projector",
 ]
 
 
@@ -178,7 +177,7 @@ def fetch_office31_surf(
         download_if_missing=download_if_missing,
         shuffle=shuffle,
         random_state=random_state,
-        return_X_y=return_X_y
+        return_X_y=return_X_y,
     )
 
 
@@ -313,7 +312,7 @@ def fetch_office31_decaf(
         download_if_missing=download_if_missing,
         shuffle=shuffle,
         random_state=random_state,
-        return_X_y=return_X_y
+        return_X_y=return_X_y,
     )
 
 
@@ -410,7 +409,7 @@ def _fetch_office31(
         _download_office31(
             loader_spec.remote,
             data_home,
-            data_home if loader_spec.extract_root else dataset_dir
+            data_home if loader_spec.extract_root else dataset_dir,
         )
     if categories == Office31CategoriesPreset.ALL:
         # reset categories filter
@@ -423,7 +422,7 @@ def _fetch_office31(
         domain,
         categories=categories,
         shuffle=shuffle,
-        random_state=random_state
+        random_state=random_state,
     )
     return (dataset.X, dataset.y) if return_X_y else dataset
 
@@ -456,7 +455,7 @@ def _load_office31(
     )
 
     if categories is not None:
-        not_found = set(categories).difference(set(files['target_names']))
+        not_found = set(categories).difference(set(files["target_names"]))
         if not_found:
             warnings.warn(f"The following categories were not found: {not_found}.")
 
@@ -464,13 +463,14 @@ def _load_office31(
     for idx, path in enumerate(files.filenames):
         if fnmatch.fnmatch(Path(path).name, loader_spec.filename_pattern):
             content = np.squeeze(loadmat(path)[loader_spec.data_key])
-            assert content.shape[-1] == loader_spec.dim, \
-                f"File '{path}' contains array with incorrect dimensions."
+            assert (
+                content.shape[-1] == loader_spec.dim
+            ), f"File '{path}' contains array with incorrect dimensions."
             indices.append(idx)
             data.append(content.astype(loader_spec.dtype))
-    files['data'] = np.vstack(data)
-    files['target'] = files['target'][np.array(indices)]
+    files["data"] = np.vstack(data)
+    files["target"] = files["target"][np.array(indices)]
 
-    files['X'] = files.pop('data')
-    files['y'] = files.pop('target')
+    files["X"] = files.pop("data")
+    files["y"] = files.pop("target")
     return files

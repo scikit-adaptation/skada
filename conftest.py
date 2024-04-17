@@ -1,7 +1,24 @@
 import numpy as np
+import pytest
+
 from skada.datasets import DomainAwareDataset, make_shifted_blobs, make_shifted_datasets
 
-import pytest
+
+collect_ignore_glob = []
+
+# if 'torch' is not installed, we should not attempt
+# to run 'collect' for skada/deep modules
+try:
+    import torch  # noqa
+except ImportError:
+    collect_ignore_glob.append('skada/deep/*.py')
+
+
+@pytest.fixture(scope='function', autouse=True)
+def set_seed():
+    np.random.seed(0)
+    if 'skada/deep/*.py' not in collect_ignore_glob:
+        torch.manual_seed(0)
 
 
 @pytest.fixture(scope='session')
@@ -17,6 +34,29 @@ def da_reg_dataset():
     )
     return X, y, sample_domain
 
+
+@pytest.fixture(scope='session')
+def da_reg_datasets():
+    da_reg_dataset_1 = make_shifted_datasets(
+        n_samples_source=5,
+        n_samples_target=10,
+        shift="concept_drift",
+        mean=0.5,
+        noise=0.3,
+        label="regression",
+        random_state=42,
+    )
+
+    da_reg_dataset_2 = make_shifted_datasets(
+        n_samples_source=10,
+        n_samples_target=5,
+        shift="concept_drift",
+        mean=0.5,
+        noise=0.3,
+        label="regression",
+        random_state=42,
+    )
+    return da_reg_dataset_1, da_reg_dataset_2
 
 @pytest.fixture(scope='session')
 def da_multiclass_dataset():

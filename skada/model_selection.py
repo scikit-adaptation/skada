@@ -12,18 +12,13 @@ import numpy as np
 from sklearn.model_selection._split import (
     _build_repr,
     _num_samples,
-    _validate_shuffle_split
+    _validate_shuffle_split,
 )
-from sklearn.utils import check_random_state, indexable, _approximate_mode
+from sklearn.utils import _approximate_mode, check_random_state, indexable
+from sklearn.utils.metadata_routing import _MetadataRequester
 from sklearn.utils.validation import check_array
 
-from sklearn.utils.metadata_routing import _MetadataRequester
-
-from .utils import (
-    check_X_domain,
-    extract_source_indices,
-    extract_domains_indices
-)
+from .utils import check_X_domain, extract_domains_indices, extract_source_indices
 
 
 class SplitSampleDomainRequesterMixin(_MetadataRequester):
@@ -78,9 +73,7 @@ class BaseDomainAwareShuffleSplit(SplitSampleDomainRequesterMixin, metaclass=ABC
         """
         # automatically derive sample_domain if it is not provided
         X, sample_domain = check_X_domain(
-            X,
-            sample_domain,
-            allow_auto_sample_domain=True
+            X, sample_domain, allow_auto_sample_domain=True
         )
         X, y, sample_domain = indexable(X, y, sample_domain)
         yield from self._iter_indices(X, y, sample_domain=sample_domain)
@@ -140,8 +133,8 @@ class SourceTargetShuffleSplit(BaseDomainAwareShuffleSplit):
     def _iter_indices(self, X, y=None, sample_domain=None):
         X, sample_domain = check_X_domain(X, sample_domain)
         indices = extract_source_indices(sample_domain)
-        source_idx, = np.where(indices)
-        target_idx, = np.where(~indices)
+        (source_idx,) = np.where(indices)
+        (target_idx,) = np.where(~indices)
         n_source_samples = _num_samples(source_idx)
         n_source_train, n_source_test = _validate_shuffle_split(
             n_source_samples,
@@ -190,7 +183,7 @@ class LeaveOneDomainOut(SplitSampleDomainRequesterMixin):
         self.train_size = train_size
         self.random_state = random_state
         self._default_test_size = 0.1
-        # so we can re-use existing implementation for shuffle split
+        # so we can reuse existing implementation for shuffle split
         self._n_splits = 1
 
     def split(self, X, y=None, sample_domain=None):
@@ -225,9 +218,7 @@ class LeaveOneDomainOut(SplitSampleDomainRequesterMixin):
         """
         # automatically derive sample_domain if it is not provided
         X, sample_domain = check_X_domain(
-            X,
-            sample_domain,
-            allow_auto_sample_domain=True
+            X, sample_domain, allow_auto_sample_domain=True
         )
         X, y, sample_domain = indexable(X, y, sample_domain)
         # xxx(okachaiev): make sure all domains are given both as sources and targets
@@ -236,32 +227,29 @@ class LeaveOneDomainOut(SplitSampleDomainRequesterMixin):
         rng = check_random_state(self.random_state)
         domain_idx = rng.permutation(n_domains)
         if n_domains > self.max_n_splits:
-            domain_idx = domain_idx[:self.max_n_splits]
+            domain_idx = domain_idx[: self.max_n_splits]
         for target_domain_idx in domain_idx:
             target_domain = domains[target_domain_idx]
             split_idx = reduce(
                 np.logical_or,
                 (
                     sample_domain == (domain if domain != target_domain else -domain)
-                    for domain
-                    in domains
-                )
+                    for domain in domains
+                ),
             )
-            split_idx, = np.where(split_idx)
+            (split_idx,) = np.where(split_idx)
             X_split = X[split_idx]
             split_sample_domain = sample_domain[split_idx]
             for train_idx, test_idx in self._iter_indices(
-                X_split,
-                y=None,
-                sample_domain=split_sample_domain
+                X_split, y=None, sample_domain=split_sample_domain
             ):
                 yield split_idx[train_idx], split_idx[test_idx]
 
     def _iter_indices(self, X, y=None, sample_domain=None):
         X, sample_domain = check_X_domain(X, sample_domain)
         indices = extract_source_indices(sample_domain)
-        source_idx, = np.where(indices)
-        target_idx, = np.where(~indices)
+        (source_idx,) = np.where(indices)
+        (target_idx,) = np.where(~indices)
         n_source_samples = _num_samples(source_idx)
         n_source_train, n_source_test = _validate_shuffle_split(
             n_source_samples,
@@ -388,9 +376,7 @@ class StratifiedDomainShuffleSplit(BaseDomainAwareShuffleSplit):
         # License: BSD
 
         X, sample_domain = check_X_domain(
-            X,
-            sample_domain,
-            allow_auto_sample_domain=True
+            X, sample_domain, allow_auto_sample_domain=True
         )
         X, y, sample_domain = indexable(X, y, sample_domain)
 
@@ -465,6 +451,7 @@ class StratifiedDomainShuffleSplit(BaseDomainAwareShuffleSplit):
             yield train, test
 
     def split(self, X, y, sample_domain=None):
+        """XXX: Docstring here"""
         return super().split(X, y, sample_domain)
 
 
@@ -477,6 +464,7 @@ class DomainShuffleSplit(BaseDomainAwareShuffleSplit):
     domains.
     The folds are made by preserving the percentage of samples for
     each sample domain.
+
     Parameters
     ----------
     n_splits : int, default=10
@@ -494,6 +482,7 @@ class DomainShuffleSplit(BaseDomainAwareShuffleSplit):
         is automatically set to the complement of the test size.
     random_state : int or RandomState instance, default=None
         Controls the randomness of the training and testing indices produced.
+
     Examples
     --------
     >>> import numpy as np
@@ -520,7 +509,7 @@ class DomainShuffleSplit(BaseDomainAwareShuffleSplit):
         test_size=None,
         train_size=None,
         random_state=None,
-        under_sampling=0.8
+        under_sampling=0.8,
     ):
         super().__init__(
             n_splits=n_splits,
@@ -537,19 +526,22 @@ class DomainShuffleSplit(BaseDomainAwareShuffleSplit):
     def _iter_indices(self, X, y=None, sample_domain=None):
         X, sample_domain = check_X_domain(X, sample_domain)
         domain_source_idx_dict, domain_target_idx_dict = extract_domains_indices(
-            sample_domain,
-            split_source_target=True
+            sample_domain, split_source_target=True
         )
         rng = check_random_state(self.random_state)
         for _ in range(self.n_splits):
             source_idx = np.concatenate(
-                [rng.choice(v, int(len(v)*self.under_sampling), replace=False)
-                 for v in domain_source_idx_dict.values()]
-                )
+                [
+                    rng.choice(v, int(len(v) * self.under_sampling), replace=False)
+                    for v in domain_source_idx_dict.values()
+                ]
+            )
             target_idx = np.concatenate(
-                [rng.choice(v, int(len(v)*self.under_sampling), replace=False)
-                 for v in domain_target_idx_dict.values()]
-                )
+                [
+                    rng.choice(v, int(len(v) * self.under_sampling), replace=False)
+                    for v in domain_target_idx_dict.values()
+                ]
+            )
 
             rng.shuffle(source_idx)
             rng.shuffle(target_idx)

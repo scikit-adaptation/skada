@@ -1,8 +1,8 @@
 .. _scorer:
 
---------------------------------
+-----------------------------------------------------
 Metrics: Compute score for domain adaptation problems
---------------------------------
+-----------------------------------------------------
 
 .. currentmodule:: skada.metrics
 
@@ -32,10 +32,10 @@ Let's load a DA dataset::
 
 Now let's define a DA estimator to evaluate on this data::
 
-    >>> from skada import ReweightDensity
+    >>> from skada import DensityReweight
     >>> from sklearn.linear_model import LogisticRegression
     >>> base_estimator = LogisticRegression()
-    >>> estimator = ReweightDensity(base_estimator=base_estimator)
+    >>> estimator = DensityReweight(base_estimator=base_estimator)
 
 Having a distribution shift between the two domains means that if the validation
 is done on samples from source like shown in the images below, there is high
