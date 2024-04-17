@@ -555,7 +555,7 @@ def qp_solve(Q, c=None, A=None, b=None, Aeq=None, beq=None,
 
     With Aeq and beq of respective dimension (1,d) and (1,),
     and A and b of respective dimension (1,d) and (1,) or
-    (2,d) and (2,), with A[0] and A[1] colinear.
+    (2,d) and (2,), with A[0] = -A[1] and b[0] >= -b[1].
 
     Parameters
     ----------
