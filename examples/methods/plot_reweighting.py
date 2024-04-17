@@ -383,8 +383,13 @@ plot_weights_and_classifier(
 )
 
 # We define our classifier, `clf` is a da pipeline
-clf = KMMReweight(base_classifier, gamma=10.0, max_iter=1000, smooth_weights=True,
-                  solver="frank-wolfe")
+clf = KMMReweight(
+    base_classifier,
+    gamma=10.0,
+    max_iter=1000,
+    smooth_weights=True,
+    solver="frank-wolfe",
+)
 clf.fit(X, y, sample_domain=sample_domain)
 
 # We get the weights:

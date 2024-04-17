@@ -1015,7 +1015,7 @@ class KMMReweightAdapter(BaseAdapter):
         tol=1e-6,
         max_iter=1000,
         smooth_weights=False,
-        solver="frank-wolfe"
+        solver="frank-wolfe",
     ):
         super().__init__()
         self.kernel = kernel
@@ -1226,7 +1226,7 @@ def KMMReweight(
             tol=tol,
             max_iter=max_iter,
             smooth_weights=smooth_weights,
-            solver=solver
+            solver=solver,
         ),
         base_estimator,
     )
