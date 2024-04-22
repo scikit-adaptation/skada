@@ -22,9 +22,9 @@ The following algorithms are currently implemented.
 
 ### Domain adaptation algorithms
 
-- Sample reweighting methods (Gaussian [1], Discriminant [2], KLIEP [3],
-  DensityRatio [4], TarS [22])
-- Sample mapping methods (CORAL [5], Optimal Transport DA OTDA [6], LinearMonge [7], LS-ConS [22])
+- Sample reweighting methods (Gaussian [1], Discriminant [2], KLIEPReweight [3],
+  DensityRatio [4], TarS [21], KMMReweight [23])
+- Sample mapping methods (CORAL [5], Optimal Transport DA OTDA [6], LinearMonge [7], LS-ConS [21])
 - Subspace methods (SubspaceAlignment [8], TCA [9])
 - Other methods (JDOT [10], DASVM [11])
 
@@ -46,7 +46,7 @@ estimator and an `Adapter` that can be used in a DA pipeline with
 - Prediction entropy [18]
 - Soft neighborhood density [19]
 - Deep Embedded Validation (DEV) [20]
-- Circular Validation [21]
+- Circular Validation [11]
 
 
 ## Installation
@@ -96,8 +96,8 @@ done with the `set_fit_requires` method. For instance, with `LogisticRegression`
 would use `LogisticRegression().set_fit_requires('sample_weight')`:
 
 ```python
-from skada import GaussianReweightDensityAdapter, make_da_pipeline
-pipe = make_da_pipeline(GaussianReweightDensityAdapter(),
+from skada import GaussianReweightAdapter, make_da_pipeline
+pipe = make_da_pipeline(GaussianReweightAdapter(),
                         LogisticRegression().set_fit_request(sample_weight=True))
 ```
 
@@ -171,7 +171,7 @@ The library is distributed under the 3-Clause BSD license.
 
 [10] Courty, N., Flamary, R., Habrard, A., & Rakotomamonjy, A. (2017). [Joint distribution optimal transportation for domain adaptation](https://proceedings.neurips.cc/paper_files/paper/2017/file/0070d23b06b1486a538c0eaa45dd167a-Paper.pdf). Advances in neural information processing systems, 30.
 
-[11] Bruzzone, L., & Marconcini, M. (2009). [Domain adaptation problems: A DASVM classification technique and a circular validation strategy.](https://ieeexplore.ieee.org/document/4803844) IEEE transactions on pattern analysis and machine intelligence, 32(5), 770-787.
+[11] Bruzzone, L., & Marconcini, M. (2009). [Domain adaptation problems: A DASVM classification technique and a circular validation strategy.](https://rslab.disi.unitn.it/papers/R82-PAMI.pdf) IEEE transactions on pattern analysis and machine intelligence, 32(5), 770-787.
 
 [12] Sun, B., & Saenko, K. (2016). [Deep coral: Correlation alignment for deep domain adaptation](https://arxiv.org/pdf/1607.01719.pdf). In Computer Vision–ECCV 2016 Workshops: Amsterdam, The Netherlands, October 8-10 and 15-16, 2016, Proceedings, Part III 14 (pp. 443-450). Springer International Publishing.
 
@@ -191,6 +191,14 @@ The library is distributed under the 3-Clause BSD license.
 
 [20] You, K., Wang, X., Long, M., & Jordan, M. (2019, May). [Towards accurate model selection in deep unsupervised domain adaptation](https://proceedings.mlr.press/v97/you19a/you19a.pdf). In International Conference on Machine Learning (pp. 7124-7133). PMLR.
 
-[21] Bruzzone, Lorenzo & Marconcini, Mattia. (2010). [Domain Adaptation Problems: A DASVM Classification Technique and a Circular Validation Strategy](https://rslab.disi.unitn.it/papers/R82-PAMI.pdf). IEEE transactions on pattern analysis and machine intelligence. 32. 770-87. 10.1109/TPAMI.2009.57. 
+[21] Zhang, K., Schölkopf, B., Muandet, K., Wang, Z. (2013). [Domain Adaptation under Target and Conditional Shift](http://proceedings.mlr.press/v28/zhang13d.pdf). In International Conference on Machine Learning (pp. 819-827). PMLR.
 
-[22] Zhang, K., Schölkopf, B., Muandet, K., Wang, Z. (2013). [Domain Adaptation under Target and Conditional Shift](http://proceedings.mlr.press/v28/zhang13d.pdf). In International Conference on Machine Learning (pp. 819-827). PMLR.
+[22] Loog, M. (2012). Nearest neighbor-based importance weighting. In 2012 IEEE International Workshop on Machine Learning for Signal Processing, pages 1–6. IEEE (https://arxiv.org/pdf/2102.02291.pdf)
+
+[23] Domain Adaptation Problems: A DASVM ClassificationTechnique and a Circular Validation StrategyLorenzo Bruzzone, Fellow, IEEE, and Mattia Marconcini, Member, IEEE (https://rslab.disi.unitn.it/papers/R82-PAMI.pdf)
+
+[24] Loog, M. (2012). Nearest neighbor-based importance weighting. In 2012 IEEE International Workshop on Machine Learning for Signal Processing, pages 1–6. IEEE (https://arxiv.org/pdf/2102.02291.pdf)
+
+[25] J. Huang, A. Gretton, K. Borgwardt, B. Schölkopf and A. J. Smola. Correcting sample selection bias by unlabeled data. In NIPS, 2007. (https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=07117994f0971b2fc2df95adb373c31c3d313442)
+
+[26] Long, M., Wang, J., Ding, G., Sun, J., and Yu, P. (2014). [Transfer joint matching for unsupervised domain adaptation. In IEEE Conference on Computer Vision and Pattern Recognition (CVPR), pages 1410–1417](https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=a279f53f386ac78345b67e13c1808880c718efdf)

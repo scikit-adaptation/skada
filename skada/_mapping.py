@@ -102,6 +102,8 @@ class BaseOTMappingAdapter(BaseAdapter):
 class OTMappingAdapter(BaseOTMappingAdapter):
     """Domain Adaptation Using Optimal Transport.
 
+    See [6]_ for details.
+
     Parameters
     ----------
     metric : str, optional (default="sqeuclidean")
@@ -121,7 +123,7 @@ class OTMappingAdapter(BaseOTMappingAdapter):
 
     References
     ----------
-    .. [1] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
+    .. [6] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
            Optimal Transport for Domain Adaptation, in IEEE
            Transactions on Pattern Analysis and Machine Intelligence
     """
@@ -148,7 +150,7 @@ class OTMappingAdapter(BaseOTMappingAdapter):
 def OTMapping(base_estimator=None, metric="sqeuclidean", norm=None, max_iter=100000):
     """OTmapping pipeline with adapter and estimator.
 
-    see [1]_ for details.
+    See [6]_ for details.
 
     Parameters
     ----------
@@ -170,7 +172,7 @@ def OTMapping(base_estimator=None, metric="sqeuclidean", norm=None, max_iter=100
 
     References
     ----------
-    .. [1] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
+    .. [6] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
            Optimal Transport for Domain Adaptation, in IEEE
            Transactions on Pattern Analysis and Machine Intelligence
     """
@@ -185,6 +187,8 @@ def OTMapping(base_estimator=None, metric="sqeuclidean", norm=None, max_iter=100
 
 class EntropicOTMappingAdapter(BaseOTMappingAdapter):
     """Domain Adaptation Using Optimal Transport.
+
+    See [6]_ for details.
 
     Parameters
     ----------
@@ -210,7 +214,7 @@ class EntropicOTMappingAdapter(BaseOTMappingAdapter):
 
     References
     ----------
-    .. [1] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
+    .. [6] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
            Optimal Transport for Domain Adaptation, in IEEE
            Transactions on Pattern Analysis and Machine Intelligence
     """
@@ -250,7 +254,7 @@ def EntropicOTMapping(
 ):
     """EntropicOTMapping pipeline with adapter and estimator.
 
-    see [1]_ for details.
+    see [6]_ for details.
 
     Parameters
     ----------
@@ -277,7 +281,7 @@ def EntropicOTMapping(
 
     References
     ----------
-    .. [1] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
+    .. [6] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
            Optimal Transport for Domain Adaptation, in IEEE
            Transactions on Pattern Analysis and Machine Intelligence
     """
@@ -294,6 +298,8 @@ def EntropicOTMapping(
 
 class ClassRegularizerOTMappingAdapter(BaseOTMappingAdapter):
     """Domain Adaptation Using Optimal Transport.
+
+    See [6]_ for details.
 
     Parameters
     ----------
@@ -324,7 +330,7 @@ class ClassRegularizerOTMappingAdapter(BaseOTMappingAdapter):
 
     References
     ----------
-    .. [1] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
+    .. [6] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
            Optimal Transport for Domain Adaptation, in IEEE
            Transactions on Pattern Analysis and Machine Intelligence
     """
@@ -377,7 +383,7 @@ def ClassRegularizerOTMapping(
 ):
     """ClassRegularizedOTMapping pipeline with adapter and estimator.
 
-    see [1]_ for details.
+    see [6]_ for details.
 
     Parameters
     ----------
@@ -408,7 +414,7 @@ def ClassRegularizerOTMapping(
 
     References
     ----------
-    .. [1] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
+    .. [6] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
            Optimal Transport for Domain Adaptation, in IEEE
            Transactions on Pattern Analysis and Machine Intelligence
     """
@@ -461,7 +467,7 @@ def LinearOTMapping(
 ):
     """Returns a the linear OT mapping method with adapter and estimator.
 
-    see [1]_ for details.
+    see [6]_ for details.
 
     Parameters
     ----------
@@ -479,7 +485,7 @@ def LinearOTMapping(
 
     References
     ----------
-    .. [1] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
+    .. [6] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
            Optimal Transport for Domain Adaptation, in IEEE
            Transactions on Pattern Analysis and Machine Intelligence
     """
@@ -552,6 +558,8 @@ def _invsqrtm(C):
 class CORALAdapter(BaseAdapter):
     """Estimator based on Correlation Alignment [1]_.
 
+    See [5]_ for details.
+
     Parameters
     ----------
     reg : 'auto' or float, default="auto"
@@ -571,7 +579,7 @@ class CORALAdapter(BaseAdapter):
 
     References
     ----------
-    .. [1] Baochen Sun, Jiashi Feng, and Kate Saenko.
+    .. [5] Baochen Sun, Jiashi Feng, and Kate Saenko.
            Correlation Alignment for Unsupervised Domain Adaptation.
            In Advances in Computer Vision and Pattern Recognition, 2017.
     """
@@ -648,7 +656,7 @@ def CORAL(
 ):
     """CORAL pipeline with adapter and estimator.
 
-    see [1]_ for details.
+    See [5]_ for details.
 
     Parameters
     ----------
@@ -669,7 +677,7 @@ def CORAL(
 
     References
     ----------
-    .. [1] Baochen Sun, Jiashi Feng, and Kate Saenko.
+    .. [5] Baochen Sun, Jiashi Feng, and Kate Saenko.
            Correlation Alignment for Unsupervised Domain Adaptation.
            In Advances in Computer Vision and Pattern Recognition, 2017.
     """
@@ -690,7 +698,7 @@ class MMDLSConSMappingAdapter(BaseAdapter):
     $X^t = W(y^s) \\odot X^s + B(y^s)$, where $W(y^s)$ and $B(y^s)$ are the scaling
     and bias of the linear transformation, respectively.
 
-    See Section 4 of [4]_ for details.
+    See Section 4 of [21]_ for details.
 
     Parameters
     ----------
@@ -720,7 +728,7 @@ class MMDLSConSMappingAdapter(BaseAdapter):
 
     References
     ----------
-    .. [4] Kun Zhang et. al. Domain Adaptation under Target and Conditional Shift
+    .. [21] Kun Zhang et. al. Domain Adaptation under Target and Conditional Shift
            In ICML, 2013.
     """
 
@@ -764,7 +772,7 @@ class MMDLSConSMappingAdapter(BaseAdapter):
         # compute R
         if discrete:
             self.classes_ = classes = torch.unique(y_source).numpy()
-            R = torch.zeros((X_target.shape[0], len(classes)), dtype=torch.float64)
+            R = torch.zeros((m, len(classes)), dtype=torch.float64)
             for i, c in enumerate(classes):
                 R[:, i] = (y_source == c).int()
         else:
@@ -892,7 +900,7 @@ def MMDLSConSMapping(
 ):
     """MMDLSConSMapping pipeline with adapter and estimator.
 
-    see [4]_ for details.
+    See [21]_ for details.
 
     Parameters
     ----------
@@ -916,8 +924,8 @@ def MMDLSConSMapping(
 
     References
     ----------
-    .. [4] Kun Zhang et. al. Domain Adaptation under Target and Conditional Shift
-           In ICML, 2013.
+    .. [21] Kun Zhang et. al. Domain Adaptation under Target and Conditional Shift
+            In ICML, 2013.
     """
     if base_estimator is None:
         base_estimator = SVC(kernel="rbf")

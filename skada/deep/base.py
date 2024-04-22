@@ -1,5 +1,6 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Remi Flamary <remi.flamary@polytechnique.edu>
+#         Yanis Lalou <yanis.lalou@polytechnique.edu>
 #
 # License: BSD 3-Clause
 
@@ -386,6 +387,45 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
             X["sample_domain"] = sample_domain
         return super().predict(X, **predict_params)
 
+    def predict_proba(self, X, sample_domain=None, **predict_params):
+        """model prediction
+
+        Parameters
+        ----------
+        X : dict, torch tensor, array-like or torch dataset
+            The input data. If a dict, it should contain a key 'X' with the
+            input data and a key 'sample_domain' with the domain of each
+            sample.
+            If X is a dataset, the dataset should return a dict.
+        sample_domain : torch tensor
+            The domain of each sample.
+            Could be None since the sample are not used in predict.
+        """
+        if isinstance(X, dict):
+            if "X" not in X.keys():
+                raise ValueError("X should contain a key 'X' with the input data.")
+            if "sample_domain" not in X.keys():
+                raise ValueError(
+                    "X should contain a key 'sample_domain' "
+                    "with the domain of each sample."
+                )
+        elif isinstance(X, torch.utils.data.Dataset):
+            test_sample = X[0][0]
+            if isinstance(test_sample, dict):
+                if "X" not in test_sample.keys():
+                    raise ValueError("X should contain a key 'X' with the input data.")
+                if "sample_domain" not in test_sample.keys():
+                    raise ValueError(
+                        "X should contain a key 'sample_domain' "
+                        "with the domain of each sample."
+                    )
+            else:
+                raise ValueError("Dataset should contain a dict as X.")
+        else:
+            X = {"X": X}
+            X["sample_domain"] = sample_domain
+        return super().predict_proba(X, **predict_params)
+
     def score(self, X, y, sample_domain=None, **score_params):
         """model score
 
@@ -425,6 +465,9 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
             sample.
             If X is a dataset, the dataset should return a dict..
         """
+        if not torch.is_tensor(X):
+            X = torch.tensor(X)
+
         _, features = self.module(
             X, sample_domain=None, is_fit=False, return_features=True
         )

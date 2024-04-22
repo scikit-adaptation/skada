@@ -163,23 +163,36 @@ def _base_test_new_X_adapt(estimator, da_dataset):
 @pytest.mark.parametrize(
     "estimator",
     [
-        OTMappingAdapter(),
-        EntropicOTMappingAdapter(),
-        ClassRegularizerOTMappingAdapter(norm="lpl1"),
-        ClassRegularizerOTMappingAdapter(norm="l1l2"),
-        LinearOTMappingAdapter(),
-        CORALAdapter(),
-        pytest.param(
-            MMDLSConSMappingAdapter(gamma=1e-3),
-            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+        (OTMappingAdapter()),
+        (OTMappingAdapter()),
+        (EntropicOTMappingAdapter()),
+        (EntropicOTMappingAdapter()),
+        (ClassRegularizerOTMappingAdapter(norm="lpl1")),
+        (ClassRegularizerOTMappingAdapter(norm="lpl1")),
+        (ClassRegularizerOTMappingAdapter(norm="l1l2")),
+        (ClassRegularizerOTMappingAdapter(norm="l1l2")),
+        (LinearOTMappingAdapter()),
+        (LinearOTMappingAdapter()),
+        (CORALAdapter()),
+        (CORALAdapter()),
+        (
+            pytest.param(
+                MMDLSConSMappingAdapter(gamma=1e-3),
+                marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+            )
+        ),
+        (
+            pytest.param(
+                MMDLSConSMappingAdapter(gamma=1e-3),
+                marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+            )
         ),
         GFKAdapter(),
     ],
 )
-def test_new_X_adapt(estimator, da_dataset):
-    da_dataset = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
-
-    _base_test_new_X_adapt(estimator, da_dataset)
+def test_new_X_adapt(estimator, da_reg_datasets):
+    for dataset in da_reg_datasets:
+        _base_test_new_X_adapt(estimator, dataset)
 
 
 @pytest.mark.parametrize(
