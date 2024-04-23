@@ -15,6 +15,7 @@ from skada.deep.base import (
 from skada.deep.losses import TestLoss
 from skada.deep.modules import ToyModule2D
 from skada.metrics import (
+    CircularValidation,
     DeepEmbeddedValidation,
     PredictionEntropyScorer,
     SoftNeighborhoodDensity,
@@ -27,6 +28,7 @@ from skada.metrics import (
         DeepEmbeddedValidation(),
         PredictionEntropyScorer(),
         SoftNeighborhoodDensity(),
+        CircularValidation(),
     ],
 )
 def test_generic_scorer_on_deepmodel(scorer, da_dataset):

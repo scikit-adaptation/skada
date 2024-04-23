@@ -552,9 +552,25 @@ class CircularValidation(_BaseDomainAwareScorer):
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
         source_idx = extract_source_indices(sample_domain)
 
-        backward_estimator = deepcopy(estimator)
+        # if estimator is NeuralNet
+        if not isinstance(estimator, BaseEstimator):
+            # The estimator is a deep model
+            from skorch import NeuralNet
 
-        y_pred_target = estimator.predict(X[~source_idx])
+            if isinstance(estimator, NeuralNet):
+                backward_estimator = clone(estimator)
+            else:
+                raise ValueError(
+                    "The estimator passed should be a scikit-learn estimator or "
+                    "a skorch.NeuralNet "
+                    f"The estimator {estimator!r} is not."
+                )
+        else:
+            backward_estimator = deepcopy(estimator)
+
+        y_pred_target = estimator.predict(
+            X[~source_idx], sample_domain=sample_domain[~source_idx]
+        )
 
         if len(np.unique(y_pred_target)) == 1:
             # Otherwise, we can get ValueError exceptions
@@ -591,7 +607,9 @@ class CircularValidation(_BaseDomainAwareScorer):
                 backward_y[source_idx] = _DEFAULT_MASKED_TARGET_REGRESSION_LABEL
 
             backward_estimator.fit(X, backward_y, sample_domain=backward_sample_domain)
-            y_pred_source = backward_estimator.predict(X[source_idx])
+            y_pred_source = backward_estimator.predict(
+                X[source_idx], sample_domain=backward_sample_domain[source_idx]
+            )
 
             if y_type == Y_Type.DISCRETE:
                 # We go back to the original labels
