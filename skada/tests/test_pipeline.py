@@ -7,6 +7,7 @@
 import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
+from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
@@ -20,6 +21,7 @@ from skada import (
     SubspaceAlignmentAdapter,
     make_da_pipeline,
 )
+from skada.datasets import DomainAwareDataset
 
 
 def test_pipeline(da_dataset):
@@ -171,3 +173,29 @@ def test_unwrap_nested_da_pipelines(da_dataset):
 
     # compare outputs
     assert np.allclose(y_pred, y_nested_pred)
+
+
+def test_allow_nd_x():
+    class CutInputDim(BaseEstimator, TransformerMixin):
+        def fit(self, X, y=None, **params):
+            self.fitted_ = True
+
+        def transform(self, X, y=None):
+            return X[:, :, 0]
+
+    pipe = make_da_pipeline(CutInputDim(), CORALAdapter())
+
+    rng = np.random.default_rng(0)
+    Xs = rng.standard_normal(size=(100, 22, 30))
+    Xt = rng.standard_normal(size=(100, 22, 30))
+    ys = rng.integers(0, 2, 100)
+    yt = rng.integers(0, 2, 100)
+
+    dataset = DomainAwareDataset()
+    dataset.add_domain(Xs, ys, "source")
+    dataset.add_domain(Xt, yt, "target")
+
+    X, y, sample_domain = dataset.pack_train(
+        as_sources=["source"], as_targets=["target"]
+    )
+    pipe.fit(X, y, sample_domain=sample_domain)
