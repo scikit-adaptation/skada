@@ -41,6 +41,8 @@ def test_dasvm_estimator(label, n, m):
         "when using `decision_function` method"
     )
 
+    assert clf_dasvm.score(X, y) >= 0, "The score should be non-negative"
+
     # The `DASVMClassifier` should be usable with `make_da_pipeline`
     manage_pipeline = False
     try:
@@ -50,6 +52,11 @@ def test_dasvm_estimator(label, n, m):
         manage_pipeline = True
     finally:
         assert manage_pipeline, "Couldn't use make_da_pipeline with DASVMClassifier"
+
+    # The `DASVMClassifier` should accept sample_domain as an argument
+    if manage_pipeline:
+        clf_dasvm.fit(X, y, sample_domain=sample_domain)
+        clf_dasvm.predict(X, sample_domain=sample_domain)
 
 
 def test_dasvm_estimator_predict_proba():

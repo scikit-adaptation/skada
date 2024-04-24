@@ -987,6 +987,8 @@ class KMMReweightAdapter(BaseAdapter):
         Number of maximum iteration before stopping the optimization.
     smooth_weights : bool, default=False
         If True, the weights are "smoothed" using the kernel function.
+    solver : string, default='frank-wolfe'
+        Available solvers : ['frank-wolfe', 'scipy'].
 
     Attributes
     ----------
@@ -1013,6 +1015,7 @@ class KMMReweightAdapter(BaseAdapter):
         tol=1e-6,
         max_iter=1000,
         smooth_weights=False,
+        solver="frank-wolfe",
     ):
         super().__init__()
         self.kernel = kernel
@@ -1024,6 +1027,7 @@ class KMMReweightAdapter(BaseAdapter):
         self.tol = tol
         self.max_iter = max_iter
         self.smooth_weights = smooth_weights
+        self.solver = solver
 
         if kernel not in KERNEL_PARAMS:
             kernel_list = str(list(KERNEL_PARAMS.keys()))
@@ -1098,6 +1102,7 @@ class KMMReweightAdapter(BaseAdapter):
             ub=np.ones(Ns) * self.B,
             tol=self.tol,
             max_iter=self.max_iter,
+            solver=self.solver,
         )
 
         weights = np.array(weights).ravel()
@@ -1164,6 +1169,7 @@ def KMMReweight(
     tol=1e-6,
     max_iter=1000,
     smooth_weights=False,
+    solver="frank-wolfe",
 ):
     """KMMReweight pipeline adapter and estimator.
 
@@ -1193,6 +1199,8 @@ def KMMReweight(
     smooth_weights : bool, default=False
         If True, the weights are "smoothed" using the kernel function.
         Pipeline containing the KMMReweight adapter and the base estimator.
+    solver : string, default='frank-wolfe'
+        Available solvers : ['frank-wolfe', 'scipy'].
 
     Returns
     -------
@@ -1218,6 +1226,7 @@ def KMMReweight(
             tol=tol,
             max_iter=max_iter,
             smooth_weights=smooth_weights,
+            solver=solver,
         ),
         base_estimator,
     )
