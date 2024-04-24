@@ -340,7 +340,8 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
 
         X_out, sample_domain = check_X_domain(
             X_out,
-            sample_domain=params.get('sample_domain')
+            sample_domain=params.get('sample_domain'),
+            allow_nd=True,
         )
         params['sample_domain'] = sample_domain
 
