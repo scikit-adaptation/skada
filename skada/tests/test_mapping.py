@@ -23,6 +23,7 @@ from skada import (
     CORALAdapter,
     EntropicOTMapping,
     EntropicOTMappingAdapter,
+    GFKAdapter,
     LinearOTMapping,
     LinearOTMappingAdapter,
     MMDLSConSMapping,
@@ -32,6 +33,7 @@ from skada import (
     make_da_pipeline,
     source_target_split,
 )
+from skada._mapping import _gsvd
 from skada.datasets import DomainAwareDataset
 
 
@@ -67,6 +69,7 @@ from skada.datasets import DomainAwareDataset
             MMDLSConSMapping(),
             marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
         ),
+        make_da_pipeline(GFKAdapter(n_components=1), LogisticRegression()),
     ],
 )
 def test_mapping_estimator(estimator, da_blobs_dataset):
@@ -117,6 +120,7 @@ def test_mapping_estimator(estimator, da_blobs_dataset):
             MMDLSConSMapping(Ridge()),
             marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
         ),
+        make_da_pipeline(GFKAdapter(), Ridge()),
     ],
 )
 def test_reg_mapping_estimator(estimator, da_reg_dataset):
@@ -183,6 +187,7 @@ def _base_test_new_X_adapt(estimator, da_dataset):
                 marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
             )
         ),
+        GFKAdapter(),
     ],
 )
 def test_new_X_adapt(estimator, da_reg_datasets):
@@ -201,7 +206,55 @@ def test_new_X_adapt(estimator, da_reg_datasets):
             MMDLSConSMappingAdapter(gamma=1e-3),
             marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
         ),
+        GFKAdapter(),
     ],
 )
 def test_reg_new_X_adapt(estimator, da_reg_dataset):
     _base_test_new_X_adapt(estimator, da_reg_dataset)
+
+
+def test_gsvd():
+    d = 10
+    A = np.random.multivariate_normal(np.zeros(d), np.eye(d), size=d)
+    B = np.random.multivariate_normal(np.zeros(d), np.eye(d), size=d)
+
+    # gsvd
+    U_A, U_B, S_A, S_B, Vt = _gsvd(A, B)
+
+    # shape of the matrices
+    assert U_A.shape == (d, d)
+    assert U_B.shape == (d, d)
+    assert S_A.shape == (d, d)
+    assert S_B.shape == (d, d)
+    assert Vt.shape == (d, d)
+
+    # orthogonality
+    assert np.allclose(U_A.T @ U_A, np.eye(d))
+    assert np.allclose(U_B.T @ U_B, np.eye(d))
+    assert np.allclose(Vt @ Vt.T, np.eye(d))
+
+    # check condition on S_A and S_B
+    cond = S_A.T @ S_A + S_B.T @ S_B
+    assert np.allclose(cond, np.diag(np.diag(cond)))
+
+    # check the reconstruction
+    assert np.allclose(A, U_A @ S_A @ Vt)
+    assert np.allclose(B, U_B @ S_B @ Vt)
+
+    n, d, k = 100, 10, 5
+    Xs = np.random.multivariate_normal(np.zeros(d), np.eye(d), size=n)
+    Xt = np.random.multivariate_normal(np.zeros(d), np.eye(d), size=n)
+
+    Ps, _, _ = np.linalg.svd(Xs.T, full_matrices=False)
+    Ps, Rs = Ps[:, :k], Ps[:, k:]
+    Pt, _, _ = np.linalg.svd(Xt.T, full_matrices=False)
+    Pt = Pt[:, :k]
+
+    U1, U2, Gamma, Sigma, Vt = _gsvd(Ps.T @ Pt, -Rs.T @ Pt)
+
+    # assert Gamma and Sigma are diagonal
+    import ipdb
+
+    ipdb.set_trace()
+    assert np.allclose(Gamma, np.diag(np.diag(Gamma)))
+    assert np.allclose(Sigma, np.diag(np.diag(Sigma)))
