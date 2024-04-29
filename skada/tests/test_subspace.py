@@ -15,6 +15,7 @@ from skada import (
     TransferComponentAnalysisAdapter,
     TransferJointMatching,
     TransferJointMatchingAdapter,
+    TransferSubspaceLearningAdapter,
     make_da_pipeline,
 )
 from skada.base import AdaptationOutput
@@ -62,6 +63,9 @@ def test_subspace_alignment(estimator, da_dataset):
         (TransferJointMatchingAdapter(), 5, 3, 3),
         (TransferJointMatchingAdapter(), 2, 3, 3),
         (TransferJointMatchingAdapter(), 2, 5, 4),
+        (TransferSubspaceLearningAdapter(), 5, 3, 3),
+        (TransferSubspaceLearningAdapter(), 2, 3, 3),
+        (TransferSubspaceLearningAdapter(), 2, 5, 4),
     ],
 )
 def test_subspace_default_n_components(adapter, n_samples, n_features, n_components):

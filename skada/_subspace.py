@@ -23,7 +23,10 @@ from .utils import (
     extract_source_indices,
     source_target_merge,
     source_target_split,
+    torch_minimize,
 )
+
+EPS_eigval = 1e-10
 
 
 class SubspaceAlignmentAdapter(BaseAdapter):
@@ -532,7 +535,6 @@ class TransferJointMatchingAdapter(BaseAdapter):
         M /= np.linalg.norm(M, ord="fro")
         G = np.identity(n)
 
-        EPS_eigval = 1e-10
         last_loss = -2 * self.tol
         for i in range(self.max_iter):
             # update A
@@ -637,6 +639,244 @@ def TransferJointMatching(
             kernel=kernel,
             max_iter=max_iter,
             tol=tol,
+        ),
+        base_estimator,
+    )
+
+
+class TransferSubspaceLearningAdapter(BaseAdapter):
+    """Domain Adaptation Using TSL: Transfer Subspace Learning.
+
+    See [XXXX]_ for details.
+
+    Parameters
+    ----------
+    n_components : int, default=None
+        The numbers of components to learn with PCA.
+        Should be less or equal to the number of samples
+        of the source and target data.
+    mu : float, default=0.1
+        The parameter of the regularization in the optimization
+        problem.
+    max_iter : int>0, default=100
+        The maximal number of iteration before stopping when
+        fitting.
+    tol : float, default=0.01
+        The threshold for the differences between losses on two iteration
+        before the algorithm stops
+    verbose : bool, default=False
+        If True, print the loss value at each iteration.
+
+    Attributes
+    ----------
+    None
+
+    References
+    ----------
+    .. [XXXX]  XXXXXXXXXXXX
+
+    """
+
+    def __init__(
+        self,
+        n_components=None,
+        mu=0.1,
+        max_iter=100,
+        tol=0.01,
+        verbose=False,
+    ):
+        super().__init__()
+        self.n_components = n_components
+        self.mu = mu
+        self.max_iter = max_iter
+        self.tol = tol
+        self.verbose = verbose
+
+        try:
+            import torch
+
+            self.torch = torch
+        except ImportError:
+            raise ImportError(
+                "TransferSubspaceLearningAdapter requires pytorch to be installed."
+            )
+
+    def adapt(self, X, y=None, sample_domain=None, **kwargs):
+        """Predict adaptation (weights, sample or labels).
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        X_t : array-like, shape (n_samples, n_components)
+            The data transformed to the target subspace.
+        y_t : array-like, shape (n_samples,)
+            The labels (same as y).
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels transformed to the target subspace
+            (same as sample_domain).
+        weights : None
+            No weights are returned here.
+        """
+        X, sample_domain = check_X_domain(
+            X,
+            sample_domain,
+            allow_multi_source=True,
+            allow_multi_target=True,
+        )
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+
+        if X_source.shape[0]:
+            X_source = np.dot(X_source, self.W_)
+        if X_target.shape[0]:
+            X_target = np.dot(X_target, self.W_)
+        # xxx(okachaiev): this could be done through a more high-level API
+        X_adapt, _ = source_target_merge(
+            X_source, X_target, sample_domain=sample_domain
+        )
+        return X_adapt
+
+    def _torch_cov(self, X):
+        """Compute the covariance matrix of X using torch."""
+        torch = self.torch
+        n_samples = X.shape[0]
+        X = X - torch.mean(X, dim=0)
+        cov = X.T @ X / n_samples
+        return cov + EPS_eigval * torch.eye(X.shape[1], dtype=X.dtype)
+
+    def _D(self, W, X_source, X_target):
+        """Divergence objective function"""
+        torch = self.torch
+
+        Z_source = X_source @ W
+        Z_target = X_target @ W
+
+        sigma_1 = self._torch_cov(Z_source)
+        sigma_2 = self._torch_cov(Z_target)
+        sigma_11 = 2 * sigma_1
+        sigma_12 = sigma_1 + sigma_2
+        sigma_22 = 2 * sigma_2
+
+        L_11 = torch.linalg.cholesky(torch.linalg.inv(sigma_11))
+        L_12 = torch.linalg.cholesky(torch.linalg.inv(sigma_12))
+        L_22 = torch.linalg.cholesky(torch.linalg.inv(sigma_22))
+        Kss = torch.exp(-0.5 * torch.cdist(Z_source @ L_11, Z_source @ L_11))
+        Kst = torch.exp(-0.5 * torch.cdist(Z_source @ L_12, Z_target @ L_12))
+        Ktt = torch.exp(-0.5 * torch.cdist(Z_target @ L_22, Z_target @ L_22))
+
+        return torch.mean(Kss) + torch.mean(Ktt) - 2 * torch.mean(Kst)
+
+    def _F(self, W, X):
+        """TPCA objective function"""
+        torch = self.torch
+        cov = self._torch_cov(X)
+        return -torch.trace(W.T @ cov @ W)
+
+    def fit(self, X, y=None, sample_domain=None, **kwargs):
+        """Fit adaptation parameters.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
+        X, sample_domain = check_X_domain(
+            X,
+            sample_domain,
+            allow_multi_source=True,
+            allow_multi_target=True,
+        )
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+
+        torch = self.torch
+
+        if self.n_components is None:
+            n_components = min(X.shape[0], X.shape[1])
+        else:
+            n_components = self.n_components
+
+        # Convert data to torch tensors
+        X_source = torch.tensor(X_source, dtype=torch.float64)
+        X_target = torch.tensor(X_target, dtype=torch.float64)
+
+        # Loss function
+        def func(W):
+            loss = self._F(W, X_source)
+            loss = loss + self.mu * self._D(W, X_source, X_target)
+            return loss
+
+        # Optimize using torch solver
+        W = torch.eye(X.shape[1], dtype=torch.float64, requires_grad=True)
+        W = W[:, :n_components]
+        # W = torch.utils.nn.parametrizations.Orthogonal()(W)
+        W, _ = torch_minimize(func, W, tol=self.tol, max_iter=self.max_iter)
+
+        # store W
+        self.W_ = W
+
+        return self
+
+
+def TransferSubspaceLearning(
+    base_estimator=None,
+    n_components=None,
+    mu=0.1,
+    max_iter=100,
+    tol=0.01,
+    verbose=False,
+):
+    """
+
+    Parameters
+    ----------
+    base_estimator : object, default=None
+        estimator used for fitting and prediction
+    n_components : int, default=None
+        The numbers of components to learn.
+        Should be less or equal to the number of samples
+        of the source and target data.
+    mu : float, default=1e-2
+        The tradeoff parameter between the TSL and divergence objective.
+    max_iter : int>0, default=100
+        The maximal number of iteration before stopping when
+        fitting.
+    tol : float>0, default=0.01
+
+    Returns
+    -------
+    pipeline : Pipeline
+        A pipeline containing a TransferSubspaceLearning estimator.
+
+    References
+    ----------
+    .. [XXX] XXXXX
+    """
+    if base_estimator is None:
+        base_estimator = SVC()
+
+    return make_da_pipeline(
+        TransferJointMatching(
+            n_components=n_components,
+            mu=mu,
+            max_iter=max_iter,
+            tol=tol,
+            verbose=verbose,
         ),
         base_estimator,
     )
