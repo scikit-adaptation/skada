@@ -16,16 +16,43 @@ Main module :py:mod:`skada`
 Sample reweighting DA methods 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. autosummary::
-   :toctree: gen_modules/
-   :template: function.rst
+.. .. autosummary::
+..    :toctree: gen_modules/
+..    :template: function.rst
 
-   DensityReweight
-   GaussianReweight
-   DiscriminatorReweight
-   KLIEPReweight
-   NearestNeighborReweight
-   MMDTarSReweight
+..    DensityReweight
+..    GaussianReweight
+..    DiscriminatorReweight
+..    KLIEPReweight
+..    NearestNeighborReweight
+..    MMDTarSReweight
+
+Pipelines:
+   .. autosummary::
+      :toctree: gen_modules/
+      :template: function.rst
+
+      DensityReweight
+      GaussianReweight
+      DiscriminatorReweight
+      KLIEPReweight
+      NearestNeighborReweight
+      MMDTarSReweight
+      KMMReweight
+
+Adapters:
+   .. autosummary::
+      :toctree: gen_modules/
+      :template: class.rst
+
+      DensityReweightAdapter
+      GaussianReweightAdapter
+      DiscriminatorReweightAdapter
+      KLIEPReweightAdapter
+      NearestNeighborReweightAdapter
+      MMDTarSReweightAdapter
+      KMMReweightAdapter
+
 
 Sample mapping and alignment DA methods
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
