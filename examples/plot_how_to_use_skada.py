@@ -45,8 +45,8 @@ from skada.model_selection import SourceTargetShuffleSplit
 # * :code:`X` is the input data
 # * :code:`y` is the output data to be predicted (labels on target samples are not
 #   used)
-# * :code:`sample_domain` is the domain of each sample (integer <=0 for
-#   source and >0 for target)
+# * :code:`sample_domain` is the domain of each sample (integer >=0 for
+#   source and <0 for target)
 
 # Get DA dataset
 X, y, sample_domain = make_shifted_datasets(
