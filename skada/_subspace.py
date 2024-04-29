@@ -26,8 +26,6 @@ from .utils import (
     torch_minimize,
 )
 
-EPS_eigval = 1e-10
-
 
 class SubspaceAlignmentAdapter(BaseAdapter):
     """Domain Adaptation Using Subspace Alignment.
@@ -535,6 +533,7 @@ class TransferJointMatchingAdapter(BaseAdapter):
         M /= np.linalg.norm(M, ord="fro")
         G = np.identity(n)
 
+        EPS_eigval = 1e-10
         last_loss = -2 * self.tol
         for i in range(self.max_iter):
             # update A
@@ -658,6 +657,12 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
     mu : float, default=0.1
         The parameter of the regularization in the optimization
         problem.
+    reg : float, default=1e-4
+        The regularization parameter of the covariance estimator.
+        Possible values:
+
+          - None: no shrinkage.
+          - float between 0 and 1: fixed shrinkage parameter.
     max_iter : int>0, default=100
         The maximal number of iteration before stopping when
         fitting.
@@ -669,7 +674,8 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
 
     Attributes
     ----------
-    None
+    W_ : array of shape (n_features, n_components)
+        The learned projection matrix.
 
     References
     ----------
@@ -681,6 +687,7 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
         self,
         n_components=None,
         mu=0.1,
+        reg=1e-2,
         max_iter=100,
         tol=0.01,
         verbose=False,
@@ -688,18 +695,12 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
         super().__init__()
         self.n_components = n_components
         self.mu = mu
+        if reg is not None and (reg < 0 or reg > 1):
+            raise ValueError("reg should be None or between 0 and 1.")
+        self.reg = 0 if reg is None else reg
         self.max_iter = max_iter
         self.tol = tol
         self.verbose = verbose
-
-        try:
-            import torch
-
-            self.torch = torch
-        except ImportError:
-            raise ImportError(
-                "TransferSubspaceLearningAdapter requires pytorch to be installed."
-            )
 
     def adapt(self, X, y=None, sample_domain=None, **kwargs):
         """Predict adaptation (weights, sample or labels).
@@ -746,10 +747,14 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
     def _torch_cov(self, X):
         """Compute the covariance matrix of X using torch."""
         torch = self.torch
-        n_samples = X.shape[0]
+        reg = self.reg
+
+        n_samples, d = X.shape
         X = X - torch.mean(X, dim=0)
         cov = X.T @ X / n_samples
-        return cov + EPS_eigval * torch.eye(X.shape[1], dtype=X.dtype)
+        cov = (1 - reg) * cov + reg * torch.trace(cov) * torch.eye(d)
+
+        return cov
 
     def _D(self, W, X_source, X_target):
         """Divergence objective function"""
@@ -796,6 +801,15 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
         self : object
             Returns self.
         """
+        try:
+            import torch
+
+            self.torch = torch
+        except ImportError:
+            raise ImportError(
+                "TransferSubspaceLearningAdapter requires pytorch to be installed."
+            )
+
         X, sample_domain = check_X_domain(
             X,
             sample_domain,
