@@ -223,7 +223,7 @@ print("Accuracy on target:", pipe.score(Xt, yt))  # target by default
 
 # Similarly one can use the PerDomain selector to train a different estimator
 # per domain. this allows to handle multiple source and target domains. In this
-# case :code:`sample_domain` must be provided during fit and predict/transform.
+# case `sample_domain` must be provided during fit and predict/transform.
 
 pipe = make_da_pipeline(
     PerDomain(StandardScaler()),
