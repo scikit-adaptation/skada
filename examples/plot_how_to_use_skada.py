@@ -45,8 +45,8 @@ from skada.model_selection import SourceTargetShuffleSplit
 # * :code:`X` is the input data
 # * :code:`y` is the output data to be predicted (labels on target samples are not
 #   used)
-# * :code:`sample_domain` is the domain of each sample (integer <=0 for
-#   source and >0 for target)
+# * :code:`sample_domain` is the domain of each sample (integer >=0 for
+#   source and <0 for target)
 
 # Get DA dataset
 X, y, sample_domain = make_shifted_datasets(
@@ -223,7 +223,7 @@ print("Accuracy on target:", pipe.score(Xt, yt))  # target by default
 
 # Similarly one can use the PerDomain selector to train a different estimator
 # per domain. this allows to handle multiple source and target domains. In this
-# case :code:`sample_domain` must be provided during fit and predict/transform.
+# case `sample_domain` must be provided during fit and predict/transform.
 
 pipe = make_da_pipeline(
     PerDomain(StandardScaler()),
@@ -250,8 +250,8 @@ print("Accuracy on target:", pipe_train_on_source.score(Xt, yt))
 
 # %%
 # One can also use a default selector on the whole pipeline but overwrite it for
-# the last estimator. The example below estimate a StandardScaler and PCA per
-# domain but train the final SVC on source Data only.
+# the last estimator. The example below estimate a :code:`StandardScaler` and
+# :code:`PCA` per domain but train the final SVC on source Data only.
 
 pipe_perdomain = make_da_pipeline(
     StandardScaler(),
