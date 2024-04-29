@@ -4,16 +4,17 @@
 
 import numpy as np
 import pytest
-from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import ShuffleSplit, cross_validate
+from sklearn.preprocessing import StandardScaler
+
 from skada import make_da_pipeline
+from skada.deep import DeepCoral
 from skada.deep.modules import ToyModule2D
 from skada.metrics import (
     DeepEmbeddedValidation,
     PredictionEntropyScorer,
     SoftNeighborhoodDensity,
 )
-from skada.deep import DeepCoral
 
 
 @pytest.mark.parametrize(
@@ -83,6 +84,6 @@ def test_generic_scorer(scorer, da_dataset):
         params={"sample_domain": sample_domain},
         scoring=scorer,
         error_score="raise",
-    )['test_score']
+    )["test_score"]
     assert scores.shape[0] == 3, "evaluate 3 splits"
     assert np.all(~np.isnan(scores)), "all scores are computed"

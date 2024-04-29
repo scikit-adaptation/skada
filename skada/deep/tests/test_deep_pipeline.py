@@ -10,8 +10,8 @@ import pytest
 from sklearn.preprocessing import StandardScaler
 
 from skada import make_da_pipeline
-from skada.deep import DeepCoral, DANN
-from skada.deep.modules import ToyModule2D, DomainClassifier
+from skada.deep import DANN, DeepCoral
+from skada.deep.modules import DomainClassifier, ToyModule2D
 
 
 @pytest.mark.parametrize(
