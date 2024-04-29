@@ -66,6 +66,7 @@ def test_dasvm_estimator_predict_proba():
         shift="covariate_shift",
         noise=None,
         label="binary",
+        random_state=0,
     )
     X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
 

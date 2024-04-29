@@ -122,6 +122,7 @@ def check_X_domain(
     allow_target: bool = True,
     allow_multi_target: bool = True,
     allow_auto_sample_domain: bool = True,
+    allow_nd: bool = False,
 ):
     """
     Input validation for domain adaptation (DA) estimator.
@@ -146,6 +147,8 @@ def check_X_domain(
         Allow multiple target domains.
     allow_auto_sample_domain : bool, optional (default=True)
         Allow automatic generation of sample_domain if not provided.
+    allow_nd : bool, optional (default=False)
+        Allow X and y to be N-dimensional arrays.
 
     Returns
     -------
@@ -154,7 +157,7 @@ def check_X_domain(
     sample_domain : array
         Combined domain labels for source and target domains.
     """
-    X = check_array(X, input_name='X')
+    X = check_array(X, input_name='X', allow_nd=allow_nd)
 
     if sample_domain is None and not allow_auto_sample_domain:
         raise ValueError("Either 'sample_domain' or 'allow_auto_sample_domain' "
