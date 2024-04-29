@@ -250,8 +250,8 @@ print("Accuracy on target:", pipe_train_on_source.score(Xt, yt))
 
 # %%
 # One can also use a default selector on the whole pipeline but overwrite it for
-# the last estimator. The example below estimate a StandardScaler and PCA per
-# domain but train the final SVC on source Data only.
+# the last estimator. The example below estimate a :code:`StandardScaler` and
+# :code:`PCA` per domain but train the final SVC on source Data only.
 
 pipe_perdomain = make_da_pipeline(
     StandardScaler(),
