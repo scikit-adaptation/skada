@@ -14,7 +14,6 @@ from skada.deep.base import (
     DomainAwareNet,
     DomainBalancedDataLoader,
 )
-from skada.utils import extract_source_indices
 
 from .modules import DomainClassifier
 from .utils import check_generator
@@ -25,8 +24,9 @@ class DANNLoss(BaseDALoss):
 
     This loss tries to minimize the divergence between features with
     adversarial method. The weights are updated to make harder
-    to classify domains (i.e., remove domain-specific features)
-    See [15]_.
+    to classify domains (i.e., remove domain-specific features).
+
+    See [15]_ for details.
 
     Parameters
     ----------
@@ -36,7 +36,7 @@ class DANNLoss(BaseDALoss):
 
     References
     ----------
-    .. [15]  Yaroslav Ganin et. al. Domain-Adversarial Training
+    .. [15] Yaroslav Ganin et. al. Domain-Adversarial Training
             of Neural Networks  In Journal of Machine Learning
             Research, 2016.
     """
@@ -115,7 +115,7 @@ def DANN(
 
     References
     ----------
-    .. [15]  Yaroslav Ganin et. al. Domain-Adversarial Training
+    .. [15] Yaroslav Ganin et. al. Domain-Adversarial Training
             of Neural Networks  In Journal of Machine Learning
             Research, 2016.
     """
@@ -128,13 +128,15 @@ def DANN(
         domain_classifier = DomainClassifier(num_features=num_features)
 
     net = DomainAwareNet(
-        DomainAwareModule(module, layer_name, domain_classifier),
+        module=DomainAwareModule,
+        module__base_module=module,
+        module__layer_name=layer_name,
+        module__domain_classifier=domain_classifier,
         iterator_train=DomainBalancedDataLoader,
-        criterion=DomainAwareCriterion(
-            torch.nn.CrossEntropyLoss(),
-            DANNLoss(domain_criterion=domain_criterion),
-            reg=reg,
-        ),
+        criterion=DomainAwareCriterion,
+        criterion__criterion=nn.CrossEntropyLoss(),
+        criterion__reg=reg,
+        criterion__adapt_criterion=DANNLoss(domain_criterion=domain_criterion),
         **kwargs,
     )
     return net
@@ -160,7 +162,7 @@ class CDANLoss(BaseDALoss):
 
     References
     ----------
-    .. [16]  Mingsheng Long et. al. Conditional Adversarial Domain Adaptation
+    .. [16] Mingsheng Long et. al. Conditional Adversarial Domain Adaptation
             In NeurIPS, 2016.
     """
 
@@ -221,27 +223,32 @@ class CDANModule(DomainAwareModule):
 
     References
     ----------
-    .. [16]  Mingsheng Long et. al. Conditional Adversarial Domain Adaptation
+    .. [16] Mingsheng Long et. al. Conditional Adversarial Domain Adaptation
             In NeurIPS, 2016.
     """
 
     def __init__(
-        self, module, layer_name, domain_classifier, max_features=4096, random_state=42
+        self,
+        base_module,
+        layer_name,
+        domain_classifier,
+        max_features=4096,
+        random_state=42,
     ):
-        super().__init__(module, layer_name, domain_classifier)
+        super().__init__(base_module, layer_name, domain_classifier)
         self.max_features = max_features
         self.random_state = random_state
 
     def forward(self, X, sample_domain=None, is_fit=False, return_features=False):
         if is_fit:
-            source_idx = extract_source_indices(sample_domain)
+            source_idx = sample_domain >= 0
 
             X_t = X[~source_idx]
             X_s = X[source_idx]
             # predict
-            y_pred_s = self.module_(X_s)
+            y_pred_s = self.base_module_(X_s)
             features_s = self.intermediate_layers[self.layer_name]
-            y_pred_t = self.module_(X_t)
+            y_pred_t = self.base_module_(X_t)
             features_t = self.intermediate_layers[self.layer_name]
 
             n_classes = y_pred_s.shape[1]
@@ -275,15 +282,19 @@ class CDANModule(DomainAwareModule):
 
             domain_pred_s = self.domain_classifier_(multilinear_map)
             domain_pred_t = self.domain_classifier_(multilinear_map_target)
-            domain_pred = torch.empty(len(sample_domain))
+            domain_pred = torch.empty(len(sample_domain), device=domain_pred_s.device)
             domain_pred[source_idx] = domain_pred_s
             domain_pred[~source_idx] = domain_pred_t
 
-            y_pred = torch.empty((len(sample_domain), y_pred_s.shape[1]))
+            y_pred = torch.empty(
+                (len(sample_domain), y_pred_s.shape[1]), device=y_pred_s.device
+            )
             y_pred[source_idx] = y_pred_s
             y_pred[~source_idx] = y_pred_t
 
-            features = torch.empty((len(sample_domain), features_s.shape[1]))
+            features = torch.empty(
+                (len(sample_domain), features_s.shape[1]), device=features_s.device
+            )
             features[source_idx] = features_s
             features[~source_idx] = features_t
 
@@ -295,9 +306,9 @@ class CDANModule(DomainAwareModule):
             )
         else:
             if return_features:
-                return self.module_(X), self.intermediate_layers[self.layer_name]
+                return self.base_module_(X), self.intermediate_layers[self.layer_name]
             else:
-                return self.module_(X)
+                return self.base_module_(X)
 
 
 def CDAN(
@@ -307,12 +318,13 @@ def CDAN(
     max_features=4096,
     domain_classifier=None,
     num_features=None,
+    n_classes=None,
     domain_criterion=None,
     **kwargs,
 ):
     """Conditional Domain Adversarial Networks (CDAN).
 
-    From [1]_.
+    From [16]_.
 
     Parameters
     ----------
@@ -333,18 +345,19 @@ def CDAN(
         A PyTorch :class:`~torch.nn.Module` used to classify the
         domain. If None, a domain classifier is created following [1]_.
     num_features : int, default=None
-        Size of the input of domain classifier,
-        e.g size of the last layer of
-        the feature extractor.
+        Size of the embedding space e.g. the size of the output of layer_name.
         If domain_classifier is None, num_features has to be
         provided.
+    n_classes : int, default None
+        Number of output classes.
+        If domain_classifier is None, n_classes has to be provided.
     domain_criterion : torch criterion (class)
         The criterion (loss) used to compute the
         CDAN loss. If None, a BCELoss is used.
 
     References
     ----------
-    .. [1]  Mingsheng Long et. al. Conditional Adversarial Domain Adaptation
+    .. [16]  Mingsheng Long et. al. Conditional Adversarial Domain Adaptation
             In NeurIPS, 2016.
     """
     if domain_classifier is None:
@@ -352,17 +365,24 @@ def CDAN(
             raise ValueError(
                 "If domain_classifier is None, num_features has to be provided"
             )
-        num_features = np.min([num_features, max_features])
+        if n_classes is None:
+            raise ValueError(
+                "If domain_classifier is None, n_classes has to be provided"
+            )
+        num_features = np.min([num_features * n_classes, max_features])
         domain_classifier = DomainClassifier(num_features=num_features)
 
     net = DomainAwareNet(
-        CDANModule(module, layer_name, domain_classifier, max_features=max_features),
+        module=CDANModule,
+        module__base_module=module,
+        module__layer_name=layer_name,
+        module__domain_classifier=domain_classifier,
+        module__max_features=max_features,
         iterator_train=DomainBalancedDataLoader,
-        criterion=DomainAwareCriterion(
-            torch.nn.CrossEntropyLoss(),
-            CDANLoss(domain_criterion=domain_criterion),
-            reg=reg,
-        ),
+        criterion=DomainAwareCriterion,
+        criterion__criterion=nn.CrossEntropyLoss(),
+        criterion__reg=reg,
+        criterion__adapt_criterion=CDANLoss(domain_criterion=domain_criterion),
         **kwargs,
     )
     return net

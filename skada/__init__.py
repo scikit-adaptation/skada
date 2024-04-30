@@ -9,7 +9,7 @@ import sklearn
 from .version import __version__  # noqa: F401
 from . import model_selection
 from . import metrics
-from .base import BaseAdapter, PerDomain, Shared, SelectSourceTarget
+from .base import BaseAdapter, PerDomain, Shared, SelectSource, SelectTarget, SelectSourceTarget
 from ._mapping import (
     ClassRegularizerOTMappingAdapter,
     ClassRegularizerOTMapping,
@@ -45,6 +45,8 @@ from ._subspace import (
     SubspaceAlignment,
     TransferComponentAnalysisAdapter,
     TransferComponentAnalysis,
+    TransferJointMatching,
+    TransferJointMatchingAdapter,
 )
 from ._ot import (
     solve_jdot_regression,
@@ -67,6 +69,8 @@ __all__ = [
     "BaseAdapter",
     "PerDomain",
     "Shared",
+    "SelectSource",
+    "SelectTarget",
     "SelectSourceTarget",
 
     "ClassRegularizerOTMappingAdapter",
@@ -101,6 +105,8 @@ __all__ = [
     "SubspaceAlignment",
     "TransferComponentAnalysisAdapter",
     "TransferComponentAnalysis",
+    "TransferJointMatchingAdapter",
+    "TransferJointMatching",
 
     "DASVMClassifier",
     "solve_jdot_regression",

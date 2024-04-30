@@ -16,33 +16,78 @@ Main module :py:mod:`skada`
 Sample reweighting DA methods 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. autosummary::
-   :toctree: gen_modules/
-   :template: function.rst
+.. .. autosummary::
+..    :toctree: gen_modules/
+..    :template: function.rst
 
-   DensityReweight
-   GaussianReweight
-   DiscriminatorReweight
-   KLIEPReweight
-   NearestNeighborReweight
-   MMDTarSReweight
+..    DensityReweight
+..    GaussianReweight
+..    DiscriminatorReweight
+..    KLIEPReweight
+..    NearestNeighborReweight
+..    MMDTarSReweight
+
+DAEstimators with adapters (Pipeline):
+   .. autosummary::
+      :toctree: gen_modules/
+      :template: function.rst
+
+      DensityReweight
+      GaussianReweight
+      DiscriminatorReweight
+      KLIEPReweight
+      NearestNeighborReweight
+      MMDTarSReweight
+      KMMReweight
+
+Adapters:
+   .. autosummary::
+      :toctree: gen_modules/
+      :template: class.rst
+
+      DensityReweightAdapter
+      GaussianReweightAdapter
+      DiscriminatorReweightAdapter
+      KLIEPReweightAdapter
+      NearestNeighborReweightAdapter
+      MMDTarSReweightAdapter
+      KMMReweightAdapter
+
 
 Sample mapping and alignment DA methods
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. autosummary::
-   :toctree: gen_modules/
-   :template: function.rst
+DAEstimators with adapters (Pipeline):
+   .. autosummary::
+      :toctree: gen_modules/
+      :template: function.rst
 
-   SubspaceAlignment
-   TransferComponentAnalysis
-   CORAL
-   OTMapping
-   EntropicOTMapping
-   ClassRegularizerOTMapping
-   LinearOTMapping
-   MMDLSConSMapping
-   
+      SubspaceAlignment
+      TransferComponentAnalysis
+      TransferJointMatching
+      CORAL
+      OTMapping
+      EntropicOTMapping
+      ClassRegularizerOTMapping
+      LinearOTMapping
+      MMDLSConSMapping
+
+Adapters:
+   .. autosummary::
+      :toctree: gen_modules/
+      :template: function.rst
+
+      SubspaceAlignmentAdapter
+      TransferComponentAnalysisAdapter
+      TransferJointMatchingAdapter
+      CORALAdapter
+      OTMappingAdapter
+      EntropicOTMappingAdapter
+      ClassRegularizerOTMappingAdapter
+      LinearOTMappingAdapter
+      MMDLSConSMappingAdapter
+
+
 Other DA methods
 ^^^^^^^^^^^^^^^^
 
@@ -61,6 +106,15 @@ DA pipeline
    :template: function.rst
 
    make_da_pipeline
+
+.. autosummary::
+   :toctree: gen_modules/
+   :template: class.rst
+
+   Shared
+   PerDomain
+   SourceSelect
+   TargetSelect
 
 Utilities
 ^^^^^^^^^

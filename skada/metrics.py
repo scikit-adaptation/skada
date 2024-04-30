@@ -7,17 +7,20 @@
 
 import warnings
 from abc import abstractmethod
+from copy import deepcopy
 
 import numpy as np
-from sklearn.base import clone
+from sklearn.base import BaseEstimator, clone
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import balanced_accuracy_score, check_scoring, log_loss
+from sklearn.metrics import balanced_accuracy_score, check_scoring
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KernelDensity
-from sklearn.preprocessing import Normalizer
+from sklearn.preprocessing import LabelEncoder, Normalizer
 from sklearn.utils import check_random_state
 from sklearn.utils.extmath import softmax
 from sklearn.utils.metadata_routing import _MetadataRequester, get_routing_for_object
+
+from skada.base import AdaptationOutput
 
 from ._utils import (
     _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
@@ -85,7 +88,7 @@ class SupervisedScorer(_BaseDomainAwareScorer):
 class ImportanceWeightedScorer(_BaseDomainAwareScorer):
     """Score based on source data using sample weight.
 
-    See [1]_ for details.
+    See [17]_ for details.
 
     Parameters
     ----------
@@ -113,7 +116,7 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
 
     References
     ----------
-    .. [1]  Masashi Sugiyama. Covariate Shift Adaptation
+    .. [17] Masashi Sugiyama et al. Covariate Shift Adaptation
             by Importance Weighted Cross Validation.
             Journal of Machine Learning Research, 2007.
     """
@@ -186,7 +189,7 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
 class PredictionEntropyScorer(_BaseDomainAwareScorer):
     """Score based on the entropy of predictions on unsupervised dataset.
 
-    See [1]_ for details.
+    See [18]_ for details.
 
     Parameters
     ----------
@@ -209,7 +212,7 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
 
     References
     ----------
-    .. [1]  Pietro Morerio. Minimal-Entropy correlation alignment
+    .. [18] Pietro Morerio et al. Minimal-Entropy correlation alignment
             for unsupervised deep domain adaptation.
             ICLR, 2018.
     """
@@ -231,7 +234,6 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
                 "The estimator passed should have a 'predict_proba' method. "
                 f"The estimator {estimator!r} does not."
             )
-
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
         source_idx = extract_source_indices(sample_domain)
         proba = estimator.predict_proba(
@@ -243,9 +245,7 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
             )
         else:
             log_proba = np.log(proba + 1e-7)
-
         entropy_per_sample = -proba * log_proba
-
         if self.reduction == "none":
             return self._sign * entropy_per_sample
         elif self.reduction == "sum":
@@ -262,7 +262,7 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
 class SoftNeighborhoodDensity(_BaseDomainAwareScorer):
     """Score based on the entropy of similarity between unsupervised dataset.
 
-    See [1]_ for details.
+    See [19]_ for details.
 
     Parameters
     ----------
@@ -276,7 +276,7 @@ class SoftNeighborhoodDensity(_BaseDomainAwareScorer):
 
     References
     ----------
-    .. [1]  Kuniaki Saito. Tune it the Right Way: Unsupervised Validation
+    .. [19] Kuniaki Saito et al. Tune it the Right Way: Unsupervised Validation
             of Domain Adaptation via Soft Neighborhood Density.
             International Conference on Computer Vision, 2021.
     """
@@ -311,7 +311,7 @@ class SoftNeighborhoodDensity(_BaseDomainAwareScorer):
 class DeepEmbeddedValidation(_BaseDomainAwareScorer):
     """Loss based on source data using features representation to weight samples.
 
-    See [1]_ for details.
+    See [20]_ for details.
 
     Parameters
     ----------
@@ -332,7 +332,7 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
 
     References
     ----------
-    .. [1]  Kaichao You. Towards Accurate Model Selection
+    .. [20] Kaichao You et al. Towards Accurate Model Selection
             in Deep Unsupervised Domain Adaptation.
             ICML, 2019.
     """
@@ -355,7 +355,7 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
     def _no_reduc_log_loss(self, y, y_pred):
         return np.array(
             [
-                log_loss(y[i : i + 1], y_pred[i : i + 1], labels=np.unique(y))
+                self.cross_entropy_loss(y[i : i + 1], y_pred[i : i + 1])
                 for i in range(len(y))
             ]
         )
@@ -365,13 +365,42 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         if domain_classifier is None:
             domain_classifier = LogisticRegression()
         self.domain_classifier_ = clone(domain_classifier)
-        y_domain = np.concatenate((len(features) * [0], len(features_target) * [1]))
+        y_domain = np.concatenate((len(features) * [1], len(features_target) * [0]))
         self.domain_classifier_.fit(
             np.concatenate((features, features_target)), y_domain
         )
         return self
 
     def _score(self, estimator, X, y, sample_domain=None, **kwargs):
+        if not hasattr(estimator, "predict_proba"):
+            raise AttributeError(
+                "The estimator passed should have a 'predict_proba' method. "
+                f"The estimator {estimator!r} does not."
+            )
+
+        has_transform_method = False
+
+        if not isinstance(estimator, BaseEstimator):
+            # The estimator is a deep model
+            transformer = estimator.predict_features
+            has_transform_method = True
+        else:
+            # We need to find the last layer of the pipeline with a transform method
+            pipeline_steps = list(enumerate(estimator.named_steps.items()))
+
+            for index_transformer, (_, step_process) in reversed(pipeline_steps):
+                if hasattr(step_process, "transform"):
+                    transformer = estimator[: index_transformer + 1].transform
+                    has_transform_method = True
+                    break  # Stop after the first occurrence if there are multiple
+
+        def identity(x):
+            return x
+
+        if not has_transform_method:
+            # We use the input data as features
+            transformer = identity
+
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
         source_idx = extract_source_indices(sample_domain)
         rng = check_random_state(self.random_state)
@@ -382,16 +411,39 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
             test_size=0.33,
             random_state=rng,
         )
-        features_train = estimator.get_features(X_train)
-        features_val = estimator.get_features(X_val)
-        features_target = estimator.get_features(X[~source_idx])
+
+        features_train = transformer(X_train)
+        features_val = transformer(X_val)
+        features_target = transformer(X[~source_idx])
+
+        # 3 cases:
+        # - features_train is an AdaptationOutput --> call get('X')
+        # - features_train is a numpy array --> Do nothing
+        # - features_train is a torch.Tensor --> call detach().numpy()
+        if isinstance(features_train, AdaptationOutput):
+            features_train = features_train.X
+            features_val = features_val.X
+            features_target = features_target.X
+
+        elif not isinstance(features_train, np.ndarray):
+            # The transformer comes from a deep model
+            # and returns a torch.Tensor
+            features_train = features_train.detach().numpy()
+            features_val = features_val.detach().numpy()
+            features_target = features_target.detach().numpy()
 
         self._fit_adapt(features_train, features_target)
-        N, N_target = len(features_train), len(features_target)
-        predictions = self.domain_classifier_.predict_proba(features_val)
-        weights = N / N_target * predictions[:, :1] / predictions[:, 1:]
+        N_train, N_target = len(features_train), len(features_target)
+        domain_pred = self.domain_classifier_.predict_proba(features_val)
+        weights = (N_train / N_target) * domain_pred[:, :1] / domain_pred[:, 1:]
+        if not isinstance(estimator, BaseEstimator):
+            # Deep estimators dont accept allow_source parameter
+            y_pred = estimator.predict_proba(X_val, sample_domain_val)
+        else:
+            y_pred = estimator.predict_proba(
+                X_val, sample_domain=sample_domain_val, allow_source=True
+            )
 
-        y_pred = estimator.predict_proba(X_val, sample_domain=sample_domain_val)
         error = self._loss_func(y_val, y_pred)
         assert weights.shape[0] == error.shape[0]
 
@@ -401,6 +453,34 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         var_w = np.var(weights, ddof=1)
         eta = -cov / var_w
         return self._sign * (np.mean(weighted_error) + eta * np.mean(weights) - eta)
+
+    def cross_entropy_loss(self, y_true, y_pred, epsilon=1e-15):
+        """
+        Compute cross-entropy loss between true labels
+        and predicted probability estimates.
+
+        This loss allows to have a changing num_classes over the validation.
+
+        Parameters
+        ----------
+        - y_true: true labels (integer labels).
+        - y_pred: predicted probabilities
+        - epsilon: a small constant to avoid numerical instability (default is 1e-15).
+
+        Returns
+        -------
+        - Cross-entropy loss.
+        """
+        num_classes = y_pred.shape[1]
+
+        # Convert integer labels to one-hot encoding
+        y_true_one_hot = np.eye(num_classes)[y_true]
+
+        # Clip predicted probabilities to avoid log(0) or log(1)
+        y_pred = np.clip(y_pred, epsilon, 1 - epsilon)
+
+        cross_entropy = -np.sum(y_true_one_hot * np.log(y_pred))
+        return cross_entropy
 
 
 class CircularValidation(_BaseDomainAwareScorer):
@@ -412,7 +492,7 @@ class CircularValidation(_BaseDomainAwareScorer):
     computed using the source_scorer between the true source labels and
     the predicted source labels.
 
-    See [21]_ for details.
+    See [11]_ for details.
 
     Parameters
     ----------
@@ -426,9 +506,9 @@ class CircularValidation(_BaseDomainAwareScorer):
 
     References
     ----------
-    .. [21]  Bruzzone, Lorenzo & Marconcini, Mattia.
-            Domain Adaptation Problems: A DASVM Classification Technique
-            and a Circular Validation Strategy. IEEE, 2010.
+    .. [11] Bruzzone, L., & Marconcini, M. 'Domain adaptation problems: A DASVM
+            classification technique and a circular validation strategy.'
+            IEEE transactions on pattern analysis and machine intelligence, (2009).
     """
 
     def __init__(
@@ -469,7 +549,7 @@ class CircularValidation(_BaseDomainAwareScorer):
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
         source_idx = extract_source_indices(sample_domain)
 
-        backward_estimator = clone(estimator)
+        backward_estimator = deepcopy(estimator)
 
         y_pred_target = estimator.predict(X[~source_idx])
 
@@ -486,12 +566,22 @@ class CircularValidation(_BaseDomainAwareScorer):
                 y[source_idx], np.ones_like(y[source_idx]) * y_pred_target[0]
             )
         else:
+            y_type = _find_y_type(y[source_idx])
+
+            if y_type == Y_Type.DISCRETE:
+                # We need to re-encode the target labels
+                # since some estimator like XGBoost
+                # only supports labels in [0, num_classes-1]
+                # and y_pred_target may not be in this range
+                le = LabelEncoder()
+                le.fit(y_pred_target)
+                y_pred_target = le.transform(y_pred_target)
+
             backward_sample_domain = -sample_domain
 
             backward_y = np.zeros_like(y)
             backward_y[~source_idx] = y_pred_target
 
-            y_type = _find_y_type(y[source_idx])
             if y_type == Y_Type.DISCRETE:
                 backward_y[source_idx] = _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
             else:
@@ -500,6 +590,11 @@ class CircularValidation(_BaseDomainAwareScorer):
             backward_estimator.fit(X, backward_y, sample_domain=backward_sample_domain)
             y_pred_source = backward_estimator.predict(X[source_idx])
 
+            if y_type == Y_Type.DISCRETE:
+                # We go back to the original labels
+                y_pred_source = le.inverse_transform(y_pred_source)
+
+            # We can now compute the score
             score = self.source_scorer(y[source_idx], y_pred_source)
 
         return self._sign * score
