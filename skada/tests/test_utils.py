@@ -154,6 +154,14 @@ def test_per_domain_split():
     assert -2 in targets, "targets should contain -1"
     assert 1 in sources, "sources should contain 1"
 
+    sample_domain_2 = np.arange(X.shape[0])
+    sample_domain_2[n_samples_source:] *= -1
+
+    sources, targets = per_domain_split(X, sample_domain=sample_domain_2)
+
+    assert len(sources) == n_samples_source, "sources length mismatch"
+    assert len(targets) == X.shape[0] - n_samples_source, "targets length mismatch"
+
 
 def test_check_X_y_allow_exceptions():
     X, y, sample_domain = make_dataset_from_moons_distribution(
