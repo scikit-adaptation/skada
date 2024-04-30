@@ -1,12 +1,18 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Remi Flamary <remi.flamary@polytechnique.edu>
 #         Oleksii Kachaiev <kachayev@gmail.com>
+#         Antoine Collas <contact@antoinecollas.fr>
 #
 # License: BSD 3-Clause
 
 import numpy as np
 import pytest
 from sklearn.linear_model import LogisticRegression
+
+try:
+    import torch
+except ImportError:
+    torch = False
 
 from skada import (
     SubspaceAlignment,
@@ -39,13 +45,28 @@ from skada.datasets import DomainAwareDataset
             TransferJointMatchingAdapter(n_components=2, kernel="linear", verbose=True),
             LogisticRegression(),
         ),
-        TransferSubspaceLearning(n_components=2),
-        TransferSubspaceLearning(n_components=2, base_method="pca"),
-        TransferSubspaceLearning(n_components=2, base_method="flda"),
-        TransferSubspaceLearning(n_components=2, base_method="lpp"),
-        make_da_pipeline(
-            TransferSubspaceLearningAdapter(n_components=2),
-            LogisticRegression(),
+        pytest.param(
+            TransferSubspaceLearning(n_components=2),
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+        ),
+        pytest.param(
+            TransferSubspaceLearning(n_components=2, base_method="pca"),
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+        ),
+        pytest.param(
+            TransferSubspaceLearning(n_components=2, base_method="flda"),
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+        ),
+        pytest.param(
+            TransferSubspaceLearning(n_components=2, base_method="lpp"),
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+        ),
+        pytest.param(
+            make_da_pipeline(
+                TransferSubspaceLearningAdapter(n_components=2),
+                LogisticRegression(),
+            ),
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
         ),
     ],
 )
