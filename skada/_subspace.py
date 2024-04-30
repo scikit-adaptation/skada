@@ -646,7 +646,7 @@ def TransferJointMatching(
 class TransferSubspaceLearningAdapter(BaseAdapter):
     """Domain Adaptation Using TSL: Transfer Subspace Learning.
 
-    See [XXXX]_ for details.
+    See [27]_ for details.
 
     Parameters
     ----------
@@ -679,8 +679,11 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
 
     References
     ----------
-    .. [XXXX]  XXXXXXXXXXXX
-
+    .. [27]  [Si et al., 2010] Si, S., Tao, D. and Geng, B.
+             Bregman Divergence-Based Regularization
+             for Transfer Subspace Learning.
+             In IEEE Transactions on Knowledge and Data Engineering 2010.
+             pages 929-942
     """
 
     def __init__(
@@ -701,6 +704,7 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
         self.max_iter = max_iter
         self.tol = tol
         self.verbose = verbose
+        self.W_ = None
 
     def adapt(self, X, y=None, sample_domain=None, **kwargs):
         """Predict adaptation (weights, sample or labels).
@@ -887,7 +891,11 @@ def TransferSubspaceLearning(
 
     References
     ----------
-    .. [XXX] XXXXX
+    .. [27]  [Si et al., 2010] Si, S., Tao, D. and Geng, B.
+             Bregman Divergence-Based Regularization
+             for Transfer Subspace Learning.
+             In IEEE Transactions on Knowledge and Data Engineering 2010.
+             pages 929-942
     """
     if base_estimator is None:
         base_estimator = SVC()
