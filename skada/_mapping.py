@@ -650,8 +650,11 @@ class CORALAdapter(BaseAdapter):
         )
         X_source, X_target = source_target_split(X, sample_domain=sample_domain)
 
-        X_source_adapt = np.dot(X_source, self.cov_source_inv_sqrt_)
-        X_source_adapt = np.dot(X_source_adapt, self.cov_target_sqrt_)
+        if X_source.shape[0] > 0:
+            X_source_adapt = np.dot(X_source, self.cov_source_inv_sqrt_)
+            X_source_adapt = np.dot(X_source_adapt, self.cov_target_sqrt_)
+        else:
+            X_source_adapt = X_source
         X_adapt, _ = source_target_merge(
             X_source_adapt, X_target, sample_domain=sample_domain
         )
@@ -880,26 +883,28 @@ class MMDLSConSMappingAdapter(BaseAdapter):
 
         source_idx = extract_source_indices(sample_domain)
         X_source, X_target = X[source_idx], X[~source_idx]
-
-        if np.array_equal(self.X_source_, X[source_idx]):
-            W, B = self.W_, self.B_
+        if X_source.shape[0] == 0:
+            X_source_adapt = X_source
         else:
-            if self.discrete_:
-                # recompute the mapping
-                X, sample_domain = check_X_domain(X, sample_domain)
-                source_idx = extract_source_indices(sample_domain)
-                y_source = y[source_idx]
-                classes = self.classes_
-                R = np.zeros((source_idx.sum(), len(classes)))
-                for i, c in enumerate(classes):
-                    R[:, i] = (y_source == c).astype(int)
-                W, B = R @ self.G_, R @ self.H_
+            if np.array_equal(self.X_source_, X[source_idx]):
+                W, B = self.W_, self.B_
             else:
-                # assign the nearest neighbor's mapping to the source samples
-                C = pairwise_distances(X[source_idx], self.X_source_)
-                idx = np.argmin(C, axis=1)
-                W, B = self.W_[idx], self.B_[idx]
-        X_source_adapt = W * X_source + B
+                if self.discrete_:
+                    # recompute the mapping
+                    X, sample_domain = check_X_domain(X, sample_domain)
+                    source_idx = extract_source_indices(sample_domain)
+                    y_source = y[source_idx]
+                    classes = self.classes_
+                    R = np.zeros((source_idx.sum(), len(classes)))
+                    for i, c in enumerate(classes):
+                        R[:, i] = (y_source == c).astype(int)
+                    W, B = R @ self.G_, R @ self.H_
+                else:
+                    # assign the nearest neighbor's mapping to the source samples
+                    C = pairwise_distances(X[source_idx], self.X_source_)
+                    idx = np.argmin(C, axis=1)
+                    W, B = self.W_[idx], self.B_[idx]
+            X_source_adapt = W * X_source + B
         X_adapt, _ = source_target_merge(
             X_source_adapt, X_target, sample_domain=sample_domain
         )
