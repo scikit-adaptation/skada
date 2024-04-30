@@ -2,7 +2,7 @@
 Visualizing cross-validation behavior in skada
 ==============================================
 
-This illustrates the use of DA cross-validation object such as
+This example illustrates the use of DA cross-validation object such as
 :class:`~skada.model_selection.DomainShuffleSplit`.
 """  # noqa
 # %%
@@ -32,16 +32,16 @@ cmap_data = plt.cm.PRGn
 cmap_domain = plt.cm.RdBu
 cmap_cv = plt.cm.coolwarm
 n_splits = 4
-# Since we'll be using a dataset with 2 source and 2 target source,
+# Since we'll be using a dataset with 2 source and 2 target domains,
 # the lodo splitter will generate only at most 4 splits
 n_splits_lodo = 4
 
 # %%
-# First we generate our datapoints. They are drawn from 4 different
-# distributions, 2 source and 2 target distributions. The target
-# distributions are shifted with respect to the source distributions.
-# Thus we will have a domain adaptation problem with 2 source domains
-# and 2 target domains.
+# First we generate a dataset with 4 different domains.
+# The domains are drawn from 4 different distributions: 2 source
+# and 2 target distributions. The target distributions are shifted
+# versions of the source distributions. Thus we will have a domain
+# adaptation problem with 2 source domains and 2 target domains.
 
 dataset = make_shifted_datasets(
     n_samples_source=3,
@@ -87,11 +87,11 @@ sample_domain_lodo = sample_domain_lodo[indx_sort]
 
 
 # %%
-# We’ll define a function that lets us visualize the behavior of
-# each cross-validation object.
-# We’ll perform 4 splits (or 2 for the lodo method) of the data.
-# On each split, we’ll visualize the indices chosen for
-# the training set (in blue) and the test set (in orange).
+# We define a function to visualize the behavior of each
+# cross-validation object. The number of splits is set to 4
+# (2 for the lodo method). For each split, we visualize the
+# indices selected for the training set (in blue) and the
+# test set (in orange).
 
 
 # Code source: scikit-learn documentation
