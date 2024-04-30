@@ -553,7 +553,7 @@ class CircularValidation(_BaseDomainAwareScorer):
         try:
             backward_estimator = deepcopy(estimator)
         except (TypeError, AttributeError):
-                backward_estimator = clone(estimator)
+            backward_estimator = clone(estimator)
 
         y_pred_target = estimator.predict(
             X[~source_idx], sample_domain=sample_domain[~source_idx]
