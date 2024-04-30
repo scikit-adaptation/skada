@@ -173,6 +173,7 @@ def test_return_features():
     X_test = X_test.astype(np.float32)
 
     # without dict
+    method.initialize()
     features = method.predict_features(torch.tensor(X_test))
     assert features.shape[1] == num_features
     assert features.shape[0] == X_test.shape[0]
