@@ -97,11 +97,14 @@ def DeepJDOT(module, layer_name, reg=1, reg_cl=1, target_criterion=None, **kwarg
             September 2018. Springer.
     """
     net = DomainAwareNet(
-        DomainAwareModule(module, layer_name),
+        module=DomainAwareModule,
+        module__base_module=module,
+        module__layer_name=layer_name,
         iterator_train=DomainBalancedDataLoader,
-        criterion=DomainAwareCriterion(
-            nn.CrossEntropyLoss(), DeepJDOTLoss(reg_cl, target_criterion), reg=reg
-        ),
+        criterion=DomainAwareCriterion,
+        criterion__criterion=nn.CrossEntropyLoss(),
+        criterion__adapt_criterion=DeepJDOTLoss(reg_cl, target_criterion),
+        criterion__reg=reg,
         **kwargs,
     )
     return net
