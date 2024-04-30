@@ -73,15 +73,20 @@ class BaseOTMappingAdapter(BaseAdapter):
         -------
         X_t : array-like, shape (n_samples, n_components)
             The data transformed to the target subspace.
-        y_t : array-like, shape (n_samples,)
-            The labels (same as y).
-        weights : array-like, shape (n_samples,)
-            The weights of the samples.
         """
         self.fit(X, y, sample_domain=sample_domain)
+        return self.transform(X, sample_domain=sample_domain, allow_source=True)
+
+    def transform(
+        self, X, y=None, *, sample_domain=None, allow_source=False, **params
+    ) -> np.ndarray:
         # xxx(okachaiev): implement auto-infer for sample_domain
         X, sample_domain = check_X_domain(
-            X, sample_domain, allow_multi_source=True, allow_multi_target=True
+            X,
+            sample_domain,
+            allow_source=allow_source,
+            allow_multi_source=True,
+            allow_multi_target=True,
         )
         X_source, X_target = source_target_split(X, sample_domain=sample_domain)
         # in case of prediction we would get only target samples here,
@@ -629,14 +634,19 @@ class CORALAdapter(BaseAdapter):
         -------
         X_t : array-like, shape (n_samples, n_features)
             The data transformed to the target space.
-        y_t : array-like, shape (n_samples,)
-            The labels (same as y).
-        weights : None
-            No weights are returned here.
         """
         self.fit(X, y, sample_domain=sample_domain)
+        return self.transform(X, sample_domain=sample_domain, allow_source=True)
+
+    def transform(
+        self, X, y=None, *, sample_domain=None, allow_source=False, **params
+    ) -> np.ndarray:
         X, sample_domain = check_X_domain(
-            X, sample_domain, allow_multi_source=True, allow_multi_target=True
+            X,
+            sample_domain,
+            allow_source=allow_source,
+            allow_multi_source=True,
+            allow_multi_target=True,
         )
         X_source, X_target = source_target_split(X, sample_domain=sample_domain)
 
@@ -859,13 +869,14 @@ class MMDLSConSMappingAdapter(BaseAdapter):
         -------
         X_t : array-like, shape (n_samples, n_components)
             The data (same as X).
-        y_t : array-like, shape (n_samples,)
-            The labels (same as y).
-        weights : array-like, shape (n_samples,)
-            The weights of the samples.
         """
         self.fit(X, y, sample_domain=sample_domain)
-        X, sample_domain = check_X_domain(X, sample_domain)
+        return self.transform(X, sample_domain=sample_domain, allow_source=True)
+
+    def transform(
+        self, X, y=None, *, sample_domain=None, allow_source=False, **params
+    ) -> np.ndarray:
+        X, sample_domain = check_X_domain(X, sample_domain, allow_source=allow_source)
 
         source_idx = extract_source_indices(sample_domain)
         X_source, X_target = X[source_idx], X[~source_idx]
