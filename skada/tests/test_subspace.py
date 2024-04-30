@@ -17,7 +17,6 @@ from skada import (
     TransferJointMatchingAdapter,
     make_da_pipeline,
 )
-from skada.base import AdaptationOutput
 from skada.datasets import DomainAwareDataset
 
 
@@ -82,9 +81,7 @@ def test_subspace_default_n_components(adapter, n_samples, n_features, n_compone
     X_train, y_train, sample_domain = dataset.pack_train(
         as_sources=["s"], as_targets=["t"]
     )
-    adapter.fit(X_train, y_train, sample_domain=sample_domain)
+    adapter.fit_transform(X_train, y_train, sample_domain=sample_domain)
     X_test, _, sample_domain = dataset.pack_test(as_targets=["t"])
     output = adapter.transform(X_test, sample_domain=sample_domain)
-    if isinstance(output, AdaptationOutput):
-        output = output.X
     assert output.shape[1] == n_components
