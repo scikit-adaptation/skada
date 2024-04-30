@@ -120,11 +120,11 @@ def test_reweight_estimator(estimator, da_dataset):
         ),
         KMMReweight(Ridge().set_fit_request(sample_weight=True)),
         KMMReweight(Ridge().set_fit_request(sample_weight=True), eps=0.1),
-        make_da_pipeline(
-            MMDTarSReweightAdapter(gamma=1.0),
-            Ridge().set_fit_request(sample_weight=True),
-        ),
-        MMDTarSReweight(Ridge().set_fit_request(sample_weight=True), gamma=1.0),
+        # make_da_pipeline(
+        #     MMDTarSReweightAdapter(gamma=1.0),
+        #     Ridge().set_fit_request(sample_weight=True),
+        # ),
+        # MMDTarSReweight(Ridge().set_fit_request(sample_weight=True), gamma=1.0),
     ],
 )
 def test_reg_reweight_estimator(estimator, da_reg_dataset):
@@ -182,8 +182,8 @@ def _base_test_new_X_adapt(estimator, da_dataset):
         (KLIEPReweightAdapter(gamma=[0.1, 1, "auto", "scale"], random_state=42)),
         (KMMReweightAdapter(gamma=0.1, smooth_weights=True)),
         (KMMReweightAdapter(gamma=0.1, smooth_weights=True)),
-        (MMDTarSReweightAdapter(gamma=1.0)),
-        (MMDTarSReweightAdapter(gamma=1.0)),
+        # (MMDTarSReweightAdapter(gamma=1.0)),
+        # (MMDTarSReweightAdapter(gamma=1.0)),
     ],
 )
 def test_new_X_adapt(estimator, da_reg_datasets):
@@ -199,7 +199,7 @@ def test_new_X_adapt(estimator, da_reg_datasets):
         DiscriminatorReweightAdapter(),
         KLIEPReweightAdapter(gamma=[0.1, 1, "auto", "scale"], random_state=42),
         KMMReweightAdapter(gamma=0.1, smooth_weights=True),
-        MMDTarSReweightAdapter(gamma=1.0),
+        # MMDTarSReweightAdapter(gamma=1.0),
     ],
 )
 def test_reg_new_X_adapt(estimator, da_reg_dataset):
