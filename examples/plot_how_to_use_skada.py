@@ -92,7 +92,7 @@ yt_pred = clf.predict(Xt)
 print("Accuracy on source:", clf.score(Xs, ys))
 print("Accuracy on target:", clf.score(Xt, yt))
 
-# %% 
+# %%
 # DA estimator in a pipeline
 # -----------------------------
 #

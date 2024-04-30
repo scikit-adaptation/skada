@@ -11,7 +11,7 @@
 SKADA is a library for domain adaptation (DA) with a scikit-learn and PyTorch/skorch
 compatible API with the following features:
 
-- DA estimators with a scikit-learn compatible API (fit, transform, predict).
+- DA estimators and transformers with a scikit-learn compatible API (fit, transform, predict).
 - PyTorch/skorch API for deep learning DA algorithms.
 - Classifier/Regressor and data Adapter DA algorithms compatible with scikit-learn pipelines.
 - Compatible with scikit-learn validation loops (cross_val_score, GridSearchCV, etc).
@@ -28,10 +28,10 @@ The following algorithms are currently implemented.
 - Subspace methods (SubspaceAlignment [8], TCA [9])
 - Other methods (JDOT [10], DASVM [11])
 
-Any methods that can be cast as an adaptation of the input data can be used as a
-scikit-learn transformer (Adapter) provides both a full Classifier/Regressor
-estimator and an `Adapter` that can be used in a DA pipeline with
-`make_da_pipeline`. Refer to the examples below and visit [the gallery](https://scikit-adaptation.github.io/auto_examples/index.html)for more details.
+Any methods that can be cast as an adaptation of the input data can be used in one of two ways:
+- a scikit-learn transformer (Adapter) which provides both a full Classifier/Regressor estimator
+ - or an `Adapter` that can be used in a DA pipeline with `make_da_pipeline`. 
+ Refer to the examples below and visit [the gallery](https://scikit-adaptation.github.io/auto_examples/index.html)for more details.
 
 ### Deep learning domain adaptation algorithms
 
@@ -52,7 +52,9 @@ estimator and an `Adapter` that can be used in a DA pipeline with
 ## Installation
 
 The library is not yet available on PyPI. You can install it from the source code.
-
+```python
+pip install git+https://github.com/scikit-adaptation/skada
+```
 
 ## Short examples
 
@@ -67,7 +69,7 @@ X, y, sample_domain
 
 Where `X` is the input data, `y` is the target labels and `sample_domain` is the
 domain labels (positive for source and negative for target domains). We provide
-below an example on how to fit a DA estimator:
+below an example ho how to fit a DA estimator:
 
 ```python
 from skada import CORAL
@@ -101,7 +103,7 @@ pipe = make_da_pipeline(GaussianReweightAdapter(),
                         LogisticRegression().set_fit_request(sample_weight=True))
 ```
 
-Finally SKADA can be used for estimating cross validation scores and parameter
+Finally SKADA can be used for cross validation scores estimation and hyperparameter
 selection :
 
 ```python
