@@ -158,8 +158,6 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
 
     def _score(self, estimator, X, y, sample_domain=None, **params):
         scorer = check_scoring(estimator, self.scoring)
-        # xxx(okachaiev): similar should be done
-        # for the pipeline with re-weight adapters
         if not get_routing_for_object(scorer).consumes("score", ["sample_weight"]):
             raise ValueError(
                 "The estimator passed should accept 'sample_weight' parameter. "

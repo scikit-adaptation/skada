@@ -456,6 +456,9 @@ class Shared(BaseSelector):
     # xxx(okachaiev): fail if unknown domain is given
     def _route_to_estimator(self, method_name, X, y=None, **params):
         check_is_fitted(self)
+        # xxx(okachaiev): make sure to remove this after the rework of adapters
+        if isinstance(X, AdaptationOutput):
+            X = X.X
         request = getattr(self.routing_, method_name)
         routed_params = {k: params[k] for k in request._consumes(params=params)}
         X, y, params = self._remove_masked(X, y, params)
