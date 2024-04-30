@@ -330,29 +330,24 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
     def score(self, X, y, **params):
         return self._route_to_estimator('score', X, y=y, **params)
 
-    def _merge_and_route_params(self, routing_request, X_container, params):
+    # xxx(okachaiev): this name is terrible
+    def _merge_and_route_params(self, routing_request, metadata_container, params):
         if self._is_final or not self._is_transformer:
-            # xxx(okachaiev): there's still at least a single scenario where such condition
-            # fails. consider the following pipeline: adapter -> transformer -> estimator.
-            # assuming that adapter produces weights that are consumed by the transformer,
-            # it might be perfectly valid for the estimator not to accept weights. not sure
-            # what would be the most comfortable way to check such a occurrence.
             try:
                 routed_params = routing_request._route_params(params=params)
             except UnsetMetadataPassedError as e:
                 # check if every parameter given by `AdaptationOutput` object
                 # was accepted by the downstream (base) estimator
-                if isinstance(X_container, AdaptationOutput):
-                    for k in X_container:
-                        marker = routing_request.requests.get(k)
-                        if X_container[k] is not None and marker is None:
-                            method = routing_request.method
-                            raise IncompatibleMetadataError(
-                                f"The adapter provided '{k}' parameter which is not explicitly set as "  # noqa
-                                f"requested or not for '{routing_request.owner}.{method}'.\n"  # noqa
-                                f"Make sure that metadata routing is properly setup, e.g. by calling 'set_{method}_request()'. "  # noqa
-                                "See documentation at https://scikit-learn.org/stable/metadata_routing.html"  # noqa
-                            ) from e
+                for k, v in metadata_container.iter_metadata():
+                    marker = routing_request.requests.get(k)
+                    if v is not None and marker is None:
+                        method = routing_request.method
+                        raise IncompatibleMetadataError(
+                            f"The adapter provided '{k}' parameter which is not explicitly set as "  # noqa
+                            f"requested or not for '{routing_request.owner}.{method}'.\n"  # noqa
+                            f"Make sure that metadata routing is properly setup, e.g. by calling 'set_{method}_request()'. "  # noqa
+                            "See documentation at https://scikit-learn.org/stable/metadata_routing.html"  # noqa
+                        ) from e
                 # re-raise exception if the problem was not caused by the adapter
                 raise e
         else:
@@ -414,7 +409,7 @@ class Shared(BaseSelector):
         # as we expect metadata routing to select parameters for us
         # we only need to remove masked (when necessary)
         routing = get_routing_for_object(self.base_estimator)
-        routed_params = self._merge_and_route_params(routing.fit, X, params)
+        routed_params = self._merge_and_route_params(routing.fit, X_container, params)
         X, y, routed_params = self._remove_masked(X, y, routed_params)
         estimator = clone(self.base_estimator)
         estimator.fit(X, y, **routed_params)
@@ -440,7 +435,7 @@ class Shared(BaseSelector):
         if hasattr(self.base_estimator, "fit_transform"):
             X, y, method_params = X_container.merge_out(y, **params)
             routing = get_routing_for_object(self.base_estimator)
-            routed_params = self._merge_and_route_params(routing.fit_transform, X, method_params)
+            routed_params = self._merge_and_route_params(routing.fit_transform, X_container, method_params)
             X, y, routed_params = self._remove_masked(X, y, routed_params)
             estimator = clone(self.base_estimator)
             output = estimator.fit_transform(X, y, **routed_params)
@@ -480,7 +475,7 @@ class PerDomain(BaseSelector):
         X, y, params = X_container.merge_out(y, **params)
         sample_domain = params['sample_domain']
         routing = get_routing_for_object(self.base_estimator)
-        routed_params = self._merge_and_route_params(routing.fit, X, params)
+        routed_params = self._merge_and_route_params(routing.fit, X_container, params)
         X, y, routed_params = self._remove_masked(X, y, routed_params)
         estimators = {}
         for domain_label in np.unique(sample_domain):
@@ -502,7 +497,8 @@ class PerDomain(BaseSelector):
         if isinstance(X, AdaptationOutput):
             X = X.X
         request = getattr(self.routing_, method_name)
-        routed_params = self._merge_and_route_params(request, X, params)
+        # xxx(okachaiev): we should not use _merge_and_route_params helper
+        routed_params = self._merge_and_route_params(request, None, params)
         # xxx(okachaiev): use check_*_domain to derive default domain labels
         sample_domain = params['sample_domain']
         output = None

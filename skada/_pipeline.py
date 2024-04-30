@@ -6,7 +6,7 @@
 
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Callable, List, Optional, Union
+from typing import Any, Callable, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 from joblib import Memory
@@ -62,6 +62,9 @@ class MetadataContainer:
         params.update(self._metadata)
         y_out = self._labels if self._labels is not None else y
         return self._features, y_out, params
+
+    def iter_metadata(self) -> Iterator[Tuple[str, Any]]:
+        return self._metadata.items()
 
 
 # xxx(okachaiev): this one needs good procedure for serialize/deserialize

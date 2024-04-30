@@ -18,7 +18,15 @@ from skada._utils import (
     _DEFAULT_MASKED_TARGET_REGRESSION_LABEL,
     _remove_masked,
 )
-from skada.base import PerDomain, SelectSource, SelectSourceTarget, SelectTarget, Shared
+from skada.base import (
+    BaseAdapter,
+    IncompatibleMetadataError,
+    PerDomain,
+    SelectSource,
+    SelectSourceTarget,
+    SelectTarget,
+    Shared,
+)
 from skada.datasets import make_shifted_datasets
 from skada.utils import extract_source_indices
 
@@ -147,23 +155,36 @@ def test_selector_inherits_routing(estimator_cls):
     assert "sample_weight" in routing.consumes("fit", ["sample_weight"])
 
 
-# def test_selector_rejects_incompatible_adaptation_output():
-#     X = AdaptationOutput(np.ones((10, 2)), sample_weight=np.zeros(10))
-#     y = np.zeros(10)
+def test_selector_rejects_incompatible_adaptation_output():
+    n_samples = 10
+    X = np.ones((n_samples, 2))
+    y = np.zeros(n_samples, dtype=np.int32)
+    y[:5] = 1
 
-#     # fails if this is an estimator (not transformer)
-#     estimator = Shared(LogisticRegression())
-#     with pytest.raises(IncompatibleMetadataError):
-#         estimator.fit(X, y)
+    class FakeAdapter(BaseAdapter):
+        def fit_transform(self, X, y=None, sample_domain=None, **params):
+            return X, dict(sample_weight=np.ones(X.shape[0]))
 
-#     # fails if this is the last estimator transformer
-#     estimator = Shared(StandardScaler())._mark_as_final()
-#     with pytest.raises(IncompatibleMetadataError):
-#         estimator.fit(X, y)
+        def transform(
+            self, X, y=None, sample_domain=None, allow_source=False, **params
+        ):
+            return X
 
-#     # does not fail for non-final transformer
-#     estimator = Shared(StandardScaler())._unmark_as_final()
-#     estimator.fit(X, y)
+    # fails if this is an estimator (not transformer)
+    estimator = make_da_pipeline(FakeAdapter(), LogisticRegression())
+    with pytest.raises(IncompatibleMetadataError):
+        estimator.fit(X, y)
+
+    # fails if this is the last estimator transformer
+    estimator = make_da_pipeline(FakeAdapter(), StandardScaler())
+    with pytest.raises(IncompatibleMetadataError):
+        estimator.fit(X, y)
+
+    # does not fail for non-final transformer
+    estimator = make_da_pipeline(
+        FakeAdapter(), StandardScaler(), SVC().set_fit_request(sample_weight=True)
+    )
+    estimator.fit(X, y)
 
 
 # @pytest.mark.parametrize(
