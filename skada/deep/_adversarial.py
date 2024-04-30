@@ -241,7 +241,7 @@ class CDANModule(DomainAwareModule):
 
     def forward(self, X, sample_domain=None, is_fit=False, return_features=False):
         if is_fit:
-            source_idx = (sample_domain >= 0)
+            source_idx = sample_domain >= 0
 
             X_t = X[~source_idx]
             X_s = X[source_idx]
@@ -282,23 +282,18 @@ class CDANModule(DomainAwareModule):
 
             domain_pred_s = self.domain_classifier_(multilinear_map)
             domain_pred_t = self.domain_classifier_(multilinear_map_target)
-            domain_pred = torch.empty(
-                len(sample_domain),
-                device=domain_pred_s.device
-            )
+            domain_pred = torch.empty(len(sample_domain), device=domain_pred_s.device)
             domain_pred[source_idx] = domain_pred_s
             domain_pred[~source_idx] = domain_pred_t
 
             y_pred = torch.empty(
-                (len(sample_domain), y_pred_s.shape[1]),
-                device=y_pred_s.device
+                (len(sample_domain), y_pred_s.shape[1]), device=y_pred_s.device
             )
             y_pred[source_idx] = y_pred_s
             y_pred[~source_idx] = y_pred_t
 
             features = torch.empty(
-                (len(sample_domain), features_s.shape[1]),
-                device=features_s.device
+                (len(sample_domain), features_s.shape[1]), device=features_s.device
             )
             features[source_idx] = features_s
             features[~source_idx] = features_t
@@ -350,9 +345,7 @@ def CDAN(
         A PyTorch :class:`~torch.nn.Module` used to classify the
         domain. If None, a domain classifier is created following [1]_.
     num_features : int, default=None
-        Size of the input of domain classifier,
-        e.g size of the last layer of
-        the feature extractor.
+        Size of the embedding space e.g. the size of the output of layer_name.
         If domain_classifier is None, num_features has to be
         provided.
     n_classes : int, default None
@@ -373,9 +366,7 @@ def CDAN(
                 "If domain_classifier is None, num_features has to be provided"
             )
         if n_classes is None:
-            raise ValueError(
-                "If n_classes is None, n_classes has to be provided"
-            )
+            raise ValueError("If n_classes is None, n_classes has to be provided")
         num_features = np.min([num_features * n_classes, max_features])
         domain_classifier = DomainClassifier(num_features=num_features)
 
