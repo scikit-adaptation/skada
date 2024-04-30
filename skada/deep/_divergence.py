@@ -46,9 +46,7 @@ class DeepCoralLoss(BaseDALoss):
         features_t,
     ):
         """Compute the domain adaptation loss"""
-        cov_s = torch.cov(features_s)
-        cov_t = torch.cov(features_t)
-        loss = deepcoral_loss(cov_s, cov_t)
+        loss = deepcoral_loss(features_s, features_t)
         return loss
 
 
