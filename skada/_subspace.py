@@ -863,6 +863,7 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
 
         # Convert data to torch tensors
         X_source = torch.tensor(X_source, dtype=torch.float64)
+        y_source = torch.tensor(y_source)
         X_target = torch.tensor(X_target, dtype=torch.float64)
 
         # Loss function
