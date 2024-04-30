@@ -299,6 +299,54 @@ def source_target_split(
         for a in arrays
     ))
 
+def per_domain_split(
+    *arrays,
+    sample_domain):
+    r"""Split data into multiple source and target domains
+
+    Parameters
+    ----------
+    *arrays : sequence of array-like of identical shape (n_samples, n_features)
+        Input features and target variable(s), and or sample_weights to be
+        split. All arrays should have the same length except if None is given
+        then a couple of None variables are returned to allow for optional
+        sample_weight.
+    sample_domain : array-like of shape (n_samples,)
+        Array specifying the domain labels for each sample.
+    split_source_target : bool, optional (default=False)
+        Whether to split the source and target domains.
+
+    Returns
+    -------
+    source_dict : dict
+        dict of source domains (contain tuple of subset of arrays).
+    target_dict : dict
+        dict of target domains (contain tuple of subset of arrays).
+    """
+    if len(arrays) == 0:
+        raise ValueError("At least one array required as input")
+
+    check_consistent_length(arrays)
+
+    domain_idx = extract_domains_indices(sample_domain, False)
+
+    source_dict = {}
+    target_dict = {}
+
+    for domain, idx in domain_idx.items():
+        if domain >= 0:
+            source_dict[domain] = list(chain.from_iterable(
+                (a[idx],) if a is not None else (None,)
+                for a in arrays
+            ))
+        else:
+            target_dict[domain] = list(chain.from_iterable(
+                (a[idx],) if a is not None else (None,)
+                for a in arrays
+            ))
+
+    return source_dict, target_dict
+
 
 def source_target_merge(
     *arrays,
