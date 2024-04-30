@@ -8,6 +8,7 @@ import pytest
 from sklearn.base import BaseEstimator
 from sklearn.datasets import make_regression
 from sklearn.linear_model import LogisticRegression
+from sklearn.utils.metadata_routing import get_routing_for_object
 
 from skada import SubspaceAlignmentAdapter, make_da_pipeline
 from skada._utils import (
@@ -15,6 +16,7 @@ from skada._utils import (
     _DEFAULT_MASKED_TARGET_REGRESSION_LABEL,
     _remove_masked,
 )
+from skada.base import PerDomain, SelectSource, SelectTarget, Shared
 from skada.datasets import make_shifted_datasets
 from skada.utils import extract_source_indices
 
@@ -133,14 +135,14 @@ def test_base_selector_remove_masked_continuous():
     assert X_output.shape[0] == y_output.shape[0]
 
 
-# @pytest.mark.parametrize(
-#     "estimator_cls", [PerDomain, Shared, SelectSource, SelectTarget]
-# )
-# def test_selector_inherits_routing(estimator_cls):
-#     lr = LogisticRegression().set_fit_request(sample_weight=True)
-#     estimator = estimator_cls(lr)
-#     routing = get_routing_for_object(estimator)
-#     assert "sample_weight" in routing.consumes("fit", ["sample_weight"])
+@pytest.mark.parametrize(
+    "estimator_cls", [PerDomain, Shared, SelectSource, SelectTarget]
+)
+def test_selector_inherits_routing(estimator_cls):
+    lr = LogisticRegression().set_fit_request(sample_weight=True)
+    estimator = estimator_cls(lr)
+    routing = get_routing_for_object(estimator)
+    assert "sample_weight" in routing.consumes("fit", ["sample_weight"])
 
 
 # def test_selector_rejects_incompatible_adaptation_output():
