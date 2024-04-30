@@ -105,28 +105,8 @@ class SubspaceAlignmentAdapter(BaseAdapter):
         self.M_ = np.dot(self.pca_source_.components_, self.pca_target_.components_.T)
         return self
 
-    def fit_transform(self, X, y=None, *, sample_domain=None, **params):
-        """Predict adaptation (weights, sample or labels).
-
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            The source data.
-        y : array-like, shape (n_samples,)
-            The source labels.
-        sample_domain : array-like, shape (n_samples,)
-            The domain labels (same as sample_domain).
-
-        Returns
-        -------
-        X_t : array-like, shape (n_samples, n_components)
-            The data transformed to the target subspace.
-        """
-        self.fit(X, y, sample_domain=sample_domain)
-        return self.transform(X, y, sample_domain=sample_domain, **params)
-
     def transform(
-        self, X, y=None, *, sample_domain=None, allow_source=True, **params
+        self, X, y=None, *, sample_domain=None, allow_source=False, **params
     ) -> np.ndarray:
         """Perform adaptation on given samples (weights, sample or labels).
 
@@ -157,11 +137,31 @@ class SubspaceAlignmentAdapter(BaseAdapter):
             X_source = np.dot(self.pca_source_.transform(X_source), self.M_)
         if X_target.shape[0]:
             X_target = np.dot(self.pca_target_.transform(X_target), self.M_)
-        # xxx(okachaiev): this could be done through a more high-level API
         X_adapt, _ = source_target_merge(
             X_source, X_target, sample_domain=sample_domain
         )
         return X_adapt
+
+    def fit_transform(self, X, y=None, *, sample_domain=None, **params):
+        """Predict adaptation (weights, sample or labels).
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        X_t : array-like, shape (n_samples, n_components)
+            The data transformed to the target subspace.
+        """
+        self.fit(X, y, sample_domain=sample_domain)
+        params["allow_source"] = True
+        return self.transform(X, y, sample_domain=sample_domain, **params)
 
 
 def SubspaceAlignment(
@@ -326,10 +326,11 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
             The data transformed to the target subspace.
         """
         self.fit(X, y, sample_domain=sample_domain)
+        params["allow_source"] = True
         return self.transform(X, y, sample_domain=sample_domain, **params)
 
     def transform(
-        self, X, y=None, *, sample_domain=None, allow_source=True, **params
+        self, X, y=None, *, sample_domain=None, allow_source=False, **params
     ) -> np.ndarray:
         """Perform adaptation on given samples (weights, sample or labels).
 
@@ -485,10 +486,11 @@ class TransferJointMatchingAdapter(BaseAdapter):
             The data transformed to the target subspace.
         """
         self.fit(X, y, sample_domain=sample_domain)
+        params["allow_source"] = True
         return self.transform(X, y, sample_domain=sample_domain, **params)
 
     def transform(
-        self, X, y=None, *, sample_domain=None, allow_source=True, **params
+        self, X, y=None, *, sample_domain=None, allow_source=False, **params
     ) -> np.ndarray:
         """Perform adaptation on given samples (weights, sample or labels).
 
