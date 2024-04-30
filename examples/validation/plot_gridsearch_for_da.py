@@ -6,9 +6,9 @@ This example illustrates the use of DA scorer such as :class:`~skada.metrics.Imp
 with `GridSearchCV <https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html>`_.
 """  # noqa
 # %%
-# First, we create a shifted dataset and prepare the base estimator doing the
-# classification and the DA estimator. We use :code:`ShuffleSplit` as
-# cross-validation strategy.
+# We first create a shifted dataset. Then we prepare the pipeline including a
+# base estimator doing the classification and the DA estimator. We use
+# :code:`ShuffleSplit` as cross-validation strategy.
 
 import warnings
 
@@ -43,7 +43,7 @@ cv = ShuffleSplit(n_splits=5, test_size=0.3, random_state=RANDOM_SEED)
 # We want to perform a grid search to find the best regularization parameter
 # for the DA estimator. The DA pipeline can directly be used in :code:`GridSearchCV`.
 # We use the :class:`~skada.metrics.PredictionEntropyScorer`
-# to evaluate the performance of the DA estimator in the grid search.
+# to evaluate the performance of the DA estimator during the grid search.
 
 reg_e = [0.01, 0.03, 0.05, 0.08, 0.1]
 
