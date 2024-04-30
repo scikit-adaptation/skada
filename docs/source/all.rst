@@ -36,6 +36,7 @@ Sample mapping and alignment DA methods
 
    SubspaceAlignment
    TransferComponentAnalysis
+   TransferJointMatching
    CORAL
    OTMapping
    EntropicOTMapping
@@ -61,6 +62,15 @@ DA pipeline
    :template: function.rst
 
    make_da_pipeline
+
+.. autosummary::
+   :toctree: gen_modules/
+   :template: class.rst
+
+   Shared
+   PerDomain
+   SourceSelect
+   TargetSelect
 
 Utilities
 ^^^^^^^^^

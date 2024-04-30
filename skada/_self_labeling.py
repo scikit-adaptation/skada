@@ -2,18 +2,24 @@
 DASVM estimator
 ===============
 
-The DASVM method comes from [21].
-
+The DASVM method comes from [11].
+.. [11] Bruzzone, L., & Marconcini, M. 'Domain adaptation problems: A DASVM
+        classification technique and a circular validation strategy.'
+        IEEE transactions on pattern analysis and machine intelligence, (2009).
 """
 # Author: Ruben Bueno <ruben.bueno@polytechnique.edu>
+#         Yanis Lalou <yanis.lalou@polytechnique.edu>
 #
 # License: BSD 3-Clause
 
 import math
+import warnings
 
 import numpy as np
 from sklearn.base import clone
 from sklearn.svm import SVC
+from sklearn.utils.metaestimators import available_if
+from sklearn.utils.validation import check_is_fitted
 
 from skada.utils import check_X_y_domain, source_target_split
 
@@ -39,7 +45,27 @@ class DASVMClassifier(DAEstimator):
     save_indices : Bool
         True if this object should remembers all the values of
             `index_source_deleted` and `index_target_added`
+
+    References
+    ----------
+    .. [11] Bruzzone, L., & Marconcini, M. 'Domain adaptation problems: A DASVM
+            classification technique and a circular validation strategy.'
+            IEEE transactions on pattern analysis and machine intelligence, (2009).
     """
+
+    __metadata_request__fit = {"sample_domain": True}
+    __metadata_request__partial_fit = {"sample_domain": False}
+    __metadata_request__predict = {"sample_domain": False, "allow_source": False}
+    __metadata_request__predict_proba = {"sample_domain": False, "allow_source": False}
+    __metadata_request__predict_log_proba = {
+        "sample_domain": False,
+        "allow_source": False,
+    }
+    __metadata_request__score = {"sample_domain": False, "allow_source": False}
+    __metadata_request__decision_function = {
+        "sample_domain": False,
+        "allow_source": False,
+    }
 
     def __init__(
         self,
@@ -52,7 +78,7 @@ class DASVMClassifier(DAEstimator):
     ):
         super().__init__()
         if base_estimator is None:
-            self.base_estimator = SVC()
+            self.base_estimator = SVC(probability=True)
         else:
             self.base_estimator = base_estimator
         self.max_iter = max_iter
@@ -247,11 +273,27 @@ class DASVMClassifier(DAEstimator):
 
         return self
 
-    def predict(self, X):
+    def predict(self, X, **kwargs):
         """Return predicted value by the fitted estimator for `X`
         `predict` method from the estimator we fitted
         """
-        return self.base_estimator_.predict(X)
+        return self.base_estimator_.predict(X, **kwargs)
+
+    def _check_proba(self):
+        if hasattr(self.base_estimator, "predict_proba"):
+            return True
+        else:
+            raise AttributeError(
+                "The base estimator does not have a predict_proba method"
+            )
+
+    @available_if(_check_proba)
+    def predict_proba(self, X, **kwargs):
+        """Return predicted probabilities by the fitted estimator for `X`
+        `predict_proba` method from the estimator we fitted
+        """
+        check_is_fitted(self)
+        return self.base_estimator.predict_proba(X, **kwargs)
 
     def decision_function(self, X):
         """Return values of the decision function of the
@@ -259,3 +301,13 @@ class DASVMClassifier(DAEstimator):
         `decision_function` method from the base_estimator_ we fitted
         """
         return self.base_estimator_.decision_function(X)
+
+    def score(self, X, y, sample_domain=None, *, sample_weight=None, **kwargs):
+        """Return the scores of the prediction"""
+        check_is_fitted(self)
+        if sample_domain is not None and np.any(sample_domain >= 0):
+            warnings.warn(
+                "Source domain detected. Predictor is trained on target"
+                "and score might be biased."
+            )
+        return self.base_estimator_.score(X, y, sample_weight=sample_weight, **kwargs)

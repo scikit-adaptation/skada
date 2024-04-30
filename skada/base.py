@@ -10,7 +10,6 @@ from typing import Literal, Optional, Union
 import numpy as np
 from sklearn.base import BaseEstimator, clone
 from sklearn.exceptions import UnsetMetadataPassedError
-from sklearn.utils import Bunch
 from sklearn.utils.metadata_routing import (
     MetadataRouter,
     MethodMapping,
@@ -47,12 +46,50 @@ def _estimator_has(attr, base_attr_name='base_estimator'):
                               has_estimator_selector(estimator))
 
 
-class AdaptationOutput(Bunch):
+class AdaptationOutput:
     """Container object for multi-key adaptation output."""
 
-    def __init__(self, X, **kwargs):
+    def __init__(self, X, **params):
         self.X = X
-        super().__init__(**kwargs)
+        self.params = params
+
+    def merge_into(self, output: Union[np.ndarray, "AdaptationOutput"]) -> "AdaptationOutput":
+        if isinstance(output, self.__class__):
+            for k, v in self.items():
+                if k not in output.params:
+                    output[k] = v
+            return output
+        else:
+            self.X = output
+            return self
+
+    def keys(self):
+        return self.params.keys()
+
+    def values(self):
+        return self.params.values()
+
+    def items(self):
+        return self.params.items()
+
+    def get(self, key, default_value=None):
+        return self.params.get(key, default_value)
+
+    def __getattr__(self, attr_name):
+        params = object.__getattribute__(self, 'params')
+        if attr_name not in params:
+            raise AttributeError()
+        return params[attr_name]
+
+    def __iter__(self):
+        return iter(self.params)
+
+    def __getitem__(self, k):
+        return self.params[k]
+
+    def __setitem__(self, k, v):
+        self.params[k] = v
+        return self
 
 
 class IncompatibleMetadataError(UnsetMetadataPassedError):
@@ -177,6 +214,8 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
         super().__init__()
         self.base_estimator = base_estimator
         self.base_estimator.set_params(**kwargs)
+        self._is_final = False
+        self._is_transformer = hasattr(base_estimator, 'transform')
 
     def get_metadata_routing(self):
         return (
@@ -243,6 +282,14 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
         self.base_estimator.set_params(**kwargs)
         return self
 
+    def _mark_as_final(self):
+        self._is_final = True
+        return self
+
+    def _unmark_as_final(self):
+        self._is_final = False
+        return self
+
     @abstractmethod
     def _route_to_estimator(self, method_name, X, y=None, **params) -> np.ndarray:
         """Abstract method for calling method of a base estimator based on
@@ -250,8 +297,18 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
         """
 
     @available_if(_estimator_has('transform'))
-    def transform(self, X, **params):
-        return self._route_to_estimator('transform', X, **params)
+    def transform(self, X_container, **params):
+        output = self._route_to_estimator('transform', X_container, **params)
+        # If the original input was an `AdaptationOutput` container,
+        # we should either wrap the output back into container, or
+        # merge a pair of containers if the `output` itself is an instance
+        # of `AdaptationOutput`. The only case where should avoid such
+        # operation is that if the selector wraps the last step in the pipeline.
+        # In such a case, the `output` is supposed to be consumable from
+        # the common sklearn API.
+        if not self._is_final and isinstance(X_container, AdaptationOutput):
+            output = X_container.merge_into(output)
+        return output
 
     def predict(self, X, **params):
         return self._route_to_estimator('predict', X, **params)
@@ -272,39 +329,52 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
     def score(self, X, y, **params):
         return self._route_to_estimator('score', X, y=y, **params)
 
-    def _route_and_merge_params(self, routing_request, X_input, params):
-        if isinstance(X_input, AdaptationOutput):
-            X_out = X_input.X
-            for k, v in X_input.items():
+    def _unwrap_from_container(self, X_container, params):
+        if isinstance(X_container, AdaptationOutput):
+            X_out = X_container.X
+            for k, v in X_container.items():
                 if v is not None:
                     params[k] = v
         else:
-            X_out = X_input
+            X_out = X_container
 
         X_out, sample_domain = check_X_domain(
             X_out,
-            sample_domain=params.get('sample_domain')
+            sample_domain=params.get('sample_domain'),
+            allow_nd=True,
         )
         params['sample_domain'] = sample_domain
 
-        try:
-            routed_params = routing_request._route_params(params=params)
-        except UnsetMetadataPassedError as e:
-            # check if every parameter given by `AdaptationOutput` object
-            # was accepted by the downstream (base) estimator
-            if isinstance(X_input, AdaptationOutput):
-                for k in X_input:
-                    marker = routing_request.requests.get(k)
-                    if v is not None and marker is None:
-                        method = routing_request.method
-                        raise IncompatibleMetadataError(
-                            f"The adapter provided '{k}' parameter which is not explicitly set as "  # noqa
-                            f"requested or not for '{routing_request.owner}.{method}'.\n"  # noqa
-                            f"Make sure that metadata routing is properly setup, e.g. by calling 'set_{method}_request()'. "  # noqa
-                            "See documentation at https://scikit-learn.org/stable/metadata_routing.html"  # noqa
-                        ) from e
-            # re-raise exception if the problem was not caused by the adapter
-            raise e
+        return X_out, params
+
+    def _merge_and_route_params(self, routing_request, X_container, params):
+        X_out, params = self._unwrap_from_container(X_container, params)
+        if self._is_final or not self._is_transformer:
+            # xxx(okachaiev): there's still at least a single scenario where such condition
+            # fails. consider the following pipeline: adapter -> transformer -> estimator.
+            # assuming that adapter produces weights that are consumed by the transformer,
+            # it might be perfectly valid for the estimator not to accept weights. not sure
+            # what would be the most comfortable way to check such a occurrence.
+            try:
+                routed_params = routing_request._route_params(params=params)
+            except UnsetMetadataPassedError as e:
+                # check if every parameter given by `AdaptationOutput` object
+                # was accepted by the downstream (base) estimator
+                if isinstance(X_container, AdaptationOutput):
+                    for k in X_container:
+                        marker = routing_request.requests.get(k)
+                        if X_container[k] is not None and marker is None:
+                            method = routing_request.method
+                            raise IncompatibleMetadataError(
+                                f"The adapter provided '{k}' parameter which is not explicitly set as "  # noqa
+                                f"requested or not for '{routing_request.owner}.{method}'.\n"  # noqa
+                                f"Make sure that metadata routing is properly setup, e.g. by calling 'set_{method}_request()'. "  # noqa
+                                "See documentation at https://scikit-learn.org/stable/metadata_routing.html"  # noqa
+                            ) from e
+                # re-raise exception if the problem was not caused by the adapter
+                raise e
+        else:
+            routed_params = {k: params[k] for k in routing_request._consumes(params=params)}
         return X_out, routed_params
 
     def _remove_masked(self, X, y, routed_params):
@@ -357,7 +427,7 @@ class Shared(BaseSelector):
 
     def fit(self, X, y, **params):
         routing = get_routing_for_object(self.base_estimator)
-        X, routed_params = self._route_and_merge_params(routing.fit, X, params)
+        X, routed_params = self._merge_and_route_params(routing.fit, X, params)
         X, y, routed_params = self._remove_masked(X, y, routed_params)
         estimator = clone(self.base_estimator)
         estimator.fit(X, y, **routed_params)
@@ -368,22 +438,22 @@ class Shared(BaseSelector):
     # xxx(okachaiev): check if underlying estimator supports 'fit_transform'
     def fit_transform(self, X, y=None, **params):
         self.fit(X, y, **params)
-        routed_params = self.routing_.fit_transform._route_params(params=params)
         # 'fit_transform' allows transformation for source domains
         # as well, that's why it calls 'adapt' directly
         if isinstance(self.base_estimator_, BaseAdapter):
             # xxx(okachaiev): adapt should take 'y' as well, as in many cases
             # we need to bound estimator fitting to a sub-group of the input
+            routed_params = self.routing_.fit_transform._route_params(params=params)
             output = self.base_estimator_.adapt(X, **routed_params)
         else:
-            output = self.base_estimator_.transform(X, **routed_params)
+            output = self.transform(X, **params)
         return output
 
     # xxx(okachaiev): fail if unknown domain is given
-    def _route_to_estimator(self, method_name, X, y=None, **params):
+    def _route_to_estimator(self, method_name, X_container, y=None, **params):
         check_is_fitted(self)
         request = getattr(self.routing_, method_name)
-        X, routed_params = self._route_and_merge_params(request, X, params)
+        X, routed_params = self._merge_and_route_params(request, X_container, params)
         method = getattr(self.base_estimator_, method_name)
         output = method(X, **routed_params) if y is None else method(
             X, y, **routed_params
@@ -401,7 +471,7 @@ class PerDomain(BaseSelector):
     def fit(self, X, y, **params):
         sample_domain = params['sample_domain']
         routing = get_routing_for_object(self.base_estimator)
-        X, routed_params = self._route_and_merge_params(routing.fit, X, params)
+        X, routed_params = self._merge_and_route_params(routing.fit, X, params)
         X, y, routed_params = self._remove_masked(X, y, routed_params)
         estimators = {}
         for domain_label in np.unique(sample_domain):
@@ -420,13 +490,21 @@ class PerDomain(BaseSelector):
     def _route_to_estimator(self, method_name, X, y=None, **params):
         check_is_fitted(self)
         request = getattr(self.routing_, method_name)
-        X, routed_params = self._route_and_merge_params(request, X, params)
+        X, routed_params = self._merge_and_route_params(request, X, params)
         # xxx(okachaiev): use check_*_domain to derive default domain labels
         sample_domain = params['sample_domain']
         output = None
-        for domain_label in np.unique(sample_domain):
+        lst_domains = np.unique(sample_domain)
+        # test if default target domain and unique target during fit and replace label
+        for domain_label in lst_domains:
             # xxx(okachaiev): fail if unknown domain is given
-            method = getattr(self.estimators_[domain_label], method_name)
+            try:
+                method = getattr(self.estimators_[domain_label], method_name)
+            except KeyError:
+                raise ValueError(
+                    f"Domain label {domain_label} is not present in the "
+                    "fitted estimators."
+                )
             idx, = np.where(sample_domain == domain_label)
             X_domain = X[idx]
             y_domain = y[idx] if y is not None else None
@@ -472,15 +550,11 @@ class _BaseSelectDomain(Shared):
             Array of boolean masks.
         """
 
-    def fit(self, X, y, **params):
-        if y is not None:
-            X, y, sample_domain = check_X_y_domain(X, y, sample_domain=params.get('sample_domain'))
-        else:
-            X, sample_domain = check_X_domain(X, sample_domain=params.get('sample_domain'))
-        params['sample_domain'] = sample_domain
-        filter_masks = self._select_indices(sample_domain)
-        X, y, params = _apply_domain_masks(X, y, params, masks=filter_masks)
-        return super().fit(X, y, **params)
+    def fit(self, X_container, y, **params):
+        X_input, params = self._unwrap_from_container(X_container, params)
+        filter_masks = self._select_indices(params['sample_domain'])
+        X_input, y, params = _apply_domain_masks(X_input, y, params, masks=filter_masks)
+        return super().fit(X_input, y, **params)
 
 
 class SelectSource(_BaseSelectDomain):
@@ -507,6 +581,10 @@ class SelectSourceTarget(BaseSelector):
                             "both be transformers, or neither should be.")
         self.source_estimator = source_estimator
         self.target_estimator = target_estimator
+        # xxx(okachaiev): the fact that we need to put those variables
+        # here means that the choice of the base class is suboptimal
+        self._is_final = False
+        self._is_transformer = hasattr(source_estimator, 'transform')
 
     def get_metadata_routing(self):
         routing = MetadataRouter(owner=self.__class__.__name__).add_self_request(self)
@@ -575,7 +653,8 @@ class SelectSourceTarget(BaseSelector):
         check_is_fitted(self)
         return self.estimators_[domain]
 
-    def fit(self, X, y, **params):
+    def fit(self, X_container, y, **params):
+        X, params = self._unwrap_from_container(X_container, params)
         # xxx(okachaiev): seems like we have this block of code rather often
         #                 maybe should be a helper
         if y is not None:
@@ -599,7 +678,7 @@ class SelectSourceTarget(BaseSelector):
                 )
             X_masked, y_masked, params_masked = _apply_domain_masks(X, y, params, masks=domain_masks)
             routing = get_routing_for_object(base_estimator)
-            X_masked, routed_params = self._route_and_merge_params(routing.fit, X_masked, params_masked)
+            X_masked, routed_params = self._merge_and_route_params(routing.fit, X_masked, params_masked)
             X_masked, y_masked, routed_params = self._remove_masked(X_masked, y_masked, routed_params)
             estimator = clone(base_estimator)
             estimator.fit(X_masked, y_masked, **routed_params)
@@ -607,15 +686,35 @@ class SelectSourceTarget(BaseSelector):
         self.estimators_ = estimators
         return self
 
-    def _route_to_estimator(self, method_name, X, y=None, **params):
+    def fit_transform(self, X, y=None, **params):
+        """
+        Fit to data, then transform it. In this case, the fitting and
+        the transformation are performed on the target and source domains
+        by default (allow_source=True).
+
+        It should be used only for fitting the estimator, and not for generating
+        the adaptation output. For the latter, use the `transform` method.
+        """
+        self.fit(X, y=y, **params)
+        # assume 'fit_transform' is called to fit the estimator,
+        # thus we allow for the source domain to be adapted
+        return self.transform(
+            X,
+            y=y,
+            allow_source=True,
+            **params
+        )
+
+    def _route_to_estimator(self, method_name, X_container, y=None, **params):
         check_is_fitted(self)
+        X, params = self._unwrap_from_container(X_container, params)
         if y is not None:
             X, y, sample_domain = check_X_y_domain(X, y, sample_domain=params.get('sample_domain'))
         else:
             X, sample_domain = check_X_domain(X, sample_domain=params.get('sample_domain'))
         source_masks = extract_source_indices(sample_domain)
         params['sample_domain'] = sample_domain
-        output = None
+        output_X, output_params = None, {}
         for domain_estimator, domain_masks in [
             (self.estimators_['source'], source_masks),
             (self.estimators_['target'], ~source_masks),
@@ -625,20 +724,42 @@ class SelectSourceTarget(BaseSelector):
                 continue
             X_domain, y_domain, params_domain = _apply_domain_masks(X, y, params, masks=domain_masks)
             request = getattr(get_routing_for_object(domain_estimator), method_name)
-            X_domain, routed_params = self._route_and_merge_params(request, X_domain, params_domain)
+            X_domain, routed_params = self._merge_and_route_params(request, X_domain, params_domain)
             method = getattr(domain_estimator, method_name)
-            if y_domain is None:
+            if y_domain is None or method_name == 'transform':
                 domain_output = method(X_domain, **routed_params)
             else:
                 domain_output = method(X_domain, y_domain, **routed_params)
-            if output is None:
-                output = np.zeros((X.shape[0], *domain_output.shape[1:]), dtype=domain_output.dtype)
-            output[domain_masks] = domain_output
-        return output
+            # xxx(okachaiev): I would imagine a proper merging procedure should go to the utils
+            domain_output_X = domain_output.X if isinstance(domain_output, AdaptationOutput) else domain_output
+            if output_X is None:
+                output_X = np.zeros((X.shape[0], *domain_output_X.shape[1:]), dtype=domain_output_X.dtype)
+            output_X[domain_masks] = domain_output_X
+            if isinstance(domain_output, AdaptationOutput):
+                for param_name in domain_output:
+                    param_value = domain_output[param_name]
+                    if param_name not in output_params:
+                        output_params[param_name] = np.zeros(
+                            (X.shape[0], *param_value.shape[1:]),
+                            dtype=param_value.dtype
+                        )
+                    output_params[param_name][domain_masks] = param_value
+        if not output_params:
+            # no additional parameters were generated by downstream estimators
+            return output_X
+        elif self._is_final:
+            # the selector is a final step, no need to track params
+            return output_X
+        else:
+            return AdaptationOutput(output_X, **output_params)
 
     @available_if(_estimator_has('transform', base_attr_name='source_estimator'))
-    def transform(self, X, **params):
-        return self._route_to_estimator('transform', X, **params)
+    def transform(self, X_container, **params):
+        # xxx(okachaiev): code duplication
+        output = self._route_to_estimator('transform', X_container, **params)
+        if not self._is_final and isinstance(X_container, AdaptationOutput):
+            output = X_container.merge_into(output)
+        return output
 
     # xxx(okachaiev): i guess this should return 'True' only if both
     # estimators have the same method. though practical advantage is,
