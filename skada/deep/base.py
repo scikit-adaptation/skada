@@ -60,7 +60,7 @@ class DomainAwareCriterion(torch.nn.Module):
             The true labels. Available for source, masked for target.
         """
         y_pred, domain_pred, features, sample_domain = y_pred  # unpack
-        source_idx = extract_source_indices(sample_domain)
+        source_idx = (sample_domain >= 0)
         y_pred_s = y_pred[source_idx]
         y_pred_t = y_pred[~source_idx]
 
@@ -259,7 +259,7 @@ class DomainAwareModule(torch.nn.Module):
 
     def forward(self, X, sample_domain=None, is_fit=False, return_features=False):
         if is_fit:
-            source_idx = extract_source_indices(sample_domain)
+            source_idx = (sample_domain >= 0)
 
             X_s = X[source_idx]
             X_t = X[~source_idx]
@@ -272,17 +272,26 @@ class DomainAwareModule(torch.nn.Module):
             if self.domain_classifier_ is not None:
                 domain_pred_s = self.domain_classifier_(features_s)
                 domain_pred_t = self.domain_classifier_(features_t)
-                domain_pred = torch.empty((len(sample_domain)))
+                domain_pred = torch.empty(
+                    (len(sample_domain)), 
+                    device=domain_pred_s.device
+                )
                 domain_pred[source_idx] = domain_pred_s
                 domain_pred[~source_idx] = domain_pred_t
             else:
                 domain_pred = None
 
-            y_pred = torch.empty((len(sample_domain), y_pred_s.shape[1]))
+            y_pred = torch.empty(
+                (len(sample_domain), y_pred_s.shape[1]),
+                device = y_pred_s.device
+            )
             y_pred[source_idx] = y_pred_s
             y_pred[~source_idx] = y_pred_t
 
-            features = torch.empty((len(sample_domain), features_s.shape[1]))
+            features = torch.empty(
+                (len(sample_domain), features_s.shape[1]),
+                device = features_s.device
+            )
             features[source_idx] = features_s
             features[~source_idx] = features_t
 
