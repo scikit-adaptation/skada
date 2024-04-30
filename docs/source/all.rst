@@ -27,7 +27,7 @@ Sample reweighting DA methods
 ..    NearestNeighborReweight
 ..    MMDTarSReweight
 
-Pipelines:
+DAEstimators with adapters (Pipeline):
    .. autosummary::
       :toctree: gen_modules/
       :template: function.rst
@@ -57,20 +57,37 @@ Adapters:
 Sample mapping and alignment DA methods
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. autosummary::
-   :toctree: gen_modules/
-   :template: function.rst
+DAEstimators with adapters (Pipeline):
+   .. autosummary::
+      :toctree: gen_modules/
+      :template: function.rst
 
-   SubspaceAlignment
-   TransferComponentAnalysis
-   TransferJointMatching
-   CORAL
-   OTMapping
-   EntropicOTMapping
-   ClassRegularizerOTMapping
-   LinearOTMapping
-   MMDLSConSMapping
-   
+      SubspaceAlignment
+      TransferComponentAnalysis
+      TransferJointMatching
+      CORAL
+      OTMapping
+      EntropicOTMapping
+      ClassRegularizerOTMapping
+      LinearOTMapping
+      MMDLSConSMapping
+
+Adapters:
+   .. autosummary::
+      :toctree: gen_modules/
+      :template: function.rst
+
+      SubspaceAlignmentAdapter
+      TransferComponentAnalysisAdapter
+      TransferJointMatchingAdapter
+      CORALAdapter
+      OTMappingAdapter
+      EntropicOTMappingAdapter
+      ClassRegularizerOTMappingAdapter
+      LinearOTMappingAdapter
+      MMDLSConSMappingAdapter
+
+
 Other DA methods
 ^^^^^^^^^^^^^^^^
 
