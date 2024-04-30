@@ -42,12 +42,12 @@ cv = ShuffleSplit(n_splits=5, test_size=0.3, random_state=RANDOM_SEED)
 
 # %%
 # The DA estimator pipeline is ready to be used with :code:`cross_val_score`.
-# Splits are formed following the cross-validation strategy. Source data
-# from the training splits are used to fit the DA estimator, and the target
-# data from the test split is used to compute the score. The separation between
-# source and target data is done automatically by the DA pipeline thanks to
-# :code:`sample_domain`. The :code:`target_labels` are only used by the
-# :code:`SupervisedScorer`.
+# Source data from the training splits is first adapted with the target
+# data from the same splits and then used to fit the base estimator.
+# The target data from the test split is used to compute the score.
+# The separation between source and target data is done automatically
+# by the DA pipeline thanks to :code:`sample_domain`. The
+# :code:`target_labels` are only used by the :code:`SupervisedScorer`.
 
 _, target_labels, _ = dataset.pack(as_sources=["s"], as_targets=["t"], train=False)
 scores_sup = cross_val_score(
@@ -68,7 +68,7 @@ print(
 # To evaluate the performance of the DA estimator, we compare it with the
 # performance of the base estimator without DA. We use the same cross-validation
 # strategy and the same data splits. We create a DA pipeline with
-# :code:`make_da_pipeline` with the base estimator only. The
+# :code:`make_da_pipeline` including the base estimator only. The
 # :code:`sample_domain` and :code:`target_labels` are also passed to the pipeline
 # to separate the source and target data and to compute the score.
 
