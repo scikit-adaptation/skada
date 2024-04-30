@@ -908,7 +908,7 @@ def torch_minimize(loss, x0, tol=1e-6, max_iter=1000):
     try:
         import torch
     except ImportError:
-        raise ImportError("solve_torch requires pytorch to be installed")
+        raise ImportError("torch_minimize requires pytorch to be installed")
 
     if type(x0) not in (list, tuple):
         x0 = [x0]
