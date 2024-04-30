@@ -281,14 +281,14 @@ class DomainAwareModule(torch.nn.Module):
 
             y_pred = torch.empty(
                 (len(sample_domain), y_pred_s.shape[1]),
-                device = y_pred_s.device
+                device=y_pred_s.device
             )
             y_pred[source_idx] = y_pred_s
             y_pred[~source_idx] = y_pred_t
 
             features = torch.empty(
                 (len(sample_domain), features_s.shape[1]),
-                device = features_s.device
+                device=features_s.device
             )
             features[source_idx] = features_s
             features[~source_idx] = features_t
