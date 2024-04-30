@@ -330,26 +330,7 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
     def score(self, X, y, **params):
         return self._route_to_estimator('score', X, y=y, **params)
 
-    def _unwrap_from_container(self, X_container, params):
-        if isinstance(X_container, AdaptationOutput):
-            X_out = X_container.X
-            for k, v in X_container.items():
-                if v is not None:
-                    params[k] = v
-        else:
-            X_out = X_container
-
-        X_out, sample_domain = check_X_domain(
-            X_out,
-            sample_domain=params.get('sample_domain'),
-            allow_nd=True,
-        )
-        params['sample_domain'] = sample_domain
-
-        return X_out, params
-
     def _merge_and_route_params(self, routing_request, X_container, params):
-        X_out, params = self._unwrap_from_container(X_container, params)
         if self._is_final or not self._is_transformer:
             # xxx(okachaiev): there's still at least a single scenario where such condition
             # fails. consider the following pipeline: adapter -> transformer -> estimator.
@@ -376,7 +357,7 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
                 raise e
         else:
             routed_params = {k: params[k] for k in routing_request._consumes(params=params)}
-        return X_out, routed_params
+        return routed_params
 
     def _remove_masked(self, X, y, routed_params):
         """Removes masked inputs before passing them to a downstream (base) estimator,
@@ -433,7 +414,7 @@ class Shared(BaseSelector):
         # as we expect metadata routing to select parameters for us
         # we only need to remove masked (when necessary)
         routing = get_routing_for_object(self.base_estimator)
-        X, routed_params = self._merge_and_route_params(routing.fit, X, params)
+        routed_params = self._merge_and_route_params(routing.fit, X, params)
         X, y, routed_params = self._remove_masked(X, y, routed_params)
         estimator = clone(self.base_estimator)
         estimator.fit(X, y, **routed_params)
@@ -459,7 +440,7 @@ class Shared(BaseSelector):
         if hasattr(self.base_estimator, "fit_transform"):
             X, y, method_params = X_container.merge_out(y, **params)
             routing = get_routing_for_object(self.base_estimator)
-            X, routed_params = self._merge_and_route_params(routing.fit_transform, X, method_params)
+            routed_params = self._merge_and_route_params(routing.fit_transform, X, method_params)
             X, y, routed_params = self._remove_masked(X, y, routed_params)
             estimator = clone(self.base_estimator)
             output = estimator.fit_transform(X, y, **routed_params)

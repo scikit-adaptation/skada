@@ -110,16 +110,16 @@ class DensityReweightAdapter(BaseAdapter):
 
         # xxx(okachaiev): this if/else statement is used in pretty
         #                 much every adapter. move to the API?
-        if source_idx.sum() > 0:
-            (source_idx,) = np.where(source_idx)
-            ws = self.weight_estimator_source_.score_samples(X[source_idx])
-            wt = self.weight_estimator_target_.score_samples(X[source_idx])
-            source_weights = np.exp(wt - ws)
-            source_weights /= source_weights.mean()
-            weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
-            weights[source_idx] = source_weights
-        else:
-            weights = None
+        if source_idx.sum() == 0:
+            return X
+
+        (source_idx,) = np.where(source_idx)
+        ws = self.weight_estimator_source_.score_samples(X[source_idx])
+        wt = self.weight_estimator_target_.score_samples(X[source_idx])
+        source_weights = np.exp(wt - ws)
+        source_weights /= source_weights.mean()
+        weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
+        weights[source_idx] = source_weights
         return AdaptationOutput(X, sample_weight=weights)
 
 
@@ -241,19 +241,19 @@ class GaussianReweightAdapter(BaseAdapter):
         source_idx = extract_source_indices(sample_domain)
 
         # xxx(okachaiev): move this to API
-        if source_idx.sum() > 0:
-            (source_idx,) = np.where(source_idx)
-            gaussian_target = multivariate_normal.pdf(
-                X[source_idx], self.mean_target_, self.cov_target_
-            )
-            gaussian_source = multivariate_normal.pdf(
-                X[source_idx], self.mean_source_, self.cov_source_
-            )
-            source_weights = gaussian_target / gaussian_source
-            weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
-            weights[source_idx] = source_weights
-        else:
-            weights = None
+        if source_idx.sum() == 0:
+            return X
+
+        (source_idx,) = np.where(source_idx)
+        gaussian_target = multivariate_normal.pdf(
+            X[source_idx], self.mean_target_, self.cov_target_
+        )
+        gaussian_source = multivariate_normal.pdf(
+            X[source_idx], self.mean_source_, self.cov_source_
+        )
+        source_weights = gaussian_target / gaussian_source
+        weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
+        weights[source_idx] = source_weights
         return AdaptationOutput(X, sample_weight=weights)
 
 
@@ -379,16 +379,16 @@ class DiscriminatorReweightAdapter(BaseAdapter):
         source_idx = extract_source_indices(sample_domain)
 
         # xxx(okachaiev): move this to API
-        if source_idx.sum() > 0:
-            (source_idx,) = np.where(source_idx)
-            probas = self.domain_classifier_.predict_proba(X[source_idx])[:, 1]
-            probas = np.clip(probas, EPS, 1.0)
-            source_weights = (1 - probas) / probas
-            source_weights /= source_weights.mean()
-            weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
-            weights[source_idx] = source_weights
-        else:
-            weights = None
+        if source_idx.sum() == 0:
+            return X
+
+        (source_idx,) = np.where(source_idx)
+        probas = self.domain_classifier_.predict_proba(X[source_idx])[:, 1]
+        probas = np.clip(probas, EPS, 1.0)
+        source_weights = (1 - probas) / probas
+        source_weights /= source_weights.mean()
+        weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
+        weights[source_idx] = source_weights
         return AdaptationOutput(X, sample_weight=weights)
 
 
@@ -605,16 +605,16 @@ class KLIEPReweightAdapter(BaseAdapter):
         X, sample_domain = check_X_domain(X, sample_domain)
         source_idx = extract_source_indices(sample_domain)
 
-        if source_idx.sum() > 0:
-            (source_idx,) = np.where(source_idx)
-            A = pairwise_kernels(
-                X[source_idx], self.centers_, metric="rbf", gamma=self.best_gamma_
-            )
-            source_weights = A @ self.alpha_
-            weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
-            weights[source_idx] = source_weights
-        else:
-            weights = None
+        if source_idx.sum() == 0:
+            return X
+
+        (source_idx,) = np.where(source_idx)
+        A = pairwise_kernels(
+            X[source_idx], self.centers_, metric="rbf", gamma=self.best_gamma_
+        )
+        source_weights = A @ self.alpha_
+        weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
+        weights[source_idx] = source_weights
         return AdaptationOutput(X, sample_weight=weights)
 
     def _auto_scale_gammas(self, gamma, X):
@@ -815,18 +815,18 @@ class NearestNeighborReweightAdapter(BaseAdapter):
         source_idx = extract_source_indices(sample_domain)
 
         # xxx(okachaiev): move this to API
-        if source_idx.sum() > 0:
-            (source_idx,) = np.where(source_idx)
-            indices_source = np.arange(X[source_idx].shape[0])
-            if np.array_equal(self.X_source_fit, X[source_idx]):
-                estimator = self.estimator_
-            else:
-                estimator = clone(self.base_estimator)
-                estimator.fit(X[source_idx], indices_source)
-            weights = np.ones(X.shape[0])
-            weights[source_idx] = self.get_weights(X[source_idx], X[~source_idx])
+        if source_idx.sum() == 0:
+            return X
+
+        (source_idx,) = np.where(source_idx)
+        indices_source = np.arange(X[source_idx].shape[0])
+        if np.array_equal(self.X_source_fit, X[source_idx]):
+            estimator = self.estimator_
         else:
-            weights = None
+            estimator = clone(self.base_estimator)
+            estimator.fit(X[source_idx], indices_source)
+        weights = np.ones(X.shape[0])
+        weights[source_idx] = self.get_weights(X[source_idx], X[~source_idx])
         return AdaptationOutput(X=X, sample_weight=weights)
 
 
@@ -1133,28 +1133,25 @@ class KMMReweightAdapter(BaseAdapter):
 
         source_idx = extract_source_indices(sample_domain)
 
-        if source_idx.sum() > 0:
-            if (
-                np.array_equal(self.X_source_, X[source_idx])
-                and not self.smooth_weights
-            ):
-                source_weights = self.source_weights_
-            else:
-                K = pairwise_kernels(
-                    X[source_idx],
-                    self.X_source_,
-                    metric=self.kernel,
-                    filter_params=True,
-                    gamma=self.gamma,
-                    degree=self.degree,
-                    coef0=self.coef0,
-                )
-                source_weights = K.dot(self.source_weights_)
-            source_idx = np.where(source_idx)
-            weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
-            weights[source_idx] = source_weights
+        if source_idx.sum() == 0:
+            return X
+
+        if np.array_equal(self.X_source_, X[source_idx]) and not self.smooth_weights:
+            source_weights = self.source_weights_
         else:
-            weights = None
+            K = pairwise_kernels(
+                X[source_idx],
+                self.X_source_,
+                metric=self.kernel,
+                filter_params=True,
+                gamma=self.gamma,
+                degree=self.degree,
+                coef0=self.coef0,
+            )
+            source_weights = K.dot(self.source_weights_)
+        source_idx = np.where(source_idx)
+        weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
+        weights[source_idx] = source_weights
         return AdaptationOutput(X, sample_weight=weights)
 
 
@@ -1391,31 +1388,31 @@ class MMDTarSReweightAdapter(BaseAdapter):
 
         source_idx = extract_source_indices(sample_domain)
 
-        if source_idx.sum() > 0:
-            if np.array_equal(self.X_source_, X[source_idx]):
-                source_weights = self.source_weights_
-            else:
-                if self.discrete_:
-                    # assign the classes weights to the source samples
-                    X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
-                    source_idx = extract_source_indices(sample_domain)
-                    y_source = y[source_idx]
-                    classes = self.classes_
-                    R = np.zeros((source_idx.sum(), len(classes)))
-                    for i, c in enumerate(classes):
-                        R[:, i] = (y_source == c).astype(int)
-                    source_weights = R @ self.alpha_
-                else:
-                    # assign the nearest neighbor's weights to the source samples
-                    C = pairwise_distances(X[source_idx], self.X_source_)
-                    idx = np.argmin(C, axis=1)
-                    source_weights = self.source_weights_[idx]
-            source_idx = np.where(source_idx)
-            weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
-            weights[source_idx] = source_weights
-            weights += 1e-13  # avoid negative weights
+        if source_idx.sum() == 0:
+            return X
+
+        if np.array_equal(self.X_source_, X[source_idx]):
+            source_weights = self.source_weights_
         else:
-            weights = None
+            if self.discrete_:
+                # assign the classes weights to the source samples
+                X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+                source_idx = extract_source_indices(sample_domain)
+                y_source = y[source_idx]
+                classes = self.classes_
+                R = np.zeros((source_idx.sum(), len(classes)))
+                for i, c in enumerate(classes):
+                    R[:, i] = (y_source == c).astype(int)
+                source_weights = R @ self.alpha_
+            else:
+                # assign the nearest neighbor's weights to the source samples
+                C = pairwise_distances(X[source_idx], self.X_source_)
+                idx = np.argmin(C, axis=1)
+                source_weights = self.source_weights_[idx]
+        source_idx = np.where(source_idx)
+        weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
+        weights[source_idx] = source_weights
+        weights += 1e-13  # avoid negative weights
         return AdaptationOutput(X, sample_weight=weights)
 
 
