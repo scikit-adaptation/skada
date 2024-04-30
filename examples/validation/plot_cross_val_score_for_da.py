@@ -46,7 +46,7 @@ cv = ShuffleSplit(n_splits=5, test_size=0.3, random_state=0)
 # from the training splits are used to fit the DA estimator, and the target
 # data from the test split is used to compute the score. The separation between
 # source and target data is done automatically by the DA pipeline thanks to
-# :code:`sample_domain`. The :code"`target_labels` are only used by the
+# :code:`sample_domain`. The :code:`target_labels` are only used by the
 # :code:`SupervisedScorer`.
 
 _, target_labels, _ = dataset.pack(as_sources=["s"], as_targets=["t"], train=False)
