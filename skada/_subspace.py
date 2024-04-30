@@ -661,7 +661,7 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
     mu : float, default=0.1
         The parameter of the regularization in the optimization
         problem.
-    reg : float, default=1e-4
+    reg : float, default=0.01
         The regularization parameter of the covariance estimator.
         Possible values:
           - None: no shrinkage.
@@ -673,7 +673,7 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
         The threshold for the differences between losses on two iteration
         before the algorithm stops
     verbose : bool, default=False
-        If True, print the loss value at each iteration.
+        If True, print the final gradient norm.
 
     Attributes
     ----------
@@ -694,7 +694,7 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
         n_components=None,
         base_method="flda",
         mu=0.1,
-        reg=1e-2,
+        reg=0.01,
         max_iter=100,
         tol=0.01,
         verbose=False,
@@ -885,7 +885,9 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
         # Optimize using torch solver
         W = torch.eye(X.shape[1], dtype=torch.float64, requires_grad=True)
         W = W[:, :n_components]
-        W, _ = torch_minimize(func, W, tol=self.tol, max_iter=self.max_iter)
+        W, _ = torch_minimize(
+            func, W, tol=self.tol, max_iter=self.max_iter, verbose=self.verbose
+        )
         W = _orth(W)
 
         # store W
@@ -899,7 +901,7 @@ def TransferSubspaceLearning(
     n_components=None,
     base_method="flda",
     mu=0.1,
-    reg=1e-2,
+    reg=0.01,
     max_iter=100,
     tol=0.01,
     verbose=False,
@@ -918,7 +920,7 @@ def TransferSubspaceLearning(
     mu : float, default=0.1
         The parameter of the regularization in the optimization
         problem.
-    reg : float, default=1e-4
+    reg : float, default=0.01
         The regularization parameter of the covariance estimator.
         Possible values:
           - None: no shrinkage.
@@ -930,7 +932,7 @@ def TransferSubspaceLearning(
         The threshold for the differences between losses on two iteration
         before the algorithm stops
     verbose : bool, default=False
-        If True, print the loss value at each iteration.
+        If True, print the final gradient norm.
 
     Returns
     -------
