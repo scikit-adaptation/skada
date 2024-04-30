@@ -215,11 +215,8 @@ def test_adaptation_output_propagate_labels(da_reg_dataset):
     output = {}
 
     class FakeAdapter(BaseAdapter):
-        def fit(self, X, y=None, *, sample_domain=None):
+        def fit_transform(self, X, y=None, sample_domain=None):
             self.fitted_ = True
-            return self
-
-        def adapt(self, X, y=None, sample_domain=None):
             if y is not None:
                 assert not np.any(np.isnan(y)), "Expect unmasked labels"
                 y[::2] = np.nan
