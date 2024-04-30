@@ -830,7 +830,15 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
         X_target = torch.tensor(X_target, dtype=torch.float64)
 
         # Loss function
+        def _orth(W):
+            if type(W) is np.ndarray:
+                W = np.linalg.qr(W)[0]
+            else:
+                W = torch.linalg.qr(W)[0]
+            return W
+
         def func(W):
+            W = _orth(W)
             loss = self._F(W, X_source)
             loss = loss + self.mu * self._D(W, X_source, X_target)
             return loss
@@ -838,8 +846,8 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
         # Optimize using torch solver
         W = torch.eye(X.shape[1], dtype=torch.float64, requires_grad=True)
         W = W[:, :n_components]
-        # W = torch.utils.nn.parametrizations.Orthogonal()(W)
         W, _ = torch_minimize(func, W, tol=self.tol, max_iter=self.max_iter)
+        W = _orth(W)
 
         # store W
         self.W_ = W
