@@ -549,17 +549,11 @@ class CircularValidation(_BaseDomainAwareScorer):
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
         source_idx = extract_source_indices(sample_domain)
 
+        # TODO: Check if skorch works with deepcopy/clone
         try:
             backward_estimator = deepcopy(estimator)
         except (TypeError, AttributeError):
-            try:
                 backward_estimator = clone(estimator)
-            except Exception:
-                raise ValueError(
-                    "The estimator passed should be a scikit-learn estimator, "
-                    "a skorch.NeuralNet, or an object that supports deepcopy or clone. "
-                    f"The estimator {estimator!r} does not meet these requirements."
-                )
 
         y_pred_target = estimator.predict(
             X[~source_idx], sample_domain=sample_domain[~source_idx]
