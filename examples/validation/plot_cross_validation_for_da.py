@@ -87,7 +87,7 @@ sample_domain_lodo = sample_domain_lodo[indx_sort]
 
 
 # %%
-# We define a function to visualize the behavior of each
+# We define functions to visualize the behavior of each
 # cross-validation object. The number of splits is set to 4
 # (2 for the lodo method). For each split, we visualize the
 # indices selected for the training set (in blue) and the
