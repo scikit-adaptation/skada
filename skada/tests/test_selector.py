@@ -8,6 +8,8 @@ import pytest
 from sklearn.base import BaseEstimator
 from sklearn.datasets import make_regression
 from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
 from sklearn.utils.metadata_routing import get_routing_for_object
 
 from skada import SubspaceAlignmentAdapter, make_da_pipeline
@@ -16,7 +18,7 @@ from skada._utils import (
     _DEFAULT_MASKED_TARGET_REGRESSION_LABEL,
     _remove_masked,
 )
-from skada.base import PerDomain, SelectSource, SelectTarget, Shared
+from skada.base import PerDomain, SelectSource, SelectSourceTarget, SelectTarget, Shared
 from skada.datasets import make_shifted_datasets
 from skada.utils import extract_source_indices
 
@@ -341,6 +343,6 @@ def test_selector_inherits_routing(estimator_cls):
 #         )
 
 
-# def test_source_target_selector_non_transformers():
-#     with pytest.raises(TypeError):
-#         SelectSourceTarget(StandardScaler(), SVC())
+def test_source_target_selector_non_transformers():
+    with pytest.raises(TypeError):
+        SelectSourceTarget(StandardScaler(), SVC())
