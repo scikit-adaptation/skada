@@ -15,6 +15,7 @@ from skada import (
     TransferComponentAnalysisAdapter,
     TransferJointMatching,
     TransferJointMatchingAdapter,
+    TransferSubspaceLearning,
     TransferSubspaceLearningAdapter,
     make_da_pipeline,
 )
@@ -38,10 +39,10 @@ from skada.datasets import DomainAwareDataset
             TransferJointMatchingAdapter(n_components=2, kernel="linear", verbose=True),
             LogisticRegression(),
         ),
-        TransferSubspaceLearningAdapter(n_components=2),
-        TransferSubspaceLearningAdapter(n_components=2, base_method="pca"),
-        TransferSubspaceLearningAdapter(n_components=2, base_method="flda"),
-        TransferSubspaceLearningAdapter(n_components=2, base_method="lpp"),
+        TransferSubspaceLearning(n_components=2),
+        TransferSubspaceLearning(n_components=2, base_method="pca"),
+        TransferSubspaceLearning(n_components=2, base_method="flda"),
+        TransferSubspaceLearning(n_components=2, base_method="lpp"),
         make_da_pipeline(
             TransferSubspaceLearningAdapter(n_components=2),
             LogisticRegression(),
