@@ -20,7 +20,9 @@ from skada import (
     Shared,
     SubspaceAlignmentAdapter,
     make_da_pipeline,
+    source_target_split,
 )
+from skada.base import BaseAdapter
 from skada.datasets import DomainAwareDataset
 
 
@@ -199,3 +201,44 @@ def test_allow_nd_x():
         as_sources=["source"], as_targets=["target"]
     )
     pipe.fit(X, y, sample_domain=sample_domain)
+
+
+def test_adaptation_output_propagate_labels(da_reg_dataset):
+    X, y, sample_domain = da_reg_dataset
+    _, X_target, _, target_domain = source_target_split(
+        X, sample_domain, sample_domain=sample_domain
+    )
+    output = {}
+
+    class FakeAdapter(BaseAdapter):
+        def fit(self, X, y=None, *, sample_domain=None):
+            self.fitted_ = True
+            return self
+
+        def adapt(self, X, y=None, sample_domain=None):
+            if y is not None:
+                assert not np.any(np.isnan(y)), "Expect unmasked labels"
+                y[::2] = np.nan
+            return X, y, dict()
+
+    class FakeEstimator(BaseEstimator):
+        def fit(self, X, y=None, **params):
+            output["fit_n_samples"] = X.shape[0]
+            self.fitted_ = True
+            return self
+
+        def predict(self, X):
+            return X
+
+    clf = make_da_pipeline(
+        StandardScaler(),
+        FakeAdapter(),
+        FakeEstimator(),
+    )
+
+    # check no errors are raised
+    clf.fit(X, y, sample_domain=sample_domain)
+    clf.predict(X_target, sample_domain=target_domain)
+
+    # output should contain only half of targets
+    assert output["fit_n_samples"] == X.shape[0] // 2

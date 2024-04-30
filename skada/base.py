@@ -310,6 +310,7 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
             output = X_container.merge_into(output)
         return output
 
+    @available_if(_estimator_has('predict'))
     def predict(self, X, **params):
         return self._route_to_estimator('predict', X, **params)
 
@@ -425,7 +426,12 @@ class Shared(BaseSelector):
         check_is_fitted(self)
         return self.base_estimator_
 
-    def fit(self, X, y, **params):
+    # xxx(okachaiev): solve the problem with parameter renaming
+    def fit(self, X_container, y=None, **params):
+        X, y, params = X_container.merge_out(y, **params)
+        # xxx(okachaiev): for Share this should not be necessary,
+        # as we expect metadata routing to select parameters for us
+        # we only need to remove masked (when necessary)
         routing = get_routing_for_object(self.base_estimator)
         X, routed_params = self._merge_and_route_params(routing.fit, X, params)
         X, y, routed_params = self._remove_masked(X, y, routed_params)
@@ -435,30 +441,48 @@ class Shared(BaseSelector):
         self.routing_ = routing
         return self
 
-    # xxx(okachaiev): check if underlying estimator supports 'fit_transform'
-    def fit_transform(self, X, y=None, **params):
-        self.fit(X, y, **params)
+    # xxx(okachaiev): this is not exactly true, more like
+    # a) estimator has transform
+    # b) estimator has fit_transform
+    # c) estimator is adapter (has transform)
+    @available_if(_estimator_has('transform'))
+    def fit_transform(self, X_container, y=None, **params):
         # 'fit_transform' allows transformation for source domains
         # as well, that's why it calls 'adapt' directly
-        if isinstance(self.base_estimator_, BaseAdapter):
-            # xxx(okachaiev): adapt should take 'y' as well, as in many cases
-            # we need to bound estimator fitting to a sub-group of the input
-            routed_params = self.routing_.fit_transform._route_params(params=params)
-            output = self.base_estimator_.adapt(X, **routed_params)
+        # if isinstance(self.base_estimator, BaseAdapter):
+        #     self.fit(X_container, y, **params)
+        #     # xxx(okachaiev): adapt should take 'y' as well, as in many cases
+        #     # we need to bound estimator fitting to a sub-group of the input
+        #     X, y, method_params = X_container.merge_out(y, **params)
+        #     routed_params = self.routing_.fit_transform._route_params(params=method_params)
+        #     output = self.base_estimator_.adapt(X, **routed_params)
+        if hasattr(self.base_estimator, "fit_transform"):
+            X, y, method_params = X_container.merge_out(y, **params)
+            routing = get_routing_for_object(self.base_estimator)
+            X, routed_params = self._merge_and_route_params(routing.fit_transform, X, method_params)
+            X, y, routed_params = self._remove_masked(X, y, routed_params)
+            estimator = clone(self.base_estimator)
+            output = estimator.fit_transform(X, y, **routed_params)
+            self.base_estimator_ = estimator
+            self.routing_ = routing
         else:
-            output = self.transform(X, **params)
-        return output
+            self.fit(X_container, y, **method_params)
+            X, y, method_params = X_container.merge_out(y, **params)
+            transform_params = self.routing_.transform._route_params(params=method_params)
+            output = self.transform(X, **transform_params)
+        return X_container.merge_in(output)
 
     # xxx(okachaiev): fail if unknown domain is given
     def _route_to_estimator(self, method_name, X_container, y=None, **params):
         check_is_fitted(self)
         request = getattr(self.routing_, method_name)
-        X, routed_params = self._merge_and_route_params(request, X_container, params)
+        X, y, params = X_container.merge_out(y, **params)
+        X, routed_params = self._merge_and_route_params(request, X, params)
         method = getattr(self.base_estimator_, method_name)
         output = method(X, **routed_params) if y is None else method(
             X, y, **routed_params
         )
-        return output
+        return X_container.merge_in(output)
 
 
 class PerDomain(BaseSelector):

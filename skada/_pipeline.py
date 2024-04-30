@@ -5,18 +5,62 @@
 # License: BSD 3-Clause
 
 from collections import defaultdict
-from typing import Callable, Optional, Union
+from dataclasses import dataclass
+from typing import Callable, List, Optional, Union
 
+import numpy as np
 from joblib import Memory
 from sklearn.base import BaseEstimator
 from sklearn.pipeline import Pipeline
 
-from .base import BaseSelector, PerDomain, Shared
+from .base import AdaptationOutput, BaseSelector, PerDomain, Shared
 
 _DEFAULT_SELECTORS = {
     "shared": Shared,
     "per_domain": PerDomain,
 }
+
+
+@dataclass
+class Container:
+    _features: np.ndarray
+    _labels: np.ndarray
+    _metadata: dict
+
+    def merge_in(self, X_container):
+        if isinstance(X_container, AdaptationOutput):
+            self._features = X_container.X
+            self._metadata.update(X_container.params)
+        elif isinstance(X_container, tuple) and len(X_container) == 2:
+            X, params = X_container
+            assert isinstance(params, dict)
+            self._features = X
+            self._metadata.update(params)
+        elif isinstance(X_container, tuple) and len(X_container) == 3:
+            X, y, params = X_container
+            assert isinstance(params, dict)
+            self._features = X
+            self._labels = y
+            self._metadata.update(params)
+        elif isinstance(X_container, np.ndarray):
+            self._features = X_container
+        else:
+            raise ValueError("Unsupported container")
+        return self
+
+    def merge_out(self, y, **params):
+        params.update(self._metadata)
+        y_out = self._labels if self._labels is not None else y
+        return self._features, y_out, params
+
+
+# xxx(okachaiev): this one needs good procedure for serialize/deserialize
+class _ConvertToDAContainer(BaseEstimator):
+    def fit_transform(self, X, y=None, **params):
+        return Container(_features=X, _labels=y, _metadata=params)
+
+    def transform(self, X, **params):
+        return Container(_features=X, _labels=None, _metadata=params)
 
 
 # xxx(okachaiev): block 'fit_predict' as it is somewhat unexpected
@@ -77,17 +121,17 @@ def make_da_pipeline(
                      Shared(base_estimator=GaussianNB(), priors=None,
                             var_smoothing=1e-09))])
     """
-    # note that we generate names before wrapping estimators into the selector
-    # xxx(okachaiev): unwrap from the selector when passed explicitly
     if not steps:
         raise TypeError("Missing 1 required positional argument: 'steps'")
 
-    names, estimators = [], []
+    names, estimators = [None], [_ConvertToDAContainer()]
     for step in steps:
         name, estimator = step if isinstance(step, tuple) else (None, step)
-        if isinstance(estimator, Pipeline) and isinstance(estimator[0], BaseSelector):
+        if isinstance(estimator, Pipeline) and isinstance(
+            estimator[0], _ConvertToDAContainer
+        ):
             # this means we got DA pipeline as a step in the pipeline
-            for nested_name, nested_selector in estimator.steps:
+            for nested_name, nested_selector in estimator.steps[1:]:
                 if name is not None:
                     nested_name = f"{name}__{nested_name}"
                 names.append(nested_name)
@@ -110,7 +154,7 @@ def _wrap_with_selector(
     estimator: BaseEstimator,
     selector: Union[str, Callable[[BaseEstimator], BaseSelector]],
 ) -> BaseSelector:
-    if not isinstance(estimator, BaseSelector):
+    if not isinstance(estimator, (_ConvertToDAContainer, BaseSelector)):
         if callable(selector):
             estimator = selector(estimator)
             if not isinstance(estimator, BaseSelector):
@@ -132,9 +176,9 @@ def _wrap_with_selector(
 
 
 def _wrap_with_selectors(
-    estimators: [BaseEstimator],
+    estimators: List[BaseEstimator],
     default_selector: Union[str, Callable[[BaseEstimator], BaseSelector]],
-) -> [BaseEstimator]:
+) -> List[BaseEstimator]:
     return [
         (_wrap_with_selector(estimator, default_selector)) for estimator in estimators
     ]
