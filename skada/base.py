@@ -5,7 +5,7 @@
 # License: BSD 3-Clause
 
 from abc import abstractmethod
-from typing import Literal, Optional, Union
+from typing import Dict, Literal, Optional, Tuple
 
 import numpy as np
 from sklearn.base import BaseEstimator, clone
@@ -330,21 +330,8 @@ class Shared(BaseSelector):
         self._fit('fit', X_container, y, **params)
         return self
     
-    # xxx(okachaiev): this is not exactly true, more like
-    # a) estimator has transform
-    # b) estimator has fit_transform
-    # c) estimator is adapter (has transform)
     @available_if(_estimator_has('transform'))
     def fit_transform(self, X_container, y=None, **params):
-        # 'fit_transform' allows transformation for source domains
-        # as well, that's why it calls 'adapt' directly
-        # if isinstance(self.base_estimator, BaseAdapter):
-        #     self.fit(X_container, y, **params)
-        #     # xxx(okachaiev): adapt should take 'y' as well, as in many cases
-        #     # we need to bound estimator fitting to a sub-group of the input
-        #     X, y, method_params = X_container.merge_out(y, **params)
-        #     routed_params = self.routing_.fit_transform._route_params(params=method_params)
-        #     output = self.base_estimator_.adapt(X, **routed_params)
         if hasattr(self.base_estimator, "fit_transform"):
             output = self._fit('fit_transform', X_container, y, **params)
         else:
@@ -357,9 +344,6 @@ class Shared(BaseSelector):
     # xxx(okachaiev): solve the problem with parameter renaming
     def _fit(self, routing_method, X_container, y=None, **params):
         X, y, params = X_container.merge_out(y, **params)
-        # xxx(okachaiev): for Share this should not be necessary,
-        # as we expect metadata routing to select parameters for us
-        # we only need to remove masked (when necessary)
         routing = get_routing_for_object(self.base_estimator)
         routed_params = self._merge_and_route_params(getattr(routing, routing_method), X_container, params)
         X, y, routed_params = self._remove_masked(X, y, routed_params)
@@ -390,6 +374,10 @@ class PerDomain(BaseSelector):
         return self.estimators_[domain_label]
 
     def fit(self, X_container, y, **params):
+        self._fit(X_container, y, **params)
+        return self
+
+    def _fit(self, X_container, y, **params) -> Dict[int, Tuple[np.ndarray, np.ndarray]]:
         X, y, params = X_container.merge_out(y, **params)
         sample_domain = params['sample_domain']
         routing = get_routing_for_object(self.base_estimator)
@@ -409,6 +397,48 @@ class PerDomain(BaseSelector):
         self.routing_ = routing
         return self
 
+    @available_if(_estimator_has('transform'))
+    def fit_transform(self, X_container, y=None, **params):
+        if hasattr(self.base_estimator, "fit_transform"):
+            X, y, params = X_container.merge_out(y, **params)
+            sample_domain = params['sample_domain']
+            routing = get_routing_for_object(self.base_estimator)
+            routed_params = self._merge_and_route_params(routing.fit_transform, X_container, params)
+            X, y, routed_params = self._remove_masked(X, y, routed_params)
+            estimators, output = {}, {}
+            for domain_label in np.unique(sample_domain):
+                idx, = np.where(sample_domain == domain_label)
+                estimator = clone(self.base_estimator)
+                domain_output = estimator.fit_transform(
+                    X[idx],
+                    y[idx] if y is not None else None,
+                    **{k: v[idx] for k, v in routed_params.items()}
+                )
+                # xxx(okachaiev): output of fit_transform could be a tuple
+                # need to implement this separately
+                assert isinstance(domain_output, np.ndarray)
+                estimators[domain_label] = estimator
+                output[domain_label] = (idx, domain_output)
+            self.estimators_ = estimators
+            self.routing_ = routing
+        else:
+            self._fit(X_container, y, **params)
+            X, y, method_params = X_container.merge_out(y, **params)
+            transform_params = self.routing_.transform._route_params(params=method_params)
+            output = self.transform(X, **transform_params)
+        return X_container.merge_in(self._merge_domain_outputs(len(X_container), output))
+
+    def _merge_domain_outputs(self, n_samples, domain_outputs):
+        assert len(domain_outputs), 'At least a single domain has to be given'
+        _, first_output = next(iter(domain_outputs.values()))
+        output = np.zeros(
+            (n_samples, *first_output.shape[1:]),
+            dtype=first_output.dtype
+        )
+        for idx, domain_output in domain_outputs.values():
+            output[idx] = domain_output
+        return output
+
     def _route_to_estimator(self, method_name, X, y=None, **params):
         check_is_fitted(self)
         request = getattr(self.routing_, method_name)
@@ -416,10 +446,9 @@ class PerDomain(BaseSelector):
         routed_params = self._merge_and_route_params(request, None, params)
         # xxx(okachaiev): use check_*_domain to derive default domain labels
         sample_domain = params['sample_domain']
-        output = None
-        lst_domains = np.unique(sample_domain)
+        domain_outputs = {}
         # test if default target domain and unique target during fit and replace label
-        for domain_label in lst_domains:
+        for domain_label in np.unique(sample_domain):
             # xxx(okachaiev): fail if unknown domain is given
             try:
                 method = getattr(self.estimators_[domain_label], method_name)
@@ -436,13 +465,8 @@ class PerDomain(BaseSelector):
                 domain_output = method(X_domain, **domain_params)
             else:
                 domain_output = method(X_domain, y_domain, **domain_params)
-            if output is None:
-                output = np.zeros(
-                    (X.shape[0], *domain_output.shape[1:]),
-                    dtype=domain_output.dtype
-                )
-            output[idx] = domain_output
-        return output
+            domain_outputs[domain_label] = (idx, domain_output)
+        return self._merge_domain_outputs(X.shape[0], domain_outputs)
 
 
 class _BaseSelectDomain(Shared):

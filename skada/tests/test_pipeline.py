@@ -63,7 +63,8 @@ def test_per_domain_selector():
     scaler = make_da_pipeline(PerDomain(StandardScaler()))
     X = np.array([[1.0, 0.0], [0.0, 8.0], [3.0, 0.0], [0.0, 0.0]])
     sample_domain = np.array([1, 2, 1, 2])
-    scaler.fit(X, None, sample_domain=sample_domain)
+    scaler.fit(X, y=None, sample_domain=sample_domain)
+    scaler.fit_transform(X, y=None, sample_domain=sample_domain)
     assert_array_equal(
         np.array([[-3.0, 1.0]]),
         scaler.transform(np.array([[-1.0, 1.0]]), sample_domain=np.array([1])),

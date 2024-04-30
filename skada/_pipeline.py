@@ -63,6 +63,9 @@ class MetadataContainer:
     def iter_metadata(self) -> Iterator[Tuple[str, Any]]:
         return self._metadata.items()
 
+    def __len__(self):
+        return self._features.shape[0]
+
 
 # xxx(okachaiev): this one needs good procedure for serialize/deserialize
 class _ConvertToMetadataContainer(BaseEstimator):
