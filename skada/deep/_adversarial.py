@@ -366,7 +366,9 @@ def CDAN(
                 "If domain_classifier is None, num_features has to be provided"
             )
         if n_classes is None:
-            raise ValueError("If n_classes is None, n_classes has to be provided")
+            raise ValueError(
+                "If domain_classifier is None, n_classes has to be provided"
+            )
         num_features = np.min([num_features * n_classes, max_features])
         domain_classifier = DomainClassifier(num_features=num_features)
 
