@@ -71,7 +71,7 @@ class MetadataContainer:
 class _ConvertToMetadataContainer(BaseEstimator):
     def fit_transform(self, X, y=None, **params):
         self.fitted_ = True
-        return MetadataContainer(_features=X, _labels=y, _metadata=params)
+        return MetadataContainer(_features=X, _labels=y, _metadata={})
 
     def transform(self, X, **params):
         # here we purposefully keep original input intact,
