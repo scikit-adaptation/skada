@@ -14,7 +14,6 @@ from skada.deep.base import (
     DomainAwareNet,
     DomainBalancedDataLoader,
 )
-from skada.utils import extract_source_indices
 
 from .modules import DomainClassifier
 from .utils import check_generator
@@ -242,7 +241,7 @@ class CDANModule(DomainAwareModule):
 
     def forward(self, X, sample_domain=None, is_fit=False, return_features=False):
         if is_fit:
-            source_idx = extract_source_indices(sample_domain)
+            source_idx = (sample_domain >= 0)
 
             X_t = X[~source_idx]
             X_s = X[source_idx]
@@ -283,15 +282,24 @@ class CDANModule(DomainAwareModule):
 
             domain_pred_s = self.domain_classifier_(multilinear_map)
             domain_pred_t = self.domain_classifier_(multilinear_map_target)
-            domain_pred = torch.empty(len(sample_domain))
+            domain_pred = torch.empty(
+                len(sample_domain),
+                device=domain_pred_s.device
+            )
             domain_pred[source_idx] = domain_pred_s
             domain_pred[~source_idx] = domain_pred_t
 
-            y_pred = torch.empty((len(sample_domain), y_pred_s.shape[1]))
+            y_pred = torch.empty(
+                (len(sample_domain), y_pred_s.shape[1]),
+                device=y_pred_s.device
+            )
             y_pred[source_idx] = y_pred_s
             y_pred[~source_idx] = y_pred_t
 
-            features = torch.empty((len(sample_domain), features_s.shape[1]))
+            features = torch.empty(
+                (len(sample_domain), features_s.shape[1]),
+                device=features_s.device
+            )
             features[source_idx] = features_s
             features[~source_idx] = features_t
 
@@ -315,6 +323,7 @@ def CDAN(
     max_features=4096,
     domain_classifier=None,
     num_features=None,
+    n_classes=None,
     domain_criterion=None,
     **kwargs,
 ):
@@ -346,6 +355,9 @@ def CDAN(
         the feature extractor.
         If domain_classifier is None, num_features has to be
         provided.
+    n_classes : int, default None
+        Number of output classes.
+        If domain classifier is None, n_classes has to be provided.
     domain_criterion : torch criterion (class)
         The criterion (loss) used to compute the
         CDAN loss. If None, a BCELoss is used.
@@ -360,7 +372,11 @@ def CDAN(
             raise ValueError(
                 "If domain_classifier is None, num_features has to be provided"
             )
-        num_features = np.min([num_features, max_features])
+        if n_classes is None:
+            raise ValueError(
+                "If n_classes is None, n_classes has to be provided"
+            )
+        num_features = np.min([num_features * n_classes, max_features])
         domain_classifier = DomainClassifier(num_features=num_features)
 
     net = DomainAwareNet(

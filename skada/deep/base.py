@@ -14,8 +14,6 @@ from skorch import NeuralNetClassifier
 
 from .utils import _register_forwards_hook
 
-from skada.utils import extract_source_indices
-
 from skada.base import _DAMetadataRequesterMixin
 
 
