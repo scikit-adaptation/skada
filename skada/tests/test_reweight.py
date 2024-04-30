@@ -8,6 +8,7 @@
 import numpy as np
 import pytest
 from sklearn.linear_model import LogisticRegression, Ridge
+from sklearn.utils import check_random_state
 
 from skada import (
     DensityReweight,
@@ -139,7 +140,8 @@ def _base_test_new_X_adapt(estimator, da_dataset):
 
     estimator.fit(X_train, y_train, sample_domain=sample_domain)
     res1 = estimator.adapt(X_train, y_train, sample_domain=sample_domain)
-    idx = np.random.choice(X_train.shape[0], 10)
+    rng = check_random_state(43)
+    idx = rng.choice(X_train.shape[0], 10)
     true_weights = res1["sample_weight"][idx]
 
     # Adapt with new X, i.e. same domain, different samples

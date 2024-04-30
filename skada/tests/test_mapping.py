@@ -8,6 +8,7 @@
 import numpy as np
 from sklearn.linear_model import LogisticRegression, Ridge
 from sklearn.svm import SVC
+from sklearn.utils import check_random_state
 
 try:
     import torch
@@ -133,7 +134,8 @@ def _base_test_new_X_adapt(estimator, da_dataset):
     estimator.fit(X_train, y_train, sample_domain=sample_domain)
     true_X_adapt = estimator.adapt(X_train, y_train, sample_domain=sample_domain)
 
-    idx = np.random.choice(len(X_train), len(X_train) // 5, replace=False)
+    rng = check_random_state(42)
+    idx = rng.choice(len(X_train), len(X_train) // 5, replace=False)
 
     # Adapt with new X, i.e. same domain, different samples
     X_adapt = estimator.adapt(

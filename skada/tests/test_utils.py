@@ -5,6 +5,7 @@
 
 import numpy as np
 import pytest
+from sklearn.utils import check_random_state
 
 from skada._utils import _check_y_masking
 from skada.datasets import make_dataset_from_moons_distribution
@@ -146,7 +147,8 @@ def test_check_X_y_allow_exceptions():
 
     # Generate a random_sample_domain of size len(y)
     # with random integers between -5 and 5 (excluding 0)
-    random_sample_domain = np.random.choice(
+    rng = check_random_state(42)
+    random_sample_domain = rng.choice(
         np.concatenate((np.arange(-5, 0), np.arange(1, 6))), size=len(y)
     )
     allow_source = False
@@ -233,7 +235,8 @@ def test_check_X_allow_exceptions():
 
     # Generate a random_sample_domain of size len(y)
     # with random integers between -5 and 5 (excluding 0)
-    random_sample_domain = np.random.choice(
+    rng = check_random_state(42)
+    random_sample_domain = rng.choice(
         np.concatenate((np.arange(-5, 0), np.arange(1, 6))), size=len(y)
     )
     allow_source = False

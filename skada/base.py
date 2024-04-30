@@ -476,7 +476,7 @@ class PerDomain(BaseSelector):
     def fit(self, X, y, **params):
         sample_domain = params['sample_domain']
         routing = get_routing_for_object(self.base_estimator)
-        X, routed_params = self._merge_and_route_params(routing.fit, X, params)
+        routed_params = self._merge_and_route_params(routing.fit, X, params)
         X, y, routed_params = self._remove_masked(X, y, routed_params)
         estimators = {}
         for domain_label in np.unique(sample_domain):
