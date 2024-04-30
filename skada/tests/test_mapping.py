@@ -27,6 +27,7 @@ from skada import (
     LinearOTMappingAdapter,
     MMDLSConSMapping,
     MMDLSConSMappingAdapter,
+    MultiLinearMongeAlignmentAdapter,
     OTMapping,
     OTMappingAdapter,
     make_da_pipeline,
@@ -52,6 +53,7 @@ from skada.datasets import DomainAwareDataset
         ClassRegularizerOTMapping(norm="l1l2"),
         make_da_pipeline(LinearOTMappingAdapter(), LogisticRegression()),
         LinearOTMapping(),
+        make_da_pipeline(MultiLinearMongeAlignmentAdapter(), LogisticRegression()),
         make_da_pipeline(CORALAdapter(), LogisticRegression()),
         pytest.param(
             CORALAdapter(reg=None),

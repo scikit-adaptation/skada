@@ -578,15 +578,27 @@ class MultiLinearMongeAlignmentAdapter(BaseAdapter):
             for domain, (X, y, w) in targets.items()
         }
 
+        C = np.stack([cov for cov, mean in self.cov_means_sources_.values()])
+        m = np.stack([mean for cov, mean in self.cov_means_sources_.values()])
+
         self.barycenter_ = bures_wasserstein_barycenter(
-            [mean for cov, mean in self.cov_means_sources_.values()],
-            [cov for cov, mean in self.cov_means_sources_.values()],
-            reg=self.reg,
+            m,
+            C,
+            eps=self.reg,
         )
 
         self._mappings_ = {
             domain: bures_wasserstein_mapping(
                 mean,
+                self.barycenter_[0],
+                cov,
+                self.barycenter_[1],
+            )
+            for domain, (cov, mean) in self.cov_means_sources_.items()
+        }
+
+        mapping_target = {
+            domain: bures_wasserstein_mapping(
                 mean,
                 self.barycenter_[0],
                 cov,
@@ -594,6 +606,8 @@ class MultiLinearMongeAlignmentAdapter(BaseAdapter):
             )
             for domain, (cov, mean) in self.cov_means_targets_.items()
         }
+
+        self._mappings_.update(mapping_target)
 
         return self
 
