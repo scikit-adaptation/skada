@@ -7,6 +7,7 @@ to subspace shift
 """
 
 # Author:   Ruben Bueno <ruben.bueno@polytechnique.edu>
+#           Antoine Collas <contact@antoinecollas.fr>
 #
 # License: BSD 3-Clause
 # sphinx_gallery_thumbnail_number = 4
@@ -22,6 +23,7 @@ from skada import (
     SubspaceAlignment,
     TransferComponentAnalysis,
     TransferJointMatching,
+    TransferSubspaceLearning,
     source_target_split,
 )
 from skada.datasets import make_shifted_datasets
@@ -336,6 +338,26 @@ plot_subspace_and_classifier(
     clf,
     "TransferJointMatching with rbf kernel",
 )
+
+# %%
+#     Illustration of the Transfer Subspace Learning method
+# ------------------------------------------
+#
+# Transfer Subspace Learning (TSL) is a method that aims to learn a subspace using
+# classical loss functions (e.g. PCA, Fisher LDA) but regularized so that
+# the source and target data have the same distribution once projected on the subspace.
+#
+# See [27] for details:
+#
+# .. [27]  [Si et al., 2010] Si, S., Tao, D. and Geng, B.
+#           Bregman Divergence-Based Regularization
+#           for Transfer Subspace Learning.
+#           In IEEE Transactions on Knowledge and Data Engineering.
+#           pages 929-942
+
+clf = TransferSubspaceLearning(base_classifier, n_components=1)
+clf.fit(X, y, sample_domain=sample_domain)
+plot_subspace_and_classifier(clf, "TransferSubspaceLearning")
 
 
 # %%
