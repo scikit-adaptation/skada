@@ -67,12 +67,15 @@ class MetadataContainer:
 # xxx(okachaiev): this one needs good procedure for serialize/deserialize
 class _ConvertToMetadataContainer(BaseEstimator):
     def fit_transform(self, X, y=None, **params):
+        self.fitted_ = True
         return MetadataContainer(_features=X, _labels=y, _metadata=params)
 
-    # xxx(okachaiev): do we really need the transform to pass anything
-    # except the samples, like sample_weight or labels or anything?
     def transform(self, X, **params):
-        return MetadataContainer(_features=X, _labels=None, _metadata=params)
+        # here we purposefully keep original input intact,
+        # the ability to generate new labels and/or weights
+        # in only required during fitting is fully covered
+        # by `fit_transform` method
+        return X
 
 
 # xxx(okachaiev): block 'fit_predict' as it is somewhat unexpected

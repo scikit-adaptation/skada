@@ -473,11 +473,11 @@ class Shared(BaseSelector):
         return X_container.merge_in(output)
 
     # xxx(okachaiev): fail if unknown domain is given
-    def _route_to_estimator(self, method_name, X_container, y=None, **params):
+    def _route_to_estimator(self, method_name, X, y=None, **params):
         check_is_fitted(self)
-        X, y, params = X_container.merge_out(y, **params) if not isinstance(X_container, np.ndarray) else (X_container, y, params)
         request = getattr(self.routing_, method_name)
-        X, routed_params = self._merge_and_route_params(request, X, params)
+        routed_params = {k: params[k] for k in request._consumes(params=params)}
+        X, y, params = self._remove_masked(X, y, params)
         method = getattr(self.base_estimator_, method_name)
         output = method(X, **routed_params) if y is None else method(
             X, y, **routed_params
