@@ -101,7 +101,10 @@ class DensityReweightAdapter(BaseAdapter):
             The weights of the samples.
         """
         self.fit(X, y, sample_domain=sample_domain)
-        X, sample_domain = check_X_domain(X, sample_domain)
+        return self._adapt(X, sample_domain=sample_domain)
+
+    def _adapt(self, X, *, sample_domain=None):
+        X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
         (source_idx,) = np.where(source_idx)
         ws = self.weight_estimator_source_.score_samples(X[source_idx])
@@ -224,7 +227,10 @@ class GaussianReweightAdapter(BaseAdapter):
             The weights of the samples.
         """
         self.fit(X, y, sample_domain=sample_domain)
-        X, sample_domain = check_X_domain(X, sample_domain)
+        return self._adapt(X, sample_domain=sample_domain)
+
+    def _adapt(self, X, *, sample_domain=None):
+        X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
         (source_idx,) = np.where(source_idx)
         gaussian_target = multivariate_normal.pdf(
@@ -354,7 +360,10 @@ class DiscriminatorReweightAdapter(BaseAdapter):
             The weights of the samples.
         """
         self.fit(X, y, sample_domain=sample_domain)
-        X, sample_domain = check_X_domain(X, sample_domain)
+        return self._adapt(X, sample_domain=sample_domain)
+
+    def _adapt(self, X, *, sample_domain=None):
+        X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
         # xxx(okachaiev): it seems to me that would work without np.where
         # as we only use this array for indexing
@@ -575,7 +584,10 @@ class KLIEPReweightAdapter(BaseAdapter):
             The weights of the samples.
         """
         self.fit(X, y, sample_domain=sample_domain)
-        X, sample_domain = check_X_domain(X, sample_domain)
+        return self._adapt(X, sample_domain=sample_domain)
+
+    def _adapt(self, X, *, sample_domain=None):
+        X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
         (source_idx,) = np.where(source_idx)
         A = pairwise_kernels(
@@ -1089,7 +1101,10 @@ class KMMReweightAdapter(BaseAdapter):
             The weights of the samples.
         """
         self.fit(X, y, sample_domain=sample_domain)
-        X, sample_domain = check_X_domain(X, sample_domain)
+        return self._adapt(X, sample_domain=sample_domain)
+
+    def _adapt(self, X, *, sample_domain=None):
+        X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
 
         if np.array_equal(self.X_source_, X[source_idx]) and not self.smooth_weights:
