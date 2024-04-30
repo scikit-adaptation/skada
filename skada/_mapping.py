@@ -9,6 +9,7 @@ from abc import abstractmethod
 
 import numpy as np
 from ot import da
+from ot.gaussian import bures_wasserstein_barycenter, bures_wasserstein_mapping
 from sklearn.metrics.pairwise import pairwise_distances
 from sklearn.svm import SVC
 
@@ -18,7 +19,9 @@ from .base import BaseAdapter, clone
 from .utils import (
     check_X_domain,
     check_X_y_domain,
+    extract_domains_indices,
     extract_source_indices,
+    per_domain_split,
     source_target_merge,
     source_target_split,
     torch_minimize,
@@ -498,6 +501,135 @@ def LinearOTMapping(
         ),
         base_estimator,
     )
+
+
+def _get_cov_mean(X, w=None, bias=True):
+    """Returns covariance and mean
+
+    Parameters
+    ----------
+    X : array-like, shape (n_samples, n_features)
+        The source data.
+    w : array-like, shape (n_samples,)
+        The weights of the samples.
+    bias: bool, optional (default=True)
+        estimate bias (mean).
+
+    Returns
+    -------
+    cov : array-like, shape (n_features, n_features)
+        The covariance matrix.
+    mean : array-like, shape (n_features,)
+        The mean vector.
+    """
+    if w is None:
+        w = np.ones(X.shape[0])
+    if bias:
+        mean = np.average(X, axis=0, weights=w)
+    else:
+        mean = np.zeros(X.shape[1])
+    X = X - mean
+    cov = np.dot(w * X.T, X) / np.sum(w)
+    return cov, mean
+
+
+class MultiLinearMongeAlignmentAdapter(BaseAdapter):
+    """Base class for aligning multiple domains using Monge mapping to a barycenter.
+
+    Each implementation has to provide `_create_transport_estimator` callback
+    to create OT object using parameters saved in the constructor.
+    """
+
+    def __init__(self, reg=1e-08, bias=True, test_time=False):
+        super().__init__()
+        self.reg = reg
+        self.bias = bias
+        self.test_time = test_time
+
+    def fit(self, X, y=None, sample_weight=None, sample_domain=None):
+        """Fit adaptation parameters.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
+        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        sources, targets = per_domain_split(
+            X, y, sample_weight, sample_domain=sample_domain
+        )
+
+        self.cov_means_sources_ = {
+            domain: _get_cov_mean(X, w, bias=self.bias)
+            for domain, (X, y, w) in sources.items()
+        }
+
+        self.cov_means_targets_ = {
+            domain: _get_cov_mean(X, w, bias=self.bias)
+            for domain, (X, y, w) in targets.items()
+        }
+
+        self.barycenter_ = bures_wasserstein_barycenter(
+            [mean for cov, mean in self.cov_means_sources_.values()],
+            [cov for cov, mean in self.cov_means_sources_.values()],
+            reg=self.reg,
+        )
+
+        self._mappings_ = {
+            domain: bures_wasserstein_mapping(
+                mean,
+                mean,
+                self.barycenter_[0],
+                cov,
+                self.barycenter_[1],
+            )
+            for domain, (cov, mean) in self.cov_means_targets_.items()
+        }
+
+        return self
+
+    def adapt(self, X, y=None, sample_domain=None):
+        """Predict adaptation (weights, sample or labels).
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels.
+
+        Returns
+        -------
+        X_t : array-like, shape (n_samples, n_components)
+            The data transformed to the target subspace.
+        y_t : array-like, shape (n_samples,)
+            The labels (same as y).
+        weights : array-like, shape (n_samples,)
+            The weights of the samples.
+        """
+        # xxx(okachaiev): implement auto-infer for sample_domain
+        X, sample_domain = check_X_domain(
+            X, sample_domain, allow_multi_source=True, allow_multi_target=True
+        )
+        idx = extract_domains_indices(sample_domain)
+        X_adapt = X.copy()
+
+        for domain, sel in idx.items():
+            A, b = self._mappings_[domain]
+            X_adapt[sel] = X[sel].dot(A) + b
+
+        return X_adapt
 
 
 def _sqrtm(C):
