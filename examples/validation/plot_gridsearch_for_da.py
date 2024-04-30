@@ -2,11 +2,13 @@
 Using GridSearchCV with skada
 =============================
 
-This illustrates the use of DA scorer such as :class:`~skada.metrics.ImportanceWeightedScorer`
+This example illustrates the use of DA scorer such as :class:`~skada.metrics.ImportanceWeightedScorer`
 with `GridSearchCV <https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html>`_.
 """  # noqa
 # %%
-# Prepare dataset and the estimator
+# First, we create a shifted dataset and prepare the base estimator doing the
+# classification and the DA estimator. We use :code:`ShuffleSplit` as
+# cross-validation strategy.
 
 import warnings
 
@@ -21,25 +23,30 @@ from skada.metrics import PredictionEntropyScorer
 
 warnings.filterwarnings("ignore")
 
-
+RANDOM_SEED = 42
 dataset = make_shifted_datasets(
     n_samples_source=30,
     n_samples_target=20,
     shift="concept_drift",
     label="binary",
     noise=0.4,
-    random_state=42,
+    random_state=RANDOM_SEED,
     return_dataset=True,
 )
 X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
 X_target, y_target, _ = dataset.pack_test(as_targets=["t"])
 
-# %%
-# Run grid search
-
-reg_e = [0.01, 0.05, 0.1]
 estimator = EntropicOTMapping(base_estimator=SVC(probability=True))
-cv = ShuffleSplit(n_splits=5, test_size=0.3, random_state=0)
+cv = ShuffleSplit(n_splits=5, test_size=0.3, random_state=RANDOM_SEED)
+
+# %%
+# We want to perform a grid search to find the best regularization parameter
+# for the DA estimator. The DA pipeline can directly be used in :code:`GridSearchCV`.
+# We use the :class:`~skada.metrics.PredictionEntropyScorer`
+# to evaluate the performance of the DA estimator in the grid search.
+
+reg_e = [0.01, 0.03, 0.05, 0.08, 0.1]
+
 grid_search = GridSearchCV(
     estimator,
     {"entropicotmappingadapter__reg_e": reg_e},
@@ -81,3 +88,5 @@ plt.scatter(
     alpha=0.5,
 )
 plt.show()
+
+# %%
