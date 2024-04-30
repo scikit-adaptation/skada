@@ -38,6 +38,7 @@ from skada import (
     OTMapping,
     SubspaceAlignment,
     TransferComponentAnalysis,
+    TransferSubspaceLearning,
 )
 from skada.datasets import make_shifted_datasets
 
@@ -55,6 +56,7 @@ names = [
     "MMD TarS",
     "Subspace Alignment",
     "TCA",
+    "TSL",
     "OT mapping",
     "Entropic OT mapping",
     "Class Reg. OT mapping",
@@ -77,6 +79,7 @@ classifiers = [
     MMDTarSReweight(SVC().set_fit_request(sample_weight=True), gamma=1),
     SubspaceAlignment(base_estimator=SVC(), n_components=1),
     TransferComponentAnalysis(base_estimator=SVC(), n_components=1, mu=0.5),
+    TransferSubspaceLearning(base_estimator=SVC(), n_components=1),
     OTMapping(base_estimator=SVC()),
     EntropicOTMapping(base_estimator=SVC()),
     ClassRegularizerOTMapping(base_estimator=SVC()),
