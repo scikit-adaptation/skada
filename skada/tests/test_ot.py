@@ -16,7 +16,8 @@ from skada.utils import source_target_split
 
 def test_JDOTRegressor(da_reg_dataset):
     X, y, sample_domain = da_reg_dataset
-    w = np.random.rand(X.shape[0])
+    rng = np.random.default_rng(42)
+    w = rng.standard_normal(X.shape[0])
 
     Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 
@@ -47,28 +48,25 @@ def test_JDOTRegressor(da_reg_dataset):
 
 def test_JDOTRegressor_pipeline(da_reg_dataset):
     X, y, sample_domain = da_reg_dataset
-
     Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 
     jdot = make_da_pipeline(
         StandardScaler(), JDOTRegressor(Ridge(), alpha=0.1, verbose=True)
     )
-
     jdot.fit(X, y, sample_domain=sample_domain)
 
     ypred = jdot.predict(Xt)
-
     assert ypred.shape[0] == Xt.shape[0]
 
     ypred2 = jdot.predict(X, sample_domain=sample_domain)
-
     assert ypred2.shape[0] == X.shape[0]
 
 
 def test_JDOTClassifier(da_multiclass_dataset, da_binary_dataset):
+    rng = np.random.default_rng(42)
     for dataset in [da_multiclass_dataset, da_binary_dataset]:
         X, y, sample_domain = dataset
-        w = np.random.rand(X.shape[0])
+        w = rng.standard_normal(X.shape[0])
 
         Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 
@@ -76,7 +74,6 @@ def test_JDOTClassifier(da_multiclass_dataset, da_binary_dataset):
         jdot = JDOTClassifier(LogisticRegression(), alpha=0.1, verbose=True)
         jdot.fit(X, y, sample_domain=sample_domain)
         ypred = jdot.predict(Xt)
-
         assert ypred.shape[0] == Xt.shape[0]
 
         # JDOT with weights
@@ -86,7 +83,6 @@ def test_JDOTClassifier(da_multiclass_dataset, da_binary_dataset):
         jdot.fit(X, y, sample_weight=w, sample_domain=sample_domain)
 
         score = jdot.score(X, y, sample_domain=sample_domain)
-
         assert score >= 0
 
         # JDOT with default base estimator

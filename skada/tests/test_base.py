@@ -8,7 +8,8 @@ from skada.base import BaseAdapter, DAEstimator
 
 
 def test_BaseAdapter():
-    X = np.random.rand(10, 2)
+    rng = np.random.default_rng(42)
+    X = rng.standard_normal((10, 2))
 
     cls = BaseAdapter()
 
@@ -20,7 +21,8 @@ def test_BaseAdapter():
 
 
 def test_DAEstimator():
-    X = np.random.rand(10, 2)
+    rng = np.random.default_rng(42)
+    X = rng.standard_normal((10, 2))
 
     cls = DAEstimator()
 

@@ -67,9 +67,9 @@ def test_subspace_alignment(estimator, da_dataset):
 def test_subspace_default_n_components(adapter, n_samples, n_features, n_components):
     rng = np.random.default_rng(42)
     X_source, y_source, X_target, y_target = (
-        rng.rand(n_samples, n_features),
+        rng.standard_normal((n_samples, n_features)),
         np.eye(n_samples, dtype="int32")[0],
-        rng.rand(n_samples, n_features),
+        rng.standard_normal((n_samples, n_features)),
         np.eye(n_samples, dtype="int32")[0],
     )
     dataset = DomainAwareDataset(
