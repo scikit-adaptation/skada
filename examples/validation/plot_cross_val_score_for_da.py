@@ -80,7 +80,7 @@ scores_no_da = cross_val_score(
     y,
     cv=cv,
     params={"sample_domain": sample_domain, "target_labels": target_labels},
-    scoring=SupervisedScorer()
+    scoring=SupervisedScorer(),
 )
 
 print(
