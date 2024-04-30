@@ -350,7 +350,7 @@ def CDAN(
         provided.
     n_classes : int, default None
         Number of output classes.
-        If domain classifier is None, n_classes has to be provided.
+        If domain_classifier is None, n_classes has to be provided.
     domain_criterion : torch criterion (class)
         The criterion (loss) used to compute the
         CDAN loss. If None, a BCELoss is used.
