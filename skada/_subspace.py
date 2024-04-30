@@ -652,7 +652,7 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
     Parameters
     ----------
     n_components : int, default=None
-        The numbers of components to learn with PCA.
+        The numbers of components to learn.
         Should be less or equal to the number of samples
         of the source and target data.
     base_method : str, default='flda'
@@ -664,7 +664,6 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
     reg : float, default=1e-4
         The regularization parameter of the covariance estimator.
         Possible values:
-
           - None: no shrinkage.
           - float between 0 and 1: fixed shrinkage parameter.
     max_iter : int>0, default=100
@@ -866,7 +865,10 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
         y_source = torch.tensor(y_source)
         X_target = torch.tensor(X_target, dtype=torch.float64)
 
-        # Loss function
+        # Solve the optimization problem
+        # min_W F(W) + mu * D(W)
+        # s.t. W^T W = I
+
         def _orth(W):
             if type(W) is np.ndarray:
                 W = np.linalg.qr(W)[0]
@@ -902,22 +904,33 @@ def TransferSubspaceLearning(
     tol=0.01,
     verbose=False,
 ):
-    """
+    """Domain Adaptation Using Transfer Subspace Learning.
 
     Parameters
     ----------
-    base_estimator : object, default=None
-        estimator used for fitting and prediction
     n_components : int, default=None
         The numbers of components to learn.
         Should be less or equal to the number of samples
         of the source and target data.
-    mu : float, default=1e-2
-        The tradeoff parameter between the TSL and divergence objective.
+    base_method : str, default='flda'
+        The method used to learn the subspace.
+        Possible values are 'pca', 'flda', and 'lpp'.
+    mu : float, default=0.1
+        The parameter of the regularization in the optimization
+        problem.
+    reg : float, default=1e-4
+        The regularization parameter of the covariance estimator.
+        Possible values:
+          - None: no shrinkage.
+          - float between 0 and 1: fixed shrinkage parameter.
     max_iter : int>0, default=100
         The maximal number of iteration before stopping when
         fitting.
-    tol : float>0, default=0.01
+    tol : float, default=0.01
+        The threshold for the differences between losses on two iteration
+        before the algorithm stops
+    verbose : bool, default=False
+        If True, print the loss value at each iteration.
 
     Returns
     -------
