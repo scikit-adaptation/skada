@@ -67,9 +67,9 @@ def test_dann(domain_classifier, domain_criterion, num_features):
     [
         (DomainClassifier(num_features=20), BCELoss(), None, 4096, 2),
         (DomainClassifier(num_features=20), None, None, 4096, 2),
-        (None, None, 20, 4096, 2),
-        (None, BCELoss(), 20, 4096, 2),
-        (None, BCELoss(), 20, 10, 2),
+        (None, None, 10, 4096, 2),
+        (None, BCELoss(), 10, 4096, 2),
+        (None, BCELoss(), 10, 10, 2),
     ],
 )
 def test_cdan(
