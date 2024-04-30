@@ -157,7 +157,7 @@ def _base_test_new_X_adapt(estimator, da_dataset):
     X_train = X_train[mask]
     y_train = y_train[mask]
     sample_domain = sample_domain[mask]
-    _, res3 = estimator.fit_transform(X_train, y_train, sample_domain=sample_domain)
+    _, res3 = estimator._adapt(X_train, sample_domain=sample_domain)
 
     # Check that the normalized weights are the same
     true_weights = res1["sample_weight"][mask]
