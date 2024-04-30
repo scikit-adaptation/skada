@@ -67,7 +67,7 @@ X, y, sample_domain
 
 Where `X` is the input data, `y` is the target labels and `sample_domain` is the
 domain labels (positive for source and negative for target domains). We provide
-below an example ho how to fit a DA estimator:
+below an example on how to fit a DA estimator:
 
 ```python
 from skada import CORAL
