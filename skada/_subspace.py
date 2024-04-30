@@ -895,7 +895,9 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
 def TransferSubspaceLearning(
     base_estimator=None,
     n_components=None,
+    base_method="flda",
     mu=0.1,
+    reg=1e-2,
     max_iter=100,
     tol=0.01,
     verbose=False,
@@ -934,9 +936,11 @@ def TransferSubspaceLearning(
         base_estimator = KNeighborsClassifier(n_neighbors=1)
 
     return make_da_pipeline(
-        TransferJointMatching(
+        TransferSubspaceLearningAdapter(
             n_components=n_components,
+            base_method=base_method,
             mu=mu,
+            reg=reg,
             max_iter=max_iter,
             tol=tol,
             verbose=verbose,
