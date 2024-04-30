@@ -140,3 +140,16 @@ def test_subspace_default_n_components(adapter, n_samples, n_features, n_compone
     if isinstance(output, AdaptationOutput):
         output = output.X
     assert output.shape[1] == n_components
+
+
+@pytest.mark.parametrize(
+    "adapter, param_name, param_value",
+    [
+        (TransferSubspaceLearning, "base_method", "wrong_method"),
+        (TransferSubspaceLearning, "reg", -0.1),
+        (TransferSubspaceLearning, "reg", 1.1),
+    ],
+)
+def test_instantiation_wrong_params(adapter, param_name, param_value):
+    with pytest.raises(ValueError):
+        adapter(**{param_name: param_value})
