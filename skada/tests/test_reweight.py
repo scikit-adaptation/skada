@@ -273,7 +273,7 @@ def test_KMMReweight_new_X_adapt(da_dataset):
 #     clf.predict(X_target, sample_domain=target_domain)
 
 
-# def test_merge_adaptation_output(da_reg_dataset):
+# def test_select_source_target_output_merge(da_reg_dataset):
 #     X, y, sample_domain = da_reg_dataset
 #     _, X_target, _, target_domain = source_target_split(
 #         X, sample_domain, sample_domain=sample_domain
@@ -283,14 +283,9 @@ def test_KMMReweight_new_X_adapt(da_dataset):
 #         def __init__(self, multiplier):
 #             self.multiplier = multiplier
 
-#         def fit(self, X, y=None, *, sample_domain=None):
+#         def fit_transform(self, X, y=None, *, sample_domain=None):
 #             self.fitted_ = True
-#             return self
-
-#         def adapt(self, X, y=None, sample_domain=None):
-#             return AdaptationOutput(
-#                 X, sample_weight=np.ones(X.shape[0]) * self.multiplier
-#             )
+#             return X, sample_weight=np.ones(X.shape[0]) * self.multiplier
 
 #     clf = make_da_pipeline(
 #         SelectSourceTarget(FakeAdapter(1.0), FakeAdapter(2.0)),
