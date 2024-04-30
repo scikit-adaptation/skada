@@ -72,13 +72,7 @@ def test_dann(domain_classifier, domain_criterion, num_features):
         (None, BCELoss(), 10, 10, 2),
     ],
 )
-def test_cdan(
-    domain_classifier,
-    domain_criterion,
-    num_feature,
-    max_feature,
-    n_classes
-):
+def test_cdan(domain_classifier, domain_criterion, num_feature, max_feature, n_classes):
     module = ToyModule2D()
     module.eval()
 
