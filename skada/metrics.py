@@ -539,9 +539,15 @@ class CircularValidation(_BaseDomainAwareScorer):
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
         source_idx = extract_source_indices(sample_domain)
 
-        backward_estimator = deepcopy(estimator)
+        # TODO: Check if skorch works with deepcopy/clone
+        try:
+            backward_estimator = deepcopy(estimator)
+        except (TypeError, AttributeError):
+            backward_estimator = clone(estimator)
 
-        y_pred_target = estimator.predict(X[~source_idx])
+        y_pred_target = estimator.predict(
+            X[~source_idx], sample_domain=sample_domain[~source_idx]
+        )
 
         if len(np.unique(y_pred_target)) == 1:
             # Otherwise, we can get ValueError exceptions
@@ -578,7 +584,9 @@ class CircularValidation(_BaseDomainAwareScorer):
                 backward_y[source_idx] = _DEFAULT_MASKED_TARGET_REGRESSION_LABEL
 
             backward_estimator.fit(X, backward_y, sample_domain=backward_sample_domain)
-            y_pred_source = backward_estimator.predict(X[source_idx])
+            y_pred_source = backward_estimator.predict(
+                X[source_idx], sample_domain=backward_sample_domain[source_idx]
+            )
 
             if y_type == Y_Type.DISCRETE:
                 # We go back to the original labels
