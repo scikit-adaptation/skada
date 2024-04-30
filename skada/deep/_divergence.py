@@ -46,9 +46,7 @@ class DeepCoralLoss(BaseDALoss):
         features_t,
     ):
         """Compute the domain adaptation loss"""
-        cov_s = torch.cov(features_s)
-        cov_t = torch.cov(features_t)
-        loss = deepcoral_loss(cov_s, cov_t)
+        loss = deepcoral_loss(features_s, features_t)
         return loss
 
 
@@ -74,11 +72,14 @@ def DeepCoral(module, layer_name, reg=1, **kwargs):
             adaptation. In ECCV Workshops, 2016.
     """
     net = DomainAwareNet(
-        DomainAwareModule(module, layer_name),
+        module=DomainAwareModule,
+        module__base_module=module,
+        module__layer_name=layer_name,
         iterator_train=DomainBalancedDataLoader,
-        criterion=DomainAwareCriterion(
-            torch.nn.CrossEntropyLoss(), DeepCoralLoss(), reg=reg
-        ),
+        criterion=DomainAwareCriterion,
+        criterion__criterion=torch.nn.CrossEntropyLoss(),
+        criterion__reg=reg,
+        criterion__adapt_criterion=DeepCoralLoss(),
         **kwargs,
     )
     return net
@@ -146,11 +147,16 @@ def DAN(module, layer_name, reg=1, sigmas=None, **kwargs):
             In ICML, 2015.
     """
     net = DomainAwareNet(
-        DomainAwareModule(module, layer_name),
+        module=DomainAwareModule,
+        module__base_module=module,
+        module__layer_name=layer_name,
         iterator_train=DomainBalancedDataLoader,
         criterion=DomainAwareCriterion(
             torch.nn.CrossEntropyLoss(), DANLoss(sigmas=sigmas), reg=reg
         ),
+        criterion__criterion=torch.nn.CrossEntropyLoss(),
+        criterion__reg=reg,
+        criterion__adapt_criterion=DANLoss(sigmas=sigmas),
         **kwargs,
     )
     return net
