@@ -3,6 +3,7 @@
 # License: BSD 3-Clause
 
 import numpy as np
+import pytest
 
 from skada.base import BaseAdapter, DAEstimator
 
@@ -13,11 +14,12 @@ def test_BaseAdapter():
 
     cls = BaseAdapter()
 
-    cls.fit(X=X, y=None, sample_domain=None)
-    # set one attribute to shohat something fitted
-    cls.something_ = 1
-    cls.transform(X=X, y=None, sample_domain=None)
+    with pytest.raises(NotImplementedError):
+        cls.fit(X=X, y=None, sample_domain=None)
+
+    cls.fitted_ = 1  # set one attribute to show it is fitted
     cls.fit_transform(X=X, y=None, sample_domain=None)
+    cls.transform(X=X, y=None, sample_domain=None)
 
 
 def test_DAEstimator():
@@ -27,6 +29,5 @@ def test_DAEstimator():
     cls = DAEstimator()
 
     cls.fit(X=X, y=None, sample_domain=None)
-    # set one attribute to shohat something fitted
-    cls.something_ = 1
+    cls.fitted_ = 1  # set one attribute to show it is fitted
     cls.predict(X=X, sample_domain=None)

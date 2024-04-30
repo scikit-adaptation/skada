@@ -236,7 +236,7 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
         self.n_components = n_components
         self.mu = mu
 
-    def fit(self, X, y=None, sample_domain=None, **kwargs):
+    def fit(self, X, y=None, *, sample_domain=None):
         """Fit adaptation parameters.
 
         Parameters
@@ -292,7 +292,7 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
         self.eigvects_ = np.real(eigvects[:, selected_components])
         return self
 
-    def adapt(self, X, y=None, sample_domain=None, **kwargs):
+    def fit_transform(self, X, y=None, *, sample_domain=None, **params):
         """Predict adaptation (weights, sample or labels).
 
         Parameters
@@ -314,6 +314,7 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
         weights : None
             No weights are returned here.
         """
+        self.fit(X, y, sample_domain=sample_domain)
         X, sample_domain = check_X_domain(
             X,
             sample_domain,
@@ -433,7 +434,7 @@ class TransferJointMatchingAdapter(BaseAdapter):
         self.tol = tol
         self.verbose = verbose
 
-    def adapt(self, X, y=None, sample_domain=None, **kwargs):
+    def fit_transform(self, X, y=None, *, sample_domain=None, **params):
         """Predict adaptation (weights, sample or labels).
 
         Parameters
@@ -457,6 +458,7 @@ class TransferJointMatchingAdapter(BaseAdapter):
         weights : None
             No weights are returned here.
         """
+        self.fit(X, y, sample_domain=sample_domain)
         X, sample_domain = check_X_domain(
             X,
             sample_domain,
@@ -491,7 +493,7 @@ class TransferJointMatchingAdapter(BaseAdapter):
         K = np.block([[Kss, Kst], [Kst.T, Ktt]])
         return K
 
-    def fit(self, X, y=None, sample_domain=None, **kwargs):
+    def fit(self, X, y=None, *, sample_domain=None):
         """Fit adaptation parameters.
 
         Parameters

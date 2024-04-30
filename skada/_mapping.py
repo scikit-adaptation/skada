@@ -58,7 +58,7 @@ class BaseOTMappingAdapter(BaseAdapter):
         self.ot_transport_.fit(Xs=X, ys=y, Xt=X_target, yt=y_target)
         return self
 
-    def adapt(self, X, y=None, sample_domain=None):
+    def fit_transform(self, X, y=None, *, sample_domain=None, **params):
         """Predict adaptation (weights, sample or labels).
 
         Parameters
@@ -79,6 +79,7 @@ class BaseOTMappingAdapter(BaseAdapter):
         weights : array-like, shape (n_samples,)
             The weights of the samples.
         """
+        self.fit(X, y, sample_domain=None)
         # xxx(okachaiev): implement auto-infer for sample_domain
         X, sample_domain = check_X_domain(
             X, sample_domain, allow_multi_source=True, allow_multi_target=True
@@ -613,7 +614,7 @@ class CORALAdapter(BaseAdapter):
         self.cov_target_sqrt_ = _sqrtm(cov_target_)
         return self
 
-    def adapt(self, X, y=None, sample_domain=None):
+    def fit_transform(self, X, y=None, *, sample_domain=None, **params):
         """Predict adaptation (weights, sample or labels).
 
         Parameters
@@ -634,6 +635,7 @@ class CORALAdapter(BaseAdapter):
         weights : None
             No weights are returned here.
         """
+        self.fit(X, y, sample_domain=None)
         X, sample_domain = check_X_domain(
             X, sample_domain, allow_multi_source=True, allow_multi_target=True
         )
@@ -808,7 +810,7 @@ class MMDLSConSMappingAdapter(BaseAdapter):
 
         return W, B, G, H
 
-    def fit(self, X, y, sample_domain=None, **kwargs):
+    def fit(self, X, y, sample_domain=None):
         """Fit adaptation parameters.
 
         Parameters
@@ -837,7 +839,7 @@ class MMDLSConSMappingAdapter(BaseAdapter):
 
         return self
 
-    def adapt(self, X, y=None, sample_domain=None, **kwargs):
+    def fit_transform(self, X, y=None, sample_domain=None, **params):
         """Predict adaptation (weights, sample or labels).
 
         Parameters
@@ -858,37 +860,34 @@ class MMDLSConSMappingAdapter(BaseAdapter):
         weights : array-like, shape (n_samples,)
             The weights of the samples.
         """
+        self.fit(X, y, sample_domain=None)
         X, sample_domain = check_X_domain(X, sample_domain)
 
         source_idx = extract_source_indices(sample_domain)
         X_source, X_target = X[source_idx], X[~source_idx]
 
-        if source_idx.sum() > 0:
-            if np.array_equal(self.X_source_, X[source_idx]):
-                W, B = self.W_, self.B_
-            else:
-                if self.discrete_:
-                    # recompute the mapping
-                    X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
-                    source_idx = extract_source_indices(sample_domain)
-                    y_source = y[source_idx]
-                    classes = self.classes_
-                    R = np.zeros((source_idx.sum(), len(classes)))
-                    for i, c in enumerate(classes):
-                        R[:, i] = (y_source == c).astype(int)
-                    W, B = R @ self.G_, R @ self.H_
-                else:
-                    # assign the nearest neighbor's mapping to the source samples
-                    C = pairwise_distances(X[source_idx], self.X_source_)
-                    idx = np.argmin(C, axis=1)
-                    W, B = self.W_[idx], self.B_[idx]
-            X_source_adapt = W * X_source + B
-            X_adapt, _ = source_target_merge(
-                X_source_adapt, X_target, sample_domain=sample_domain
-            )
+        if np.array_equal(self.X_source_, X[source_idx]):
+            W, B = self.W_, self.B_
         else:
-            X_adapt = X
-
+            if self.discrete_:
+                # recompute the mapping
+                X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+                source_idx = extract_source_indices(sample_domain)
+                y_source = y[source_idx]
+                classes = self.classes_
+                R = np.zeros((source_idx.sum(), len(classes)))
+                for i, c in enumerate(classes):
+                    R[:, i] = (y_source == c).astype(int)
+                W, B = R @ self.G_, R @ self.H_
+            else:
+                # assign the nearest neighbor's mapping to the source samples
+                C = pairwise_distances(X[source_idx], self.X_source_)
+                idx = np.argmin(C, axis=1)
+                W, B = self.W_[idx], self.B_[idx]
+        X_source_adapt = W * X_source + B
+        X_adapt, _ = source_target_merge(
+            X_source_adapt, X_target, sample_domain=sample_domain
+        )
         return X_adapt
 
 

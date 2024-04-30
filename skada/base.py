@@ -112,50 +112,25 @@ class BaseAdapter(BaseEstimator):
     __metadata_request__transform = {'sample_domain': True, 'allow_source': True}
 
     @abstractmethod
-    def adapt(
-        self,
-        X,
-        y=None,
-        sample_domain=None,
-        **params
-    ) -> Union[np.ndarray, AdaptationOutput]:
-        """Transform samples, labels, and weights into the space in which
-        the estimator is trained.
+    def fit_transform(self, X, y=None, *, sample_domain=None, **params):
+        """Fit adapter and transforms samples, labels, and weights to be used
+        to fit estimator (i.e. 'adapt' the data).
         """
-
-    @abstractmethod
-    def fit(self, X, y=None, sample_domain=None, *, sample_weight=None):
-        """Fit adaptation parameters"""
-
-    def fit_transform(self, X, y=None, sample_domain=None, **params):
-        """
-        Fit to data, then transform it.
-        In this case, the fitting and the transformation are performed on
-        the target and source domains by default (allow_source=True).
-
-        It should be used only for fitting the estimator, and not for
-        generating the adaptation output.
-        For the latter, use the `transform` method.
-        """
-        self.fit(X, y=y, sample_domain=sample_domain, **params)
-        # assume 'fit_transform' is called to fit the estimator,
-        # thus we allow for the source domain to be adapted
-        return self.transform(
-            X,
-            y=y,
-            sample_domain=sample_domain,
-            allow_source=True,
-            **params
-        )
+        pass
 
     def transform(
         self,
         X,
         y=None,
+        *,
         sample_domain=None,
         allow_source=False,
         **params
-    ) -> Union[np.ndarray, AdaptationOutput]:
+    ) -> np.ndarray:
+        """Transforms (adapts) the data during evaluation. Default implementation
+        passes through samples without changing them, as it is a default behavior
+        for many adapters.
+        """
         check_is_fitted(self)
         X, sample_domain = check_X_domain(
             X,
@@ -163,12 +138,14 @@ class BaseAdapter(BaseEstimator):
             allow_auto_sample_domain=True,
             allow_source=allow_source,
         )
-        return self.adapt(
-            X,
-            y=y,
-            sample_domain=sample_domain,
-            **params
-        )
+        return X
+
+    def fit(self, X, y=None, *, sample_domain=None, **params):
+        """Fitting of the adapter is supposed to happen in `fit_transform`
+        method, though for a convenience reason it might be redefined by
+        by the specific implementation.
+        """
+        raise NotImplementedError('To fit adapter use `fit_transform` method.')
 
 
 class _DAMetadataRequesterMixin(_MetadataRequester):
