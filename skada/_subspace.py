@@ -655,6 +655,9 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
         The numbers of components to learn with PCA.
         Should be less or equal to the number of samples
         of the source and target data.
+    base_method : str, default='flda'
+        The method used to learn the subspace.
+        Possible values are 'pca', 'flda', and 'lpp'.
     mu : float, default=0.1
         The parameter of the regularization in the optimization
         problem.
@@ -690,6 +693,7 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
     def __init__(
         self,
         n_components=None,
+        base_method="flda",
         mu=0.1,
         reg=1e-2,
         max_iter=100,
@@ -698,6 +702,10 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
     ):
         super().__init__()
         self.n_components = n_components
+        _accepted_base_methods = ["pca", "flda", "lpp"]
+        if base_method not in _accepted_base_methods:
+            raise ValueError(f"base_method should be in {_accepted_base_methods}")
+        self.base_method = base_method
         self.mu = mu
         if reg is not None and (reg < 0 or reg > 1):
             raise ValueError("reg should be None or between 0 and 1.")
@@ -783,11 +791,32 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
 
         return torch.mean(Kss) + torch.mean(Ktt) - 2 * torch.mean(Kst)
 
-    def _F(self, W, X):
-        """TPCA objective function"""
+    def _F(self, W, X_source, y_source):
+        """Subspace learning objective function"""
         torch = self.torch
-        cov = self._torch_cov(X)
-        return -torch.trace(W.T @ cov @ W)
+        base_method = self.base_method
+
+        if base_method == "pca":
+            cov = self._torch_cov(X_source)
+            loss = -torch.trace(W.T @ cov @ W)
+        elif base_method == "flda":
+            classes = torch.unique(y_source)
+            classes_means = torch.stack(
+                [torch.mean(X_source[y_source == c], dim=0) for c in classes]
+            )
+            classes_n_samples = torch.stack([torch.sum(y_source == c) for c in classes])
+            classes_means = classes_means * torch.sqrt(classes_n_samples).reshape(-1, 1)
+            S_W = self._torch_cov(classes_means)
+            S_B = self._torch_cov(X_source)
+            loss = torch.trace(W.T @ S_W @ W) / torch.trace(W.T @ S_B @ W)
+        elif base_method == "lpp":
+            # E is the Gaussian kernel if (y_source)_i == (y_source)_j and 0 otherwise
+            E = torch.exp(-0.5 * torch.cdist(X_source, X_source))
+            E = E * (y_source[:, None] == y_source[None, :])
+            D = torch.diag(torch.sum(E, dim=1))
+            loss = -torch.trace(W.T @ X_source.T @ (D - E) @ X_source @ W)
+
+        return loss
 
     def fit(self, X, y=None, sample_domain=None, **kwargs):
         """Fit adaptation parameters.
@@ -821,7 +850,9 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
             allow_multi_source=True,
             allow_multi_target=True,
         )
-        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+        X_source, X_target, y_source, _ = source_target_split(
+            X, y, sample_domain=sample_domain
+        )
 
         torch = self.torch
 
@@ -844,7 +875,7 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
 
         def func(W):
             W = _orth(W)
-            loss = self._F(W, X_source)
+            loss = self._F(W, X_source, y_source)
             loss = loss + self.mu * self._D(W, X_source, X_target)
             return loss
 

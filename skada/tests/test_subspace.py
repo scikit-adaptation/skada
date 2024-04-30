@@ -38,6 +38,14 @@ from skada.datasets import DomainAwareDataset
             TransferJointMatchingAdapter(n_components=2, kernel="linear", verbose=True),
             LogisticRegression(),
         ),
+        TransferSubspaceLearningAdapter(n_components=2),
+        TransferSubspaceLearningAdapter(n_components=2, base_method="pca"),
+        TransferSubspaceLearningAdapter(n_components=2, base_method="flda"),
+        TransferSubspaceLearningAdapter(n_components=2, base_method="lpp"),
+        make_da_pipeline(
+            TransferSubspaceLearningAdapter(n_components=2),
+            LogisticRegression(),
+        ),
     ],
 )
 def test_subspace_alignment(estimator, da_dataset):
