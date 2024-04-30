@@ -497,11 +497,18 @@ class _BaseSelectDomain(Shared):
             Array of boolean masks.
         """
 
-    def fit(self, X_container, y, **params):
-        X_input, params = self._unwrap_from_container(X_container, params)
-        filter_masks = self._select_indices(params['sample_domain'])
-        X_input, y, params = _apply_domain_masks(X_input, y, params, masks=filter_masks)
-        return super().fit(X_input, y, **params)
+    def _pre_filter(self, method_name, X_container, y=None, **params):
+        X, y, params = X_container.merge_out(y, **params)
+        filter_masks = self._select_indices(params.get('sample_domain'))
+        X_input, y, params = _apply_domain_masks(X, y, params, masks=filter_masks)
+        return getattr(super(), method_name)(X_container.merge_in((X_input, y, params)), y, **params)
+
+    def fit(self, X_container, y=None, **params):
+        return self._pre_filter('fit', X_container, y=y, **params)
+
+    @available_if(_estimator_has('transform'))
+    def fit_transform(self, X_container, y=None, **params):
+        return self._pre_filter('fit_transform', X_container, y=y, **params)
 
 
 class SelectSource(_BaseSelectDomain):
