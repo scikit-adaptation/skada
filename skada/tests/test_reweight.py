@@ -26,8 +26,8 @@ from skada import (
     NearestNeighborReweight,
     NearestNeighborReweightAdapter,
     make_da_pipeline,
-    source_target_split,
 )
+from skada.datasets import make_shifted_datasets
 
 
 @pytest.mark.parametrize(
@@ -120,18 +120,30 @@ def test_reweight_estimator(estimator, da_dataset):
         ),
         KMMReweight(Ridge().set_fit_request(sample_weight=True)),
         KMMReweight(Ridge().set_fit_request(sample_weight=True), eps=0.1),
-        # make_da_pipeline(
-        #     MMDTarSReweightAdapter(gamma=1.0),
-        #     Ridge().set_fit_request(sample_weight=True),
-        # ),
-        # MMDTarSReweight(Ridge().set_fit_request(sample_weight=True), gamma=1.0),
+        make_da_pipeline(
+            MMDTarSReweightAdapter(gamma=1.0),
+            Ridge().set_fit_request(sample_weight=True),
+        ),
+        MMDTarSReweight(Ridge().set_fit_request(sample_weight=True), gamma=1.0),
     ],
 )
-def test_reg_reweight_estimator(estimator, da_reg_dataset):
-    X, y, sample_domain = da_reg_dataset
-    Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
-    estimator.fit(X, y, sample_domain=sample_domain)
-    score = estimator.score(Xt, yt)
+def test_reg_reweight_estimator(estimator):
+    dataset = make_shifted_datasets(
+        n_samples_source=20,
+        n_samples_target=21,
+        shift="concept_drift",
+        mean=0.5,
+        noise=0.3,
+        label="regression",
+        random_state=43,
+        return_dataset=True,
+    )
+    X_train, y_train, sample_domain_train = dataset.pack_train(
+        as_sources=["s"], as_targets=["t"]
+    )
+    estimator.fit(X_train, y_train, sample_domain=sample_domain_train)
+    X_test, y_test, sample_domain_test = dataset.pack_test(as_targets=["t"])
+    score = estimator.score(X_test, y_test)
     assert score >= 0
 
 

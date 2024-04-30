@@ -23,7 +23,6 @@ from ._utils import Y_Type, _estimate_covariance, _find_y_type
 from .base import BaseAdapter, clone
 from .utils import (
     check_X_domain,
-    check_X_y_domain,
     extract_source_indices,
     qp_solve,
     source_target_split,
@@ -1321,7 +1320,7 @@ class MMDTarSReweightAdapter(BaseAdapter):
         self : object
             Returns self.
         """
-        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        X, sample_domain = check_X_domain(X, sample_domain)
         X_source, X_target, y_source, _ = source_target_split(
             X, y, sample_domain=sample_domain
         )
@@ -1361,13 +1360,12 @@ class MMDTarSReweightAdapter(BaseAdapter):
         else:
             if self.discrete_:
                 # assign the classes weights to the source samples
-                X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
                 source_idx = extract_source_indices(sample_domain)
                 y_source = y[source_idx]
                 classes = self.classes_
                 R = np.zeros((source_idx.sum(), len(classes)))
                 for i, c in enumerate(classes):
-                    R[:, i] = (y_source == c).astype(int)
+                    R[:, i] = (y_source == c).astype(np.int32)
                 source_weights = R @ self.alpha_
             else:
                 # assign the nearest neighbor's weights to the source samples
