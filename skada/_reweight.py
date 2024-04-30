@@ -356,6 +356,8 @@ class DiscriminatorReweightAdapter(BaseAdapter):
         self.fit(X, y, sample_domain=sample_domain)
         X, sample_domain = check_X_domain(X, sample_domain)
         source_idx = extract_source_indices(sample_domain)
+        # xxx(okachaiev): it seems to me that would work without np.where
+        # as we only use this array for indexing
         (source_idx,) = np.where(source_idx)
         probas = self.domain_classifier_.predict_proba(X[source_idx])[:, 1]
         probas = np.clip(probas, EPS, 1.0)
