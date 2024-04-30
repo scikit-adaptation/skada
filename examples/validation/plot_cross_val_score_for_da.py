@@ -42,9 +42,9 @@ cv = ShuffleSplit(n_splits=5, test_size=0.3, random_state=0)
 
 # %%
 # The DA estimator pipeline is ready to be used with :code:`cross_val_score`.
-# Splits will be formed following the cross-validation strategy. Source data
-# from the training splits will be used to fit the DA estimator, and the target
-# data from the test split will be used to compute the score. The separation between
+# Splits are formed following the cross-validation strategy. Source data
+# from the training splits are used to fit the DA estimator, and the target
+# data from the test split is used to compute the score. The separation between
 # source and target data is done automatically by the DA pipeline thanks to 
 # :code:`sample_domain`. The :code"`target_labels` are only used by the 
 # :code:`SupervisedScorer`.
