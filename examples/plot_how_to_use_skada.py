@@ -113,7 +113,7 @@ print("Accuracy on target:", pipe.score(Xt, yt))
 # Several SKADA estimators include a data adapter that transforms the input data
 # so that a scikit-learn estimator can be used. For those methods, SKADA
 # provides a :code:`Adapter` class that can be used in a DA pipeline from
-# :code: .
+# :code:`make_da_pipeline`.
 #
 # Here is an example with the CORAL and GaussianReweight adapters.
 #
