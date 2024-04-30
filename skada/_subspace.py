@@ -712,7 +712,6 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
         self.max_iter = max_iter
         self.tol = tol
         self.verbose = verbose
-        self.W_ = None
 
     def adapt(self, X, y=None, sample_domain=None, **kwargs):
         """Predict adaptation (weights, sample or labels).
