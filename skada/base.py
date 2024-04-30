@@ -326,21 +326,10 @@ class Shared(BaseSelector):
         check_is_fitted(self)
         return self.base_estimator_
 
-    # xxx(okachaiev): solve the problem with parameter renaming
     def fit(self, X_container, y=None, **params):
-        X, y, params = X_container.merge_out(y, **params)
-        # xxx(okachaiev): for Share this should not be necessary,
-        # as we expect metadata routing to select parameters for us
-        # we only need to remove masked (when necessary)
-        routing = get_routing_for_object(self.base_estimator)
-        routed_params = self._merge_and_route_params(routing.fit, X_container, params)
-        X, y, routed_params = self._remove_masked(X, y, routed_params)
-        estimator = clone(self.base_estimator)
-        estimator.fit(X, y, **routed_params)
-        self.base_estimator_ = estimator
-        self.routing_ = routing
+        self._fit('fit', X_container, y, **params)
         return self
-
+    
     # xxx(okachaiev): this is not exactly true, more like
     # a) estimator has transform
     # b) estimator has fit_transform
@@ -357,20 +346,28 @@ class Shared(BaseSelector):
         #     routed_params = self.routing_.fit_transform._route_params(params=method_params)
         #     output = self.base_estimator_.adapt(X, **routed_params)
         if hasattr(self.base_estimator, "fit_transform"):
-            X, y, method_params = X_container.merge_out(y, **params)
-            routing = get_routing_for_object(self.base_estimator)
-            routed_params = self._merge_and_route_params(routing.fit_transform, X_container, method_params)
-            X, y, routed_params = self._remove_masked(X, y, routed_params)
-            estimator = clone(self.base_estimator)
-            output = estimator.fit_transform(X, y, **routed_params)
-            self.base_estimator_ = estimator
-            self.routing_ = routing
+            output = self._fit('fit_transform', X_container, y, **params)
         else:
-            self.fit(X_container, y, **params)
+            self._fit('fit', X_container, y, **params)
             X, y, method_params = X_container.merge_out(y, **params)
             transform_params = self.routing_.transform._route_params(params=method_params)
             output = self.transform(X, **transform_params)
         return X_container.merge_in(output)
+
+    # xxx(okachaiev): solve the problem with parameter renaming
+    def _fit(self, routing_method, X_container, y=None, **params):
+        X, y, params = X_container.merge_out(y, **params)
+        # xxx(okachaiev): for Share this should not be necessary,
+        # as we expect metadata routing to select parameters for us
+        # we only need to remove masked (when necessary)
+        routing = get_routing_for_object(self.base_estimator)
+        routed_params = self._merge_and_route_params(getattr(routing, routing_method), X_container, params)
+        X, y, routed_params = self._remove_masked(X, y, routed_params)
+        estimator = clone(self.base_estimator)
+        output = getattr(estimator, routing_method)(X, y, **routed_params)
+        self.base_estimator_ = estimator
+        self.routing_ = routing
+        return output
 
     # xxx(okachaiev): fail if unknown domain is given
     def _route_to_estimator(self, method_name, X, y=None, **params):
