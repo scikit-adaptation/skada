@@ -5,6 +5,7 @@ DASVM estimator
 The DASVM method comes from [21].
 
 """
+
 # Author: Ruben Bueno <ruben.bueno@polytechnique.edu>
 #
 # License: BSD 3-Clause
