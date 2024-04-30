@@ -476,7 +476,8 @@ class PerDomain(BaseSelector):
         check_is_fitted(self)
         return self.estimators_[domain_label]
 
-    def fit(self, X, y, **params):
+    def fit(self, X_container, y, **params):
+        X, y, params = X_container.merge_out(y, **params)
         sample_domain = params['sample_domain']
         routing = get_routing_for_object(self.base_estimator)
         routed_params = self._merge_and_route_params(routing.fit, X, params)
@@ -497,8 +498,11 @@ class PerDomain(BaseSelector):
 
     def _route_to_estimator(self, method_name, X, y=None, **params):
         check_is_fitted(self)
+        # xxx(okachaiev): make sure to remove this after the rework of adapters
+        if isinstance(X, AdaptationOutput):
+            X = X.X
         request = getattr(self.routing_, method_name)
-        X, routed_params = self._merge_and_route_params(request, X, params)
+        routed_params = self._merge_and_route_params(request, X, params)
         # xxx(okachaiev): use check_*_domain to derive default domain labels
         sample_domain = params['sample_domain']
         output = None

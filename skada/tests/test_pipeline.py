@@ -59,19 +59,19 @@ def test_pipeline(da_dataset):
     assert score == score_derived, "automatically derives as target"
 
 
-# def test_per_domain_selector():
-#     scaler = PerDomain(StandardScaler())
-#     X = np.array([[1.0, 0.0], [0.0, 8.0], [3.0, 0.0], [0.0, 0.0]])
-#     sample_domain = np.array([1, 2, 1, 2])
-#     scaler.fit(X, None, sample_domain=sample_domain)
-#     assert_array_equal(
-#         np.array([[-3.0, 1.0]]),
-#         scaler.transform(np.array([[-1.0, 1.0]]), sample_domain=np.array([1])),
-#     )
-#     assert_array_equal(
-#         np.array([[-1.0, -0.75]]),
-#         scaler.transform(np.array([[-1.0, 1.0]]), sample_domain=np.array([2])),
-#     )
+def test_per_domain_selector():
+    scaler = make_da_pipeline(PerDomain(StandardScaler()))
+    X = np.array([[1.0, 0.0], [0.0, 8.0], [3.0, 0.0], [0.0, 0.0]])
+    sample_domain = np.array([1, 2, 1, 2])
+    scaler.fit(X, None, sample_domain=sample_domain)
+    assert_array_equal(
+        np.array([[-3.0, 1.0]]),
+        scaler.transform(np.array([[-1.0, 1.0]]), sample_domain=np.array([1])),
+    )
+    assert_array_equal(
+        np.array([[-1.0, -0.75]]),
+        scaler.transform(np.array([[-1.0, 1.0]]), sample_domain=np.array([2])),
+    )
 
 
 @pytest.mark.parametrize(
