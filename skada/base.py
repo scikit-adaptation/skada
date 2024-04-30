@@ -46,52 +46,6 @@ def _estimator_has(attr, base_attr_name='base_estimator'):
                               has_estimator_selector(estimator))
 
 
-class AdaptationOutput:
-    """Container object for multi-key adaptation output."""
-
-    def __init__(self, X, **params):
-        self.X = X
-        self.params = params
-
-    def merge_into(self, output: Union[np.ndarray, "AdaptationOutput"]) -> "AdaptationOutput":
-        if isinstance(output, self.__class__):
-            for k, v in self.items():
-                if k not in output.params:
-                    output[k] = v
-            return output
-        else:
-            self.X = output
-            return self
-
-    def keys(self):
-        return self.params.keys()
-
-    def values(self):
-        return self.params.values()
-
-    def items(self):
-        return self.params.items()
-
-    def get(self, key, default_value=None):
-        return self.params.get(key, default_value)
-
-    def __getattr__(self, attr_name):
-        params = object.__getattribute__(self, 'params')
-        if attr_name not in params:
-            raise AttributeError()
-        return params[attr_name]
-
-    def __iter__(self):
-        return iter(self.params)
-
-    def __getitem__(self, k):
-        return self.params[k]
-
-    def __setitem__(self, k, v):
-        self.params[k] = v
-        return self
-
-
 class IncompatibleMetadataError(UnsetMetadataPassedError):
     """The exception is designated to report the situation when the adapter output
     the key, like 'sample_weight', that is not explicitly consumed by the following
@@ -274,18 +228,8 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
         """
 
     @available_if(_estimator_has('transform'))
-    def transform(self, X_container, **params):
-        output = self._route_to_estimator('transform', X_container, **params)
-        # If the original input was an `AdaptationOutput` container,
-        # we should either wrap the output back into container, or
-        # merge a pair of containers if the `output` itself is an instance
-        # of `AdaptationOutput`. The only case where should avoid such
-        # operation is that if the selector wraps the last step in the pipeline.
-        # In such a case, the `output` is supposed to be consumable from
-        # the common sklearn API.
-        if not self._is_final and isinstance(X_container, AdaptationOutput):
-            output = X_container.merge_into(output)
-        return output
+    def transform(self, X, **params):
+        return self._route_to_estimator('transform', X, **params)
 
     @available_if(_estimator_has('predict'))
     def predict(self, X, **params):
@@ -431,9 +375,6 @@ class Shared(BaseSelector):
     # xxx(okachaiev): fail if unknown domain is given
     def _route_to_estimator(self, method_name, X, y=None, **params):
         check_is_fitted(self)
-        # xxx(okachaiev): make sure to remove this after the rework of adapters
-        if isinstance(X, AdaptationOutput):
-            X = X.X
         request = getattr(self.routing_, method_name)
         routed_params = {k: params[k] for k in request._consumes(params=params)}
         X, y, params = self._remove_masked(X, y, params)
@@ -473,9 +414,6 @@ class PerDomain(BaseSelector):
 
     def _route_to_estimator(self, method_name, X, y=None, **params):
         check_is_fitted(self)
-        # xxx(okachaiev): make sure to remove this after the rework of adapters
-        if isinstance(X, AdaptationOutput):
-            X = X.X
         request = getattr(self.routing_, method_name)
         # xxx(okachaiev): we should not use _merge_and_route_params helper
         routed_params = self._merge_and_route_params(request, None, params)
@@ -742,12 +680,8 @@ class SelectSourceTarget(BaseSelector):
             return AdaptationOutput(output_X, **output_params)
 
     @available_if(_estimator_has('transform', base_attr_name='source_estimator'))
-    def transform(self, X_container, **params):
-        # xxx(okachaiev): code duplication
-        output = self._route_to_estimator('transform', X_container, **params)
-        if not self._is_final and isinstance(X_container, AdaptationOutput):
-            output = X_container.merge_into(output)
-        return output
+    def transform(self, X, **params):
+        return self._route_to_estimator('transform', X, **params)
 
     # xxx(okachaiev): i guess this should return 'True' only if both
     # estimators have the same method. though practical advantage is,

@@ -13,7 +13,7 @@ from joblib import Memory
 from sklearn.base import BaseEstimator
 from sklearn.pipeline import Pipeline
 
-from .base import AdaptationOutput, BaseSelector, PerDomain, Shared
+from .base import BaseSelector, PerDomain, Shared
 
 _DEFAULT_SELECTORS = {
     "shared": Shared,
@@ -38,10 +38,7 @@ class MetadataContainer:
     _metadata: dict
 
     def merge_in(self, X_container):
-        if isinstance(X_container, AdaptationOutput):
-            self._features = X_container.X
-            self._metadata.update(X_container.params)
-        elif isinstance(X_container, tuple) and len(X_container) == 2:
+        if isinstance(X_container, tuple) and len(X_container) == 2:
             X, params = X_container
             assert isinstance(params, dict)
             self._features = X
