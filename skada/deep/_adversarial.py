@@ -129,13 +129,15 @@ def DANN(
         domain_classifier = DomainClassifier(num_features=num_features)
 
     net = DomainAwareNet(
-        DomainAwareModule(module, layer_name, domain_classifier),
+        module=DomainAwareModule,
+        module__base_module=module,
+        module__layer_name=layer_name,
+        module__domain_classifier=domain_classifier,
         iterator_train=DomainBalancedDataLoader,
-        criterion=DomainAwareCriterion(
-            torch.nn.CrossEntropyLoss(),
-            DANNLoss(domain_criterion=domain_criterion),
-            reg=reg,
-        ),
+        criterion=DomainAwareCriterion,
+        criterion__criterion=nn.CrossEntropyLoss(),
+        criterion__reg=reg,
+        criterion__adapt_criterion=DANNLoss(domain_criterion=domain_criterion),
         **kwargs,
     )
     return net
@@ -227,9 +229,14 @@ class CDANModule(DomainAwareModule):
     """
 
     def __init__(
-        self, module, layer_name, domain_classifier, max_features=4096, random_state=42
+        self,
+        base_module,
+        layer_name,
+        domain_classifier,
+        max_features=4096,
+        random_state=42,
     ):
-        super().__init__(module, layer_name, domain_classifier)
+        super().__init__(base_module, layer_name, domain_classifier)
         self.max_features = max_features
         self.random_state = random_state
 
@@ -240,9 +247,9 @@ class CDANModule(DomainAwareModule):
             X_t = X[~source_idx]
             X_s = X[source_idx]
             # predict
-            y_pred_s = self.module_(X_s)
+            y_pred_s = self.base_module_(X_s)
             features_s = self.intermediate_layers[self.layer_name]
-            y_pred_t = self.module_(X_t)
+            y_pred_t = self.base_module_(X_t)
             features_t = self.intermediate_layers[self.layer_name]
 
             n_classes = y_pred_s.shape[1]
@@ -296,9 +303,9 @@ class CDANModule(DomainAwareModule):
             )
         else:
             if return_features:
-                return self.module_(X), self.intermediate_layers[self.layer_name]
+                return self.base_module_(X), self.intermediate_layers[self.layer_name]
             else:
-                return self.module_(X)
+                return self.base_module_(X)
 
 
 def CDAN(
@@ -357,13 +364,16 @@ def CDAN(
         domain_classifier = DomainClassifier(num_features=num_features)
 
     net = DomainAwareNet(
-        CDANModule(module, layer_name, domain_classifier, max_features=max_features),
+        module=CDANModule,
+        module__base_module=module,
+        module__layer_name=layer_name,
+        module__domain_classifier=domain_classifier,
+        module__max_features=max_features,
         iterator_train=DomainBalancedDataLoader,
-        criterion=DomainAwareCriterion(
-            torch.nn.CrossEntropyLoss(),
-            CDANLoss(domain_criterion=domain_criterion),
-            reg=reg,
-        ),
+        criterion=DomainAwareCriterion,
+        criterion__criterion=nn.CrossEntropyLoss(),
+        criterion__reg=reg,
+        criterion__adapt_criterion=CDANLoss(domain_criterion=domain_criterion),
         **kwargs,
     )
     return net

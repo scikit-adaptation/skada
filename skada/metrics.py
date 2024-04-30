@@ -232,7 +232,6 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
                 "The estimator passed should have a 'predict_proba' method. "
                 f"The estimator {estimator!r} does not."
             )
-
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
         source_idx = extract_source_indices(sample_domain)
         proba = estimator.predict_proba(
@@ -244,9 +243,7 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
             )
         else:
             log_proba = np.log(proba + 1e-7)
-
         entropy_per_sample = -proba * log_proba
-
         if self.reduction == "none":
             return self._sign * entropy_per_sample
         elif self.reduction == "sum":
