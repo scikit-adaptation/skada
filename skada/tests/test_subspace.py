@@ -93,9 +93,27 @@ def test_subspace_alignment(estimator, da_dataset):
         (TransferJointMatchingAdapter(), 5, 3, 3),
         (TransferJointMatchingAdapter(), 2, 3, 3),
         (TransferJointMatchingAdapter(), 2, 5, 4),
-        (TransferSubspaceLearningAdapter(), 5, 3, 3),
-        (TransferSubspaceLearningAdapter(), 2, 3, 3),
-        (TransferSubspaceLearningAdapter(), 2, 5, 4),
+        pytest.param(
+            TransferSubspaceLearningAdapter(),
+            5,
+            3,
+            3,
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+        ),
+        pytest.param(
+            TransferSubspaceLearningAdapter(),
+            2,
+            3,
+            3,
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+        ),
+        pytest.param(
+            TransferSubspaceLearningAdapter(),
+            2,
+            5,
+            4,
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+        ),
     ],
 )
 def test_subspace_default_n_components(adapter, n_samples, n_features, n_components):
