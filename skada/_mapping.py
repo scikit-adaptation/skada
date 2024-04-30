@@ -563,7 +563,7 @@ class MultiLinearMongeAlignmentAdapter(BaseAdapter):
         self : object
             Returns self.
         """
-        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        X, sample_domain = check_X_domain(X, sample_domain)
         sources, targets = per_domain_split(
             X, y, sample_weight, sample_domain=sample_domain
         )
