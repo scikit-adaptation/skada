@@ -466,7 +466,7 @@ class Shared(BaseSelector):
             self.base_estimator_ = estimator
             self.routing_ = routing
         else:
-            self.fit(X_container, y, **method_params)
+            self.fit(X_container, y, **params)
             X, y, method_params = X_container.merge_out(y, **params)
             transform_params = self.routing_.transform._route_params(params=method_params)
             output = self.transform(X, **transform_params)
@@ -475,14 +475,14 @@ class Shared(BaseSelector):
     # xxx(okachaiev): fail if unknown domain is given
     def _route_to_estimator(self, method_name, X_container, y=None, **params):
         check_is_fitted(self)
+        X, y, params = X_container.merge_out(y, **params) if not isinstance(X_container, np.ndarray) else (X_container, y, params)
         request = getattr(self.routing_, method_name)
-        X, y, params = X_container.merge_out(y, **params)
         X, routed_params = self._merge_and_route_params(request, X, params)
         method = getattr(self.base_estimator_, method_name)
         output = method(X, **routed_params) if y is None else method(
             X, y, **routed_params
         )
-        return X_container.merge_in(output)
+        return output
 
 
 class PerDomain(BaseSelector):

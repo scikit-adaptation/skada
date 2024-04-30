@@ -7,7 +7,7 @@
 import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
-from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.base import BaseEstimator
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
@@ -22,6 +22,7 @@ from skada import (
     make_da_pipeline,
     source_target_split,
 )
+from skada._pipeline import _ConvertToMetadataContainer
 from skada.base import BaseAdapter
 from skada.datasets import DomainAwareDataset
 
@@ -101,7 +102,9 @@ def test_default_selector_parameter(selector_name, selector_cls):
         LogisticRegression(),
         default_selector=selector_name,
     )
-    _, estimator = pipe.steps[0]
+    _, first_estimator = pipe.steps[0]
+    _, estimator = pipe.steps[1]
+    assert isinstance(first_estimator, _ConvertToMetadataContainer)
     assert isinstance(estimator, selector_cls)
 
 
@@ -111,11 +114,11 @@ def test_default_selector_ignored_for_selector():
         LogisticRegression(),
         default_selector="per_domain",
     )
-    name, estimator = pipe.steps[0]
+    name, estimator = pipe.steps[1]
     assert isinstance(estimator, Shared)
     assert name == "subspacealignmentadapter"
 
-    name, estimator = pipe.steps[1]
+    name, estimator = pipe.steps[2]
     assert isinstance(estimator, PerDomain)
     assert name == "perdomain_logisticregression"
 
@@ -178,7 +181,8 @@ def test_unwrap_nested_da_pipelines(da_dataset):
 
 
 def test_allow_nd_x():
-    class CutInputDim(BaseEstimator, TransformerMixin):
+    # xxx(okachaiev): add test for TransformerMixin
+    class CutInputDim(BaseEstimator):
         def fit(self, X, y=None, **params):
             self.fitted_ = True
 
