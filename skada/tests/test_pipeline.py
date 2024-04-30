@@ -191,7 +191,7 @@ def test_allow_nd_x():
 
     pipe = make_da_pipeline(CutInputDim(), CORALAdapter())
 
-    rng = np.random.default_rng(0)
+    rng = np.random.default_rng(42)
     Xs = rng.standard_normal(size=(100, 22, 30))
     Xt = rng.standard_normal(size=(100, 22, 30))
     ys = rng.integers(0, 2, 100)
