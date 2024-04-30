@@ -1,139 +1,175 @@
-# Author: Theo Gnassounou <theo.gnassounou@inria.fr>
-#         Remi Flamary <remi.flamary@polytechnique.edu>
-#         Oleksii Kachaiev <kachayev@gmail.com>
+# Authors: Ambroise Odonnat <ambroiseodonnattechnologie@gmail.com>
 #
 # License: BSD 3-Clause
 
-import fnmatch
-import os
-import tarfile
-import time
-import warnings
-from collections import namedtuple
-from enum import Enum
-from pathlib import Path
-from typing import Callable, List, Optional, Tuple, Union
+"""
+OfficeHome dataset features from a pretrained resnet50.
+ResNet-50 from `Deep Residual Learning for Image Recognition`.
+OfficeHome from `https://github.com/jindongwang/transferlearning/tree/master/data
+"""
 
-import numpy as np
-from scipy.io import loadmat
-from sklearn.datasets import load_files
+import ast
+
 from sklearn.datasets._base import RemoteFileMetadata, _fetch_remote
-from sklearn.utils import Bunch
-
+from sklearn.preprocessing import LabelEncoder
 from .._utils import _logger
-from ._base import DomainAwareDataset, get_data_home
 
-FileLoaderSpec = namedtuple(
-    "FileLoaderSpec",
-    [
-        "dataset_dir",
-        "extract_root",
-        "subfolder",
-        "filename_pattern",
-        "data_key",
-        "dtype",
-        "dim",
-        "remote",
-    ],
-)
+import os
+import time
+from collections import namedtuple
+from ._base import get_data_home, DomainAwareDataset
+import numpy as np
+from typing import Tuple, Union
+from pathlib import Path
+from sklearn.utils import Bunch
+import csv
+import copy
 
-_SURF_LOADER = FileLoaderSpec(
-    dataset_dir="domain_adaptation_features",
-    extract_root=True,
-    subfolder="interest_points",
-    filename_pattern="histogram_*.SURF_SURF.amazon_800.SURF_SURF.mat",
-    data_key="histogram",
-    dtype=np.uint8,
-    dim=800,
-    remote=RemoteFileMetadata(
-        filename="domain_adaptation_features_20110616.tar.gz",
-        url="https://figshare.com/ndownloader/files/41786493?private_link=dfe6af3ef4f0f9ae93b9",  # noqa: E501
-        checksum="1bb83153343eb0d2c44f66ee63990639176855b2b894fae17ef82c7198123291",
-    ),
-)
+FileLoaderSpec = namedtuple("FileLoaderSpec", ["dataset_dir", "extract_root", "remote"])
 
-_DECAF_LOADER = FileLoaderSpec(
-    dataset_dir="domain_adaptation_decaf_features",
+_OFFICE_HOME_RESNET50_LOADER = FileLoaderSpec(
+    dataset_dir="office_home_resnet50_directory",
     extract_root=False,
-    subfolder="decaf-fts",
-    filename_pattern="*",
-    data_key="fc8",
-    dtype=np.float64,
-    dim=1000,
     remote=RemoteFileMetadata(
-        filename="domain_adaptation_decaf_features_20140430.tar.gz",
-        url="https://figshare.com/ndownloader/files/41786427?private_link=e145dd18e3d010c1f6d9",  # noqa: E501
-        checksum="ea13d8ced0fb629937f25f4a4670e0e75fc1955fb439f4ac412e129dd78a19ee",
+        filename="OfficeHomeResnet50.csv",
+        url="""https://figshare.com/ndownloader/files/46002420?private_link=682e4eb7cfef7e179719""",  # noqa: E501
+        checksum="9cb6d17d1006047afbe2637736b07b0d59209ec254930af05fffa93150b398f8",
     ),
 )
 
-_CATEGORIES_CALTECH256 = [
-    "back_pack",
-    "bike",
-    "calculator",
-    "headphones",
-    "keyboard",
-    "laptop_computer",
-    "monitor",
-    "mouse",
-    "mug",
-    "projector",
-]
 
-
-class Office31Domain(Enum):
-    AMAZON = "amazon"
-    WEBCAM = "webcam"
-    DSLR = "dslr"
-
-
-class Office31CategoriesPreset(Enum):
-    ALL = "all"
-    CALTECH256 = "caltech256"
-
-
-def fetch_office31_surf(
-    domain: Union[str, Office31Domain],
-    categories: Union[None, Office31CategoriesPreset, List[str]] = None,
+def fetch_domain_aware_office_home_resnet50(
+    loader_spec: FileLoaderSpec = _OFFICE_HOME_RESNET50_LOADER,
     data_home: Union[None, str, os.PathLike] = None,
     download_if_missing: bool = True,
     shuffle: bool = False,
     random_state: Union[None, int, np.random.RandomState] = None,
-    return_X_y: bool = False,
-) -> Union[Bunch, Tuple[np.ndarray, np.ndarray]]:
-    """Load the pre-computed SURF features for Office-31 dataset.
+) -> DomainAwareDataset:
+    """Load the Resnet 50 features extracted from Office-Home.
 
-    Office-31 dataset contains 3 domains (Amazon, Webcam, and Dslr).
-    Each contains images from amazon.com, or office environment images taken with
-    varying lighting and pose changes using a webcam or a dslr camera, respectively.
-    Contains 31 categories in each domain.
+    Office-Home is a benchmark dataset for domain adaptation that
+    contains 4 domains where each domain consists of 65 categories.
+    The four domains are: Art – artistic images in the form of
+    sketches, paintings, ornamentation, etc.; Clipart – collection
+    of clipart images; Product – images of objects without a background
+    and Real-World – images of objects captured with a regular camera.
+    It contains 15,500 images, with an average of around 70 images per
+    class and a maximum of 99 images in a class.
 
-    SURF BoW histogram features, vector quantized to 800 dimension. The loader
-    skips files with 600 dimensions.
-
-    Homepage: https://faculty.cc.gatech.edu/~judy/domainadapt/ (see "Adaptation
-    Datasets" section on the page).
-
-    Download it if necessary.
+    For more information, see:
+    * https://arxiv.org/pdf/1706.07522v1
 
     =================   =====================
-    Classes                                31
-    Samples total          2813, 795, and 498
-    Dimensionality                        800
+    Targets                                 65
+    Samples total                       15500
+    Dimensionality                       2048
     Data Type                           uint8
     =================   =====================
 
     Parameters
     ----------
-    domain : str or Office31Domain instance
-        Specify which domain to load: 'amazon', 'webcam', or 'dslr'. Note that
-        the datasets is fully loaded even when a single domain is requested.
+    loader_spec : FileLoaderSpec, default=_OFFICE_HOME_RESNET50_LOADER
+        The loader specification. It contains the following fields:
+        * dataset_dir: str
+            The name of the dataset directory.
+        * extract_root: bool, default=False
+            Whether to extract the dataset in the root of the data folder
+            or in a subfolder.
+        * remote: RemoteFileMetadata
+            The remote file metadata. It contains the following fields:
+            * filename: str
+                The name of the file.
+            * url: str
+                The URL of the file.
+            * checksum: str
+                The SHA256 checksum of the file.
+    data_home : str or path-like, default=None
+        Specify another download and cache folder for the datasets. By default
+        all skada data is stored in '~/skada_datasets' subfolders.
+        See :py:func:`skada.datasets.get_home_folder` for more information.
 
-    categories : list or Office31CategoriesPreset instance, default=None
-        Specify which categories to load. By default loads all 31 categories
-        from the datasets. Commonly used set of 10 categories, so-called 'Caltech-256',
-        could be loaded by passing :class:`Office31CategoriesPreset.CALTECH256` value.
+    download_if_missing : bool, default=True
+        If False, raise an OSError if the data is not locally available
+        instead of trying to download the data from the source site.
 
+    shuffle : bool, default=False
+        If True the order of the dataset is shuffled.
+
+    random_state : int, RandomState instance or None, default=0
+        Determines random number generation for dataset shuffling. Pass an int
+        for reproducible output across multiple function calls.
+
+    Returns
+    -------
+    DomainAwareDataset : :class:`~skada.datasets.DomainAwareDataset`
+        Container carrying all dataset domains.
+    """
+    data_home = get_data_home(data_home)
+    dataset_dir = os.path.join(data_home, loader_spec.dataset_dir)
+    if not os.path.exists(dataset_dir):
+        if not download_if_missing:
+            raise OSError("Data not found and `download_if_missing` is False")
+        os.makedirs(dataset_dir)
+        _download_office_home_resnet50(
+            loader_spec.remote, data_home if loader_spec.extract_root else dataset_dir
+        )
+
+    dataset = _load_office_home_resnet50(
+        dataset_dir,
+        shuffle,
+        random_state,
+        return_domain_aware=True,
+    )
+
+    return dataset
+
+
+def fetch_office_home_resnet50(
+    loader_spec: FileLoaderSpec = _OFFICE_HOME_RESNET50_LOADER,
+    data_home: Union[None, str, os.PathLike] = None,
+    download_if_missing: bool = True,
+    shuffle: bool = False,
+    return_X_y: bool = False,
+    random_state: Union[None, int, np.random.RandomState] = None,
+) -> Union[Bunch, Tuple[np.ndarray, np.ndarray]]:
+    """Load the Resnet 50 features extracted from Office-Home.
+
+    Office-Home is a benchmark dataset for domain adaptation that
+    contains 4 domains where each domain consists of 65 categories.
+    The four domains are: Art – artistic images in the form of
+    sketches, paintings, ornamentation, etc.; Clipart – collection
+    of clipart images; Product – images of objects without a background
+    and Real-World – images of objects captured with a regular camera.
+    It contains 15,500 images, with an average of around 70 images per
+    class and a maximum of 99 images in a class.
+
+    For more information, see:
+    * https://arxiv.org/pdf/1706.07522v1
+
+    =================   =====================
+    Targets                                 65
+    Samples total                       15500
+    Dimensionality                       2048
+    Data Type                           uint8
+    =================   =====================
+
+    Parameters
+    ----------
+    loader_spec : FileLoaderSpec, default=_NHANES_LOADER
+        The loader specification. It contains the following fields:
+        * dataset_dir: str
+            The name of the dataset directory.
+        * extract_root: bool, default=False
+            Whether to extract the dataset in the root of the data folder
+            or in a subfolder.
+        * remote: RemoteFileMetadata
+            The remote file metadata. It contains the following fields:
+            * filename: str
+                The name of the file.
+            * url: str
+                The URL of the file.
+            * checksum: str
+                The SHA256 checksum of the file.
     data_home : str or path-like, default=None
         Specify another download and cache folder for the datasets. By default
         all skada data is stored in '~/skada_datasets' subfolders.
@@ -159,7 +195,7 @@ def fetch_office31_surf(
     data : :class:`~sklearn.utils.Bunch`
         Dictionary-like object, with the following attributes.
 
-        X: ndarray, shape (n_samples, 800)
+        X: ndarray, shape (n_samples, 16)
             Each row corresponds to a single quantized SURF BoW histogram.
         y : ndarray, shape (n_samples,)
             Labels associated to each image.
@@ -169,308 +205,163 @@ def fetch_office31_surf(
     (X, y) : tuple if `return_X_y=True`
         Tuple with the `X` and `y` objects described above.
     """
-    return _fetch_office31(
-        _SURF_LOADER,
-        domain,
-        categories=categories,
-        data_home=data_home,
-        download_if_missing=download_if_missing,
-        shuffle=shuffle,
-        random_state=random_state,
-        return_X_y=return_X_y,
-    )
-
-
-def fetch_office31_surf_all(
-    categories: Union[None, Office31CategoriesPreset, List[str]] = None,
-    data_home: Union[None, str, os.PathLike] = None,
-    download_if_missing: bool = True,
-    shuffle: bool = False,
-    random_state: Union[None, int, np.random.RandomState] = None,
-) -> DomainAwareDataset:
-    """Load all domains for Office-31 SURF dataset.
-
-    Parameters
-    ----------
-    categories : list or Office31CategoriesPreset instance, default=None
-        Specify which categories to load. By default loads all 31 categories
-        from the datasets. Commonly used set of 10 categories, so-called 'Caltech-256',
-        could be loaded by passing :class:`Office31CategoriesPreset.CALTECH256` value.
-
-    data_home : str or path-like, default=None
-        Specify another download and cache folder for the datasets. By default
-        all skada data is stored in '~/skada_datasets' subfolders.
-        See :py:func:`skada.datasets.get_home_folder` for more information.
-
-    download_if_missing : bool, default=True
-        If False, raise an OSError if the data is not locally available
-        instead of trying to download the data from the source site.
-
-    shuffle : bool, default=False
-        If True the order of the dataset is shuffled.
-
-    random_state : int, RandomState instance or None, default=0
-        Determines random number generation for dataset shuffling. Pass an int
-        for reproducible output across multiple function calls.
-
-    Returns
-    -------
-    DomainAwareDataset : :class:`~skada.datasets.DomainAwareDataset`
-        Container carrying all dataset domains.
-    """
-    return _fetch_office31_all(
-        fetch_office31_surf,
-        categories=categories,
-        data_home=data_home,
-        download_if_missing=download_if_missing,
-        shuffle=shuffle,
-        random_state=random_state,
-    )
-
-
-def fetch_office31_decaf(
-    domain: Union[Office31Domain, str],
-    categories: Union[None, Office31CategoriesPreset, List[str]] = None,
-    data_home: Union[None, str, os.PathLike] = None,
-    download_if_missing: bool = True,
-    shuffle: bool = False,
-    random_state: Union[None, int, np.random.RandomState] = None,
-    return_X_y: bool = False,
-) -> Union[Bunch, Tuple[np.ndarray, np.ndarray]]:
-    """Load the pre-computed DeCAF features for Office-31 dataset.
-
-    Office-31 dataset contains 3 domains (Amazon, Webcam, and Dslr).
-    Each contains images from amazon.com, or office environment images taken with
-    varying lighting and pose changes using a webcam or a dslr camera, respectively.
-    Contains 31 categories in each domain.
-
-    Homepage: https://faculty.cc.gatech.edu/~judy/domainadapt/ (see "Adaptation
-    Datasets" section on the page).
-
-    More information on DeCAF: https://proceedings.mlr.press/v32/donahue14.html.
-
-    Download it if necessary.
-
-    =================   =====================
-    Classes                                31
-    Samples total          2817, 795, and 498
-    Dimensionality                       1000
-    Data Type           real, between 0 and 1
-    =================   =====================
-
-    Parameters
-    ----------
-    domain : str or Office31Domain instance
-        Specify which domain to load: 'amazon', 'webcam', or 'dslr'. Note that
-        the datasets is fully loaded even when a single domain is requested.
-
-    categories : list or Office31CategoriesPreset instance, default=None
-        Specify which categories to load. By default load all 31 categories from
-        the datasets. Commonly used set of 10 categories, so-called 'Caltech-256',
-        could be loaded by passing :class:`Office31CategoriesPreset.CALTECH256`.
-
-    data_home : str or path-like, default=None
-        Specify another download and cache folder for the datasets. By default
-        all skada data is stored in '~/skada_datasets' subfolders.
-        See :py:func:`skada.datasets.get_home_folder` for more information.
-
-    download_if_missing : bool, default=True
-        If False, raise an OSError if the data is not locally available
-        instead of trying to download the data from the source site.
-
-    shuffle : bool, default=False
-        If True the order of the dataset is shuffled.
-
-    random_state : int, RandomState instance or None, default=0
-        Determines random number generation for dataset shuffling. Pass an int
-        for reproducible output across multiple function calls.
-
-    return_X_y : bool, default=False
-        If True, returns `(X, y)` instead of a :class:`~sklearn.utils.Bunch`
-        object. See below for more information about the `X` and `y` object.
-
-    Returns
-    -------
-    data : :class:`~sklearn.utils.Bunch`
-        Dictionary-like object, with the following attributes.
-
-        X: ndarray, shape (n_samples, 1000)
-            Each row corresponds to a single decaf vector.
-        y : ndarray, shape (n_samples,)
-            Labels associated to each image.
-        target_names : list
-            List of label names for inverse encoding of labels.
-
-    (X, y) : tuple if `return_X_y=True`
-        Tuple with the `X` and `y` objects described above.
-    """
-    return _fetch_office31(
-        _DECAF_LOADER,
-        domain,
-        categories=categories,
-        data_home=data_home,
-        download_if_missing=download_if_missing,
-        shuffle=shuffle,
-        random_state=random_state,
-        return_X_y=return_X_y,
-    )
-
-
-def fetch_office31_decaf_all(
-    categories: Union[None, Office31CategoriesPreset, List[str]] = None,
-    data_home: Union[None, str, os.PathLike] = None,
-    download_if_missing: bool = True,
-    shuffle: bool = False,
-    random_state: Union[None, int, np.random.RandomState] = None,
-) -> DomainAwareDataset:
-    """Load all domains for the Office-31 DeCAF dataset.
-
-    Parameters
-    ----------
-    categories : list or Office31CategoriesPreset instance, default=None
-        Specify which categories to load. By default load all 31 categories from
-        the datasets. Commonly used set of 10 categories, so-called 'Caltech-256',
-        could be loaded by passing :class:`Office31CategoriesPreset.CALTECH256`.
-
-    data_home : str or path-like, default=None
-        Specify another download and cache folder for the datasets. By default
-        all skada data is stored in '~/skada_datasets' subfolders.
-        See :py:func:`skada.datasets.get_home_folder` for more information.
-
-    download_if_missing : bool, default=True
-        If False, raise an OSError if the data is not locally available
-        instead of trying to download the data from the source site.
-
-    shuffle : bool, default=False
-        If True the order of the dataset is shuffled.
-
-    random_state : int, RandomState instance or None, default=0
-        Determines random number generation for dataset shuffling. Pass an int
-        for reproducible output across multiple function calls.
-
-    Returns
-    -------
-    DomainAwareDataset : :class:`~skada.datasets.DomainAwareDataset`
-        Container carrying all dataset domains.
-    """
-    return _fetch_office31_all(
-        fetch_office31_decaf,
-        categories=categories,
-        data_home=data_home,
-        download_if_missing=download_if_missing,
-        shuffle=shuffle,
-        random_state=random_state,
-    )
-
-
-def _fetch_office31_all(
-    loader_fn: Callable,
-    categories: Union[None, Office31CategoriesPreset, List[str]] = None,
-    data_home: Union[None, str, os.PathLike] = None,
-    download_if_missing: bool = True,
-    shuffle: bool = False,
-    random_state: Union[None, int, np.random.RandomState] = None,
-) -> DomainAwareDataset:
-    dataset = DomainAwareDataset()
-    for domain in Office31Domain:
-        X, y = loader_fn(
-            domain,
-            categories=categories,
-            data_home=data_home,
-            download_if_missing=download_if_missing,
-            shuffle=shuffle,
-            random_state=random_state,
-            return_X_y=True,
-        )
-        dataset.add_domain(X, y, domain_name=domain.value)
-    return dataset
-
-
-def _fetch_office31(
-    loader_spec: FileLoaderSpec,
-    domain: Union[Office31Domain, str],
-    categories: Optional[List[str]] = None,
-    data_home: Union[None, str, os.PathLike] = None,
-    download_if_missing: bool = True,
-    shuffle: bool = False,
-    random_state: Union[None, int, np.random.RandomState] = None,
-    return_X_y: bool = False,
-) -> Union[Bunch, Tuple[np.ndarray, np.ndarray]]:
-    if not isinstance(domain, Office31Domain):
-        domain = Office31Domain(domain.lower())
     data_home = get_data_home(data_home)
     dataset_dir = os.path.join(data_home, loader_spec.dataset_dir)
     if not os.path.exists(dataset_dir):
         if not download_if_missing:
             raise OSError("Data not found and `download_if_missing` is False")
         os.makedirs(dataset_dir)
-        # juggling with `extract_root` is only required because SURF features
-        # were archived with root folder and DECAF without it
-        _download_office31(
-            loader_spec.remote,
-            data_home,
-            data_home if loader_spec.extract_root else dataset_dir,
+        _download_office_home_resnet50(
+            loader_spec.remote, data_home if loader_spec.extract_root else dataset_dir
         )
-    if categories == Office31CategoriesPreset.ALL:
-        # reset categories filter
-        categories = None
-    elif categories == Office31CategoriesPreset.CALTECH256:
-        categories = _CATEGORIES_CALTECH256
-    dataset = _load_office31(
-        loader_spec,
+    dataset = _load_office_home_resnet50(
         dataset_dir,
-        domain,
-        categories=categories,
-        shuffle=shuffle,
-        random_state=random_state,
+        shuffle,
+        random_state,
+        return_domain_aware=False,
+        return_X_y=return_X_y,
     )
-    return (dataset.X, dataset.y) if return_X_y else dataset
+
+    return dataset
 
 
-def _download_office31(remote_spec: RemoteFileMetadata, download_dir, extract_dir):
-    _logger.info(f"Downloading Office31 from {remote_spec.url} to {download_dir}")
-    started_at = time.time()
-    dataset_path = _fetch_remote(remote_spec, dirname=download_dir)
-    finished_at = time.time() - started_at
-    _logger.info(f"Finished downloading in {finished_at:0.2f} seconds")
-    tarfile.open(dataset_path, "r:gz").extractall(extract_dir)
-    os.remove(dataset_path)
-
-
-def _load_office31(
-    loader_spec: FileLoaderSpec,
+def _load_office_home_resnet50(
     dataset_dir: Union[os.PathLike, str],
-    domain: Office31Domain,
-    categories: Optional[List[str]] = None,
     shuffle: bool = False,
     random_state: Union[None, int, np.random.RandomState] = None,
-) -> Bunch:
-    fullpath = Path(dataset_dir) / domain.value / loader_spec.subfolder
-    files = load_files(
-        fullpath,
-        load_content=False,
-        categories=categories,
-        shuffle=shuffle,
-        random_state=random_state,
+    return_domain_aware: bool = False,
+    return_X_y: bool = False,
+) -> Union[Bunch, Tuple[np.ndarray, np.ndarray], DomainAwareDataset]:
+
+    if return_domain_aware and return_X_y:
+        raise ValueError("return_domain_aware and return_X_y cannot both be True")
+
+    fullpath = Path(dataset_dir)
+
+    # Read the dataset into lists
+    office_home_resnet50_data = read_dataset(fullpath)
+
+    # Generate the domain-aware dataset
+    dataset = generate_dataset(
+        office_home_resnet50_data,
+        shuffle,
+        random_state,
+        return_domain_aware,
+        return_X_y,
     )
 
-    if categories is not None:
-        not_found = set(categories).difference(set(files["target_names"]))
-        if not_found:
-            warnings.warn(f"The following categories were not found: {not_found}.")
+    return dataset
 
-    data, indices = [], []
-    for idx, path in enumerate(files.filenames):
-        if fnmatch.fnmatch(Path(path).name, loader_spec.filename_pattern):
-            content = np.squeeze(loadmat(path)[loader_spec.data_key])
-            assert (
-                content.shape[-1] == loader_spec.dim
-            ), f"File '{path}' contains array with incorrect dimensions."
-            indices.append(idx)
-            data.append(content.astype(loader_spec.dtype))
-    files["data"] = np.vstack(data)
-    files["target"] = files["target"][np.array(indices)]
 
-    files["X"] = files.pop("data")
-    files["y"] = files.pop("target")
-    return files
+def _download_office_home_resnet50(remote_spec: RemoteFileMetadata, download_dir):
+    _logger.info(
+        f"Downloading Office-Home-Resnet50 from {remote_spec.url} to {download_dir}"
+    )
+    started_at = time.time()
+    _ = _fetch_remote(remote_spec, dirname=download_dir)
+    finished_at = time.time() - started_at
+    _logger.info(f"Finished downloading in {finished_at:0.2f} seconds")
+
+
+def read_dataset(data_folder):
+    # Read CSV files into lists
+    office_home_resnet50_data = read_csv_with_header(
+        os.path.join(data_folder, "OfficeHomeResnet50.csv")
+    )
+
+    return office_home_resnet50_data
+
+
+def read_csv_with_header(file_path):
+    data = []
+    with open(file_path, "r") as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            data.append(row)
+    return data
+
+
+def generate_dataset(
+    office_home_resnet50_data,
+    shuffle: bool = False,
+    random_state: Union[None, int, np.random.RandomState] = None,
+    return_domain_aware: bool = True,
+    return_X_y: bool = False,
+) -> Union[Bunch, Tuple[np.ndarray, np.ndarray], DomainAwareDataset]:
+    if return_domain_aware:
+        dataset = DomainAwareDataset()
+    elif not return_X_y:
+        dataset = Bunch()
+
+    target_key = "label"  # Category of object
+    domain_key = "domain"  # Type of image (art, product, real-world, product)
+
+    if return_domain_aware:
+        # Group the list by the 'domain' column
+        grouped_data = {}
+        for row in office_home_resnet50_data:
+            cutoff = row[domain_key]
+            if cutoff not in grouped_data:
+                grouped_data[cutoff] = []
+            row.pop(domain_key)
+            grouped_data[cutoff].append(row)
+
+        # Populate the domain aware dataset with the grouped data
+        for domain_name in grouped_data.keys():
+            cutoff_data = grouped_data[domain_name]
+
+            cutoff_data_X = remove_key_from_dicts(cutoff_data, target_key)
+            X = np.array(
+                [ast.literal_eval(entry["features"]) for entry in cutoff_data_X]
+            )
+            y = np.array([row[target_key] for row in office_home_resnet50_data])
+
+            le = LabelEncoder()
+            y = le.fit_transform(y)
+
+            if shuffle:
+                shuffle_X_y(X, y, random_state)
+
+            dataset.add_domain(X, y, domain_name=domain_name)
+
+        return dataset
+    else:
+        cutoff_data_X = remove_key_from_dicts(office_home_resnet50_data, target_key)
+        cutoff_data_X = remove_key_from_dicts(cutoff_data_X, domain_key)
+
+        X = np.array([ast.literal_eval(entry["features"]) for entry in cutoff_data_X])
+        y = np.array([row[target_key] for row in office_home_resnet50_data])
+
+        le = LabelEncoder()
+        y = le.fit_transform(y)
+
+        if shuffle:
+            shuffle_X_y(X, y, random_state)
+
+        if not return_X_y:
+            dataset.update(
+                {
+                    "X": X,
+                    "y": y,
+                }
+            )
+            return dataset
+        else:
+            return (X, y)
+
+
+def remove_key_from_dicts(dicts, target_key):
+    dicts_copy = copy.deepcopy(dicts)
+    for d in dicts_copy:
+        d.pop(target_key)
+    return dicts_copy
+
+
+def shuffle_X_y(X, y, random_state=None):
+    if random_state is None:
+        random_state = np.random.RandomState()
+    indices = np.arange(X.shape[0])
+    random_state.shuffle(indices)
+    X = X[indices]
+    y = y[indices]
+    return (X, y)
