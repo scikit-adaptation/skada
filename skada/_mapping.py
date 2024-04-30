@@ -17,7 +17,6 @@ from ._utils import Y_Type, _estimate_covariance, _find_y_type
 from .base import BaseAdapter, clone
 from .utils import (
     check_X_domain,
-    check_X_y_domain,
     extract_source_indices,
     source_target_merge,
     source_target_split,
@@ -32,7 +31,7 @@ class BaseOTMappingAdapter(BaseAdapter):
     to create OT object using parameters saved in the constructor.
     """
 
-    def fit(self, X, y=None, sample_domain=None):
+    def fit(self, X, y=None, *, sample_domain=None):
         """Fit adaptation parameters.
 
         Parameters
@@ -49,7 +48,7 @@ class BaseOTMappingAdapter(BaseAdapter):
         self : object
             Returns self.
         """
-        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        X, sample_domain = check_X_domain(X, sample_domain)
         X, X_target, y, y_target = source_target_split(
             X, y, sample_domain=sample_domain
         )
@@ -79,7 +78,7 @@ class BaseOTMappingAdapter(BaseAdapter):
         weights : array-like, shape (n_samples,)
             The weights of the samples.
         """
-        self.fit(X, y, sample_domain=None)
+        self.fit(X, y, sample_domain=sample_domain)
         # xxx(okachaiev): implement auto-infer for sample_domain
         X, sample_domain = check_X_domain(
             X, sample_domain, allow_multi_source=True, allow_multi_target=True
@@ -635,7 +634,7 @@ class CORALAdapter(BaseAdapter):
         weights : None
             No weights are returned here.
         """
-        self.fit(X, y, sample_domain=None)
+        self.fit(X, y, sample_domain=sample_domain)
         X, sample_domain = check_X_domain(
             X, sample_domain, allow_multi_source=True, allow_multi_target=True
         )
@@ -689,6 +688,8 @@ def CORAL(
     )
 
 
+# xxx(okachaiev): we should move this to 'skada.deep.*' I guess
+# to avoid defining things that won't work anyways
 class MMDLSConSMappingAdapter(BaseAdapter):
     r"""Location-Scale mapping minimizing the MMD with a Gaussian kernel.
 
@@ -827,7 +828,10 @@ class MMDLSConSMappingAdapter(BaseAdapter):
         self : object
             Returns self.
         """
-        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        # xxx(okachaiev): we can't test X_y here because y might
+        # have NaNs, thought it might be better to keep this as an
+        # argument of a checker
+        X, sample_domain = check_X_domain(X, sample_domain)
         X_source, X_target, y_source, _ = source_target_split(
             X, y, sample_domain=sample_domain
         )
@@ -860,7 +864,7 @@ class MMDLSConSMappingAdapter(BaseAdapter):
         weights : array-like, shape (n_samples,)
             The weights of the samples.
         """
-        self.fit(X, y, sample_domain=None)
+        self.fit(X, y, sample_domain=sample_domain)
         X, sample_domain = check_X_domain(X, sample_domain)
 
         source_idx = extract_source_indices(sample_domain)
@@ -871,7 +875,7 @@ class MMDLSConSMappingAdapter(BaseAdapter):
         else:
             if self.discrete_:
                 # recompute the mapping
-                X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+                X, sample_domain = check_X_domain(X, sample_domain)
                 source_idx = extract_source_indices(sample_domain)
                 y_source = y[source_idx]
                 classes = self.classes_

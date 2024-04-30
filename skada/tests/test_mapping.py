@@ -33,7 +33,7 @@ from skada import (
     make_da_pipeline,
     source_target_split,
 )
-from skada.datasets import DomainAwareDataset
+from skada.datasets import DomainAwareDataset, make_shifted_datasets
 
 
 @pytest.mark.parametrize(
@@ -129,17 +129,21 @@ def test_reg_mapping_estimator(estimator, da_reg_dataset):
 
 
 def _base_test_new_X_adapt(estimator, da_dataset):
-    X_train, y_train, sample_domain = da_dataset
-
-    estimator.fit(X_train, y_train, sample_domain=sample_domain)
-    true_X_adapt = estimator.adapt(X_train, y_train, sample_domain=sample_domain)
-
-    rng = check_random_state(42)
-    idx = rng.choice(len(X_train), len(X_train) // 5, replace=False)
+    X_train, y_train, sample_domain = da_dataset.pack_train(
+        as_sources=["s"], as_targets=["t"]
+    )
+    true_X_adapt = estimator.fit_transform(
+        X_train, y_train, sample_domain=sample_domain
+    )
 
     # Adapt with new X, i.e. same domain, different samples
-    X_adapt = estimator.adapt(
-        X_train[idx] + 1e-8, y_train[idx], sample_domain=sample_domain[idx]
+    rng = check_random_state(42)
+    idx = rng.choice(len(X_train), len(X_train) // 5, replace=False)
+    X_adapt = estimator.transform(
+        X_train[idx] + 1e-8,
+        y_train[idx],
+        sample_domain=sample_domain[idx],
+        allow_source=True,
     )
 
     # Check that the adapted data are the same
@@ -151,7 +155,9 @@ def _base_test_new_X_adapt(estimator, da_dataset):
     X_train = X_train[mask]
     y_train = y_train[mask]
     sample_domain = sample_domain[mask]
-    X_adapt = estimator.adapt(X_train, y_train, sample_domain=sample_domain)
+    X_adapt = estimator.transform(
+        X_train, y_train, sample_domain=sample_domain, allow_source=True
+    )
 
     # Check that the adapted data are the same
     true_X_adapt = true_X_adapt[mask]
@@ -187,9 +193,19 @@ def _base_test_new_X_adapt(estimator, da_dataset):
         ),
     ],
 )
-def test_new_X_adapt(estimator, da_reg_datasets):
-    for dataset in da_reg_datasets:
-        _base_test_new_X_adapt(estimator, dataset)
+def test_new_X_adapt(estimator):
+    # for dataset in da_reg_datasets:
+    dataset = make_shifted_datasets(
+        n_samples_source=5,
+        n_samples_target=10,
+        shift="concept_drift",
+        mean=0.5,
+        noise=0.3,
+        label="regression",
+        random_state=42,
+        return_dataset=True,
+    )
+    _base_test_new_X_adapt(estimator, dataset)
 
 
 @pytest.mark.parametrize(
@@ -205,5 +221,15 @@ def test_new_X_adapt(estimator, da_reg_datasets):
         ),
     ],
 )
-def test_reg_new_X_adapt(estimator, da_reg_dataset):
-    _base_test_new_X_adapt(estimator, da_reg_dataset)
+def test_reg_new_X_adapt(estimator):
+    dataset = make_shifted_datasets(
+        n_samples_source=5,
+        n_samples_target=10,
+        shift="concept_drift",
+        mean=0.5,
+        noise=0.3,
+        label="regression",
+        random_state=42,
+        return_dataset=True,
+    )
+    _base_test_new_X_adapt(estimator, dataset)

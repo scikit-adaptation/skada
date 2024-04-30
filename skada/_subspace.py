@@ -123,9 +123,31 @@ class SubspaceAlignmentAdapter(BaseAdapter):
             The data transformed to the target subspace.
         """
         self.fit(X, y, sample_domain=sample_domain)
+        return self.transform(X, y, sample_domain=sample_domain, **params)
+
+    def transform(
+        self, X, y=None, *, sample_domain=None, allow_source=True, **params
+    ) -> np.ndarray:
+        """Perform adaptation on given samples (weights, sample or labels).
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        X_t : array-like, shape (n_samples, n_components)
+            The data transformed to the target subspace.
+        """
         X, sample_domain = check_X_domain(
             X,
             sample_domain,
+            allow_source=allow_source,
             allow_multi_source=True,
             allow_multi_target=True,
         )
@@ -302,16 +324,33 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
         -------
         X_t : array-like, shape (n_samples, n_components)
             The data transformed to the target subspace.
-        sample_domain : array-like, shape (n_samples,)
-            The domain labels transformed to the target subspace
-            (same as sample_domain).
-        weights : None
-            No weights are returned here.
         """
         self.fit(X, y, sample_domain=sample_domain)
+        return self.transform(X, y, sample_domain=sample_domain, **params)
+
+    def transform(
+        self, X, y=None, *, sample_domain=None, allow_source=True, **params
+    ) -> np.ndarray:
+        """Perform adaptation on given samples (weights, sample or labels).
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        X_t : array-like, shape (n_samples, n_components)
+            The data transformed to the target subspace.
+        """
         X, sample_domain = check_X_domain(
             X,
             sample_domain,
+            allow_source=allow_source,
             allow_multi_source=True,
             allow_multi_target=True,
         )
@@ -444,18 +483,33 @@ class TransferJointMatchingAdapter(BaseAdapter):
         -------
         X_t : array-like, shape (n_samples, n_components)
             The data transformed to the target subspace.
-        y_t : array-like, shape (n_samples,)
-            The labels (same as y).
-        sample_domain : array-like, shape (n_samples,)
-            The domain labels transformed to the target subspace
-            (same as sample_domain).
-        weights : None
-            No weights are returned here.
         """
         self.fit(X, y, sample_domain=sample_domain)
+        return self.transform(X, y, sample_domain=sample_domain, **params)
+
+    def transform(
+        self, X, y=None, *, sample_domain=None, allow_source=True, **params
+    ) -> np.ndarray:
+        """Perform adaptation on given samples (weights, sample or labels).
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        X_t : array-like, shape (n_samples, n_components)
+            The data transformed to the target subspace.
+        """
         X, sample_domain = check_X_domain(
             X,
             sample_domain,
+            allow_source=allow_source,
             allow_multi_source=True,
             allow_multi_target=True,
         )
