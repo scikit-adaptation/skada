@@ -682,7 +682,7 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
     .. [27]  [Si et al., 2010] Si, S., Tao, D. and Geng, B.
              Bregman Divergence-Based Regularization
              for Transfer Subspace Learning.
-             In IEEE Transactions on Knowledge and Data Engineering 2010.
+             In IEEE Transactions on Knowledge and Data Engineering.
              pages 929-942
     """
 
@@ -894,7 +894,7 @@ def TransferSubspaceLearning(
     .. [27]  [Si et al., 2010] Si, S., Tao, D. and Geng, B.
              Bregman Divergence-Based Regularization
              for Transfer Subspace Learning.
-             In IEEE Transactions on Knowledge and Data Engineering 2010.
+             In IEEE Transactions on Knowledge and Data Engineering.
              pages 929-942
     """
     if base_estimator is None:
