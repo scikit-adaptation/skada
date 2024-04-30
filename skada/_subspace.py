@@ -13,6 +13,7 @@ import numpy as np
 import scipy.linalg
 from sklearn.decomposition import PCA
 from sklearn.metrics.pairwise import pairwise_kernels
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 from sklearn.utils import check_random_state
 
@@ -898,7 +899,7 @@ def TransferSubspaceLearning(
              pages 929-942
     """
     if base_estimator is None:
-        base_estimator = SVC()
+        base_estimator = KNeighborsClassifier(n_neighbors=1)
 
     return make_da_pipeline(
         TransferJointMatching(
