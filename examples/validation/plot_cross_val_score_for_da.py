@@ -6,9 +6,9 @@ This example illustrates the use of DA scorer such as :class:`~skada.metrics.Tar
 with `cross_val_score <https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.cross_val_score.html#sklearn.model_selection.cross_val_score>`_.
 """  # noqa
 # %%
-# First, we create a shifted dataset and prepare the base estimator doing the
-# classification and the DA estimator. We use :code:`ShuffleSplit` as
-# cross-validation strategy.
+# We first create a shifted dataset. Then we prepare the pipeline including a
+# base estimator doing the classification and the DA estimator. We use
+# :code:`ShuffleSplit` as cross-validation strategy.
 
 import matplotlib.pyplot as plt
 import numpy as np
