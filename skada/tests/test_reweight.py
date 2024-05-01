@@ -165,7 +165,9 @@ def _base_test_new_X_adapt(estimator, da_dataset):
     true_weights = res1["sample_weight"][idx]
 
     # Adapt with new X, i.e. same domain, different samples
-    _, res2 = estimator._adapt(X_train[idx, :] + 1e-8, sample_domain=sample_domain[idx])
+    _, res2 = estimator._adapt(
+        X_train[idx, :] + 1e-8, y_train[idx], sample_domain=sample_domain[idx]
+    )
 
     # Check that the normalized weights are the same
     true_weights = true_weights / np.sum(true_weights)
@@ -178,7 +180,7 @@ def _base_test_new_X_adapt(estimator, da_dataset):
     X_train = X_train[mask]
     y_train = y_train[mask]
     sample_domain = sample_domain[mask]
-    _, res3 = estimator._adapt(X_train, sample_domain=sample_domain)
+    _, res3 = estimator._adapt(X_train, y_train, sample_domain=sample_domain)
 
     # Check that the normalized weights are the same
     true_weights = res1["sample_weight"][mask]
@@ -200,8 +202,8 @@ def _base_test_new_X_adapt(estimator, da_dataset):
         (KLIEPReweightAdapter(gamma=[0.1, 1, "auto", "scale"], random_state=42)),
         (KMMReweightAdapter(gamma=0.1, smooth_weights=True)),
         (KMMReweightAdapter(gamma=0.1, smooth_weights=True)),
-        # (MMDTarSReweightAdapter(gamma=1.0)),
-        # (MMDTarSReweightAdapter(gamma=1.0)),
+        (MMDTarSReweightAdapter(gamma=1.0)),
+        (MMDTarSReweightAdapter(gamma=1.0)),
     ],
 )
 def test_new_X_adapt(estimator, da_reg_datasets):

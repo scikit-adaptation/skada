@@ -17,12 +17,14 @@ from sklearn.model_selection import check_cv
 from sklearn.neighbors import KernelDensity, KNeighborsClassifier
 from sklearn.svm import SVC
 from sklearn.utils import check_random_state
+from sklearn.utils.validation import check_is_fitted
 
 from ._pipeline import make_da_pipeline
 from ._utils import Y_Type, _estimate_covariance, _find_y_type
 from .base import BaseAdapter, clone
 from .utils import (
     check_X_domain,
+    check_X_y_domain,
     extract_source_indices,
     qp_solve,
     source_target_split,
@@ -102,7 +104,8 @@ class DensityReweightAdapter(BaseAdapter):
         self.fit(X, y, sample_domain=sample_domain)
         return self._adapt(X, sample_domain=sample_domain)
 
-    def _adapt(self, X, *, sample_domain=None):
+    def _adapt(self, X, y=None, *, sample_domain=None):
+        check_is_fitted(self)
         X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
         (source_idx,) = np.where(source_idx)
@@ -228,7 +231,8 @@ class GaussianReweightAdapter(BaseAdapter):
         self.fit(X, y, sample_domain=sample_domain)
         return self._adapt(X, sample_domain=sample_domain)
 
-    def _adapt(self, X, *, sample_domain=None):
+    def _adapt(self, X, y=None, *, sample_domain=None):
+        check_is_fitted(self)
         X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
         (source_idx,) = np.where(source_idx)
@@ -361,7 +365,8 @@ class DiscriminatorReweightAdapter(BaseAdapter):
         self.fit(X, y, sample_domain=sample_domain)
         return self._adapt(X, sample_domain=sample_domain)
 
-    def _adapt(self, X, *, sample_domain=None):
+    def _adapt(self, X, y=None, *, sample_domain=None):
+        check_is_fitted(self)
         X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
         # xxx(okachaiev): it seems to me that would work without np.where
@@ -585,7 +590,8 @@ class KLIEPReweightAdapter(BaseAdapter):
         self.fit(X, y, sample_domain=sample_domain)
         return self._adapt(X, sample_domain=sample_domain)
 
-    def _adapt(self, X, *, sample_domain=None):
+    def _adapt(self, X, y=None, *, sample_domain=None):
+        check_is_fitted(self)
         X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
         (source_idx,) = np.where(source_idx)
@@ -1102,7 +1108,8 @@ class KMMReweightAdapter(BaseAdapter):
         self.fit(X, y, sample_domain=sample_domain)
         return self._adapt(X, sample_domain=sample_domain)
 
-    def _adapt(self, X, *, sample_domain=None):
+    def _adapt(self, X, y=None, *, sample_domain=None):
+        check_is_fitted(self)
         X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
 
@@ -1352,7 +1359,13 @@ class MMDTarSReweightAdapter(BaseAdapter):
             The weights of the samples.
         """
         self.fit(X, y, sample_domain=sample_domain)
-        X, sample_domain = check_X_domain(X, sample_domain)
+        return self._adapt(X, y, sample_domain=sample_domain)
+
+    def _adapt(self, X, y=None, *, sample_domain=None):
+        check_is_fitted(self)
+        X, y, sample_domain = check_X_y_domain(
+            X, y, sample_domain, allow_label_masks=True
+        )
         source_idx = extract_source_indices(sample_domain)
 
         if np.array_equal(self.X_source_, X[source_idx]):
