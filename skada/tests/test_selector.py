@@ -301,67 +301,66 @@ def test_source_selector_with_weights(da_multiclass_dataset, selector_cls, side)
     assert output["n_predict_sample_weight"] == X.shape[0]
 
 
-# @pytest.mark.parametrize(
-#     "source_estimator, target_estimator",
-#     [(StandardScaler(), None), (StandardScaler(), StandardScaler())],
-# )
-# def test_source_target_selector(
-#     da_multiclass_dataset, source_estimator, target_estimator
-# ):
-#     X, y, sample_domain = da_multiclass_dataset
-#     source_masks = extract_source_indices(sample_domain)
-#     # make sure sources and targets have significantly different mean
-#     X[source_masks] += 100 * np.ones((source_masks.sum(), X.shape[1]))
+@pytest.mark.parametrize(
+    "source_estimator, target_estimator",
+    [(StandardScaler(), None), (StandardScaler(), StandardScaler())],
+)
+def test_source_target_selector(
+    da_multiclass_dataset, source_estimator, target_estimator
+):
+    X, y, sample_domain = da_multiclass_dataset
+    source_masks = extract_source_indices(sample_domain)
+    # make sure sources and targets have significantly different mean
+    X[source_masks] += 100 * np.ones((source_masks.sum(), X.shape[1]))
 
-#     pipe = make_da_pipeline(
-#         SelectSourceTarget(source_estimator, target_estimator),
-#         SVC(),
-#     )
+    pipe = make_da_pipeline(
+        SelectSourceTarget(source_estimator, target_estimator),
+        SVC(),
+    )
 
-#     # no errors should be raised
-#     pipe.fit(X, y, sample_domain=sample_domain)
+    # no errors should be raised
+    pipe.fit(X, y, sample_domain=sample_domain)
 
-#     # no error is raised when only a single domain type is present
-#     pipe.predict(X[~source_masks], sample_domain=sample_domain[~source_masks])
+    # no error is raised when only a single domain type is present
+    pipe.predict(X[~source_masks], sample_domain=sample_domain[~source_masks])
 
-#     # make sure that scalers were trained on different inputs
-#     correct_mean = np.zeros(X.shape[1])
-#     source_estimator = pipe[1].get_estimator("source")
-#     assert np.allclose(
-#         source_estimator.transform(X[source_masks]).mean(0), correct_mean
-#     )
-#     assert not np.allclose(
-#         source_estimator.transform(X[~source_masks]).mean(0), correct_mean
-#     )
+    # make sure that scalers were trained on different inputs
+    correct_mean = np.zeros(X.shape[1])
+    source_estimator = pipe[1].get_estimator("source")
+    assert np.allclose(
+        source_estimator.transform(X[source_masks]).mean(0), correct_mean
+    )
+    assert not np.allclose(
+        source_estimator.transform(X[~source_masks]).mean(0), correct_mean
+    )
 
-#     target_estimator = pipe[1].get_estimator("target")
-#     assert not np.allclose(
-#         target_estimator.transform(X[source_masks]).mean(0), correct_mean
-#     )
-#     assert np.allclose(
-#         target_estimator.transform(X[~source_masks]).mean(0), correct_mean
-#     )
+    target_estimator = pipe[1].get_estimator("target")
+    assert not np.allclose(
+        target_estimator.transform(X[source_masks]).mean(0), correct_mean
+    )
+    assert np.allclose(
+        target_estimator.transform(X[~source_masks]).mean(0), correct_mean
+    )
 
 
-# def test_source_target_selector_fails_on_missing_domain(da_multiclass_dataset):
-#     X, y, sample_domain = da_multiclass_dataset
-#     source_masks = extract_source_indices(sample_domain)
-#     pipe = make_da_pipeline(SelectSourceTarget(StandardScaler()), SVC())
+def test_source_target_selector_fails_on_missing_domain(da_multiclass_dataset):
+    X, y, sample_domain = da_multiclass_dataset
+    source_masks = extract_source_indices(sample_domain)
+    pipe = make_da_pipeline(SelectSourceTarget(StandardScaler()), SVC())
 
-#     # fails without targets
-#     with pytest.raises(ValueError):
-#         pipe.fit(
-#             X[source_masks], y[source_masks],
-#             sample_domain=sample_domain[source_masks]
-#         )
+    # fails without targets
+    with pytest.raises(ValueError):
+        pipe.fit(
+            X[source_masks], y[source_masks], sample_domain=sample_domain[source_masks]
+        )
 
-#     # fails without sources
-#     with pytest.raises(ValueError):
-#         pipe.fit(
-#             X[~source_masks],
-#             y[~source_masks],
-#             sample_domain=sample_domain[~source_masks],
-#         )
+    # fails without sources
+    with pytest.raises(ValueError):
+        pipe.fit(
+            X[~source_masks],
+            y[~source_masks],
+            sample_domain=sample_domain[~source_masks],
+        )
 
 
 def test_source_target_selector_non_transformers():

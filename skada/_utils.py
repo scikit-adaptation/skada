@@ -164,3 +164,14 @@ def _remove_masked(X, y, params):
         unmasked_idx = np.isfinite(y)
     X, y, params = _apply_domain_masks(X, y, params, masks=unmasked_idx)
     return X, y, params
+
+
+def _merge_domain_outputs(n_samples, domain_outputs, *, allow_containers=False):
+    assert len(domain_outputs), "At least a single domain has to be given"
+    _, first_output = next(iter(domain_outputs.values()))
+    if not allow_containers:
+        assert isinstance(first_output, np.ndarray)
+    X_output = np.zeros((n_samples, *first_output.shape[1:]), dtype=first_output.dtype)
+    for idx, domain_output in domain_outputs.values():
+        X_output[idx] = domain_output
+    return X_output

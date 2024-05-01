@@ -37,6 +37,7 @@ class MetadataContainer:
     _labels: np.ndarray
     _metadata: dict
 
+    # xxx(okachaiev): `merge_in` and `merge_out` method names are too technical
     def merge_in(self, X_container):
         if isinstance(X_container, tuple) and len(X_container) == 2:
             X, params = X_container
