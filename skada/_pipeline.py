@@ -133,7 +133,8 @@ def make_da_pipeline(
     >>> from sklearn.preprocessing import StandardScaler
     >>> from skada import make_da_pipeline
     >>> make_da_pipeline(StandardScaler(), GaussianNB(priors=None))
-    Pipeline(steps=[('standardscaler',
+    Pipeline(steps=[('_converttometadatacontainer', _ConvertToMetadataContainer()),
+                    ('standardscaler',
                      Shared(base_estimator=StandardScaler(), copy=True,
                             with_mean=True, with_std=True)),
                     ('gaussiannb',
