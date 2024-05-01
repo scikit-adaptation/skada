@@ -794,8 +794,14 @@ class NearestNeighborReweightAdapter(BaseAdapter):
             The weights of the samples.
         """
         self.fit(X, y, sample_domain=sample_domain)
-        X, sample_domain = check_X_domain(X, sample_domain)
+        return self.adapt(X, sample_domain=sample_domain)
+
+    # xxx(okachaiev): it might be useful to have 'transform' that
+    # performs 'adapt', just do not return weights
+    def adapt(self, X, *, sample_domain=None):
+        X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
+        # xxx(okachaiev): do we need np.where here?
         (source_idx,) = np.where(source_idx)
         indices_source = np.arange(X[source_idx].shape[0])
         if np.array_equal(self.X_source_fit, X[source_idx]):
