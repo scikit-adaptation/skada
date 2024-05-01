@@ -57,14 +57,24 @@ print(f"Will be using {base_classifier} as base classifier", end="\n\n")
 
 RANDOM_SEED = 42
 
-X, y, sample_domain = make_shifted_datasets(
+dataset = make_shifted_datasets(
     n_samples_source=20,
     n_samples_target=20,
     noise=0.1,
     random_state=RANDOM_SEED,
     shift="subspace",
+    return_dataset=True,
 )
 
+X_train, y_train, sample_domain_train = dataset.pack_train(
+    as_sources=["s"],
+    as_targets=["t"],
+)
+X, y, sample_domain = dataset.pack(
+    as_sources=["s"],
+    as_targets=["t"],
+    train=False,
+)
 Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 
 # %%
@@ -299,7 +309,7 @@ plot_subspace_and_classifier(
 #        In IEEE International Conference on Computer Vision, 2013.
 
 clf = SubspaceAlignment(base_classifier, n_components=1)
-clf.fit(X, y, sample_domain=sample_domain)
+clf.fit(X_train, y_train, sample_domain=sample_domain_train)
 plot_subspace_and_classifier(clf, "Subspace Alignment")
 
 # %%
@@ -317,7 +327,7 @@ plot_subspace_and_classifier(clf, "Subspace Alignment")
 #        on Neural Networks, 2011.
 
 clf = TransferComponentAnalysis(base_classifier, n_components=1, mu=2)
-clf.fit(X, y, sample_domain=sample_domain)
+clf.fit(X_train, y_train, sample_domain=sample_domain_train)
 plot_subspace_and_classifier(clf, "TCA")
 
 # %%
@@ -335,7 +345,7 @@ plot_subspace_and_classifier(clf, "TCA")
 #         on Computer Vision and Pattern Recognition (CVPR), pages 1410–1417.
 
 clf = TransferJointMatching(base_classifier, tradeoff=0.1, n_components=1)
-clf.fit(X, y, sample_domain=sample_domain)
+clf.fit(X_train, y_train, sample_domain=sample_domain_train)
 plot_subspace_and_classifier(
     clf,
     "TransferJointMatching with rbf kernel",
