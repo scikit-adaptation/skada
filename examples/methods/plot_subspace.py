@@ -7,6 +7,7 @@ to subspace shift
 """
 
 # Author:   Ruben Bueno <ruben.bueno@polytechnique.edu>
+#           Oleksii Kachaiev <kachayev@gmail.com>
 #
 # License: BSD 3-Clause
 # sphinx_gallery_thumbnail_number = 4
@@ -358,12 +359,10 @@ plot_subspace_and_classifier(
 
 
 def print_scores_as_table(scores):
-    keys = list(scores.keys())
-    lengths = [len(k) for k in keys]
-    max_lenght = max(lengths)
-    for k in keys:
-        print(f"{k}{' '*(max_lenght - len(k))} | ", end="")
-        print(f"{scores[k]*100}{' '*(6-len(str(scores[k]*100)))}%")
+    max_len = max(len(k) for k in scores.keys())
+    for k, v in scores.items():
+        print(f"{k}{' '*(max_len - len(k))} | ", end="")
+        print(f"{v*100}{' '*(6-len(str(v*100)))}%")
 
 
 print_scores_as_table(scores_dict)

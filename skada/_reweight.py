@@ -102,9 +102,9 @@ class DensityReweightAdapter(BaseAdapter):
             The weights of the samples.
         """
         self.fit(X, y, sample_domain=sample_domain)
-        return self._adapt(X, sample_domain=sample_domain)
+        return self.adapt(X, sample_domain=sample_domain)
 
-    def _adapt(self, X, y=None, *, sample_domain=None):
+    def adapt(self, X, y=None, *, sample_domain=None):
         check_is_fitted(self)
         X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
@@ -229,9 +229,9 @@ class GaussianReweightAdapter(BaseAdapter):
             The weights of the samples.
         """
         self.fit(X, y, sample_domain=sample_domain)
-        return self._adapt(X, sample_domain=sample_domain)
+        return self.adapt(X, sample_domain=sample_domain)
 
-    def _adapt(self, X, y=None, *, sample_domain=None):
+    def adapt(self, X, y=None, *, sample_domain=None):
         check_is_fitted(self)
         X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
@@ -363,9 +363,9 @@ class DiscriminatorReweightAdapter(BaseAdapter):
             The weights of the samples.
         """
         self.fit(X, y, sample_domain=sample_domain)
-        return self._adapt(X, sample_domain=sample_domain)
+        return self.adapt(X, sample_domain=sample_domain)
 
-    def _adapt(self, X, y=None, *, sample_domain=None):
+    def adapt(self, X, y=None, *, sample_domain=None):
         check_is_fitted(self)
         X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
@@ -588,9 +588,9 @@ class KLIEPReweightAdapter(BaseAdapter):
             The weights of the samples.
         """
         self.fit(X, y, sample_domain=sample_domain)
-        return self._adapt(X, sample_domain=sample_domain)
+        return self.adapt(X, sample_domain=sample_domain)
 
-    def _adapt(self, X, y=None, *, sample_domain=None):
+    def adapt(self, X, y=None, *, sample_domain=None):
         check_is_fitted(self)
         X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
@@ -1106,9 +1106,9 @@ class KMMReweightAdapter(BaseAdapter):
             The weights of the samples.
         """
         self.fit(X, y, sample_domain=sample_domain)
-        return self._adapt(X, sample_domain=sample_domain)
+        return self.adapt(X, sample_domain=sample_domain)
 
-    def _adapt(self, X, y=None, *, sample_domain=None):
+    def adapt(self, X, y=None, *, sample_domain=None):
         check_is_fitted(self)
         X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
@@ -1359,9 +1359,9 @@ class MMDTarSReweightAdapter(BaseAdapter):
             The weights of the samples.
         """
         self.fit(X, y, sample_domain=sample_domain)
-        return self._adapt(X, y, sample_domain=sample_domain)
+        return self.adapt(X, y, sample_domain=sample_domain)
 
-    def _adapt(self, X, y=None, *, sample_domain=None):
+    def adapt(self, X, y=None, *, sample_domain=None):
         check_is_fitted(self)
         X, y, sample_domain = check_X_y_domain(
             X, y, sample_domain, allow_label_masks=True
