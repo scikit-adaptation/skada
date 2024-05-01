@@ -153,15 +153,19 @@ def plot_subspace_and_classifier(
     )
     scores_dict[name] = score
     if name != "Without DA":
-        keys = list(clf.named_steps.keys())
-        subspace_estimator = clf.named_steps[keys[0]].base_estimator_
-        clf_on_subspace = clf.named_steps[keys[1]].base_estimator_
+        subspace_estimator = clf.steps[-2][1].get_estimator()
+        clf_on_subspace = clf.steps[-1][1].get_estimator()
 
         ax = axes[0]
 
         # Plot the source points:
-        Xs_subspace = subspace_estimator.adapt(Xs)
-        Xt_subspace = subspace_estimator.adapt(Xt)
+        Xs_subspace = subspace_estimator.transform(
+            Xs,
+            # mark all samples as sources
+            sample_domain=np.ones(Xs.shape[0]),
+            allow_source=True,
+        )
+        Xt_subspace = subspace_estimator.transform(Xt)
         ax.scatter(
             Xs_subspace,
             [1] * Xs.shape[0],
@@ -186,7 +190,7 @@ def plot_subspace_and_classifier(
         ax.set_title("Full dataset projected on the subspace", fontsize=12)
 
         ax = axes[1]
-        Xt_adapted = subspace_estimator.adapt(Xt)
+        Xt_adapted = subspace_estimator.transform(Xt)
         ax.scatter(
             Xt_adapted,
             [0] * Xt.shape[0],
