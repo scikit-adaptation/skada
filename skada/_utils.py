@@ -169,9 +169,42 @@ def _remove_masked(X, y, params):
 def _merge_domain_outputs(n_samples, domain_outputs, *, allow_containers=False):
     assert len(domain_outputs), "At least a single domain has to be given"
     _, first_output = next(iter(domain_outputs.values()))
-    if not allow_containers:
+    if isinstance(first_output, tuple):
+        assert (
+            allow_containers
+        ), "Container output is given while `allow_containers` set to False"
+        X_output, y_output, params_output = None, None, {}
+        for idx, domain_output in domain_outputs.values():
+            if len(domain_output) == 2:
+                domain_X, domain_params = domain_output
+                domain_y = None
+            elif len(domain_output) == 3:
+                domain_X, domain_y, domain_params = domain_output
+            else:
+                raise ValueError("Invalid container structure")
+            if X_output is None:
+                X_output = np.zeros(
+                    (n_samples, *domain_X.shape[1:]), dtype=domain_X.dtype
+                )
+            if domain_y is not None and y_output is None:
+                y_output = np.zeros(
+                    (n_samples, *domain_y.shape[1:]), dtype=domain_y.dtype
+                )
+            X_output[idx] = domain_X
+            if domain_y is not None:
+                y_output[idx] = domain_y
+            for k, v in domain_params.items():
+                if k not in params_output:
+                    params_output[k] = np.zeros(
+                        (n_samples, *v.shape[1:]), dtype=v.dtype
+                    )
+                params_output[k][idx] = v
+        output = X_output, y_output, params_output
+    else:
         assert isinstance(first_output, np.ndarray)
-    X_output = np.zeros((n_samples, *first_output.shape[1:]), dtype=first_output.dtype)
-    for idx, domain_output in domain_outputs.values():
-        X_output[idx] = domain_output
-    return X_output
+        output = np.zeros(
+            (n_samples, *first_output.shape[1:]), dtype=first_output.dtype
+        )
+        for idx, domain_output in domain_outputs.values():
+            output[idx] = domain_output
+    return output
