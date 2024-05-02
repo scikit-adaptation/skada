@@ -5,8 +5,9 @@
 
 import numpy as np
 import pytest
+from sklearn.utils import check_random_state
 
-from skada._utils import _check_y_masking
+from skada._utils import _check_y_masking, _merge_domain_outputs
 from skada.datasets import make_dataset_from_moons_distribution
 from skada.utils import (
     check_X_domain,
@@ -175,7 +176,8 @@ def test_check_X_y_allow_exceptions():
 
     # Generate a random_sample_domain of size len(y)
     # with random integers between -5 and 5 (excluding 0)
-    random_sample_domain = np.random.choice(
+    rng = check_random_state(42)
+    random_sample_domain = rng.choice(
         np.concatenate((np.arange(-5, 0), np.arange(1, 6))), size=len(y)
     )
     allow_source = False
@@ -262,7 +264,8 @@ def test_check_X_allow_exceptions():
 
     # Generate a random_sample_domain of size len(y)
     # with random integers between -5 and 5 (excluding 0)
-    random_sample_domain = np.random.choice(
+    rng = check_random_state(42)
+    random_sample_domain = rng.choice(
         np.concatenate((np.arange(-5, 0), np.arange(1, 6))), size=len(y)
     )
     allow_source = False
@@ -650,3 +653,107 @@ def test_torch_minimize():
     # test warning when convergence is not reached
     with pytest.warns(UserWarning):
         torch_minimize(loss, x0, max_iter=1, tol=0)
+
+
+def test_merge_output_without_containers():
+    X = _merge_domain_outputs(
+        20,
+        {
+            "s": (np.arange(10), np.zeros(10)),
+            "t": (np.arange(10, 20), np.ones(10)),
+        },
+    )
+    assert X.shape[0] == 20
+    assert X.sum() == 10
+
+
+def test_merge_output_with_containers():
+    # containers are not allowed by default
+    with pytest.raises(AssertionError):
+        _merge_domain_outputs(
+            20,
+            {
+                "s": (np.arange(10), (np.zeros(10), None, {})),
+                "t": (np.arange(10, 20), (np.zeros(10), None, {})),
+            },
+        )
+
+    X, y, params = _merge_domain_outputs(
+        20,
+        {
+            "s": (
+                np.arange(10),
+                (
+                    np.zeros(10),
+                    np.ones(10),
+                    {"sample_weight": np.ones(10, dtype=np.float32)},
+                ),
+            ),
+            "t": (
+                np.arange(10, 20),
+                (
+                    np.zeros(10),
+                    np.ones(10),
+                    {"sample_weight": np.ones(10, dtype=np.float32) * 2},
+                ),
+            ),
+        },
+        allow_containers=True,
+    )
+    assert X.shape[0] == 20
+    assert y.shape[0] == 20
+    assert y.sum() == 20
+    assert len(params) == 1
+    assert params["sample_weight"].dtype == np.float32
+    assert params["sample_weight"].shape[0] == 20
+    assert params["sample_weight"].sum() == 30
+
+
+def test_merge_output_with_optional_label():
+    # empty y's
+    _, y, _ = _merge_domain_outputs(
+        20,
+        {
+            "s": (np.arange(10), (np.zeros(10), None, {"sample_weight": np.ones(10)})),
+            "t": (
+                np.arange(10, 20),
+                (np.zeros(10), None, {"sample_weight": np.ones(10) * 2}),
+            ),
+        },
+        allow_containers=True,
+    )
+    assert y is None
+
+    # partially missing
+    _, y, _ = _merge_domain_outputs(
+        20,
+        {
+            "s": (np.arange(10), (np.zeros(10), None, {"sample_weight": np.ones(10)})),
+            "t": (
+                np.arange(10, 20),
+                (np.zeros(10), np.ones(10), {"sample_weight": np.ones(10) * 2}),
+            ),
+        },
+        allow_containers=True,
+    )
+    assert y.shape[0] == 20
+    assert y.sum() == 10
+
+
+def test_merge_output_invalid_container():
+    with pytest.raises(ValueError):
+        _merge_domain_outputs(
+            20,
+            {
+                "s": (np.arange(10), (np.zeros(10), np.ones(10), {}, None, None)),
+                "t": (
+                    np.arange(10, 20),
+                    (
+                        np.zeros(10),
+                        np.ones(10),
+                        {"sample_weight": np.ones(10, dtype=np.float32) * 2},
+                    ),
+                ),
+            },
+            allow_containers=True,
+        )

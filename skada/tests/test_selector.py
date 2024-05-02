@@ -10,7 +10,8 @@ from sklearn.datasets import make_regression
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
-from sklearn.utils.metadata_routing import _MetadataRequester, get_routing_for_object
+from sklearn.utils.metadata_routing import get_routing_for_object
+from sklearn.utils.metaestimators import available_if
 
 from skada import SubspaceAlignmentAdapter, make_da_pipeline
 from skada._utils import (
@@ -19,7 +20,7 @@ from skada._utils import (
     _remove_masked,
 )
 from skada.base import (
-    AdaptationOutput,
+    BaseAdapter,
     IncompatibleMetadataError,
     PerDomain,
     SelectSource,
@@ -43,7 +44,7 @@ def test_base_selector_estimator_fetcher():
 
     lr = LogisticRegression()
     pipe = make_da_pipeline(lr)
-    selector = pipe[0]
+    selector = pipe[-1]
 
     # before fitting, raises
     with pytest.raises(ValueError):
@@ -156,21 +157,34 @@ def test_selector_inherits_routing(estimator_cls):
 
 
 def test_selector_rejects_incompatible_adaptation_output():
-    X = AdaptationOutput(np.ones((10, 2)), sample_weight=np.zeros(10))
-    y = np.zeros(10)
+    n_samples = 10
+    X = np.ones((n_samples, 2))
+    y = np.zeros(n_samples, dtype=np.int32)
+    y[:5] = 1
+
+    class FakeAdapter(BaseAdapter):
+        def fit_transform(self, X, y=None, sample_domain=None, **params):
+            return X, dict(sample_weight=np.ones(X.shape[0]))
+
+        def transform(
+            self, X, y=None, sample_domain=None, allow_source=False, **params
+        ):
+            return X
 
     # fails if this is an estimator (not transformer)
-    estimator = Shared(LogisticRegression())
+    estimator = make_da_pipeline(FakeAdapter(), LogisticRegression())
     with pytest.raises(IncompatibleMetadataError):
         estimator.fit(X, y)
 
     # fails if this is the last estimator transformer
-    estimator = Shared(StandardScaler())._mark_as_final()
+    estimator = make_da_pipeline(FakeAdapter(), StandardScaler())
     with pytest.raises(IncompatibleMetadataError):
         estimator.fit(X, y)
 
     # does not fail for non-final transformer
-    estimator = Shared(StandardScaler())._unmark_as_final()
+    estimator = make_da_pipeline(
+        FakeAdapter(), StandardScaler(), SVC().set_fit_request(sample_weight=True)
+    )
     estimator.fit(X, y)
 
 
@@ -215,13 +229,17 @@ def test_source_selector_with_estimator(da_multiclass_dataset, selector_cls, sid
 
 
 @pytest.mark.parametrize(
-    "selector_cls, side",
+    "selector_cls, side, _fit_transform",
     [
-        (SelectSource, "source"),
-        (SelectTarget, "target"),
+        (SelectSource, "source", False),
+        (SelectTarget, "target", False),
+        (SelectSource, "source", True),
+        (SelectTarget, "target", True),
     ],
 )
-def test_source_selector_with_transformer(da_multiclass_dataset, selector_cls, side):
+def test_source_selector_with_transformer(
+    da_multiclass_dataset, selector_cls, side, _fit_transform
+):
     X, y, sample_domain = da_multiclass_dataset
     X_source, X_target = source_target_split(X, sample_domain=sample_domain)
     output = {}
@@ -234,6 +252,11 @@ def test_source_selector_with_transformer(da_multiclass_dataset, selector_cls, s
         def transform(self, X):
             output["n_transform_samples"] = X.shape[0]
             return X
+
+        @available_if(lambda _: _fit_transform)
+        def fit_transform(self, X, y=None):
+            self.fit(X)
+            return self.transform(X)
 
     pipe = make_da_pipeline(selector_cls(FakeTransformer()))
     pipe.fit(X, sample_domain=sample_domain)
@@ -264,7 +287,7 @@ def test_source_selector_with_weights(da_multiclass_dataset, selector_cls, side)
     X_source, X_target = source_target_split(X, sample_domain=sample_domain)
     output = {}
 
-    class FakeEstimator(BaseEstimator, _MetadataRequester):
+    class FakeEstimator(BaseEstimator):
         __metadata_request__fit = {"sample_weight": True}
         __metadata_request__predict = {"sample_weight": True}
 

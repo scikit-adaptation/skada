@@ -2,8 +2,8 @@
 How to use SKADA
 ====================================================
 
-This is a short example of how to use SKADA to perform domain adaptation
-on a simple dataset will illustration of the API choice specific to DA.
+This is a short example to get started with SKADA and perform domain adaptation
+on a simple dataset. It illustrates the API choice specific to DA.
 """
 
 # Author: Remi Flamary
@@ -39,13 +39,13 @@ from skada.model_selection import SourceTargetShuffleSplit
 # DA dataset
 # ----------
 #
-# We generate a simple 2D DA dataset. Note that DA data
-# are organized with all source and target sample as follows:
+# We generate a simple 2D DA dataset. Note that DA datasets provided by SKADA
+# are organized as follows:
 #
-# * :code:`X` is the input data
+# * :code:`X` is the input data, including the source and the target samples
 # * :code:`y` is the output data to be predicted (labels on target samples are not
-#   used)
-# * :code:`sample_domain` is the domain of each sample (integer >=0 for
+#   used when fitting the DA estimator)
+# * :code:`sample_domain` encodes the domain of each sample (integer >=0 for
 #   source and <0 for target)
 
 # Get DA dataset
@@ -75,8 +75,9 @@ plt.title("Target data")
 # DA Classifier estimator
 # -----------------------
 #
-# DA estimators are used exactly as regular estimators. The only difference is
-# that the :code:`sample_domain` array must be passed (by name).
+# SKADA estimators are used like scikit-learn estimators. The only difference is
+# that the :code:`sample_domain` array must be passed by name when fitting the
+# estimator.
 
 
 # create a DA estimator
@@ -92,12 +93,13 @@ yt_pred = clf.predict(Xt)
 print("Accuracy on source:", clf.score(Xs, ys))
 print("Accuracy on target:", clf.score(Xt, yt))
 
-# %% DA estimator in a pipeline
+# %%
+# DA estimator in a pipeline
 # -----------------------------
 #
-# DA estimators can be used as final estimator in the sklearn pipeline. The only
-# difference is that the :code:`sample_domain` array must be passed (by name)
-# during the fit.
+# SKADA estimators can be used as the final estimator of a scikit-learn pipeline.
+# Again, the only difference is that the :code:`sample_domain` array must be
+# passed by name during in fit.
 
 
 # create a DA pipeline
@@ -110,20 +112,19 @@ print("Accuracy on target:", pipe.score(Xt, yt))
 # DA Adapter pipeline
 # -------------------
 #
-# Many DA method correspond to a data adapter that can be used to transform
-# data such that a regular estimator can be used. For those methods, skada
+# Several SKADA estimators include a data adapter that transforms the input data
+# so that a scikit-learn estimator can be used. For those methods, SKADA
 # provides a :code:`Adapter` class that can be used in a DA pipeline from
-# :code: .
+# :code:`make_da_pipeline`.
 #
-# Here is an example with the CORAL and GaussianReweight adapter.
+# Here is an example with the CORAL and GaussianReweight adapters.
 #
 # .. WARNING::
-#   Note that as illustrated below for
-#   adapters that reweight the data, one needs a subsequent estimator that
-#   requires the weighs as input. This can be done with :code:`set_fit_request`
-#   method of the estimator by executing
-#   :code:`.set_fit_request(sample_weight=True)`). If the estimator (for
-#   pipeline or DA estimator) does not
+#   Note that as illustrated below for reweighting adapters, one needs a
+#   subsequent estimator that takes :code:`sample_weight` as an input parameter.
+#   This can be done using the :code:`set_fit_request` method of the estimator
+#   by calling :code:`.set_fit_request(sample_weight=True)`.
+#   If the estimator (for pipeline or DA estimator) does not
 #   require sample weights, the DA pipeline will raise an error.
 
 
@@ -145,12 +146,12 @@ pipe.fit(X, y, sample_domain=sample_domain)
 print("Accuracy on target:", pipe.score(Xt, yt))
 
 # %%
-# DA estimator with cross-validation of score
+# DA estimators with score cross-validation
 # -------------------------------------------
 #
-# DA estimators can be used with cross-validation as regular estimators using
-# functions from sklearn. Note that the :code:`sample_domain` array must be
-# passed in the :code:`params` dictionary of the :code:`cross_val_score` function.
+# DA estimators are compatible with scikit-learn cross-validation functions.
+# Note that the :code:`sample_domain` array must be passed in the :code:`params`
+# dictionary of the :code:`cross_val_score` function.
 
 
 # splitter for cross-validation of score
@@ -172,9 +173,9 @@ print(f"Entropy score: {scores.mean():1.2f} (+-{scores.std():1.2f})")
 # DA estimator with grid search
 # -----------------------------
 #
-# DA estimators can be used with grid search as regular estimators using
-# functions from sklearn. Note that the :code:`sample_domain` array must be
-# passed in the :code:`fit` method of the grid search.
+# DA estimators are also compatible with scikit-learn grid search functions.
+# Note that the :code:`sample_domain` array must be passed in the :code:`fit`
+# method of the grid search.
 
 
 reg_coral = [0.1, 0.5, 1, "auto"]
@@ -200,13 +201,13 @@ print("Accuracy on target:", np.mean(grid_search.predict(Xt) == yt))
 # --------------------
 #
 # The DA pipeline can be used with any estimator and any adapter. But more
-# importantly all estimators in the pipeline are wrapped automatically in what
-# we call in skada a :code:`Selector`. The selector is a wrapper that allows to
-# select what is passed during fit and predict/transform.
+# importantly all estimators in the pipeline are automatically wrapped in what
+# we call in skada a `Selector`. The selector is a wrapper that allows you to
+# choose which data is passed during fit and predict/transform.
 #
-# For instance in the following we train one StandardScaler per domain but then
-# use a single SVC trained only on source. When predicting on target data the
-# pipeline will automatically use StandardScaler trained on target and the SVC
+# In the following example, one StandardScaler is trained per domain. Then
+# a single SVC is trained on source data only. When predicting on target data the
+# pipeline will automatically use the StandardScaler trained on target and the SVC
 # trained on source.
 
 # create a DA pipeline with SelectSourceTarget estimators
@@ -221,9 +222,10 @@ pipe.fit(X, y, sample_domain=sample_domain)
 print("Accuracy on source:", pipe.score(Xs, ys, sample_domain=sample_domain_s))
 print("Accuracy on target:", pipe.score(Xt, yt))  # target by default
 
+# %%
 # Similarly one can use the PerDomain selector to train a different estimator
-# per domain. this allows to handle multiple source and target domains. In this
-# case `sample_domain` must be provided during fit and predict/transform.
+# per domain. This allows to handle multiple source and target domains. In this
+# case :code:`sample_domain` must be provided to fit and predict/transform.
 
 pipe = make_da_pipeline(
     PerDomain(StandardScaler()),
@@ -235,8 +237,8 @@ pipe.fit(X, y, sample_domain=sample_domain)
 print("Accuracy on all data:", pipe.score(X, y, sample_domain=sample_domain))
 
 # %%
-# One can use a default selector on the whole pipeline  which allows for
-# instance to train the whole pipeline only on the source Data  as follows:
+# One can use a default selector on the whole pipeline which allows for
+# instance to train the whole pipeline only on the source data as follows:
 
 pipe_train_on_source = make_da_pipeline(
     StandardScaler(),
@@ -250,8 +252,8 @@ print("Accuracy on target:", pipe_train_on_source.score(Xt, yt))
 
 # %%
 # One can also use a default selector on the whole pipeline but overwrite it for
-# the last estimator. The example below estimate a :code:`StandardScaler` and
-# :code:`PCA` per domain but train the final SVC on source Data only.
+# the last estimator. In the example below a :code:`StandardScaler` and a
+# :code:`PCA` are estimated per domain but the final SVC is trained on source data only.
 
 pipe_perdomain = make_da_pipeline(
     StandardScaler(),

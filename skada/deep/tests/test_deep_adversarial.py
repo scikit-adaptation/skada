@@ -63,16 +63,16 @@ def test_dann(domain_classifier, domain_criterion, num_features):
 
 
 @pytest.mark.parametrize(
-    "domain_classifier, domain_criterion, num_feature, max_feature",
+    "domain_classifier, domain_criterion, num_feature, max_feature, n_classes",
     [
-        (DomainClassifier(num_features=20), BCELoss(), None, 4096),
-        (DomainClassifier(num_features=20), None, None, 4096),
-        (None, None, 20, 4096),
-        (None, BCELoss(), 20, 4096),
-        (None, BCELoss(), 20, 10),
+        (DomainClassifier(num_features=20), BCELoss(), None, 4096, 2),
+        (DomainClassifier(num_features=20), None, None, 4096, 2),
+        (None, None, 10, 4096, 2),
+        (None, BCELoss(), 10, 4096, 2),
+        (None, BCELoss(), 10, 10, 2),
     ],
 )
-def test_cdan(domain_classifier, domain_criterion, num_feature, max_feature):
+def test_cdan(domain_classifier, domain_criterion, num_feature, max_feature, n_classes):
     module = ToyModule2D()
     module.eval()
 
@@ -91,6 +91,7 @@ def test_cdan(domain_classifier, domain_criterion, num_feature, max_feature):
         reg=1,
         domain_classifier=domain_classifier,
         num_features=num_feature,
+        n_classes=n_classes,
         domain_criterion=domain_criterion,
         max_features=max_feature,
         layer_name="dropout",
@@ -141,6 +142,22 @@ def test_missing_num_features():
         )
 
 
+def test_missing_n_classes():
+    with pytest.raises(ValueError):
+        CDAN(
+            ToyModule2D(),
+            reg=1,
+            domain_classifier=None,
+            num_features=10,
+            n_classes=None,
+            domain_criterion=BCELoss(),
+            layer_name="dropout",
+            batch_size=10,
+            max_epochs=10,
+            train_split=None,
+        )
+
+
 def test_return_features():
     num_features = 10
     n_classes = 2
@@ -161,7 +178,8 @@ def test_return_features():
         ToyModule2D(),
         reg=1,
         domain_classifier=None,
-        num_features=num_features * n_classes,
+        num_features=num_features,
+        n_classes=n_classes,
         domain_criterion=BCELoss(),
         layer_name="dropout",
         batch_size=10,
