@@ -419,8 +419,8 @@ class Shared(BaseSelector):
     def _route_to_estimator(self, method_name, X, y=None, **params):
         check_is_fitted(self)
         request = getattr(self.routing_, method_name)
-        routed_params = {k: params[k] for k in request._consumes(params=params)}
-        X, y, params = self._remove_masked(X, y, params)
+        routed_params = self._prepare_routing(request, {}, params)
+        X, y, routed_params = self._remove_masked(X, y, routed_params)
         method = getattr(self.base_estimator_, method_name)
         output = method(X, **routed_params) if y is None else method(
             X, y, **routed_params
@@ -478,7 +478,6 @@ class PerDomain(BaseSelector):
     def _route_to_estimator(self, method_name, X, y=None, **params):
         check_is_fitted(self)
         request = getattr(self.routing_, method_name)
-        # xxx(okachaiev): we should not use _merge_and_route_params helper
         routed_params = self._prepare_routing(request, {}, params)
         # xxx(okachaiev): use check_*_domain to derive default domain labels
         sample_domain = params['sample_domain']
