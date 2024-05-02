@@ -220,7 +220,9 @@ clf.fit(X, y, sample_domain=sample_domain)
 # we first get the adapter which is estimating the weights
 weight_estimator = clf[1].base_estimator_
 idx = extract_source_indices(sample_domain)
-_, adaptation_params = weight_estimator.adapt(X, sample_domain=sample_domain)
+_, adaptation_params = weight_estimator.calculate_weights(
+    X, sample_domain=sample_domain
+)
 weights = adaptation_params["sample_weight"][idx]
 
 plot_weights_and_classifier(clf, weights=weights, name="Density Reweighting")
@@ -244,7 +246,9 @@ clf.fit(X, y, sample_domain=sample_domain)
 # We get the weights
 weight_estimator = clf[1].get_estimator()
 idx = extract_source_indices(sample_domain)
-_, adaptation_params = weight_estimator.adapt(X, sample_domain=sample_domain)
+_, adaptation_params = weight_estimator.calculate_weights(
+    X, sample_domain=sample_domain
+)
 weights = adaptation_params["sample_weight"][idx]
 
 plot_weights_and_classifier(clf, weights=weights, name="Gaussian Reweighting")
@@ -272,7 +276,9 @@ clf.fit(X, y, sample_domain=sample_domain)
 # we first get the adapter which is estimating the weights
 weight_estimator = clf[1].get_estimator()
 idx = extract_source_indices(sample_domain)
-_, adaptation_params = weight_estimator.adapt(X, sample_domain=sample_domain)
+_, adaptation_params = weight_estimator.calculate_weights(
+    X, sample_domain=sample_domain
+)
 weights = adaptation_params["sample_weight"][idx]
 
 plot_weights_and_classifier(clf, weights=weights, name="Discr. Reweighting")
@@ -303,7 +309,9 @@ clf.fit(X, y, sample_domain=sample_domain)
 # we first get the adapter which is estimating the weights
 weight_estimator = clf[1].get_estimator()
 idx = extract_source_indices(sample_domain)
-_, adaptation_params = weight_estimator.adapt(X, sample_domain=sample_domain)
+_, adaptation_params = weight_estimator.calculate_weights(
+    X, sample_domain=sample_domain
+)
 weights = adaptation_params["sample_weight"][idx]
 
 plot_weights_and_classifier(clf, weights=weights, name="KLIEPReweight")
@@ -333,7 +341,9 @@ clf.fit(X, y, sample_domain=sample_domain)
 # we first get the adapter which is estimating the weights
 weight_estimator = clf[1].get_estimator()
 idx = extract_source_indices(sample_domain)
-_, adaptation_params = weight_estimator.adapt(X, sample_domain=sample_domain)
+_, adaptation_params = weight_estimator.calculate_weights(
+    X, sample_domain=sample_domain
+)
 weights = adaptation_params["sample_weight"][idx]
 
 plot_weights_and_classifier(clf, weights=weights, name="1NN Reweighting")
@@ -361,7 +371,9 @@ clf.fit(X, y, sample_domain=sample_domain)
 # we first get the adapter which is estimating the weights
 weight_estimator = clf[1].get_estimator()
 idx = extract_source_indices(sample_domain)
-_, adaptation_params = weight_estimator.adapt(X, sample_domain=sample_domain)
+_, adaptation_params = weight_estimator.calculate_weights(
+    X, sample_domain=sample_domain
+)
 weights = adaptation_params["sample_weight"][idx]
 
 plot_weights_and_classifier(
@@ -380,7 +392,9 @@ clf.fit(X, y, sample_domain=sample_domain)
 # we first get the adapter which is estimating the weights
 weight_estimator = clf[1].get_estimator()
 idx = extract_source_indices(sample_domain)
-_, adaptation_params = weight_estimator.adapt(X, sample_domain=sample_domain)
+_, adaptation_params = weight_estimator.calculate_weights(
+    X, sample_domain=sample_domain
+)
 weights = adaptation_params["sample_weight"][idx]
 
 plot_weights_and_classifier(
@@ -405,7 +419,9 @@ clf.fit(X, y, sample_domain=sample_domain)
 # we first get the adapter which is estimating the weights
 weight_estimator = clf[1].get_estimator()
 idx = extract_source_indices(sample_domain)
-_, adaptation_params = weight_estimator.adapt(X, sample_domain=sample_domain)
+_, adaptation_params = weight_estimator.calculate_weights(
+    X, sample_domain=sample_domain
+)
 weights = adaptation_params["sample_weight"][idx]
 
 plot_weights_and_classifier(

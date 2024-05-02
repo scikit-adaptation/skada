@@ -102,9 +102,9 @@ class DensityReweightAdapter(BaseAdapter):
             The weights of the samples.
         """
         self.fit(X, y, sample_domain=sample_domain)
-        return self.adapt(X, sample_domain=sample_domain)
+        return self.calculate_weights(X, sample_domain=sample_domain)
 
-    def adapt(self, X, y=None, *, sample_domain=None):
+    def calculate_weights(self, X, y=None, *, sample_domain=None):
         check_is_fitted(self)
         X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
@@ -229,9 +229,9 @@ class GaussianReweightAdapter(BaseAdapter):
             The weights of the samples.
         """
         self.fit(X, y, sample_domain=sample_domain)
-        return self.adapt(X, sample_domain=sample_domain)
+        return self.calculate_weights(X, sample_domain=sample_domain)
 
-    def adapt(self, X, y=None, *, sample_domain=None):
+    def calculate_weights(self, X, y=None, *, sample_domain=None):
         check_is_fitted(self)
         X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
@@ -363,9 +363,9 @@ class DiscriminatorReweightAdapter(BaseAdapter):
             The weights of the samples.
         """
         self.fit(X, y, sample_domain=sample_domain)
-        return self.adapt(X, sample_domain=sample_domain)
+        return self.calculate_weights(X, sample_domain=sample_domain)
 
-    def adapt(self, X, y=None, *, sample_domain=None):
+    def calculate_weights(self, X, y=None, *, sample_domain=None):
         check_is_fitted(self)
         X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
@@ -588,9 +588,9 @@ class KLIEPReweightAdapter(BaseAdapter):
             The weights of the samples.
         """
         self.fit(X, y, sample_domain=sample_domain)
-        return self.adapt(X, sample_domain=sample_domain)
+        return self.calculate_weights(X, sample_domain=sample_domain)
 
-    def adapt(self, X, y=None, *, sample_domain=None):
+    def calculate_weights(self, X, y=None, *, sample_domain=None):
         check_is_fitted(self)
         X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
@@ -763,7 +763,7 @@ class NearestNeighborReweightAdapter(BaseAdapter):
 
         return self
 
-    def get_weights(self, Xs, Xt):
+    def _get_weights(self, Xs, Xt):
         indices_source = np.arange(Xs.shape[0])
         estimator = clone(self.base_estimator)
         estimator.fit(Xs, indices_source)
@@ -794,11 +794,11 @@ class NearestNeighborReweightAdapter(BaseAdapter):
             The weights of the samples.
         """
         self.fit(X, y, sample_domain=sample_domain)
-        return self.adapt(X, sample_domain=sample_domain)
+        return self.calculate_weights(X, sample_domain=sample_domain)
 
     # xxx(okachaiev): it might be useful to have 'transform' that
-    # performs 'adapt', just do not return weights
-    def adapt(self, X, *, sample_domain=None):
+    # performs 'calculate_weights', just do not return weights
+    def calculate_weights(self, X, *, sample_domain=None):
         X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
         # xxx(okachaiev): do we need np.where here?
@@ -810,7 +810,7 @@ class NearestNeighborReweightAdapter(BaseAdapter):
             estimator = clone(self.base_estimator)
             estimator.fit(X[source_idx], indices_source)
         weights = np.ones(X.shape[0])
-        weights[source_idx] = self.get_weights(X[source_idx], X[~source_idx])
+        weights[source_idx] = self._get_weights(X[source_idx], X[~source_idx])
         return X, dict(sample_weight=weights)
 
 
@@ -1112,9 +1112,9 @@ class KMMReweightAdapter(BaseAdapter):
             The weights of the samples.
         """
         self.fit(X, y, sample_domain=sample_domain)
-        return self.adapt(X, sample_domain=sample_domain)
+        return self.calculate_weights(X, sample_domain=sample_domain)
 
-    def adapt(self, X, y=None, *, sample_domain=None):
+    def calculate_weights(self, X, y=None, *, sample_domain=None):
         check_is_fitted(self)
         X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
@@ -1365,9 +1365,9 @@ class MMDTarSReweightAdapter(BaseAdapter):
             The weights of the samples.
         """
         self.fit(X, y, sample_domain=sample_domain)
-        return self.adapt(X, y, sample_domain=sample_domain)
+        return self.calculate_weights(X, y, sample_domain=sample_domain)
 
-    def adapt(self, X, y=None, *, sample_domain=None):
+    def calculate_weights(self, X, y=None, *, sample_domain=None):
         check_is_fitted(self)
         X, y, sample_domain = check_X_y_domain(
             X, y, sample_domain, allow_label_masks=True
