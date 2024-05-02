@@ -10,30 +10,27 @@ from sklearn.svm import SVC
 
 from skada import JDOTClassifier, JDOTRegressor, OTLabelPropAdapter, make_da_pipeline
 from skada._ot import get_jdot_class_cost_matrix, get_tgt_loss_jdot_class
+from skada.metrics import PredictionEntropyScorer
 from skada.utils import source_target_split
 
 
 def test_JDOTRegressor(da_reg_dataset):
     X, y, sample_domain = da_reg_dataset
-    w = np.random.rand(X.shape[0])
+    rng = np.random.default_rng(42)
+    w = rng.uniform(size=(X.shape[0],))
 
     Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 
     # standard case
     jdot = JDOTRegressor(base_estimator=Ridge(), alpha=0.1, verbose=True)
-
     jdot.fit(X, y, sample_domain=sample_domain)
-
     ypred = jdot.predict(Xt)
-
     assert ypred.shape[0] == Xt.shape[0]
 
     # JDOT with weights
     jdot = JDOTRegressor(base_estimator=Ridge(), verbose=True, n_iter_max=1)
     jdot.fit(X, y, sample_weight=w, sample_domain=sample_domain)
-
     score = jdot.score(X, y, sample_domain=sample_domain)
-
     assert score >= 0
 
     # JDOT with default base estimator
@@ -46,36 +43,31 @@ def test_JDOTRegressor(da_reg_dataset):
 
 def test_JDOTRegressor_pipeline(da_reg_dataset):
     X, y, sample_domain = da_reg_dataset
-
     Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 
     jdot = make_da_pipeline(
         StandardScaler(), JDOTRegressor(Ridge(), alpha=0.1, verbose=True)
     )
-
     jdot.fit(X, y, sample_domain=sample_domain)
 
     ypred = jdot.predict(Xt)
-
     assert ypred.shape[0] == Xt.shape[0]
 
     ypred2 = jdot.predict(X, sample_domain=sample_domain)
-
     assert ypred2.shape[0] == X.shape[0]
 
 
 def test_JDOTClassifier(da_multiclass_dataset, da_binary_dataset):
+    rng = np.random.default_rng(43)
     for dataset in [da_multiclass_dataset, da_binary_dataset]:
         X, y, sample_domain = dataset
-        w = np.random.rand(X.shape[0])
-
+        w = rng.uniform(size=(X.shape[0],))
         Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 
         # standard case (Logistic)
         jdot = JDOTClassifier(LogisticRegression(), alpha=0.1, verbose=True)
         jdot.fit(X, y, sample_domain=sample_domain)
         ypred = jdot.predict(Xt)
-
         assert ypred.shape[0] == Xt.shape[0]
 
         # JDOT with weights
@@ -85,12 +77,23 @@ def test_JDOTClassifier(da_multiclass_dataset, da_binary_dataset):
         jdot.fit(X, y, sample_weight=w, sample_domain=sample_domain)
 
         score = jdot.score(X, y, sample_domain=sample_domain)
-
         assert score >= 0
 
         # JDOT with default base estimator
         jdot = JDOTClassifier()
         jdot.fit(X, y, sample_domain=sample_domain)
+
+        # No predict_proba method in base estimator
+        with np.testing.assert_raises(AttributeError):
+            jdot = JDOTClassifier(base_estimator=SVC(probability=False), metric="hinge")
+            jdot.fit(X, y, sample_domain=sample_domain)
+            _ = jdot.predict_proba(X)
+
+        # with scorer needing predict_proba
+        scorer = PredictionEntropyScorer()
+        jdot = JDOTClassifier(base_estimator=SVC(probability=True))
+        jdot.fit(X, y, sample_domain=sample_domain)
+        scorer._score(jdot, X, y, sample_domain=sample_domain)
 
         # test raise error
         with np.testing.assert_raises(ValueError):

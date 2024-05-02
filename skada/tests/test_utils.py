@@ -5,14 +5,16 @@
 
 import numpy as np
 import pytest
+from sklearn.utils import check_random_state
 
-from skada._utils import _check_y_masking
+from skada._utils import _check_y_masking, _merge_domain_outputs
 from skada.datasets import make_dataset_from_moons_distribution
 from skada.utils import (
     check_X_domain,
     check_X_y_domain,
     extract_domains_indices,
     extract_source_indices,
+    frank_wolfe,
     qp_solve,
     source_target_merge,
     source_target_split,
@@ -145,7 +147,8 @@ def test_check_X_y_allow_exceptions():
 
     # Generate a random_sample_domain of size len(y)
     # with random integers between -5 and 5 (excluding 0)
-    random_sample_domain = np.random.choice(
+    rng = check_random_state(42)
+    random_sample_domain = rng.choice(
         np.concatenate((np.arange(-5, 0), np.arange(1, 6))), size=len(y)
     )
     allow_source = False
@@ -232,7 +235,8 @@ def test_check_X_allow_exceptions():
 
     # Generate a random_sample_domain of size len(y)
     # with random integers between -5 and 5 (excluding 0)
-    random_sample_domain = np.random.choice(
+    rng = check_random_state(42)
+    random_sample_domain = rng.choice(
         np.concatenate((np.arange(-5, 0), np.arange(1, 6))), size=len(y)
     )
     allow_source = False
@@ -506,6 +510,80 @@ def test_qp_solve():
         qp_solve(Q, c, Aeq=Aeq, beq=beq, lb=lb, max_iter=1)
 
 
+def test_qp_solve_frank_wolfe():
+    Q = np.array([[2.0, 0.5], [0.5, 1.0]])
+    c = np.array([1.0, 1.0])
+
+    Aeq = np.array([[1.0, 1.0]])
+    beq = np.array([1.0])
+
+    A = np.array([[1.0, 1.0]])
+    b = np.array([1.0])
+
+    A2 = np.array([[1.0, 1.0], [-1.0, -1.0]])
+    b2 = np.array([1.0, -1.0])
+
+    b3 = np.array([1.0, 0.0])
+
+    lb = np.array([0.0, 0.0])
+
+    sol1 = np.array([0.25, 0.75])
+
+    res = qp_solve(Q, c, Aeq=Aeq, beq=beq, lb=lb, solver="frank-wolfe")
+    assert np.allclose(res[0], sol1, atol=1e-3)
+
+    res = qp_solve(Q, c, A=A, b=b, solver="frank-wolfe")
+    assert np.allclose(res[0], sol1, atol=1e-3)
+
+    res = qp_solve(Q, c, A=A2, b=b2, solver="frank-wolfe")
+    assert np.allclose(res[0], sol1, atol=1e-3)
+
+    res = qp_solve(Q, A=A2, b=b3, solver="frank-wolfe")
+    assert np.allclose(res[0], np.zeros(2), atol=1e-3)
+
+    res_scipy = qp_solve(Q, c, Aeq=Aeq, beq=beq, lb=lb, max_iter=10000, solver="scipy")
+    res_fw = qp_solve(
+        Q, c, Aeq=Aeq, beq=beq, lb=lb, max_iter=10000, solver="frank-wolfe"
+    )
+    assert np.allclose(res_scipy[0], res_fw[0], atol=1e-4)
+
+    with pytest.raises(ValueError, match="`A` or `Aeq` must be given"):
+        qp_solve(Q, c, solver="frank-wolfe")
+
+    with pytest.raises(ValueError, match="must be equal to 1"):
+        qp_solve(Q, c, Aeq=np.eye(2), beq=np.ones(2), solver="frank-wolfe")
+
+    with pytest.raises(ValueError, match="must be lower than 2"):
+        qp_solve(Q, c, A=np.eye(3), b=np.ones(3), solver="frank-wolfe")
+
+    with pytest.raises(ValueError, match="must be equal to `-A"):
+        qp_solve(Q, c, A=np.eye(2), b=np.ones(2), solver="frank-wolfe")
+
+    with pytest.raises(ValueError, match="must be greater or equal to"):
+        qp_solve(Q, c, A=A2, b=np.array([1.0, -2.0]), solver="frank-wolfe")
+
+
+def test_frank_wolfe():
+    Q = np.array([[2.0, 0.5], [0.5, 1.0]])
+    c = np.array([1.0, 1.0])
+
+    Aeq = np.array([1.0, 1.0])
+
+    sol = np.array([0.25, 0.75])
+
+    def jac(x):
+        return Q @ x + c
+
+    x1 = frank_wolfe(jac, Aeq, clb=1.0, cub=1.0, max_iter=1000)
+    assert np.allclose(x1, sol, atol=1e-3)
+
+    x2 = frank_wolfe(jac, Aeq, clb=1.0, cub=1.0, max_iter=10000)
+    assert np.abs(x2 - sol).sum() < np.abs(x1 - sol).sum()
+
+    x1 = frank_wolfe(jac, Aeq, clb=0.5, cub=1.0, max_iter=1000)
+    assert np.allclose(x1, sol / 2, atol=1e-3)
+
+
 @pytest.mark.skipif(not torch, reason="PyTorch not installed")
 def test_torch_minimize():
     A = torch.tensor([[5.0, 2.0], [2.0, 5.0]], dtype=torch.float64)
@@ -546,3 +624,107 @@ def test_torch_minimize():
     # test warning when convergence is not reached
     with pytest.warns(UserWarning):
         torch_minimize(loss, x0, max_iter=1, tol=0)
+
+
+def test_merge_output_without_containers():
+    X = _merge_domain_outputs(
+        20,
+        {
+            "s": (np.arange(10), np.zeros(10)),
+            "t": (np.arange(10, 20), np.ones(10)),
+        },
+    )
+    assert X.shape[0] == 20
+    assert X.sum() == 10
+
+
+def test_merge_output_with_containers():
+    # containers are not allowed by default
+    with pytest.raises(AssertionError):
+        _merge_domain_outputs(
+            20,
+            {
+                "s": (np.arange(10), (np.zeros(10), None, {})),
+                "t": (np.arange(10, 20), (np.zeros(10), None, {})),
+            },
+        )
+
+    X, y, params = _merge_domain_outputs(
+        20,
+        {
+            "s": (
+                np.arange(10),
+                (
+                    np.zeros(10),
+                    np.ones(10),
+                    {"sample_weight": np.ones(10, dtype=np.float32)},
+                ),
+            ),
+            "t": (
+                np.arange(10, 20),
+                (
+                    np.zeros(10),
+                    np.ones(10),
+                    {"sample_weight": np.ones(10, dtype=np.float32) * 2},
+                ),
+            ),
+        },
+        allow_containers=True,
+    )
+    assert X.shape[0] == 20
+    assert y.shape[0] == 20
+    assert y.sum() == 20
+    assert len(params) == 1
+    assert params["sample_weight"].dtype == np.float32
+    assert params["sample_weight"].shape[0] == 20
+    assert params["sample_weight"].sum() == 30
+
+
+def test_merge_output_with_optional_label():
+    # empty y's
+    _, y, _ = _merge_domain_outputs(
+        20,
+        {
+            "s": (np.arange(10), (np.zeros(10), None, {"sample_weight": np.ones(10)})),
+            "t": (
+                np.arange(10, 20),
+                (np.zeros(10), None, {"sample_weight": np.ones(10) * 2}),
+            ),
+        },
+        allow_containers=True,
+    )
+    assert y is None
+
+    # partially missing
+    _, y, _ = _merge_domain_outputs(
+        20,
+        {
+            "s": (np.arange(10), (np.zeros(10), None, {"sample_weight": np.ones(10)})),
+            "t": (
+                np.arange(10, 20),
+                (np.zeros(10), np.ones(10), {"sample_weight": np.ones(10) * 2}),
+            ),
+        },
+        allow_containers=True,
+    )
+    assert y.shape[0] == 20
+    assert y.sum() == 10
+
+
+def test_merge_output_invalid_container():
+    with pytest.raises(ValueError):
+        _merge_domain_outputs(
+            20,
+            {
+                "s": (np.arange(10), (np.zeros(10), np.ones(10), {}, None, None)),
+                "t": (
+                    np.arange(10, 20),
+                    (
+                        np.zeros(10),
+                        np.ones(10),
+                        {"sample_weight": np.ones(10, dtype=np.float32) * 2},
+                    ),
+                ),
+            },
+            allow_containers=True,
+        )

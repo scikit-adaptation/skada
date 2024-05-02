@@ -123,6 +123,17 @@ def _find_y_type(y):
         raise ValueError(f"Incompatible label type: {y_type}")
 
 
+def _apply_domain_masks(X, y, params, masks):
+    X = X[masks]
+    if y is not None:
+        y = y[masks]
+    params = {
+        k: v[masks] if (hasattr(v, "__len__") and len(v) == len(masks)) else v
+        for k, v in params.items()
+    }
+    return X, y, params
+
+
 def _remove_masked(X, y, params):
     """Internal API for removing masked samples before passing them
     to the estimator that does not accept 'sample_domain' (e.g. any
@@ -151,14 +162,49 @@ def _remove_masked(X, y, params):
         unmasked_idx = y != _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
     elif y_type == Y_Type.CONTINUOUS:
         unmasked_idx = np.isfinite(y)
-
-    X = X[unmasked_idx]
-    y = y[unmasked_idx]
-    params = {
-        # this is somewhat crude way to test is `v` is indexable
-        k: v[unmasked_idx]
-        if (hasattr(v, "__len__") and len(v) == len(unmasked_idx))
-        else v
-        for k, v in params.items()
-    }
+    X, y, params = _apply_domain_masks(X, y, params, masks=unmasked_idx)
     return X, y, params
+
+
+def _merge_domain_outputs(n_samples, domain_outputs, *, allow_containers=False):
+    assert len(domain_outputs), "At least a single domain has to be given"
+    _, first_output = next(iter(domain_outputs.values()))
+    if isinstance(first_output, tuple):
+        assert (
+            allow_containers
+        ), "Container output is given while `allow_containers` set to False"
+        X_output, y_output, params_output = None, None, {}
+        for idx, domain_output in domain_outputs.values():
+            if len(domain_output) == 2:
+                domain_X, domain_params = domain_output
+                domain_y = None
+            elif len(domain_output) == 3:
+                domain_X, domain_y, domain_params = domain_output
+            else:
+                raise ValueError("Invalid container structure")
+            if X_output is None:
+                X_output = np.zeros(
+                    (n_samples, *domain_X.shape[1:]), dtype=domain_X.dtype
+                )
+            if domain_y is not None and y_output is None:
+                y_output = np.zeros(
+                    (n_samples, *domain_y.shape[1:]), dtype=domain_y.dtype
+                )
+            X_output[idx] = domain_X
+            if domain_y is not None:
+                y_output[idx] = domain_y
+            for k, v in domain_params.items():
+                if k not in params_output:
+                    params_output[k] = np.zeros(
+                        (n_samples, *v.shape[1:]), dtype=v.dtype
+                    )
+                params_output[k][idx] = v
+        output = X_output, y_output, params_output
+    else:
+        assert isinstance(first_output, np.ndarray)
+        output = np.zeros(
+            (n_samples, *first_output.shape[1:]), dtype=first_output.dtype
+        )
+        for idx, domain_output in domain_outputs.values():
+            output[idx] = domain_output
+    return output

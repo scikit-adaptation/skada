@@ -5,7 +5,7 @@
 # License: BSD 3-Clause
 
 from collections import defaultdict
-from typing import Callable, Optional, Union
+from typing import Callable, List, Optional, Union
 
 from joblib import Memory
 from sklearn.base import BaseEstimator
@@ -77,8 +77,6 @@ def make_da_pipeline(
                      Shared(base_estimator=GaussianNB(), priors=None,
                             var_smoothing=1e-09))])
     """
-    # note that we generate names before wrapping estimators into the selector
-    # xxx(okachaiev): unwrap from the selector when passed explicitly
     if not steps:
         raise TypeError("Missing 1 required positional argument: 'steps'")
 
@@ -91,7 +89,7 @@ def make_da_pipeline(
                 if name is not None:
                     nested_name = f"{name}__{nested_name}"
                 names.append(nested_name)
-                estimators.append(nested_selector)
+                estimators.append(nested_selector._unmark_as_final())
         else:
             names.append(name)
             estimators.append(estimator)
@@ -102,6 +100,7 @@ def make_da_pipeline(
         (auto_name, step) if user_name is None else (user_name, step)
         for user_name, (auto_name, step) in zip(names, steps)
     ]
+    named_steps[-1][1]._mark_as_final()
     return Pipeline(named_steps, memory=memory, verbose=verbose)
 
 
@@ -131,9 +130,9 @@ def _wrap_with_selector(
 
 
 def _wrap_with_selectors(
-    estimators: [BaseEstimator],
+    estimators: List[BaseEstimator],
     default_selector: Union[str, Callable[[BaseEstimator], BaseSelector]],
-) -> [BaseEstimator]:
+) -> List[BaseEstimator]:
     return [
         (_wrap_with_selector(estimator, default_selector)) for estimator in estimators
     ]
@@ -151,7 +150,15 @@ def _name_estimators(estimators):
     names = []
 
     for estimator in estimators:
-        name = type(estimator.base_estimator).__name__.lower()
+        # xxx(okachaiev): this logic gets progressively more
+        # awkward. maybe we just need to make sure that default
+        # 'Shared' selector does not get into a way of setting
+        # parameters, but all others are just fine to be more
+        # verbose
+        if hasattr(estimator, "base_estimator"):
+            name = type(estimator.base_estimator).__name__.lower()
+        else:
+            name = estimator.__class__.__name__.lower()
         if isinstance(estimator, PerDomain):
             name = "perdomain_" + name
         names.append(name)

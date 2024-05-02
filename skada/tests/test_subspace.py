@@ -13,9 +13,10 @@ from skada import (
     SubspaceAlignmentAdapter,
     TransferComponentAnalysis,
     TransferComponentAnalysisAdapter,
+    TransferJointMatching,
+    TransferJointMatchingAdapter,
     make_da_pipeline,
 )
-from skada.base import AdaptationOutput
 from skada.datasets import DomainAwareDataset
 
 
@@ -30,6 +31,11 @@ from skada.datasets import DomainAwareDataset
             TransferComponentAnalysisAdapter(n_components=2), LogisticRegression()
         ),
         TransferComponentAnalysis(n_components=2),
+        TransferJointMatching(n_components=2, kernel="linear"),
+        make_da_pipeline(
+            TransferJointMatchingAdapter(n_components=2, kernel="linear", verbose=True),
+            LogisticRegression(),
+        ),
     ],
 )
 def test_subspace_alignment(estimator, da_dataset):
@@ -48,18 +54,21 @@ def test_subspace_alignment(estimator, da_dataset):
     "adapter, n_samples, n_features, n_components",
     [
         (SubspaceAlignmentAdapter(), 5, 3, 3),
-        (SubspaceAlignmentAdapter(), 2, 5, 2),
+        (SubspaceAlignmentAdapter(), 3, 3, 3),
         (TransferComponentAnalysisAdapter(), 5, 3, 3),
         (TransferComponentAnalysisAdapter(), 2, 3, 3),
         (TransferComponentAnalysisAdapter(), 2, 5, 4),
+        (TransferJointMatchingAdapter(), 5, 3, 3),
+        (TransferJointMatchingAdapter(), 2, 3, 3),
+        (TransferJointMatchingAdapter(), 2, 5, 4),
     ],
 )
 def test_subspace_default_n_components(adapter, n_samples, n_features, n_components):
-    rng = np.random.RandomState(42)
+    rng = np.random.default_rng(42)
     X_source, y_source, X_target, y_target = (
-        rng.rand(n_samples, n_features),
+        rng.standard_normal((n_samples, n_features)),
         np.eye(n_samples, dtype="int32")[0],
-        rng.rand(n_samples, n_features),
+        rng.standard_normal((n_samples, n_features)),
         np.eye(n_samples, dtype="int32")[0],
     )
     dataset = DomainAwareDataset(
@@ -72,9 +81,7 @@ def test_subspace_default_n_components(adapter, n_samples, n_features, n_compone
     X_train, y_train, sample_domain = dataset.pack_train(
         as_sources=["s"], as_targets=["t"]
     )
-    adapter.fit(X_train, y_train, sample_domain=sample_domain)
+    adapter.fit_transform(X_train, y_train, sample_domain=sample_domain)
     X_test, _, sample_domain = dataset.pack_test(as_targets=["t"])
     output = adapter.transform(X_test, sample_domain=sample_domain)
-    if isinstance(output, AdaptationOutput):
-        output = output.X
     assert output.shape[1] == n_components

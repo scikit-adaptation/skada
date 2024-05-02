@@ -9,7 +9,7 @@ import sklearn
 from .version import __version__  # noqa: F401
 from . import model_selection
 from . import metrics
-from .base import BaseAdapter, PerDomain, Shared
+from .base import BaseAdapter, PerDomain, Shared, SelectSource, SelectTarget, SelectSourceTarget
 from ._mapping import (
     ClassRegularizerOTMappingAdapter,
     ClassRegularizerOTMapping,
@@ -25,16 +25,18 @@ from ._mapping import (
     OTMapping,
 )
 from ._reweight import (
-    DiscriminatorReweightDensityAdapter,
-    DiscriminatorReweightDensity,
-    GaussianReweightDensityAdapter,
-    GaussianReweightDensity,
-    KLIEPAdapter,
-    KLIEP,
-    KMMAdapter,
-    KMM,
-    ReweightDensityAdapter,
-    ReweightDensity,
+    DiscriminatorReweightAdapter,
+    DiscriminatorReweight,
+    GaussianReweightAdapter,
+    GaussianReweight,
+    KLIEPReweightAdapter,
+    KLIEPReweight,
+    KMMReweightAdapter,
+    KMMReweight,
+    DensityReweightAdapter,
+    DensityReweight,
+    NearestNeighborReweightAdapter,
+    NearestNeighborReweight,
     MMDTarSReweightAdapter,
     MMDTarSReweight
 )
@@ -43,6 +45,8 @@ from ._subspace import (
     SubspaceAlignment,
     TransferComponentAnalysisAdapter,
     TransferComponentAnalysis,
+    TransferJointMatching,
+    TransferJointMatchingAdapter,
 )
 from ._ot import (
     solve_jdot_regression,
@@ -66,6 +70,9 @@ __all__ = [
     "BaseAdapter",
     "PerDomain",
     "Shared",
+    "SelectSource",
+    "SelectTarget",
+    "SelectSourceTarget",
 
     "ClassRegularizerOTMappingAdapter",
     "ClassRegularizerOTMapping",
@@ -80,16 +87,18 @@ __all__ = [
     "OTMappingAdapter",
     "OTMapping",
 
-    "DiscriminatorReweightDensityAdapter",
-    "DiscriminatorReweightDensity",
-    "GaussianReweightDensityAdapter",
-    "GaussianReweightDensity",
-    "KLIEPAdapter",
-    "KLIEP",
-    "KMMAdapter",
-    "KMM",
-    "ReweightDensityAdapter",
-    "ReweightDensity",
+    "DiscriminatorReweightAdapter",
+    "DiscriminatorReweight",
+    "GaussianReweightAdapter",
+    "GaussianReweight",
+    "KLIEPReweightAdapter",
+    "KLIEPReweight",
+    "KMMReweightAdapter",
+    "KMMReweight",
+    "DensityReweightAdapter",
+    "DensityReweight",
+    "NearestNeighborReweightAdapter",
+    "NearestNeighborReweight",
     "MMDTarSReweightAdapter",
     "MMDTarSReweight",
 
@@ -97,6 +106,8 @@ __all__ = [
     "SubspaceAlignment",
     "TransferComponentAnalysisAdapter",
     "TransferComponentAnalysis",
+    "TransferJointMatchingAdapter",
+    "TransferJointMatching",
 
     "DASVMClassifier",
     "solve_jdot_regression",

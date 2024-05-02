@@ -1,17 +1,18 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Remi Flamary <remi.flamary@polytechnique.edu>
+#         Yanis Lalou <yanis.lalou@polytechnique.edu>
 #
 # License: BSD 3-Clause
 
 from abc import abstractmethod
+from typing import Any, Dict
 
 import torch
 from torch.utils.data import DataLoader, Sampler
+from sklearn.base import _clone_parametrized
 from skorch import NeuralNetClassifier
 
 from .utils import _register_forwards_hook
-
-from skada.utils import extract_source_indices
 
 from skada.base import _DAMetadataRequesterMixin
 
@@ -57,7 +58,7 @@ class DomainAwareCriterion(torch.nn.Module):
             The true labels. Available for source, masked for target.
         """
         y_pred, domain_pred, features, sample_domain = y_pred  # unpack
-        source_idx = extract_source_indices(sample_domain)
+        source_idx = (sample_domain >= 0)
         y_pred_s = y_pred[source_idx]
         y_pred_t = y_pred[~source_idx]
 
@@ -135,7 +136,7 @@ class DomainBalancedSampler(Sampler):
         The dataset to sample from.
     """
 
-    def __init__(self, dataset):
+    def __init__(self, dataset, batch_size):
         self.dataset = dataset
         self.positive_indices = [
             idx for idx, sample in enumerate(dataset) if sample[0]["sample_domain"] >= 0
@@ -143,7 +144,9 @@ class DomainBalancedSampler(Sampler):
         self.negative_indices = [
             idx for idx, sample in enumerate(dataset) if sample[0]["sample_domain"] < 0
         ]
-        self.num_samples = len(self.positive_indices)
+        self.num_samples = (
+            len(self.positive_indices) - len(self.positive_indices) % batch_size
+        )
 
     def __iter__(self):
         positive_sampler = torch.utils.data.sampler.RandomSampler(self.positive_indices)
@@ -192,7 +195,7 @@ class DomainBalancedDataLoader(DataLoader):
         worker_init_fn=None,
         multiprocessing_context=None,
     ):
-        sampler = DomainBalancedSampler(dataset)
+        sampler = DomainBalancedSampler(dataset, batch_size)
         super().__init__(
             dataset,
             2 * batch_size,
@@ -227,42 +230,66 @@ class DomainAwareModule(torch.nn.Module):
         domain. Could be None.
     """
 
-    def __init__(self, module, layer_name, domain_classifier=None):
+    def __init__(self, base_module, layer_name, domain_classifier=None):
         super(DomainAwareModule, self).__init__()
-        self.module_ = module
+        self.base_module_ = base_module
         self.domain_classifier_ = domain_classifier
         self.layer_name = layer_name
         self.intermediate_layers = {}
+        self._setup_hooks()
+
+    def _setup_hooks(self):
         _register_forwards_hook(
-            self.module_, self.intermediate_layers, [self.layer_name]
+            self.base_module_, self.intermediate_layers, [self.layer_name]
         )
+
+    def get_params(self, deep=True) -> Dict[str, Any]:
+        return {
+            'base_module': self.base_module_,
+            'layer_name': self.layer_name,
+            'domain_classifier': self.domain_classifier_,
+        }
+
+    def __sklearn_clone__(self) -> torch.nn.Module:
+        estimator = _clone_parametrized(self, safe=True)
+        estimator._setup_hooks()
+        return estimator
 
     def forward(self, X, sample_domain=None, is_fit=False, return_features=False):
         if is_fit:
-            source_idx = extract_source_indices(sample_domain)
+            source_idx = (sample_domain >= 0)
 
             X_s = X[source_idx]
             X_t = X[~source_idx]
             # predict
-            y_pred_s = self.module_(X_s)
+            y_pred_s = self.base_module_(X_s)
             features_s = self.intermediate_layers[self.layer_name]
-            y_pred_t = self.module_(X_t)
+            y_pred_t = self.base_module_(X_t)
             features_t = self.intermediate_layers[self.layer_name]
 
             if self.domain_classifier_ is not None:
                 domain_pred_s = self.domain_classifier_(features_s)
                 domain_pred_t = self.domain_classifier_(features_t)
-                domain_pred = torch.empty((len(sample_domain)))
+                domain_pred = torch.empty(
+                    (len(sample_domain)), 
+                    device=domain_pred_s.device
+                )
                 domain_pred[source_idx] = domain_pred_s
                 domain_pred[~source_idx] = domain_pred_t
             else:
                 domain_pred = None
 
-            y_pred = torch.empty((len(sample_domain), y_pred_s.shape[1]))
+            y_pred = torch.empty(
+                (len(sample_domain), y_pred_s.shape[1]),
+                device=y_pred_s.device
+            )
             y_pred[source_idx] = y_pred_s
             y_pred[~source_idx] = y_pred_t
 
-            features = torch.empty((len(sample_domain), features_s.shape[1]))
+            features = torch.empty(
+                (len(sample_domain), features_s.shape[1]),
+                device=features_s.device
+            )
             features[source_idx] = features_s
             features[~source_idx] = features_t
 
@@ -274,9 +301,9 @@ class DomainAwareModule(torch.nn.Module):
             )
         else:
             if return_features:
-                return self.module_(X), self.intermediate_layers[self.layer_name]
+                return self.base_module_(X), self.intermediate_layers[self.layer_name]
             else:
-                return self.module_(X)
+                return self.base_module_(X)
 
 
 class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
@@ -386,6 +413,45 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
             X["sample_domain"] = sample_domain
         return super().predict(X, **predict_params)
 
+    def predict_proba(self, X, sample_domain=None, **predict_params):
+        """model prediction
+
+        Parameters
+        ----------
+        X : dict, torch tensor, array-like or torch dataset
+            The input data. If a dict, it should contain a key 'X' with the
+            input data and a key 'sample_domain' with the domain of each
+            sample.
+            If X is a dataset, the dataset should return a dict.
+        sample_domain : torch tensor
+            The domain of each sample.
+            Could be None since the sample are not used in predict.
+        """
+        if isinstance(X, dict):
+            if "X" not in X.keys():
+                raise ValueError("X should contain a key 'X' with the input data.")
+            if "sample_domain" not in X.keys():
+                raise ValueError(
+                    "X should contain a key 'sample_domain' "
+                    "with the domain of each sample."
+                )
+        elif isinstance(X, torch.utils.data.Dataset):
+            test_sample = X[0][0]
+            if isinstance(test_sample, dict):
+                if "X" not in test_sample.keys():
+                    raise ValueError("X should contain a key 'X' with the input data.")
+                if "sample_domain" not in test_sample.keys():
+                    raise ValueError(
+                        "X should contain a key 'sample_domain' "
+                        "with the domain of each sample."
+                    )
+            else:
+                raise ValueError("Dataset should contain a dict as X.")
+        else:
+            X = {"X": X}
+            X["sample_domain"] = sample_domain
+        return super().predict_proba(X, **predict_params)
+
     def score(self, X, y, sample_domain=None, **score_params):
         """model score
 
@@ -425,7 +491,13 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
             sample.
             If X is a dataset, the dataset should return a dict..
         """
-        _, features = self.module(
+        if not self.initialized_:
+            self.initialize()
+
+        if not torch.is_tensor(X):
+            X = torch.tensor(X)
+
+        _, features = self.module_(
             X, sample_domain=None, is_fit=False, return_features=True
         )
         return features

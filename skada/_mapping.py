@@ -17,7 +17,6 @@ from ._utils import Y_Type, _estimate_covariance, _find_y_type
 from .base import BaseAdapter, clone
 from .utils import (
     check_X_domain,
-    check_X_y_domain,
     extract_source_indices,
     source_target_merge,
     source_target_split,
@@ -32,7 +31,7 @@ class BaseOTMappingAdapter(BaseAdapter):
     to create OT object using parameters saved in the constructor.
     """
 
-    def fit(self, X, y=None, sample_domain=None):
+    def fit(self, X, y=None, *, sample_domain=None):
         """Fit adaptation parameters.
 
         Parameters
@@ -49,7 +48,7 @@ class BaseOTMappingAdapter(BaseAdapter):
         self : object
             Returns self.
         """
-        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        X, sample_domain = check_X_domain(X, sample_domain)
         X, X_target, y, y_target = source_target_split(
             X, y, sample_domain=sample_domain
         )
@@ -58,7 +57,7 @@ class BaseOTMappingAdapter(BaseAdapter):
         self.ot_transport_.fit(Xs=X, ys=y, Xt=X_target, yt=y_target)
         return self
 
-    def adapt(self, X, y=None, sample_domain=None):
+    def fit_transform(self, X, y=None, *, sample_domain=None, **params):
         """Predict adaptation (weights, sample or labels).
 
         Parameters
@@ -74,14 +73,20 @@ class BaseOTMappingAdapter(BaseAdapter):
         -------
         X_t : array-like, shape (n_samples, n_components)
             The data transformed to the target subspace.
-        y_t : array-like, shape (n_samples,)
-            The labels (same as y).
-        weights : array-like, shape (n_samples,)
-            The weights of the samples.
         """
+        self.fit(X, y, sample_domain=sample_domain)
+        return self.transform(X, sample_domain=sample_domain, allow_source=True)
+
+    def transform(
+        self, X, y=None, *, sample_domain=None, allow_source=False, **params
+    ) -> np.ndarray:
         # xxx(okachaiev): implement auto-infer for sample_domain
         X, sample_domain = check_X_domain(
-            X, sample_domain, allow_multi_source=True, allow_multi_target=True
+            X,
+            sample_domain,
+            allow_source=allow_source,
+            allow_multi_source=True,
+            allow_multi_target=True,
         )
         X_source, X_target = source_target_split(X, sample_domain=sample_domain)
         # in case of prediction we would get only target samples here,
@@ -100,6 +105,8 @@ class BaseOTMappingAdapter(BaseAdapter):
 
 class OTMappingAdapter(BaseOTMappingAdapter):
     """Domain Adaptation Using Optimal Transport.
+
+    See [6]_ for details.
 
     Parameters
     ----------
@@ -120,7 +127,7 @@ class OTMappingAdapter(BaseOTMappingAdapter):
 
     References
     ----------
-    .. [1] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
+    .. [6] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
            Optimal Transport for Domain Adaptation, in IEEE
            Transactions on Pattern Analysis and Machine Intelligence
     """
@@ -147,7 +154,7 @@ class OTMappingAdapter(BaseOTMappingAdapter):
 def OTMapping(base_estimator=None, metric="sqeuclidean", norm=None, max_iter=100000):
     """OTmapping pipeline with adapter and estimator.
 
-    see [1]_ for details.
+    See [6]_ for details.
 
     Parameters
     ----------
@@ -169,7 +176,7 @@ def OTMapping(base_estimator=None, metric="sqeuclidean", norm=None, max_iter=100
 
     References
     ----------
-    .. [1] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
+    .. [6] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
            Optimal Transport for Domain Adaptation, in IEEE
            Transactions on Pattern Analysis and Machine Intelligence
     """
@@ -184,6 +191,8 @@ def OTMapping(base_estimator=None, metric="sqeuclidean", norm=None, max_iter=100
 
 class EntropicOTMappingAdapter(BaseOTMappingAdapter):
     """Domain Adaptation Using Optimal Transport.
+
+    See [6]_ for details.
 
     Parameters
     ----------
@@ -209,7 +218,7 @@ class EntropicOTMappingAdapter(BaseOTMappingAdapter):
 
     References
     ----------
-    .. [1] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
+    .. [6] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
            Optimal Transport for Domain Adaptation, in IEEE
            Transactions on Pattern Analysis and Machine Intelligence
     """
@@ -249,7 +258,7 @@ def EntropicOTMapping(
 ):
     """EntropicOTMapping pipeline with adapter and estimator.
 
-    see [1]_ for details.
+    see [6]_ for details.
 
     Parameters
     ----------
@@ -276,7 +285,7 @@ def EntropicOTMapping(
 
     References
     ----------
-    .. [1] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
+    .. [6] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
            Optimal Transport for Domain Adaptation, in IEEE
            Transactions on Pattern Analysis and Machine Intelligence
     """
@@ -293,6 +302,8 @@ def EntropicOTMapping(
 
 class ClassRegularizerOTMappingAdapter(BaseOTMappingAdapter):
     """Domain Adaptation Using Optimal Transport.
+
+    See [6]_ for details.
 
     Parameters
     ----------
@@ -323,7 +334,7 @@ class ClassRegularizerOTMappingAdapter(BaseOTMappingAdapter):
 
     References
     ----------
-    .. [1] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
+    .. [6] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
            Optimal Transport for Domain Adaptation, in IEEE
            Transactions on Pattern Analysis and Machine Intelligence
     """
@@ -376,7 +387,7 @@ def ClassRegularizerOTMapping(
 ):
     """ClassRegularizedOTMapping pipeline with adapter and estimator.
 
-    see [1]_ for details.
+    see [6]_ for details.
 
     Parameters
     ----------
@@ -407,7 +418,7 @@ def ClassRegularizerOTMapping(
 
     References
     ----------
-    .. [1] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
+    .. [6] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
            Optimal Transport for Domain Adaptation, in IEEE
            Transactions on Pattern Analysis and Machine Intelligence
     """
@@ -460,7 +471,7 @@ def LinearOTMapping(
 ):
     """Returns a the linear OT mapping method with adapter and estimator.
 
-    see [1]_ for details.
+    see [6]_ for details.
 
     Parameters
     ----------
@@ -478,7 +489,7 @@ def LinearOTMapping(
 
     References
     ----------
-    .. [1] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
+    .. [6] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
            Optimal Transport for Domain Adaptation, in IEEE
            Transactions on Pattern Analysis and Machine Intelligence
     """
@@ -549,6 +560,8 @@ def _invsqrtm(C):
 class CORALAdapter(BaseAdapter):
     """Estimator based on Correlation Alignment [1]_.
 
+    See [5]_ for details.
+
     Parameters
     ----------
     reg : 'auto' or float, default="auto"
@@ -568,7 +581,7 @@ class CORALAdapter(BaseAdapter):
 
     References
     ----------
-    .. [1] Baochen Sun, Jiashi Feng, and Kate Saenko.
+    .. [5] Baochen Sun, Jiashi Feng, and Kate Saenko.
            Correlation Alignment for Unsupervised Domain Adaptation.
            In Advances in Computer Vision and Pattern Recognition, 2017.
     """
@@ -605,7 +618,7 @@ class CORALAdapter(BaseAdapter):
         self.cov_target_sqrt_ = _sqrtm(cov_target_)
         return self
 
-    def adapt(self, X, y=None, sample_domain=None):
+    def fit_transform(self, X, y=None, *, sample_domain=None, **params):
         """Predict adaptation (weights, sample or labels).
 
         Parameters
@@ -621,18 +634,27 @@ class CORALAdapter(BaseAdapter):
         -------
         X_t : array-like, shape (n_samples, n_features)
             The data transformed to the target space.
-        y_t : array-like, shape (n_samples,)
-            The labels (same as y).
-        weights : None
-            No weights are returned here.
         """
+        self.fit(X, y, sample_domain=sample_domain)
+        return self.transform(X, sample_domain=sample_domain, allow_source=True)
+
+    def transform(
+        self, X, y=None, *, sample_domain=None, allow_source=False, **params
+    ) -> np.ndarray:
         X, sample_domain = check_X_domain(
-            X, sample_domain, allow_multi_source=True, allow_multi_target=True
+            X,
+            sample_domain,
+            allow_source=allow_source,
+            allow_multi_source=True,
+            allow_multi_target=True,
         )
         X_source, X_target = source_target_split(X, sample_domain=sample_domain)
 
-        X_source_adapt = np.dot(X_source, self.cov_source_inv_sqrt_)
-        X_source_adapt = np.dot(X_source_adapt, self.cov_target_sqrt_)
+        if X_source.shape[0] > 0:
+            X_source_adapt = np.dot(X_source, self.cov_source_inv_sqrt_)
+            X_source_adapt = np.dot(X_source_adapt, self.cov_target_sqrt_)
+        else:
+            X_source_adapt = X_source
         X_adapt, _ = source_target_merge(
             X_source_adapt, X_target, sample_domain=sample_domain
         )
@@ -645,7 +667,7 @@ def CORAL(
 ):
     """CORAL pipeline with adapter and estimator.
 
-    see [1]_ for details.
+    See [5]_ for details.
 
     Parameters
     ----------
@@ -666,7 +688,7 @@ def CORAL(
 
     References
     ----------
-    .. [1] Baochen Sun, Jiashi Feng, and Kate Saenko.
+    .. [5] Baochen Sun, Jiashi Feng, and Kate Saenko.
            Correlation Alignment for Unsupervised Domain Adaptation.
            In Advances in Computer Vision and Pattern Recognition, 2017.
     """
@@ -679,6 +701,8 @@ def CORAL(
     )
 
 
+# xxx(okachaiev): we should move this to 'skada.deep.*' I guess
+# to avoid defining things that won't work anyways
 class MMDLSConSMappingAdapter(BaseAdapter):
     r"""Location-Scale mapping minimizing the MMD with a Gaussian kernel.
 
@@ -687,7 +711,7 @@ class MMDLSConSMappingAdapter(BaseAdapter):
     $X^t = W(y^s) \\odot X^s + B(y^s)$, where $W(y^s)$ and $B(y^s)$ are the scaling
     and bias of the linear transformation, respectively.
 
-    See Section 4 of [4]_ for details.
+    See Section 4 of [21]_ for details.
 
     Parameters
     ----------
@@ -717,7 +741,7 @@ class MMDLSConSMappingAdapter(BaseAdapter):
 
     References
     ----------
-    .. [4] Kun Zhang et. al. Domain Adaptation under Target and Conditional Shift
+    .. [21] Kun Zhang et. al. Domain Adaptation under Target and Conditional Shift
            In ICML, 2013.
     """
 
@@ -761,7 +785,7 @@ class MMDLSConSMappingAdapter(BaseAdapter):
         # compute R
         if discrete:
             self.classes_ = classes = torch.unique(y_source).numpy()
-            R = torch.zeros((X_target.shape[0], len(classes)), dtype=torch.float64)
+            R = torch.zeros((m, len(classes)), dtype=torch.float64)
             for i, c in enumerate(classes):
                 R[:, i] = (y_source == c).int()
         else:
@@ -800,7 +824,7 @@ class MMDLSConSMappingAdapter(BaseAdapter):
 
         return W, B, G, H
 
-    def fit(self, X, y, sample_domain=None, **kwargs):
+    def fit(self, X, y, sample_domain=None):
         """Fit adaptation parameters.
 
         Parameters
@@ -817,7 +841,10 @@ class MMDLSConSMappingAdapter(BaseAdapter):
         self : object
             Returns self.
         """
-        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        # xxx(okachaiev): we can't test X_y here because y might
+        # have NaNs, thought it might be better to keep this as an
+        # argument of a checker
+        X, sample_domain = check_X_domain(X, sample_domain)
         X_source, X_target, y_source, _ = source_target_split(
             X, y, sample_domain=sample_domain
         )
@@ -829,7 +856,7 @@ class MMDLSConSMappingAdapter(BaseAdapter):
 
         return self
 
-    def adapt(self, X, y=None, sample_domain=None, **kwargs):
+    def fit_transform(self, X, y=None, sample_domain=None, **params):
         """Predict adaptation (weights, sample or labels).
 
         Parameters
@@ -845,23 +872,26 @@ class MMDLSConSMappingAdapter(BaseAdapter):
         -------
         X_t : array-like, shape (n_samples, n_components)
             The data (same as X).
-        y_t : array-like, shape (n_samples,)
-            The labels (same as y).
-        weights : array-like, shape (n_samples,)
-            The weights of the samples.
         """
-        X, sample_domain = check_X_domain(X, sample_domain)
+        self.fit(X, y, sample_domain=sample_domain)
+        return self.transform(X, sample_domain=sample_domain, allow_source=True)
+
+    def transform(
+        self, X, y=None, *, sample_domain=None, allow_source=False, **params
+    ) -> np.ndarray:
+        X, sample_domain = check_X_domain(X, sample_domain, allow_source=allow_source)
 
         source_idx = extract_source_indices(sample_domain)
         X_source, X_target = X[source_idx], X[~source_idx]
-
-        if source_idx.sum() > 0:
+        if X_source.shape[0] == 0:
+            X_source_adapt = X_source
+        else:
             if np.array_equal(self.X_source_, X[source_idx]):
                 W, B = self.W_, self.B_
             else:
                 if self.discrete_:
                     # recompute the mapping
-                    X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+                    X, sample_domain = check_X_domain(X, sample_domain)
                     source_idx = extract_source_indices(sample_domain)
                     y_source = y[source_idx]
                     classes = self.classes_
@@ -875,12 +905,9 @@ class MMDLSConSMappingAdapter(BaseAdapter):
                     idx = np.argmin(C, axis=1)
                     W, B = self.W_[idx], self.B_[idx]
             X_source_adapt = W * X_source + B
-            X_adapt, _ = source_target_merge(
-                X_source_adapt, X_target, sample_domain=sample_domain
-            )
-        else:
-            X_adapt = X
-
+        X_adapt, _ = source_target_merge(
+            X_source_adapt, X_target, sample_domain=sample_domain
+        )
         return X_adapt
 
 
@@ -889,7 +916,7 @@ def MMDLSConSMapping(
 ):
     """MMDLSConSMapping pipeline with adapter and estimator.
 
-    see [4]_ for details.
+    See [21]_ for details.
 
     Parameters
     ----------
@@ -913,8 +940,8 @@ def MMDLSConSMapping(
 
     References
     ----------
-    .. [4] Kun Zhang et. al. Domain Adaptation under Target and Conditional Shift
-           In ICML, 2013.
+    .. [21] Kun Zhang et. al. Domain Adaptation under Target and Conditional Shift
+            In ICML, 2013.
     """
     if base_estimator is None:
         base_estimator = SVC(kernel="rbf")
