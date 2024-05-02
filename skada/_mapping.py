@@ -551,7 +551,7 @@ class MultiLinearMongeAlignmentAdapter(BaseAdapter):
         self.bias = bias
         self.test_time = test_time
 
-    def fit(self, X, y=None, sample_weight=None, sample_domain=None):
+    def fit(self, X, y=None, *, sample_domain=None):
         """Fit adaptation parameters.
 
         Parameters
@@ -569,9 +569,7 @@ class MultiLinearMongeAlignmentAdapter(BaseAdapter):
             Returns self.
         """
         X, sample_domain = check_X_domain(X, sample_domain)
-        sources, targets = per_domain_split(
-            X, y, sample_weight, sample_domain=sample_domain
-        )
+        sources, targets = per_domain_split(X, y, None, sample_domain=sample_domain)
 
         self.cov_means_sources_ = {
             domain: _get_cov_mean(X, w, bias=self.bias)
@@ -616,7 +614,7 @@ class MultiLinearMongeAlignmentAdapter(BaseAdapter):
 
         return self
 
-    def adapt(self, X, y=None, sample_domain=None):
+    def fit_transform(self, X, y=None, sample_domain=None, **params):
         """Predict adaptation (weights, sample or labels).
 
         Parameters
@@ -626,18 +624,19 @@ class MultiLinearMongeAlignmentAdapter(BaseAdapter):
         y : array-like, shape (n_samples,)
             The source labels.
         sample_domain : array-like, shape (n_samples,)
-            The domain labels.
+            The domain labels (same as sample_domain).
 
         Returns
         -------
         X_t : array-like, shape (n_samples, n_components)
-            The data transformed to the target subspace.
-        y_t : array-like, shape (n_samples,)
-            The labels (same as y).
-        weights : array-like, shape (n_samples,)
-            The weights of the samples.
+            The data (same as X).
         """
-        # xxx(okachaiev): implement auto-infer for sample_domain
+        self.fit(X, y, sample_domain=sample_domain)
+        return self.transform(X, sample_domain=sample_domain, allow_source=True)
+
+    def transform(
+        self, X, y=None, *, sample_domain=None, allow_source=False, **params
+    ) -> np.ndarray:
         X, sample_domain = check_X_domain(
             X, sample_domain, allow_multi_source=True, allow_multi_target=True
         )
