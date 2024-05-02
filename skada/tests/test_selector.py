@@ -326,7 +326,7 @@ def test_source_target_selector(
 
     # make sure that scalers were trained on different inputs
     correct_mean = np.zeros(X.shape[1])
-    source_estimator = pipe[1].get_estimator("source")
+    source_estimator = pipe[0].get_estimator("source")
     assert np.allclose(
         source_estimator.transform(X[source_masks]).mean(0), correct_mean
     )
@@ -334,7 +334,7 @@ def test_source_target_selector(
         source_estimator.transform(X[~source_masks]).mean(0), correct_mean
     )
 
-    target_estimator = pipe[1].get_estimator("target")
+    target_estimator = pipe[0].get_estimator("target")
     assert not np.allclose(
         target_estimator.transform(X[source_masks]).mean(0), correct_mean
     )
