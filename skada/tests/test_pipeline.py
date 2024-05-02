@@ -12,6 +12,7 @@ from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
+from sklearn.utils.metaestimators import available_if
 
 from skada import (
     CORAL,
@@ -178,14 +179,19 @@ def test_unwrap_nested_da_pipelines(da_dataset):
     assert np.allclose(y_pred, y_nested_pred)
 
 
-def test_allow_nd_x():
-    # xxx(okachaiev): add test for TransformerMixin
+@pytest.mark.parametrize("_fit_transform", [(True,), (False,)])
+def test_allow_nd_x(_fit_transform):
     class CutInputDim(BaseEstimator):
         def fit(self, X, y=None, **params):
             self.fitted_ = True
 
-        def transform(self, X, y=None):
+        def transform(self, X):
             return X[:, :, 0]
+
+        @available_if(lambda _: _fit_transform)
+        def fit_transform(self, X, y=None, **params):
+            self.fit(X, y=y, **params)
+            return self.transform(X)
 
     pipe = make_da_pipeline(CutInputDim(), CORALAdapter())
 
