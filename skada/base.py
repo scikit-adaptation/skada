@@ -251,8 +251,7 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
     def score(self, X, y, **params):
         return self._route_to_estimator('score', X, y=y, **params)
 
-    # xxx(okachaiev): this name is terrible
-    def _merge_and_route_params(self, routing_request, metadata_container, params):
+    def _prepare_routing(self, routing_request, metadata_container, params):
         if self._is_final or not self._is_transformer:
             try:
                 routed_params = routing_request._route_params(params=params)
@@ -350,7 +349,7 @@ class Shared(BaseSelector):
         X, y, params = X_container.merge_out(y, **params)
         routing = get_routing_for_object(self.base_estimator)
         routing_request = getattr(routing, routing_method)
-        routed_params = self._merge_and_route_params(routing_request, X_container, params)
+        routed_params = self._prepare_routing(routing_request, X_container, params)
         X, y, routed_params = self._remove_masked(X, y, routed_params)
         estimator = clone(self.base_estimator)
         output = getattr(estimator, routing_method)(X, y, **routed_params)
@@ -387,7 +386,7 @@ class PerDomain(BaseSelector):
         sample_domain = params['sample_domain']
         routing = get_routing_for_object(self.base_estimator)
         routing_request = getattr(routing, method_name)
-        routed_params = self._merge_and_route_params(routing_request, X_container, params)
+        routed_params = self._prepare_routing(routing_request, X_container, params)
         X, y, routed_params = self._remove_masked(X, y, routed_params)
         estimators, outputs = {}, {}
         for domain_label in np.unique(sample_domain):
@@ -420,7 +419,7 @@ class PerDomain(BaseSelector):
         check_is_fitted(self)
         request = getattr(self.routing_, method_name)
         # xxx(okachaiev): we should not use _merge_and_route_params helper
-        routed_params = self._merge_and_route_params(request, {}, params)
+        routed_params = self._prepare_routing(request, {}, params)
         # xxx(okachaiev): use check_*_domain to derive default domain labels
         sample_domain = params['sample_domain']
         domain_outputs = {}
@@ -611,7 +610,7 @@ class SelectSourceTarget(BaseSelector):
                 )
             X_masked, y_masked, params_masked = _apply_domain_masks(X, y, params, masks=domain_masks)
             routing = getattr(get_routing_for_object(base_estimator), method_name)
-            routed_params = self._merge_and_route_params(routing, X_masked, params_masked)
+            routed_params = self._prepare_routing(routing, X_masked, params_masked)
             X_masked, y_masked, routed_params = self._remove_masked(X_masked, y_masked, routed_params)
             estimator = clone(base_estimator)
             estimator_method = getattr(estimator, method_name)
@@ -649,7 +648,7 @@ class SelectSourceTarget(BaseSelector):
                 continue
             X_domain, y_domain, params_domain = _apply_domain_masks(X, y, params, masks=domain_masks)
             request = getattr(get_routing_for_object(domain_estimator), method_name)
-            routed_params = self._merge_and_route_params(request, {}, params_domain)
+            routed_params = self._prepare_routing(request, {}, params_domain)
             method = getattr(domain_estimator, method_name)
             if y_domain is None or method_name == 'transform':
                 domain_output = method(X_domain, **routed_params)
