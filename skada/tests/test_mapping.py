@@ -181,23 +181,11 @@ def _base_test_new_X_adapt(estimator, da_dataset):
     "estimator",
     [
         (OTMappingAdapter()),
-        (OTMappingAdapter()),
-        (EntropicOTMappingAdapter()),
         (EntropicOTMappingAdapter()),
         (ClassRegularizerOTMappingAdapter(norm="lpl1")),
-        (ClassRegularizerOTMappingAdapter(norm="lpl1")),
-        (ClassRegularizerOTMappingAdapter(norm="l1l2")),
         (ClassRegularizerOTMappingAdapter(norm="l1l2")),
         (LinearOTMappingAdapter()),
-        (LinearOTMappingAdapter()),
         (CORALAdapter()),
-        (CORALAdapter()),
-        (
-            pytest.param(
-                MMDLSConSMappingAdapter(gamma=1e-3),
-                marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
-            )
-        ),
         (
             pytest.param(
                 MMDLSConSMappingAdapter(gamma=1e-3),
