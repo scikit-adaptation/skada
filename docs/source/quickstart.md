@@ -48,7 +48,7 @@ model.score(X_test, y_test, sample_domain=sample_domain_test)
 
 ## Dataset
 
-New `skada.datasets.DomainAwareDataset` class to act as a container for all domains with the API built around `add_domain` and `pack` methods:
+The new skada.datasets.DomainAwareDataset class acts as a container for all domains. Its API is built around the add_domain and pack methods, see example below.:
 
 ```python
 datasets = DomainAwareDataset()
