@@ -192,18 +192,18 @@ def _base_test_new_X_adapt(estimator, da_dataset):
         (LinearOTMappingAdapter()),
         (CORALAdapter()),
         (CORALAdapter()),
-        # (
-        #     pytest.param(
-        #         MMDLSConSMappingAdapter(gamma=1e-3),
-        #         marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
-        #     )
-        # ),
-        # (
-        #     pytest.param(
-        #         MMDLSConSMappingAdapter(gamma=1e-3),
-        #         marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
-        #     )
-        # ),
+        (
+            pytest.param(
+                MMDLSConSMappingAdapter(gamma=1e-3),
+                marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+            )
+        ),
+        (
+            pytest.param(
+                MMDLSConSMappingAdapter(gamma=1e-3),
+                marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+            )
+        ),
     ],
 )
 def test_new_X_adapt(estimator):
@@ -228,10 +228,10 @@ def test_new_X_adapt(estimator):
         EntropicOTMappingAdapter(),
         LinearOTMappingAdapter(),
         CORALAdapter(),
-        # pytest.param(
-        #     MMDLSConSMappingAdapter(gamma=1e-3),
-        #     marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
-        # ),
+        pytest.param(
+            MMDLSConSMappingAdapter(gamma=1e-3),
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+        ),
     ],
 )
 def test_reg_new_X_adapt(estimator):
