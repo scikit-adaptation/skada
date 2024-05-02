@@ -165,14 +165,14 @@ def _base_test_new_X_adapt(estimator, da_dataset):
     true_weights = res1["sample_weight"][idx]
 
     # Adapt with new X, i.e. same domain, different samples
-    _, res2 = estimator.calculate_weights(
+    sample_weight_2 = estimator.compute_weights(
         X_train[idx, :] + 1e-8, y_train[idx], sample_domain=sample_domain[idx]
     )
 
     # Check that the normalized weights are the same
     true_weights = true_weights / np.sum(true_weights)
-    res2["sample_weight"] = res2["sample_weight"] / np.sum(res2["sample_weight"])
-    assert np.allclose(true_weights, res2["sample_weight"])
+    sample_weight_2 /= np.sum(sample_weight_2)
+    assert np.allclose(true_weights, sample_weight_2)
 
     # Check it adapts even if some target classes are not present in the new X
     classes = np.unique(y_train)[::2]
@@ -180,13 +180,15 @@ def _base_test_new_X_adapt(estimator, da_dataset):
     X_train = X_train[mask]
     y_train = y_train[mask]
     sample_domain = sample_domain[mask]
-    _, res3 = estimator.calculate_weights(X_train, y_train, sample_domain=sample_domain)
+    sample_weight_3 = estimator.compute_weights(
+        X_train, y_train, sample_domain=sample_domain
+    )
 
     # Check that the normalized weights are the same
     true_weights = res1["sample_weight"][mask]
     true_weights = true_weights / np.sum(true_weights)
-    res3["sample_weight"] = res3["sample_weight"] / np.sum(res3["sample_weight"])
-    assert np.allclose(true_weights, res3["sample_weight"])
+    sample_weight_3 /= np.sum(sample_weight_3)
+    assert np.allclose(true_weights, sample_weight_3)
 
 
 @pytest.mark.parametrize(
@@ -255,9 +257,9 @@ def test_KMMReweight_new_X_adapt(da_dataset):
 
     estimator = KMMReweightAdapter(smooth_weights=False)
     _, res2 = estimator.fit_transform(X_train, sample_domain=sample_domain)
-    _, res3 = estimator.calculate_weights(X_train + 1e-8, sample_domain=sample_domain)
+    weights3 = estimator.compute_weights(X_train + 1e-8, sample_domain=sample_domain)
 
-    assert np.allclose(res1["sample_weight"], res3["sample_weight"])
+    assert np.allclose(res1["sample_weight"], weights3)
     assert not np.allclose(res1["sample_weight"], res2["sample_weight"])
 
 

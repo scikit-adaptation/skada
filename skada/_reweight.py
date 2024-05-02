@@ -7,6 +7,7 @@
 # License: BSD 3-Clause
 
 import warnings
+from abc import abstractmethod
 
 import numpy as np
 import scipy.sparse as sp
@@ -33,7 +34,48 @@ from .utils import (
 EPS = np.finfo(float).eps
 
 
-class DensityReweightAdapter(BaseAdapter):
+class BaseReweightAdapter(BaseAdapter):
+    """Base class for the adapter that yields weights for samples.
+
+    Specific implementation should provide `fit` and `compute_weights`.
+    The base class takes care of the rest of machinery to make it fully
+    compatible with DA pipelines.
+    """
+
+    @abstractmethod
+    def fit(self, X, y=None, *, sample_domain=None):
+        pass
+
+    @abstractmethod
+    def compute_weights(self, X, y=None, *, sample_domain=None, **params) -> np.ndarray:
+        pass
+
+    def fit_transform(self, X, y=None, *, sample_domain=None, **params):
+        """Predict adaptation weights and returns them as an additional
+        parameters for the pipeline to propagate them into the estimator.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        X : array-like, shape (n_samples, n_components)
+            The data (same as X).
+        sample_weight : array-like, shape (n_samples,)
+            The weights of the samples.
+        """
+        self.fit(X, y=y, sample_domain=sample_domain, **params)
+        weights = self.compute_weights(X, y=y, sample_domain=sample_domain, **params)
+        return X, dict(sample_weight=weights)
+
+
+class DensityReweightAdapter(BaseReweightAdapter):
     """Adapter based on re-weighting samples using density estimation.
 
     Parameters
@@ -82,29 +124,7 @@ class DensityReweightAdapter(BaseAdapter):
         self.weight_estimator_target_ = target_estimator
         return self
 
-    def fit_transform(self, X, y=None, *, sample_domain=None, **params):
-        """Predict adaptation (weights, sample or labels).
-
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            The source data.
-        y : array-like, shape (n_samples,)
-            The source labels.
-        sample_domain : array-like, shape (n_samples,)
-            The domain labels (same as sample_domain).
-
-        Returns
-        -------
-        X : array-like, shape (n_samples, n_components)
-            The data (same as X).
-        sample_weight : array-like, shape (n_samples,)
-            The weights of the samples.
-        """
-        self.fit(X, y, sample_domain=sample_domain)
-        return self.calculate_weights(X, sample_domain=sample_domain)
-
-    def calculate_weights(self, X, y=None, *, sample_domain=None):
+    def compute_weights(self, X, y=None, *, sample_domain=None, **params):
         check_is_fitted(self)
         X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
@@ -115,7 +135,7 @@ class DensityReweightAdapter(BaseAdapter):
         source_weights /= source_weights.mean()
         weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
         weights[source_idx] = source_weights
-        return X, dict(sample_weight=weights)
+        return weights
 
 
 def DensityReweight(
@@ -146,7 +166,7 @@ def DensityReweight(
     )
 
 
-class GaussianReweightAdapter(BaseAdapter):
+class GaussianReweightAdapter(BaseReweightAdapter):
     """Gaussian approximation re-weighting method.
 
     See [1]_ for details.
@@ -209,29 +229,7 @@ class GaussianReweightAdapter(BaseAdapter):
         self.cov_target_ = _estimate_covariance(X_target, shrinkage=self.reg)
         return self
 
-    def fit_transform(self, X, y=None, *, sample_domain=None, **params):
-        """Predict adaptation (weights, sample or labels).
-
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            The source data.
-        y : array-like, shape (n_samples,)
-            The source labels.
-        sample_domain : array-like, shape (n_samples,)
-            The domain labels (same as sample_domain).
-
-        Returns
-        -------
-        X : array-like, shape (n_samples, n_components)
-            The data (same as X).
-        sample_weight : array-like, shape (n_samples,)
-            The weights of the samples.
-        """
-        self.fit(X, y, sample_domain=sample_domain)
-        return self.calculate_weights(X, sample_domain=sample_domain)
-
-    def calculate_weights(self, X, y=None, *, sample_domain=None):
+    def compute_weights(self, X, y=None, *, sample_domain=None, **params):
         check_is_fitted(self)
         X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
@@ -245,7 +243,7 @@ class GaussianReweightAdapter(BaseAdapter):
         source_weights = gaussian_target / gaussian_source
         weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
         weights[source_idx] = source_weights
-        return X, dict(sample_weight=weights)
+        return weights
 
 
 def GaussianReweight(
@@ -289,7 +287,7 @@ def GaussianReweight(
     )
 
 
-class DiscriminatorReweightAdapter(BaseAdapter):
+class DiscriminatorReweightAdapter(BaseReweightAdapter):
     """Gaussian approximation re-weighting method.
 
     See [1]_ for details.
@@ -343,29 +341,7 @@ class DiscriminatorReweightAdapter(BaseAdapter):
         self.domain_classifier_ = domain_classifier
         return self
 
-    def fit_transform(self, X, y=None, *, sample_domain=None, **params):
-        """Predict adaptation (weights, sample or labels).
-
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            The source data.
-        y : array-like, shape (n_samples,)
-            The source labels.
-        sample_domain : array-like, shape (n_samples,)
-            The domain labels (same as sample_domain).
-
-        Returns
-        -------
-        X : array-like, shape (n_samples, n_components)
-            The data (same as X).
-        sample_weight : array-like, shape (n_samples,)
-            The weights of the samples.
-        """
-        self.fit(X, y, sample_domain=sample_domain)
-        return self.calculate_weights(X, sample_domain=sample_domain)
-
-    def calculate_weights(self, X, y=None, *, sample_domain=None):
+    def compute_weights(self, X, y=None, *, sample_domain=None, **params):
         check_is_fitted(self)
         X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
@@ -378,7 +354,7 @@ class DiscriminatorReweightAdapter(BaseAdapter):
         source_weights /= source_weights.mean()
         weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
         weights[source_idx] = source_weights
-        return X, dict(sample_weight=weights)
+        return weights
 
 
 def DiscriminatorReweight(base_estimator=None, domain_classifier=None):
@@ -415,7 +391,7 @@ def DiscriminatorReweight(base_estimator=None, domain_classifier=None):
     )
 
 
-class KLIEPReweightAdapter(BaseAdapter):
+class KLIEPReweightAdapter(BaseReweightAdapter):
     """Kullback-Leibler Importance Estimation Procedure (KLIEPReweight).
 
     The idea of KLIEPReweight is to find an importance estimate w(x) such that
@@ -568,29 +544,7 @@ class KLIEPReweightAdapter(BaseAdapter):
 
         return best_gamma_
 
-    def fit_transform(self, X, y=None, *, sample_domain=None, **params):
-        """Predict adaptation (weights, sample or labels).
-
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            The source data.
-        y : array-like, shape (n_samples,)
-            The source labels.
-        sample_domain : array-like, shape (n_samples,)
-            The domain labels (same as sample_domain).
-
-        Returns
-        -------
-        X : array-like, shape (n_samples, n_components)
-            The data (same as X).
-        sample_weight : array-like, shape (n_samples,)
-            The weights of the samples.
-        """
-        self.fit(X, y, sample_domain=sample_domain)
-        return self.calculate_weights(X, sample_domain=sample_domain)
-
-    def calculate_weights(self, X, y=None, *, sample_domain=None):
+    def compute_weights(self, X, y=None, *, sample_domain=None, **params):
         check_is_fitted(self)
         X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
@@ -601,7 +555,7 @@ class KLIEPReweightAdapter(BaseAdapter):
         source_weights = A @ self.alpha_
         weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
         weights[source_idx] = source_weights
-        return X, dict(sample_weight=weights)
+        return weights
 
     def _auto_scale_gammas(self, gamma, X):
         if isinstance(gamma, str):
@@ -679,7 +633,7 @@ def KLIEPReweight(
     )
 
 
-class NearestNeighborReweightAdapter(BaseAdapter):
+class NearestNeighborReweightAdapter(BaseReweightAdapter):
     """Adapter based on re-weighting samples using a 1NN,
 
     See [22]_ for details.
@@ -774,31 +728,7 @@ class NearestNeighborReweightAdapter(BaseAdapter):
         weights[unique] += counts
         return weights
 
-    def fit_transform(self, X, y=None, *, sample_domain=None, **params):
-        """Predict adaptation (weights, sample or labels).
-
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            The source data.
-        y : array-like, shape (n_samples,)
-            The source labels.
-        sample_domain : array-like, shape (n_samples,)
-            The domain labels (same as sample_domain).
-
-        Returns
-        -------
-        X_t : array-like, shape (n_samples, n_components)
-            The data (same as X).
-        weights : array-like, shape (n_samples,)
-            The weights of the samples.
-        """
-        self.fit(X, y, sample_domain=sample_domain)
-        return self.calculate_weights(X, sample_domain=sample_domain)
-
-    # xxx(okachaiev): it might be useful to have 'transform' that
-    # performs 'calculate_weights', just do not return weights
-    def calculate_weights(self, X, *, sample_domain=None):
+    def compute_weights(self, X, y=None, *, sample_domain=None, **params):
         X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
         # xxx(okachaiev): do we need np.where here?
@@ -811,7 +741,7 @@ class NearestNeighborReweightAdapter(BaseAdapter):
             estimator.fit(X[source_idx], indices_source)
         weights = np.ones(X.shape[0])
         weights[source_idx] = self._get_weights(X[source_idx], X[~source_idx])
-        return X, dict(sample_weight=weights)
+        return weights
 
 
 def NearestNeighborReweight(
@@ -940,7 +870,7 @@ def NearestNeighborReweight(
     )
 
 
-class KMMReweightAdapter(BaseAdapter):
+class KMMReweightAdapter(BaseReweightAdapter):
     """Kernel Mean Matching (KMMReweight).
 
     The idea of KMMReweight is to find an importance estimate w(x) such that
@@ -1092,29 +1022,7 @@ class KMMReweightAdapter(BaseAdapter):
         weights = np.array(weights).ravel()
         return weights
 
-    def fit_transform(self, X, y=None, *, sample_domain=None, **params):
-        """Predict adaptation (weights, sample or labels).
-
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            The source data.
-        y : array-like, shape (n_samples,)
-            The source labels.
-        sample_domain : array-like, shape (n_samples,)
-            The domain labels (same as sample_domain).
-
-        Returns
-        -------
-        X_t : array-like, shape (n_samples, n_components)
-            The data (same as X).
-        weights : array-like, shape (n_samples,)
-            The weights of the samples.
-        """
-        self.fit(X, y, sample_domain=sample_domain)
-        return self.calculate_weights(X, sample_domain=sample_domain)
-
-    def calculate_weights(self, X, y=None, *, sample_domain=None):
+    def compute_weights(self, X, y=None, *, sample_domain=None, **params):
         check_is_fitted(self)
         X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
@@ -1135,7 +1043,7 @@ class KMMReweightAdapter(BaseAdapter):
         source_idx = np.where(source_idx)
         weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
         weights[source_idx] = source_weights
-        return X, dict(sample_weight=weights)
+        return weights
 
 
 def KMMReweight(
@@ -1212,7 +1120,7 @@ def KMMReweight(
     )
 
 
-class MMDTarSReweightAdapter(BaseAdapter):
+class MMDTarSReweightAdapter(BaseReweightAdapter):
     """Target shift reweighting using MMD.
 
     The idea of MMDTarSReweight is to find an importance estimate beta(y) such that
@@ -1345,29 +1253,7 @@ class MMDTarSReweightAdapter(BaseAdapter):
 
         return self
 
-    def fit_transform(self, X, y=None, *, sample_domain=None, **params):
-        """Predict adaptation (weights, sample or labels).
-
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            The source data.
-        y : array-like, shape (n_samples,)
-            The source labels.
-        sample_domain : array-like, shape (n_samples,)
-            The domain labels (same as sample_domain).
-
-        Returns
-        -------
-        X : array-like, shape (n_samples, n_components)
-            The data (same as X).
-        sample_weight : array-like, shape (n_samples,)
-            The weights of the samples.
-        """
-        self.fit(X, y, sample_domain=sample_domain)
-        return self.calculate_weights(X, y, sample_domain=sample_domain)
-
-    def calculate_weights(self, X, y=None, *, sample_domain=None):
+    def compute_weights(self, X, y=None, *, sample_domain=None, **params):
         check_is_fitted(self)
         X, y, sample_domain = check_X_y_domain(
             X, y, sample_domain, allow_label_masks=True
@@ -1395,7 +1281,7 @@ class MMDTarSReweightAdapter(BaseAdapter):
         weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
         weights[source_idx] = source_weights
         weights += 1e-13  # avoid negative weights
-        return X, dict(sample_weight=weights)
+        return weights
 
 
 def MMDTarSReweight(
