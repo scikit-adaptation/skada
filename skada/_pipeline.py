@@ -5,7 +5,7 @@
 # License: BSD 3-Clause
 
 from collections import defaultdict
-from typing import Callable, Optional, Union
+from typing import Callable, List, Optional, Union
 
 from joblib import Memory
 from sklearn.base import BaseEstimator
@@ -77,8 +77,6 @@ def make_da_pipeline(
                      Shared(base_estimator=GaussianNB(), priors=None,
                             var_smoothing=1e-09))])
     """
-    # note that we generate names before wrapping estimators into the selector
-    # xxx(okachaiev): unwrap from the selector when passed explicitly
     if not steps:
         raise TypeError("Missing 1 required positional argument: 'steps'")
 
@@ -132,9 +130,9 @@ def _wrap_with_selector(
 
 
 def _wrap_with_selectors(
-    estimators: [BaseEstimator],
+    estimators: List[BaseEstimator],
     default_selector: Union[str, Callable[[BaseEstimator], BaseSelector]],
-) -> [BaseEstimator]:
+) -> List[BaseEstimator]:
     return [
         (_wrap_with_selector(estimator, default_selector)) for estimator in estimators
     ]

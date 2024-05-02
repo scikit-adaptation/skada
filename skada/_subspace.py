@@ -65,48 +65,6 @@ class SubspaceAlignmentAdapter(BaseAdapter):
         self.n_components = n_components
         self.random_state = random_state
 
-    def adapt(self, X, y=None, sample_domain=None, **kwargs):
-        """Predict adaptation (weights, sample or labels).
-
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            The source data.
-        y : array-like, shape (n_samples,)
-            The source labels.
-        sample_domain : array-like, shape (n_samples,)
-            The domain labels (same as sample_domain).
-
-        Returns
-        -------
-        X_t : array-like, shape (n_samples, n_components)
-            The data transformed to the target subspace.
-        y_t : array-like, shape (n_samples,)
-            The labels (same as y).
-        sample_domain : array-like, shape (n_samples,)
-            The domain labels transformed to the target subspace
-            (same as sample_domain).
-        weights : None
-            No weights are returned here.
-        """
-        X, sample_domain = check_X_domain(
-            X,
-            sample_domain,
-            allow_multi_source=True,
-            allow_multi_target=True,
-        )
-        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
-
-        if X_source.shape[0]:
-            X_source = np.dot(self.pca_source_.transform(X_source), self.M_)
-        if X_target.shape[0]:
-            X_target = np.dot(self.pca_target_.transform(X_target), self.M_)
-        # xxx(okachaiev): this could be done through a more high-level API
-        X_adapt, _ = source_target_merge(
-            X_source, X_target, sample_domain=sample_domain
-        )
-        return X_adapt
-
     def fit(self, X, y=None, sample_domain=None, **kwargs):
         """Fit adaptation parameters.
 
@@ -146,6 +104,64 @@ class SubspaceAlignmentAdapter(BaseAdapter):
         self.n_components_ = n_components
         self.M_ = np.dot(self.pca_source_.components_, self.pca_target_.components_.T)
         return self
+
+    def transform(
+        self, X, y=None, *, sample_domain=None, allow_source=False, **params
+    ) -> np.ndarray:
+        """Perform adaptation on given samples (weights, sample or labels).
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        X_t : array-like, shape (n_samples, n_components)
+            The data transformed to the target subspace.
+        """
+        X, sample_domain = check_X_domain(
+            X,
+            sample_domain,
+            allow_source=allow_source,
+            allow_multi_source=True,
+            allow_multi_target=True,
+        )
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+
+        if X_source.shape[0]:
+            X_source = np.dot(self.pca_source_.transform(X_source), self.M_)
+        if X_target.shape[0]:
+            X_target = np.dot(self.pca_target_.transform(X_target), self.M_)
+        X_adapt, _ = source_target_merge(
+            X_source, X_target, sample_domain=sample_domain
+        )
+        return X_adapt
+
+    def fit_transform(self, X, y=None, *, sample_domain=None, **params):
+        """Predict adaptation (weights, sample or labels).
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        X_t : array-like, shape (n_samples, n_components)
+            The data transformed to the target subspace.
+        """
+        self.fit(X, y, sample_domain=sample_domain)
+        params["allow_source"] = True
+        return self.transform(X, y, sample_domain=sample_domain, **params)
 
 
 def SubspaceAlignment(
@@ -236,7 +252,7 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
         self.n_components = n_components
         self.mu = mu
 
-    def fit(self, X, y=None, sample_domain=None, **kwargs):
+    def fit(self, X, y=None, *, sample_domain=None):
         """Fit adaptation parameters.
 
         Parameters
@@ -292,7 +308,7 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
         self.eigvects_ = np.real(eigvects[:, selected_components])
         return self
 
-    def adapt(self, X, y=None, sample_domain=None, **kwargs):
+    def fit_transform(self, X, y=None, *, sample_domain=None, **params):
         """Predict adaptation (weights, sample or labels).
 
         Parameters
@@ -308,15 +324,34 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
         -------
         X_t : array-like, shape (n_samples, n_components)
             The data transformed to the target subspace.
+        """
+        self.fit(X, y, sample_domain=sample_domain)
+        params["allow_source"] = True
+        return self.transform(X, y, sample_domain=sample_domain, **params)
+
+    def transform(
+        self, X, y=None, *, sample_domain=None, allow_source=False, **params
+    ) -> np.ndarray:
+        """Perform adaptation on given samples (weights, sample or labels).
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
         sample_domain : array-like, shape (n_samples,)
-            The domain labels transformed to the target subspace
-            (same as sample_domain).
-        weights : None
-            No weights are returned here.
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        X_t : array-like, shape (n_samples, n_components)
+            The data transformed to the target subspace.
         """
         X, sample_domain = check_X_domain(
             X,
             sample_domain,
+            allow_source=allow_source,
             allow_multi_source=True,
             allow_multi_target=True,
         )
@@ -433,7 +468,7 @@ class TransferJointMatchingAdapter(BaseAdapter):
         self.tol = tol
         self.verbose = verbose
 
-    def adapt(self, X, y=None, sample_domain=None, **kwargs):
+    def fit_transform(self, X, y=None, *, sample_domain=None, **params):
         """Predict adaptation (weights, sample or labels).
 
         Parameters
@@ -449,17 +484,34 @@ class TransferJointMatchingAdapter(BaseAdapter):
         -------
         X_t : array-like, shape (n_samples, n_components)
             The data transformed to the target subspace.
-        y_t : array-like, shape (n_samples,)
-            The labels (same as y).
+        """
+        self.fit(X, y, sample_domain=sample_domain)
+        params["allow_source"] = True
+        return self.transform(X, y, sample_domain=sample_domain, **params)
+
+    def transform(
+        self, X, y=None, *, sample_domain=None, allow_source=False, **params
+    ) -> np.ndarray:
+        """Perform adaptation on given samples (weights, sample or labels).
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
         sample_domain : array-like, shape (n_samples,)
-            The domain labels transformed to the target subspace
-            (same as sample_domain).
-        weights : None
-            No weights are returned here.
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        X_t : array-like, shape (n_samples, n_components)
+            The data transformed to the target subspace.
         """
         X, sample_domain = check_X_domain(
             X,
             sample_domain,
+            allow_source=allow_source,
             allow_multi_source=True,
             allow_multi_target=True,
         )
@@ -491,7 +543,7 @@ class TransferJointMatchingAdapter(BaseAdapter):
         K = np.block([[Kss, Kst], [Kst.T, Ktt]])
         return K
 
-    def fit(self, X, y=None, sample_domain=None, **kwargs):
+    def fit(self, X, y=None, *, sample_domain=None):
         """Fit adaptation parameters.
 
         Parameters
