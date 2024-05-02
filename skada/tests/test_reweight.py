@@ -159,6 +159,10 @@ def test_reg_reweight_estimator(estimator):
 def _base_test_new_X_adapt(estimator, da_dataset):
     X_train, y_train, sample_domain = da_dataset
 
+    # fit works with no errors
+    estimator.fit(X_train, y_train, sample_domain=sample_domain)
+
+    # fit_transform returns additional parameters
     _, res1 = estimator.fit_transform(X_train, y_train, sample_domain=sample_domain)
     rng = check_random_state(43)
     idx = rng.choice(X_train.shape[0], 10)
