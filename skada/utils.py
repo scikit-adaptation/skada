@@ -33,6 +33,7 @@ def check_X_y_domain(
     allow_multi_target: bool = True,
     allow_auto_sample_domain: bool = True,
     allow_nd: bool = False,
+    allow_label_masks: bool = True,
 ):
     """
     Input validation for domain adaptation (DA) estimator.
@@ -59,6 +60,8 @@ def check_X_y_domain(
         Allow automatic generation of sample_domain if not provided.
     allow_nd : bool, optional (default=False)
         Allow X and y to be N-dimensional arrays.
+    allow_label_masks : bool, optional (default=True)
+        Allow NaNs in y.
 
     Returns
     -------
@@ -70,7 +73,7 @@ def check_X_y_domain(
         Array specifying the domain labels for each sample.
     """
     X = check_array(X, input_name='X', allow_nd=allow_nd)
-    y = check_array(y, force_all_finite=True, ensure_2d=False, input_name='y')
+    y = check_array(y, force_all_finite=not allow_label_masks, ensure_2d=False, input_name='y')
     check_consistent_length(X, y)
 
     if sample_domain is None and not allow_auto_sample_domain:
