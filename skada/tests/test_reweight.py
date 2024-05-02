@@ -151,7 +151,7 @@ def test_reg_reweight_estimator(estimator):
         as_sources=["s"], as_targets=["t"]
     )
     estimator.fit(X_train, y_train, sample_domain=sample_domain_train)
-    X_test, y_test, sample_domain_test = dataset.pack_test(as_targets=["t"])
+    X_test, y_test, _ = dataset.pack_test(as_targets=["t"])
     score = estimator.score(X_test, y_test)
     assert score >= 0
 
