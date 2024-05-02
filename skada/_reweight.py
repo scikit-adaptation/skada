@@ -1265,7 +1265,6 @@ class MMDTarSReweightAdapter(BaseReweightAdapter):
         else:
             if self.discrete_:
                 # assign the classes weights to the source samples
-                source_idx = extract_source_indices(sample_domain)
                 y_source = y[source_idx]
                 classes = self.classes_
                 R = np.zeros((source_idx.sum(), len(classes)))

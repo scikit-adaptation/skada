@@ -11,6 +11,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 from sklearn.utils.metadata_routing import get_routing_for_object
+from sklearn.utils.metaestimators import available_if
 
 from skada import SubspaceAlignmentAdapter, make_da_pipeline
 from skada._utils import (
@@ -228,13 +229,17 @@ def test_source_selector_with_estimator(da_multiclass_dataset, selector_cls, sid
 
 
 @pytest.mark.parametrize(
-    "selector_cls, side",
+    "selector_cls, side, _fit_transform",
     [
-        (SelectSource, "source"),
-        (SelectTarget, "target"),
+        (SelectSource, "source", False),
+        (SelectTarget, "target", False),
+        (SelectSource, "source", True),
+        (SelectTarget, "target", True),
     ],
 )
-def test_source_selector_with_transformer(da_multiclass_dataset, selector_cls, side):
+def test_source_selector_with_transformer(
+    da_multiclass_dataset, selector_cls, side, _fit_transform
+):
     X, y, sample_domain = da_multiclass_dataset
     X_source, X_target = source_target_split(X, sample_domain=sample_domain)
     output = {}
@@ -247,6 +252,11 @@ def test_source_selector_with_transformer(da_multiclass_dataset, selector_cls, s
         def transform(self, X):
             output["n_transform_samples"] = X.shape[0]
             return X
+
+        @available_if(lambda _: _fit_transform)
+        def fit_transform(self, X, y=None):
+            self.fit(X)
+            return self.transform(X)
 
     pipe = make_da_pipeline(selector_cls(FakeTransformer()))
     pipe.fit(X, sample_domain=sample_domain)
