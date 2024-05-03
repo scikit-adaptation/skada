@@ -55,7 +55,9 @@ from ._ot import (
     solve_jdot_regression,
     JDOTRegressor,
     solve_jdot_classification,
-    JDOTClassifier)
+    JDOTClassifier,
+    OTLabelPropAdapter,
+    OTLabelProp)
 from ._self_labeling import DASVMClassifier
 from ._pipeline import make_da_pipeline
 from .utils import source_target_split, per_domain_split
@@ -89,6 +91,8 @@ __all__ = [
     "OTMappingAdapter",
     "OTMapping",
     "MultiLinearMongeAlignmentAdapter",
+    "OTLabelPropAdapter",
+    "OTLabelProp",
 
     "DiscriminatorReweightAdapter",
     "DiscriminatorReweight",
@@ -119,6 +123,7 @@ __all__ = [
     "JDOTRegressor",
     "solve_jdot_classification",
     "JDOTClassifier",
+    "OTLabelPropAdapter",
 
     "make_da_pipeline",
 
