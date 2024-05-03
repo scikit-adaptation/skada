@@ -17,10 +17,7 @@ from sklearn.utils.validation import check_is_fitted
 from ._pipeline import make_da_pipeline
 from ._utils import Y_Type, _find_y_type
 from .base import BaseAdapter, DAEstimator
-from .utils import (
-    check_X_y_domain,
-    source_target_split,
-)
+from .utils import check_X_y_domain, source_target_split
 
 
 def get_jdot_class_cost_matrix(Ys, Xt, estimator=None, metric="multinomial"):
@@ -779,8 +776,8 @@ class OTLabelPropAdapter(BaseAdapter):
         the entropy regularizationof the coupling matrix.
     """
 
-    __metadata_request__fit = {"sample_domain": True}
-    __metadata_request__fit_transform = {"sample_domain": True}
+    __metadata_request__fit = {"sample_weight": True}
+    __metadata_request__fit_transform = {"sample_weight": True}
 
     def __init__(self, metric="sqeuclidean", reg=None):
         super().__init__()
