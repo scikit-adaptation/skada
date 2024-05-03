@@ -40,10 +40,10 @@ _OFFICE_HOME_LOADER = FileLoaderSpec(
 
 
 class OfficeHomeDomain(Enum):
-    ART = "Art"
-    CLIPART = "Clipart"
-    PRODUCT = "Product"
-    REALWORLD = "RealWorld"
+    ART = "art"
+    CLIPART = "clipart"
+    PRODUCT = "product"
+    REALWORLD = "realworld"
 
 
 def fetch_office_home(
@@ -73,6 +73,7 @@ def fetch_office_home(
     =================   =========================
     Classes                                    65
     Samples total                           15500
+    Samples total       2427, 4365, 4439 and 4357
     Dimensionality                           2048
     Data Type                             float32
     =================   =========================
@@ -80,8 +81,9 @@ def fetch_office_home(
     Parameters
     ----------
     domain : str or OfficeHomeDomain instance
-        Specify which domain to load: 'books', 'dvd', 'kitchen' or 'elec'. Note that
-        the datasets is fully loaded even when a single domain is requested.
+        Specify which domain to load: 'art', 'clipart', 'product' or 'realworld'.
+        Note that the datasets is fully loaded even when
+        a single domain is requested.
 
     data_home : str or path-like, default=None
         Specify another download and cache folder for the datasets. By default
@@ -108,7 +110,7 @@ def fetch_office_home(
     data : :class:`~sklearn.utils.Bunch`
         Dictionary-like object, with the following attributes.
 
-        X: ndarray, shape (n_samples, 400)
+        X: ndarray, shape (n_samples, 2048)
             Each row corresponds to a single review.
         y : ndarray, shape (n_samples,)
             Labels associated to each image.
@@ -135,7 +137,7 @@ def fetch_office_home_all(
     shuffle: bool = False,
     random_state: Union[None, int, np.random.RandomState] = None,
 ) -> DomainAwareDataset:
-    """Load all domains for Amazon review dataset.
+    """Load all domains for the Office Home dataset.
 
     Parameters
     ----------
@@ -209,13 +211,13 @@ def _fetch_office_home(
         os.makedirs(dataset_dir)
         # juggling with `extract_root` is only required because SURF features
         # were archived with root folder and DECAF without it
-        _download_amazon_review(
+        _download_office_home(
             loader_spec.remote,
             data_home,
             data_home if loader_spec.extract_root else dataset_dir,
         )
 
-    (X, y) = _load_amazon_review(
+    (X, y) = _load_office_home(
         dataset_dir,
         domain,
         shuffle=shuffle,
@@ -228,7 +230,7 @@ def _fetch_office_home(
     return (X, y) if return_X_y else dataset
 
 
-def _download_amazon_review(remote_spec: RemoteFileMetadata, download_dir, extract_dir):
+def _download_office_home(remote_spec: RemoteFileMetadata, download_dir, extract_dir):
     _logger.info(f"Downloading OfficeHome from {remote_spec.url} to {download_dir}")
     started_at = time.time()
     dataset_path = _fetch_remote(remote_spec, dirname=download_dir)
@@ -241,7 +243,7 @@ def _download_amazon_review(remote_spec: RemoteFileMetadata, download_dir, extra
     os.remove(dataset_path)
 
 
-def _load_amazon_review(
+def _load_office_home(
     dataset_dir: Union[os.PathLike, str],
     domain: OfficeHomeDomain,
     shuffle: bool = False,
@@ -276,7 +278,7 @@ def _load_amazon_review(
     domains = np.array(domains)
 
     # To select only one domain
-    domain_mask = domains == domain.value
+    domain_mask = np.char.lower(domains) == domain.value
     X = X[domain_mask]
     y = y[domain_mask]
 
