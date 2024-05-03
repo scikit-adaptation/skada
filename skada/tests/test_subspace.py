@@ -1,12 +1,18 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Remi Flamary <remi.flamary@polytechnique.edu>
 #         Oleksii Kachaiev <kachayev@gmail.com>
+#         Antoine Collas <contact@antoinecollas.fr>
 #
 # License: BSD 3-Clause
 
 import numpy as np
 import pytest
 from sklearn.linear_model import LogisticRegression
+
+try:
+    import torch
+except ImportError:
+    torch = False
 
 from skada import (
     SubspaceAlignment,
@@ -15,9 +21,10 @@ from skada import (
     TransferComponentAnalysisAdapter,
     TransferJointMatching,
     TransferJointMatchingAdapter,
+    TransferSubspaceLearning,
+    TransferSubspaceLearningAdapter,
     make_da_pipeline,
 )
-from skada.base import AdaptationOutput
 from skada.datasets import DomainAwareDataset
 
 
@@ -36,6 +43,29 @@ from skada.datasets import DomainAwareDataset
         make_da_pipeline(
             TransferJointMatchingAdapter(n_components=2, kernel="linear", verbose=True),
             LogisticRegression(),
+        ),
+        pytest.param(
+            TransferSubspaceLearning(n_components=2),
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+        ),
+        pytest.param(
+            TransferSubspaceLearning(n_components=2, base_method="pca"),
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+        ),
+        pytest.param(
+            TransferSubspaceLearning(n_components=2, base_method="flda"),
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+        ),
+        pytest.param(
+            TransferSubspaceLearning(n_components=2, base_method="lpp"),
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+        ),
+        pytest.param(
+            make_da_pipeline(
+                TransferSubspaceLearningAdapter(n_components=2),
+                LogisticRegression(),
+            ),
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
         ),
     ],
 )
@@ -62,14 +92,35 @@ def test_subspace_alignment(estimator, da_dataset):
         (TransferJointMatchingAdapter(), 5, 3, 3),
         (TransferJointMatchingAdapter(), 2, 3, 3),
         (TransferJointMatchingAdapter(), 2, 5, 4),
+        pytest.param(
+            TransferSubspaceLearningAdapter(),
+            5,
+            3,
+            3,
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+        ),
+        pytest.param(
+            TransferSubspaceLearningAdapter(),
+            2,
+            3,
+            3,
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+        ),
+        pytest.param(
+            TransferSubspaceLearningAdapter(),
+            2,
+            5,
+            4,
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+        ),
     ],
 )
 def test_subspace_default_n_components(adapter, n_samples, n_features, n_components):
-    rng = np.random.RandomState(42)
+    rng = np.random.default_rng(42)
     X_source, y_source, X_target, y_target = (
-        rng.rand(n_samples, n_features),
+        rng.standard_normal((n_samples, n_features)),
         np.eye(n_samples, dtype="int32")[0],
-        rng.rand(n_samples, n_features),
+        rng.standard_normal((n_samples, n_features)),
         np.eye(n_samples, dtype="int32")[0],
     )
     dataset = DomainAwareDataset(
@@ -82,9 +133,35 @@ def test_subspace_default_n_components(adapter, n_samples, n_features, n_compone
     X_train, y_train, sample_domain = dataset.pack_train(
         as_sources=["s"], as_targets=["t"]
     )
-    adapter.fit(X_train, y_train, sample_domain=sample_domain)
+    adapter.fit_transform(X_train, y_train, sample_domain=sample_domain)
     X_test, _, sample_domain = dataset.pack_test(as_targets=["t"])
     output = adapter.transform(X_test, sample_domain=sample_domain)
-    if isinstance(output, AdaptationOutput):
-        output = output.X
     assert output.shape[1] == n_components
+
+
+@pytest.mark.parametrize(
+    "adapter, param_name, param_value",
+    [
+        pytest.param(
+            TransferSubspaceLearning,
+            "base_method",
+            "wrong_method",
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+        ),
+        pytest.param(
+            TransferSubspaceLearning,
+            "reg",
+            -0.1,
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+        ),
+        pytest.param(
+            TransferSubspaceLearning,
+            "reg",
+            1.1,
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+        ),
+    ],
+)
+def test_instantiation_wrong_params(adapter, param_name, param_value):
+    with pytest.raises(ValueError):
+        adapter(**{param_name: param_value})

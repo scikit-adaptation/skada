@@ -10,11 +10,14 @@ import ot
 from sklearn.base import clone
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.preprocessing import OneHotEncoder
+from sklearn.svm import SVC
 from sklearn.utils.metaestimators import available_if
 from sklearn.utils.validation import check_is_fitted
 
-from .base import DAEstimator
-from .utils import source_target_split
+from ._pipeline import make_da_pipeline
+from ._utils import Y_Type, _find_y_type
+from .base import BaseAdapter, DAEstimator
+from .utils import check_X_y_domain, source_target_split
 
 
 def get_jdot_class_cost_matrix(Ys, Xt, estimator=None, metric="multinomial"):
@@ -757,3 +760,136 @@ class JDOTClassifier(DAEstimator):
                 "and score might be biased."
             )
         return self.estimator_.score(X, y, sample_weight=sample_weight)
+
+
+class OTLabelPropAdapter(BaseAdapter):
+    """Label propagation using optimal transport plan.
+
+    This adapter uses the optimal transport plan to propagate labels from
+    source to target domain. This was proposed originally in [28] for
+    semi-supervised learning and can be used for domain adaptation.
+
+    Parameters
+    ----------
+    metric : str, default='sqeuclidean'
+        The metric to use for the cost matrix. Can be 'sqeuclidean' for
+        squared euclidean distance, 'euclidean' for euclidean distance,
+    reg : float, default=None
+        The entropic  regularization parameter for the optimal transport
+        problem. If None, the exact OT is solved, else it is used to weight
+        the entropy regularizationof the coupling matrix.
+
+    Attributes
+    ----------
+    G_ : array-like of shape (n_samples, m_samples)
+        The optimal transport plan.
+    Xt_ : array-like of shape (m_samples, n_features)
+        The target domain samples.
+    yht_ : array-like of shape (m_samples,)
+        The transported source domain labels.
+
+    References
+    ----------
+    [28] Solomon, J., Rustamov, R., Guibas, L., & Butscher, A. (2014, January).
+     Wasserstein propagation for semi-supervised learning. In International
+     Conference on Machine Learning (pp. 306-314). PMLR.
+    """
+
+    __metadata_request__fit = {"sample_weight": True}
+    __metadata_request__fit_transform = {"sample_weight": True}
+
+    def __init__(self, metric="sqeuclidean", reg=None):
+        super().__init__()
+        self.metric = metric
+        self.reg = reg
+
+    def fit_transform(self, X, y, sample_domain=None, *, sample_weight=None):
+        """Fit adaptation parameters"""
+        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        if sample_weight is not None:
+            Xs, Xt, ys, yt, ws, wt = source_target_split(
+                X, y, sample_weight, sample_domain=sample_domain
+            )
+            ws = ws / ws.sum()
+            wt = wt / wt.sum()
+        else:
+            Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
+            ws = ot.unif(Xs.shape[0])
+            wt = ot.unif(Xt.shape[0])
+
+        M = ot.dist(Xs, Xt, metric=self.metric)
+        G = ot.solve(M, ws, wt, reg=self.reg).plan
+
+        self.discrete_ = discrete = _find_y_type(ys) == Y_Type.DISCRETE
+        if discrete:
+            self.classes_ = classes = np.unique(ys)
+            Y = np.zeros((Xs.shape[0], len(classes)))
+            for i, c in enumerate(classes):
+                Y[:, i] = (ys == c).astype(int)
+            yht = G.T.dot(Y)
+            self.yht_continuous_ = yht
+            yht = np.argmax(yht, axis=1)
+            yht = classes[yht]
+            yout = -np.ones_like(y)
+        else:
+            Y = ys
+            yht = G.T.dot(Y) / wt
+            self.yht_continuous_ = yht
+            yout = np.ones_like(y) * np.nan
+
+        self.G_ = G
+        self.Xt_ = Xt
+        self.yht_ = yht
+
+        # set estimated labels
+        yout[sample_domain < 0] = yht
+
+        # return sample weight only if it was provided
+        dico = dict()
+        if sample_weight is not None:
+            dico["sample_weight"] = sample_weight
+
+        return X, yout, dico
+
+
+def OTLabelProp(base_estimator=None, reg=0, metric="sqeuclidean"):
+    """Label propagation using optimal transport plan.
+
+    This adapter uses the optimal transport plan to propagate labels from
+    source to target domain. This was proposed originally in [28] for
+    semi-supervised learning and can be used for domain adaptation.
+
+    Parameters
+    ----------
+    base_estimator : object
+        The base estimator to be used for the classification task. This
+        estimator should optimize a classification loss corresponding to the
+        given metric and provide compatible predict method (decision_function of
+        predict_proba).
+    reg : float, default=0
+        The entropic  regularization parameter for the optimal transport
+        problem. If None, the exact OT is solved, else it is used to weight
+        the entropy regularizationof the coupling matrix.
+    metric : str, default='sqeuclidean'
+        The metric to use for the cost matrix. Can be 'sqeuclidean' for
+        squared euclidean distance, 'euclidean' for euclidean distance,
+
+    Returns
+    -------
+    adapter : OTLabelPropAdapter
+        The optimal transport label propagation adapter.
+
+    References
+    ----------
+    [28] Solomon, J., Rustamov, R., Guibas, L., & Butscher, A. (2014, January).
+     Wasserstein propagation for semi-supervised learning. In International
+     Conference on Machine Learning (pp. 306-314). PMLR.
+
+    """
+    if base_estimator is None:
+        base_estimator = SVC(kernel="rbf").set_fit_request(sample_weight=True)
+
+    return make_da_pipeline(
+        OTLabelPropAdapter(reg=reg, metric=metric),
+        base_estimator,
+    )
