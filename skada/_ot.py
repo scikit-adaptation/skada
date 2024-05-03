@@ -10,9 +10,11 @@ import ot
 from sklearn.base import clone
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.preprocessing import OneHotEncoder
+from sklearn.svm import SVC
 from sklearn.utils.metaestimators import available_if
 from sklearn.utils.validation import check_is_fitted
 
+from ._pipeline import make_da_pipeline
 from ._utils import Y_Type, _find_y_type
 from .base import BaseAdapter, DAEstimator
 from .utils import (
@@ -832,3 +834,36 @@ class OTLabelPropAdapter(BaseAdapter):
             dico["sample_weight"] = sample_weight
 
         return X, yout, dico
+
+
+def OTLabelProp(base_estimator=None, reg=0, metric="sqeuclidean"):
+    """Label propagation using optimal transport plan.
+
+    Parameters
+    ----------
+    base_estimator : object
+        The base estimator to be used for the classification task. This
+        estimator should optimize a classification loss corresponding to the
+        given metric and provide compatible predict method (decision_function of
+        predict_proba).
+    reg : float, default=0
+        The entropic  regularization parameter for the optimal transport
+        problem. If None, the exact OT is solved, else it is used to weight
+        the entropy regularizationof the coupling matrix.
+    metric : str, default='sqeuclidean'
+        The metric to use for the cost matrix. Can be 'sqeuclidean' for
+        squared euclidean distance, 'euclidean' for euclidean distance,
+
+    Returns
+    -------
+    adapter : OTLabelPropAdapter
+        The optimal transport label propagation adapter.
+
+    """
+    if base_estimator is None:
+        base_estimator = SVC(kernel="rbf").requires_fit(sample_weight=True)
+
+    return make_da_pipeline(
+        OTLabelPropAdapter(reg=reg, metric=metric),
+        base_estimator,
+    )
