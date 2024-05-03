@@ -765,6 +765,10 @@ class JDOTClassifier(DAEstimator):
 class OTLabelPropAdapter(BaseAdapter):
     """Label propagation using optimal transport plan.
 
+    This adapter uses the optimal transport plan to propagate labels from
+    source to target domain. This was proposed originally in [28] for
+    semi-supervised learning and can be used for domain adaptation.
+
     Parameters
     ----------
     metric : str, default='sqeuclidean'
@@ -774,6 +778,21 @@ class OTLabelPropAdapter(BaseAdapter):
         The entropic  regularization parameter for the optimal transport
         problem. If None, the exact OT is solved, else it is used to weight
         the entropy regularizationof the coupling matrix.
+
+    Attributes
+    ----------
+    G_ : array-like of shape (n_samples, m_samples)
+        The optimal transport plan.
+    Xt_ : array-like of shape (m_samples, n_features)
+        The target domain samples.
+    yht_ : array-like of shape (m_samples,)
+        The transported source domain labels.
+
+    References
+    ----------
+    [28] Solomon, J., Rustamov, R., Guibas, L., & Butscher, A. (2014, January).
+     Wasserstein propagation for semi-supervised learning. In International
+     Conference on Machine Learning (pp. 306-314). PMLR.
     """
 
     __metadata_request__fit = {"sample_weight": True}
@@ -836,6 +855,10 @@ class OTLabelPropAdapter(BaseAdapter):
 def OTLabelProp(base_estimator=None, reg=0, metric="sqeuclidean"):
     """Label propagation using optimal transport plan.
 
+    This adapter uses the optimal transport plan to propagate labels from
+    source to target domain. This was proposed originally in [28] for
+    semi-supervised learning and can be used for domain adaptation.
+
     Parameters
     ----------
     base_estimator : object
@@ -855,6 +878,12 @@ def OTLabelProp(base_estimator=None, reg=0, metric="sqeuclidean"):
     -------
     adapter : OTLabelPropAdapter
         The optimal transport label propagation adapter.
+
+    References
+    ----------
+    [28] Solomon, J., Rustamov, R., Guibas, L., & Butscher, A. (2014, January).
+     Wasserstein propagation for semi-supervised learning. In International
+     Conference on Machine Learning (pp. 306-314). PMLR.
 
     """
     if base_estimator is None:
