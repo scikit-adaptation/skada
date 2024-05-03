@@ -779,48 +779,6 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
                 "TransferSubspaceLearningAdapter requires pytorch to be installed."
             )
 
-    def adapt(self, X, y=None, sample_domain=None, **kwargs):
-        """Predict adaptation (weights, sample or labels).
-
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            The source data.
-        y : array-like, shape (n_samples,)
-            The source labels.
-        sample_domain : array-like, shape (n_samples,)
-            The domain labels (same as sample_domain).
-
-        Returns
-        -------
-        X_t : array-like, shape (n_samples, n_components)
-            The data transformed to the target subspace.
-        y_t : array-like, shape (n_samples,)
-            The labels (same as y).
-        sample_domain : array-like, shape (n_samples,)
-            The domain labels transformed to the target subspace
-            (same as sample_domain).
-        weights : None
-            No weights are returned here.
-        """
-        X, sample_domain = check_X_domain(
-            X,
-            sample_domain,
-            allow_multi_source=True,
-            allow_multi_target=True,
-        )
-        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
-
-        if X_source.shape[0]:
-            X_source = np.dot(X_source, self.W_)
-        if X_target.shape[0]:
-            X_target = np.dot(X_target, self.W_)
-        # xxx(okachaiev): this could be done through a more high-level API
-        X_adapt, _ = source_target_merge(
-            X_source, X_target, sample_domain=sample_domain
-        )
-        return X_adapt
-
     def _torch_cov(self, X):
         """Compute the covariance matrix of X using torch."""
         torch = self.torch
@@ -950,6 +908,48 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
         self.W_ = W
 
         return self
+
+    def fit_transform(self, X, y=None, *, sample_domain=None, **params):
+        """Predict adaptation (weights, sample or labels).
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        X_t : array-like, shape (n_samples, n_components)
+            The data transformed to the target subspace.
+        """
+        self.fit(X, y, sample_domain=sample_domain)
+        return self.transform(X, sample_domain=sample_domain, allow_source=True)
+
+    def transform(
+        self, X, y=None, *, sample_domain=None, allow_source=False, **params
+    ) -> np.ndarray:
+        X, sample_domain = check_X_domain(
+            X,
+            sample_domain,
+            allow_source=allow_source,
+            allow_multi_source=True,
+            allow_multi_target=True,
+        )
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+
+        if X_source.shape[0]:
+            X_source = np.dot(X_source, self.W_)
+        if X_target.shape[0]:
+            X_target = np.dot(X_target, self.W_)
+        # xxx(okachaiev): this could be done through a more high-level API
+        X_adapt, _ = source_target_merge(
+            X_source, X_target, sample_domain=sample_domain
+        )
+        return X_adapt
 
 
 def TransferSubspaceLearning(
