@@ -142,9 +142,24 @@ def test_subspace_default_n_components(adapter, n_samples, n_features, n_compone
 @pytest.mark.parametrize(
     "adapter, param_name, param_value",
     [
-        (TransferSubspaceLearning, "base_method", "wrong_method"),
-        (TransferSubspaceLearning, "reg", -0.1),
-        (TransferSubspaceLearning, "reg", 1.1),
+        pytest.param(
+            TransferSubspaceLearning,
+            "base_method",
+            "wrong_method",
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+        ),
+        pytest.param(
+            TransferSubspaceLearning,
+            "reg",
+            -0.1,
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+        ),
+        pytest.param(
+            TransferSubspaceLearning,
+            "reg",
+            1.1,
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+        ),
     ],
 )
 def test_instantiation_wrong_params(adapter, param_name, param_value):
