@@ -3,7 +3,21 @@ Label Propagation methods
 ======================================
 
 This example shows how to use how to use label propagation methods to perform
-domain adaptation.
+domain adaptation. This is done by propagating labels from the source domain to
+the target domain using the OT plan. This was proposed originally in [28]_ for
+semi-supervised learning but can be used for DA.
+
+We illustrate the method on a simple regression and classification concept drift
+dataset. We train a simple Kernel Ridge Regression (KRR) and Logistic Regression
+on the source domain and evaluate their performance on the source and target
+domain. We then train the same models with the label propagation method and
+evaluate their performance on the source and target domain.
+
+.. [28] Solomon, J., Rustamov, R., Guibas, L., & Butscher, A. (2014, January).
+     Wasserstein propagation for semi-supervised learning. In International
+     Conference on Machine Learning (pp. 306-314). PMLR.
+
+
 """
 
 # Author: Remi Flamary
