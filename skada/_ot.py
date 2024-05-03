@@ -17,7 +17,7 @@ from sklearn.utils.validation import check_is_fitted
 from ._pipeline import make_da_pipeline
 from ._utils import Y_Type, _find_y_type
 from .base import BaseAdapter, DAEstimator
-from .utils import check_X_y_domain, source_target_split
+from .utils import check_X_y_domain, per_domain_split, source_target_split
 
 
 def get_jdot_class_cost_matrix(Ys, Xt, estimator=None, metric="multinomial"):
@@ -893,3 +893,49 @@ def OTLabelProp(base_estimator=None, reg=0, metric="sqeuclidean"):
         OTLabelPropAdapter(reg=reg, metric=metric),
         base_estimator,
     )
+
+
+class JCPOTLabelPropAdapter(BaseAdapter):
+    """JCPOT Label Propagation Adapter for multi source target shift
+
+    This adapter uses the optimal transport plan to propagate labels from
+    sources to target domain with target shift (change in proportion of
+    classes). This was proposed in  [31]
+
+    """
+
+    def __init__(
+        self, metric="sqeuclidean", reg=None, max_iter=10, tol=1e-9, verbose=False
+    ):
+        super().__init__()
+        self.metric = metric
+        self.reg = reg
+        self.max_iter = max_iter
+        self.tol = tol
+
+        self.ot_adapter = ot.da.JCPOTTransport(
+            reg_e=reg, metric=metric, max_iter=max_iter, tol=tol, log=True
+        )
+
+    def fit_transform(self, X, y, sample_domain=None, *, sample_weight=None):
+        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+
+        sources, targets = per_domain_split(X, y, sample_domain)
+
+        Xs = [X for X, y in sources.values()]
+        ys = [y for X, y in sources.values()]
+
+        Xt = [X for X, y in targets.values()]
+
+        self.ot_adapter.fit(Xs=Xs, ys=ys, Xt=Xt)
+
+        yh = self.ot_adapter.transform_labels(Xt)
+
+        self.yh_continuous_ = yh
+
+        yh = np.argmax(yh, axis=1)
+
+        yout = -np.ones_like(y)
+        yout[sample_domain < 0] = yh
+
+        return X, yout, {}
