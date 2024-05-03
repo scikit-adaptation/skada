@@ -13,21 +13,21 @@ from skada.datasets import (
 
 
 @pytest.mark.parametrize(
-    "domain, X_shape, y_shape, n_categories",
+    "domain, X_shape, y_shape",
     [
         # load by name
-        ("books", (2000, 400), (2000,), 2),
-        ("dvd", (1999, 400), (1999,), 2),
-        ("kitchen", (1999, 400), (1999,), 2),
-        ("elec", (1998, 400), (1998,), 2),
+        ("books", (2000, 400), (2000,)),
+        ("dvd", (1999, 400), (1999,)),
+        ("kitchen", (1999, 400), (1999,)),
+        ("elec", (1998, 400), (1998,)),
         # load by enum
-        (AmazonReviewDomain.BOOKS, (2000, 400), (2000,), 2),
-        (AmazonReviewDomain.DVD, (1999, 400), (1999,), 2),
-        (AmazonReviewDomain.KITCHEN, (1999, 400), (1999,), 2),
-        (AmazonReviewDomain.ELEC, (1998, 400), (1998,), 2),
+        (AmazonReviewDomain.BOOKS, (2000, 400), (2000,)),
+        (AmazonReviewDomain.DVD, (1999, 400), (1999,)),
+        (AmazonReviewDomain.KITCHEN, (1999, 400), (1999,)),
+        (AmazonReviewDomain.ELEC, (1998, 400), (1998,)),
     ],
 )
-def test_amazon_review_fetcher(tmp_folder, domain, X_shape, y_shape, n_categories):
+def test_amazon_review_fetcher(tmp_folder, domain, X_shape, y_shape):
     X, y = fetch_amazon_review(
         domain,
         data_home=tmp_folder,
