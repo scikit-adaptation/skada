@@ -3,6 +3,7 @@
 #
 # License: BSD 3-Clause
 
+import csv
 import os
 import time
 import zipfile
@@ -39,10 +40,10 @@ _OFFICE_HOME_LOADER = FileLoaderSpec(
 
 
 class OfficeHomeDomain(Enum):
-    BOOKS = "books"
-    DVD = "dvd"
-    KITCHEN = "kitchen"
-    ELEC = "elec"
+    ART = "Art"
+    CLIPART = "Clipart"
+    PRODUCT = "Product"
+    REALWORLD = "RealWorld"
 
 
 def fetch_office_home(
@@ -247,11 +248,37 @@ def _load_amazon_review(
     random_state: Union[None, int, np.random.RandomState] = None,
 ) -> Bunch:
     fullpath = Path(dataset_dir)
-    csv_path = str(fullpath) + "/" + "OfficeHomeResnet50"
+    csv_path = str(fullpath) + "/" + "OfficeHomeResnet50.csv"
 
-    print(csv_path)
-    X = None
-    y = None
+    # Initialize lists to store features, labels, and domains
+    features = []
+    labels = []
+    domains = []
+
+    with open(csv_path, newline="") as csvfile:
+        # Create a CSV reader object
+        reader = csv.reader(csvfile, quotechar='"')
+
+        # Skip the header row
+        next(reader)
+
+        # Iterate over each row in the CSV file
+        for row in reader:
+            # Append the feature (first column) to the features list
+            features.append(eval(row[0]))
+            # Append the label (second column) to the labels list
+            labels.append(row[1])
+            # Append the domain (third column) to the domains list
+            domains.append(row[2])
+
+    X = np.array(features)
+    y = np.array(labels)
+    domains = np.array(domains)
+
+    # To select only one domain
+    domain_mask = domains == domain.value
+    X = X[domain_mask]
+    y = y[domain_mask]
 
     if shuffle:
         X, y = shuffle_X_y(X, y, random_state)
