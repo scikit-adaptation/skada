@@ -47,6 +47,8 @@ from ._subspace import (
     TransferComponentAnalysis,
     TransferJointMatching,
     TransferJointMatchingAdapter,
+    TransferSubspaceLearning,
+    TransferSubspaceLearningAdapter,
 )
 from ._ot import (
     solve_jdot_regression,
@@ -110,6 +112,8 @@ __all__ = [
     "TransferComponentAnalysis",
     "TransferJointMatchingAdapter",
     "TransferJointMatching",
+    "TransferSubspaceLearningAdapter",
+    "TransferSubspaceLearning",
 
     "DASVMClassifier",
     "solve_jdot_regression",

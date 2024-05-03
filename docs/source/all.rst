@@ -80,6 +80,7 @@ Adapters:
       SubspaceAlignmentAdapter
       TransferComponentAnalysisAdapter
       TransferJointMatchingAdapter
+      TransferSubspaceLearning
       CORALAdapter
       OTMappingAdapter
       EntropicOTMappingAdapter
