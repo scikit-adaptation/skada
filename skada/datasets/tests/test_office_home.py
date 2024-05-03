@@ -39,18 +39,18 @@ def test_office_home_fetcher(tmp_folder, domain, X_shape, y_shape):
 
 def test_art_review_all_fetcher(tmp_folder):
     dataset = fetch_office_home_all(data_home=tmp_folder)
-    X, y = dataset.get_domain("Art")
-    X_art, y_art = fetch_office_home("Art", data_home=tmp_folder, return_X_y=True)
+    X, y = dataset.get_domain("art")
+    X_art, y_art = fetch_office_home("art", data_home=tmp_folder, return_X_y=True)
     assert np.array_equal(X, X_art), "single domain samples"
     assert np.array_equal(y, y_art), "single domain labels"
-    X, y, sample_domain = dataset.pack(as_sources=["Art"], as_targets=["Product"])
+    X, y, sample_domain = dataset.pack(as_sources=["art"], as_targets=["product"])
     X_product, y_product = fetch_office_home(
-        "Product", data_home=tmp_folder, return_X_y=True
+        "product", data_home=tmp_folder, return_X_y=True
     )
     assert np.array_equal(X[sample_domain > 0], X_art), "correct sources"
     assert np.array_equal(X[sample_domain < 0], X_product), "correct targets"
     assert y.shape[0] == y_art.shape[0] + y_product.shape[0], "correct selection size"
-    _, _, sample_domain_rev = dataset.pack(as_sources=["Product"], as_targets=["Art"])
+    _, _, sample_domain_rev = dataset.pack(as_sources=["product"], as_targets=["art"])
     uniq_domain = np.unique(sample_domain)
     rev_uniq_domain = -1 * np.unique(sample_domain_rev)
     assert set(uniq_domain) == set(rev_uniq_domain), "same domain labels"
