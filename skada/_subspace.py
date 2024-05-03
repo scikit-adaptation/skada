@@ -770,15 +770,6 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
         self.tol = tol
         self.verbose = verbose
 
-        try:
-            import torch
-
-            self.torch = torch
-        except ImportError:
-            raise ImportError(
-                "TransferSubspaceLearningAdapter requires pytorch to be installed."
-            )
-
     def _torch_cov(self, X):
         """Compute the covariance matrix of X using torch."""
         torch = self.torch
@@ -857,6 +848,15 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
         self : object
             Returns self.
         """
+        try:
+            import torch
+
+            self.torch = torch
+        except ImportError:
+            raise ImportError(
+                "TransferSubspaceLearningAdapter requires pytorch to be installed."
+            )
+
         X, sample_domain = check_X_domain(
             X,
             sample_domain,
@@ -866,8 +866,6 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
         X_source, X_target, y_source, _ = source_target_split(
             X, y, sample_domain=sample_domain
         )
-
-        torch = self.torch
 
         if self.n_components is None:
             n_components = min(X.shape[0], X.shape[1])
