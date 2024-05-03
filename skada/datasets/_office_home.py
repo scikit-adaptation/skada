@@ -10,7 +10,7 @@ import zipfile
 from collections import namedtuple
 from enum import Enum
 from pathlib import Path
-from typing import Callable, Tuple, Union
+from typing import Tuple, Union
 
 import numpy as np
 from sklearn.datasets._base import RemoteFileMetadata, _fetch_remote
@@ -163,7 +163,7 @@ def fetch_office_home_all(
         Container carrying all dataset domains.
     """
     return _fetch_office_home_all(
-        fetch_office_home,
+        _OFFICE_HOME_LOADER,
         data_home=data_home,
         download_if_missing=download_if_missing,
         shuffle=shuffle,
@@ -172,23 +172,40 @@ def fetch_office_home_all(
 
 
 def _fetch_office_home_all(
-    loader_fn: Callable,
+    loader_spec: FileLoaderSpec,
     data_home: Union[None, str, os.PathLike] = None,
     download_if_missing: bool = True,
     shuffle: bool = False,
     random_state: Union[None, int, np.random.RandomState] = None,
 ) -> DomainAwareDataset:
     dataset = DomainAwareDataset()
-    for domain in OfficeHomeDomain:
-        X, y = loader_fn(
-            domain,
-            data_home=data_home,
-            download_if_missing=download_if_missing,
-            shuffle=shuffle,
-            random_state=random_state,
-            return_X_y=True,
+
+    data_home = get_data_home(data_home)
+    dataset_dir = os.path.join(data_home, loader_spec.dataset_dir)
+    if not os.path.exists(dataset_dir):
+        if not download_if_missing:
+            raise OSError("Data not found and `download_if_missing` is False")
+        os.makedirs(dataset_dir)
+        # juggling with `extract_root` is only required because SURF features
+        # were archived with root folder and DECAF without it
+        _download_office_home(
+            loader_spec.remote,
+            data_home,
+            data_home if loader_spec.extract_root else dataset_dir,
         )
-        dataset.add_domain(X, y, domain_name=domain.value)
+
+    (X, y, domains) = _load_office_home_all(
+        dataset_dir,
+        shuffle=shuffle,
+        random_state=random_state,
+    )
+
+    for domain in OfficeHomeDomain:
+        domain_mask = np.char.lower(domains) == domain.value
+        X_domain = X[domain_mask]
+        y_domain = y[domain_mask]
+
+        dataset.add_domain(X_domain, y_domain, domain_name=domain.value)
     return dataset
 
 
@@ -252,6 +269,36 @@ def _load_office_home(
     fullpath = Path(dataset_dir)
     csv_path = str(fullpath) + "/" + "OfficeHomeResnet50.csv"
 
+    (X, y, domains) = parse_office_home_csv(csv_path)
+
+    # To select only one domain
+    domain_mask = np.char.lower(domains) == domain.value
+    X = X[domain_mask]
+    y = y[domain_mask]
+
+    if shuffle:
+        X, y = shuffle_arrays(X, y, random_state=random_state)
+
+    return X, y
+
+
+def _load_office_home_all(
+    dataset_dir: Union[os.PathLike, str],
+    shuffle: bool = False,
+    random_state: Union[None, int, np.random.RandomState] = None,
+) -> Bunch:
+    fullpath = Path(dataset_dir)
+    csv_path = str(fullpath) + "/" + "OfficeHomeResnet50.csv"
+
+    (X, y, domains) = parse_office_home_csv(csv_path)
+
+    if shuffle:
+        X, y, domains = shuffle_arrays(X, y, domains, random_state=random_state)
+
+    return X, y, domains
+
+
+def parse_office_home_csv(csv_path):
     # Initialize lists to store features, labels, and domains
     features = []
     labels = []
@@ -277,22 +324,15 @@ def _load_office_home(
     y = np.array(labels)
     domains = np.array(domains)
 
-    # To select only one domain
-    domain_mask = np.char.lower(domains) == domain.value
-    X = X[domain_mask]
-    y = y[domain_mask]
-
-    if shuffle:
-        X, y = shuffle_X_y(X, y, random_state)
-
-    return X, y
+    return (X, y, domains)
 
 
-def shuffle_X_y(X, y, random_state=None):
+def shuffle_arrays(*arrays, random_state=None):
     if random_state is None:
         random_state = np.random.RandomState()
-    indices = np.arange(X.shape[0])
+    indices = np.arange(arrays[0].shape[0])
     random_state.shuffle(indices)
-    X = X[indices]
-    y = y[indices]
-    return (X, y)
+    shuffled_arrays = []
+    for arr in arrays:
+        shuffled_arrays.append(arr[indices])
+    return tuple(shuffled_arrays)
