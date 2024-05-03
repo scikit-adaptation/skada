@@ -13,6 +13,7 @@ import numpy as np
 import scipy.linalg
 from sklearn.decomposition import PCA
 from sklearn.metrics.pairwise import pairwise_kernels
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 from sklearn.utils import check_random_state
 
@@ -23,6 +24,7 @@ from .utils import (
     extract_source_indices,
     source_target_merge,
     source_target_split,
+    torch_minimize,
 )
 
 
@@ -689,6 +691,333 @@ def TransferJointMatching(
             kernel=kernel,
             max_iter=max_iter,
             tol=tol,
+        ),
+        base_estimator,
+    )
+
+
+class TransferSubspaceLearningAdapter(BaseAdapter):
+    """Domain Adaptation Using TSL: Transfer Subspace Learning.
+
+    See [27]_ for details.
+
+    Parameters
+    ----------
+    n_components : int, default=None
+        The numbers of components to learn.
+        Should be less or equal to the number of samples
+        of the source and target data.
+    base_method : str, default='flda'
+        The method used to learn the subspace.
+        Possible values are 'pca', 'flda', and 'lpp'.
+    length_scale : float, default=2
+        The length scale of the rbf kernel used in
+        'lpp' method.
+    mu : float, default=0.1
+        The parameter of the regularization in the optimization
+        problem.
+    reg : float, default=0.01
+        The regularization parameter of the covariance estimator.
+        Possible values:
+          - None: no shrinkage.
+          - float between 0 and 1: fixed shrinkage parameter.
+    max_iter : int>0, default=100
+        The maximal number of iteration before stopping when
+        fitting.
+    tol : float, default=0.01
+        The threshold for the differences between losses on two iteration
+        before the algorithm stops
+    verbose : bool, default=False
+        If True, print the final gradient norm.
+
+    Attributes
+    ----------
+    W_ : array of shape (n_features, n_components)
+        The learned projection matrix.
+
+    References
+    ----------
+    .. [27]  [Si et al., 2010] Si, S., Tao, D. and Geng, B.
+             Bregman Divergence-Based Regularization
+             for Transfer Subspace Learning.
+             In IEEE Transactions on Knowledge and Data Engineering.
+             pages 929-942
+    """
+
+    def __init__(
+        self,
+        n_components=None,
+        base_method="flda",
+        length_scale=2,
+        mu=0.1,
+        reg=0.01,
+        max_iter=100,
+        tol=0.01,
+        verbose=False,
+    ):
+        super().__init__()
+        self.n_components = n_components
+        _accepted_base_methods = ["pca", "flda", "lpp"]
+        if base_method not in _accepted_base_methods:
+            raise ValueError(f"base_method should be in {_accepted_base_methods}")
+        self.base_method = base_method
+        self.length_scale = length_scale
+        self.mu = mu
+        if reg is not None and (reg < 0 or reg > 1):
+            raise ValueError("reg should be None or between 0 and 1.")
+        self.reg = 0 if reg is None else reg
+        self.max_iter = max_iter
+        self.tol = tol
+        self.verbose = verbose
+
+    def _torch_cov(self, X):
+        """Compute the covariance matrix of X using torch."""
+        torch = self.torch
+        reg = self.reg
+
+        n_samples, d = X.shape
+        X = X - torch.mean(X, dim=0)
+        cov = X.T @ X / n_samples
+        cov = (1 - reg) * cov + reg * torch.trace(cov) * torch.eye(d)
+
+        return cov
+
+    def _D(self, W, X_source, X_target):
+        """Divergence objective function"""
+        torch = self.torch
+
+        Z_source = X_source @ W
+        Z_target = X_target @ W
+
+        sigma_1 = self._torch_cov(Z_source)
+        sigma_2 = self._torch_cov(Z_target)
+        sigma_11 = 2 * sigma_1
+        sigma_12 = sigma_1 + sigma_2
+        sigma_22 = 2 * sigma_2
+
+        L_11 = torch.linalg.cholesky(torch.linalg.inv(sigma_11))
+        L_12 = torch.linalg.cholesky(torch.linalg.inv(sigma_12))
+        L_22 = torch.linalg.cholesky(torch.linalg.inv(sigma_22))
+        Kss = torch.exp(-0.5 * torch.cdist(Z_source @ L_11, Z_source @ L_11))
+        Kst = torch.exp(-0.5 * torch.cdist(Z_source @ L_12, Z_target @ L_12))
+        Ktt = torch.exp(-0.5 * torch.cdist(Z_target @ L_22, Z_target @ L_22))
+
+        return torch.mean(Kss) + torch.mean(Ktt) - 2 * torch.mean(Kst)
+
+    def _F(self, W, X_source, y_source):
+        """Subspace learning objective function"""
+        torch = self.torch
+        base_method = self.base_method
+
+        if base_method == "pca":
+            cov = self._torch_cov(X_source)
+            loss = -torch.trace(W.T @ cov @ W)
+        elif base_method == "flda":
+            classes = torch.unique(y_source)
+            classes_means = torch.stack(
+                [torch.mean(X_source[y_source == c], dim=0) for c in classes]
+            )
+            classes_n_samples = torch.stack([torch.sum(y_source == c) for c in classes])
+            classes_means = classes_means * torch.sqrt(classes_n_samples).reshape(-1, 1)
+            S_W = self._torch_cov(classes_means)
+            S_B = self._torch_cov(X_source)
+            loss = torch.trace(W.T @ S_W @ W) / torch.trace(W.T @ S_B @ W)
+        elif base_method == "lpp":
+            # E is the Gaussian kernel if (y_source)_i == (y_source)_j and 0 otherwise
+            E = torch.exp(-torch.cdist(X_source, X_source) / self.length_scale)
+            E = E * (y_source[:, None] == y_source[None, :])
+            D = torch.diag(torch.sum(E, dim=1))
+            loss = -2 * torch.trace(W.T @ X_source.T @ (D - E) @ X_source @ W)
+
+        return loss
+
+    def fit(self, X, y=None, sample_domain=None, **kwargs):
+        """Fit adaptation parameters.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
+        try:
+            import torch
+
+            self.torch = torch
+        except ImportError:
+            raise ImportError(
+                "TransferSubspaceLearningAdapter requires pytorch to be installed."
+            )
+
+        X, sample_domain = check_X_domain(
+            X,
+            sample_domain,
+            allow_multi_source=True,
+            allow_multi_target=True,
+        )
+        X_source, X_target, y_source, _ = source_target_split(
+            X, y, sample_domain=sample_domain
+        )
+
+        if self.n_components is None:
+            n_components = min(X.shape[0], X.shape[1])
+        else:
+            n_components = self.n_components
+
+        # Convert data to torch tensors
+        X_source = torch.tensor(X_source, dtype=torch.float64)
+        y_source = torch.tensor(y_source)
+        X_target = torch.tensor(X_target, dtype=torch.float64)
+
+        # Solve the optimization problem
+        # min_W F(W) + mu * D(W)
+        # s.t. W^T W = I
+
+        def _orth(W):
+            if type(W) is np.ndarray:
+                W = np.linalg.qr(W)[0]
+            else:
+                W = torch.linalg.qr(W)[0]
+            return W
+
+        def func(W):
+            W = _orth(W)
+            loss = self._F(W, X_source, y_source)
+            loss = loss + self.mu * self._D(W, X_source, X_target)
+            return loss
+
+        # Optimize using torch solver
+        W = torch.eye(X.shape[1], dtype=torch.float64, requires_grad=True)
+        W = W[:, :n_components]
+        W, _ = torch_minimize(
+            func, W, tol=self.tol, max_iter=self.max_iter, verbose=self.verbose
+        )
+        W = _orth(W)
+
+        # store W
+        self.W_ = W
+
+        return self
+
+    def fit_transform(self, X, y=None, *, sample_domain=None, **params):
+        """Predict adaptation (weights, sample or labels).
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        X_t : array-like, shape (n_samples, n_components)
+            The data transformed to the target subspace.
+        """
+        self.fit(X, y, sample_domain=sample_domain)
+        return self.transform(X, sample_domain=sample_domain, allow_source=True)
+
+    def transform(
+        self, X, y=None, *, sample_domain=None, allow_source=False, **params
+    ) -> np.ndarray:
+        X, sample_domain = check_X_domain(
+            X,
+            sample_domain,
+            allow_source=allow_source,
+            allow_multi_source=True,
+            allow_multi_target=True,
+        )
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+
+        if X_source.shape[0]:
+            X_source = np.dot(X_source, self.W_)
+        if X_target.shape[0]:
+            X_target = np.dot(X_target, self.W_)
+        # xxx(okachaiev): this could be done through a more high-level API
+        X_adapt, _ = source_target_merge(
+            X_source, X_target, sample_domain=sample_domain
+        )
+        return X_adapt
+
+
+def TransferSubspaceLearning(
+    base_estimator=None,
+    n_components=None,
+    base_method="flda",
+    length_scale=2,
+    mu=0.1,
+    reg=0.01,
+    max_iter=100,
+    tol=0.01,
+    verbose=False,
+):
+    """Domain Adaptation Using Transfer Subspace Learning.
+
+    Parameters
+    ----------
+    n_components : int, default=None
+        The numbers of components to learn.
+        Should be less or equal to the number of samples
+        of the source and target data.
+    base_method : str, default='flda'
+        The method used to learn the subspace.
+        Possible values are 'pca', 'flda', and 'lpp'.
+    length_scale : float, default=2
+        The length scale of the rbf kernel used in
+        'lpp' method.
+    mu : float, default=0.1
+        The parameter of the regularization in the optimization
+        problem.
+    reg : float, default=0.01
+        The regularization parameter of the covariance estimator.
+        Possible values:
+          - None: no shrinkage.
+          - float between 0 and 1: fixed shrinkage parameter.
+    max_iter : int>0, default=100
+        The maximal number of iteration before stopping when
+        fitting.
+    tol : float, default=0.01
+        The threshold for the differences between losses on two iteration
+        before the algorithm stops
+    verbose : bool, default=False
+        If True, print the final gradient norm.
+
+    Returns
+    -------
+    pipeline : Pipeline
+        A pipeline containing a TransferSubspaceLearning estimator.
+
+    References
+    ----------
+    .. [27]  [Si et al., 2010] Si, S., Tao, D. and Geng, B.
+             Bregman Divergence-Based Regularization
+             for Transfer Subspace Learning.
+             In IEEE Transactions on Knowledge and Data Engineering.
+             pages 929-942
+    """
+    if base_estimator is None:
+        base_estimator = KNeighborsClassifier(n_neighbors=1)
+
+    return make_da_pipeline(
+        TransferSubspaceLearningAdapter(
+            n_components=n_components,
+            base_method=base_method,
+            length_scale=length_scale,
+            mu=mu,
+            reg=reg,
+            max_iter=max_iter,
+            tol=tol,
+            verbose=verbose,
         ),
         base_estimator,
     )
