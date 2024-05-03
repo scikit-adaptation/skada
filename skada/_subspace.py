@@ -826,7 +826,7 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
             E = torch.exp(-torch.cdist(X_source, X_source) / self.length_scale)
             E = E * (y_source[:, None] == y_source[None, :])
             D = torch.diag(torch.sum(E, dim=1))
-            loss = -torch.trace(W.T @ X_source.T @ (D - E) @ X_source @ W)
+            loss = -2 * torch.trace(W.T @ X_source.T @ (D - E) @ X_source @ W)
 
         return loss
 
