@@ -887,7 +887,7 @@ def OTLabelProp(base_estimator=None, reg=0, metric="sqeuclidean"):
 
     """
     if base_estimator is None:
-        base_estimator = SVC(kernel="rbf").requires_fit(sample_weight=True)
+        base_estimator = SVC(kernel="rbf").set_fit_request(sample_weight=True)
 
     return make_da_pipeline(
         OTLabelPropAdapter(reg=reg, metric=metric),
