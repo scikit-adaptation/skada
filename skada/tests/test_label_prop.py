@@ -24,6 +24,7 @@ from skada.datasets import DomainAwareDataset
         make_da_pipeline(OTLabelPropAdapter(), LogisticRegression()),
         make_da_pipeline(OTLabelPropAdapter(reg=10), LogisticRegression()),
         OTLabelProp(LogisticRegression()),
+        OTLabelProp(),
     ],
 )
 def test_label_prop_estimator(estimator, da_blobs_dataset):
