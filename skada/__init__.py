@@ -23,7 +23,8 @@ from ._mapping import (
     MMDLSConSMapping,
     OTMappingAdapter,
     OTMapping,
-    MultiLinearMongeAlignmentAdapter
+    MultiLinearMongeAlignmentAdapter,
+    MultiLinearMongeAlignment
 )
 from ._reweight import (
     DiscriminatorReweightAdapter,
@@ -91,6 +92,7 @@ __all__ = [
     "OTMappingAdapter",
     "OTMapping",
     "MultiLinearMongeAlignmentAdapter",
+    "MultiLinearMongeAlignment",
     "OTLabelPropAdapter",
     "OTLabelProp",
 
