@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.kernel_ridge import KernelRidge
 from sklearn.linear_model import LogisticRegression
 
 try:
@@ -49,3 +50,27 @@ def test_label_prop_estimator(estimator, da_blobs_dataset):
     assert np.mean(y_pred == y_test) > 0.9
     score = estimator.score(X_test, y_test, sample_domain=sample_domain)
     assert score > 0.9
+
+
+@pytest.mark.parametrize(
+    "estimator",
+    [
+        make_da_pipeline(OTLabelPropAdapter(), KernelRidge()),
+    ],
+)
+def test_label_prop_estimator_reg(estimator, da_reg_dataset):
+    X, y, sample_domain = da_reg_dataset
+    X_source, X_target, y_source, y_target = source_target_split(
+        X, y, sample_domain=sample_domain
+    )
+
+    sample_domain_test = np.ones_like(sample_domain) * -1
+    y_train = y.copy()
+    y_train[sample_domain < 0] = -1
+
+    estimator.fit(X, y_train, sample_domain=sample_domain)
+
+    y_pred = estimator.predict(X_target)
+    assert np.mean((y_pred - y_target) ** 2) < 0.2
+    score = estimator.score(X_target, y_target, sample_domain=sample_domain_test)
+    assert score > 0.5

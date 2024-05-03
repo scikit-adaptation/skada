@@ -135,7 +135,7 @@ plt.axis(ax)
 
 lp = OTLabelPropAdapter()
 
-x_temp, yh, dict_temp = lp.fit_transform(X, y, sample_domain=sample_domain)
+yh = lp.fit_transform(X, y, sample_domain=sample_domain)[1]
 
 yht = yh[sample_domain < 0]  #
 
@@ -298,7 +298,7 @@ plt.axis(ax)
 
 lp = OTLabelPropAdapter()
 
-x_temp, yh, dict_temp = lp.fit_transform(X, y, sample_domain=sample_domain)
+yh = lp.fit_transform(X, y, sample_domain=sample_domain)[1]
 
 yht = yh[sample_domain < 0]
 

@@ -766,7 +766,6 @@ class JDOTClassifier(DAEstimator):
 class OTLabelPropAdapter(BaseAdapter):
     """Label propagation using optimal transport plan.
 
-
     Parameters
     ----------
     metric : str, default='sqeuclidean'
