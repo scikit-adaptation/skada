@@ -86,6 +86,8 @@ __all__ = [
     "MMDLSConSMapping",
     "OTMappingAdapter",
     "OTMapping",
+    "OTLabelPropAdapter",
+
 
     "DiscriminatorReweightAdapter",
     "DiscriminatorReweight",

@@ -14,11 +14,9 @@ from sklearn.utils.metaestimators import available_if
 from sklearn.utils.validation import check_is_fitted
 
 from ._utils import Y_Type, _find_y_type
-from .base import AdaptationOutput, BaseAdapter, DAEstimator
+from .base import BaseAdapter, DAEstimator
 from .utils import (
-    check_X_domain,
     check_X_y_domain,
-    extract_source_indices,
     source_target_split,
 )
 
@@ -785,15 +783,19 @@ class OTLabelPropAdapter(BaseAdapter):
         self.metric = metric
         self.reg = reg
 
-    def fit(self, X, y, sample_domain=None, *, sample_weight=None):
+    def fit_transform(self, X, y, sample_domain=None, *, sample_weight=None):
         """Fit adaptation parameters"""
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
-        if sample_domain is not None:
+        if sample_weight is not None:
             Xs, Xt, ys, yt, ws, wt = source_target_split(
                 X, y, sample_weight, sample_domain=sample_domain
             )
+            ws = ws / ws.sum()
+            wt = wt / wt.sum()
         else:
             Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
+            ws = ot.unif(Xs.shape[0])
+            wt = ot.unif(Xt.shape[0])
 
         M = ot.dist(Xs, Xt, metric=self.metric)
         G = ot.solve(M, ws, wt, reg=self.reg).plan
@@ -805,30 +807,26 @@ class OTLabelPropAdapter(BaseAdapter):
             for i, c in enumerate(classes):
                 Y[:, i] = (ys == c).astype(int)
             yht = G.T.dot(Y)
+            self.yht_continuous_ = yht
             yht = np.argmax(yht, axis=1)
             yht = classes[yht]
+            yout = -np.ones_like(y)
         else:
             Y = ys
-            yht = G.T.dot(Y) * Xt.shape[0]
+            yht = G.T.dot(Y) / wt
+            self.yht_continuous_ = yht
+            yout = np.ones_like(y) * np.nan
 
         self.G_ = G
         self.Xt_ = Xt
         self.yht_ = yht
 
-    def adapt(self, X, y=None, sample_domain=None, *, sample_weight=None):
-        """Adapt target samples to source domain"""
-        check_is_fitted(self)
-        X, sample_domain = check_X_domain(X, sample_domain)
-        source_idx = extract_source_indices(sample_domain)
+        # set estimated labels
+        yout[sample_domain < 0] = yht
 
-        if source_idx.sum() > 0:  # if source samples in target use estmated labels
-            Xout = self.Xt_
-            weights = Xout.shape[0] * self.G_.sum(0)
-            yout = self.yht_
+        # return sample weight only if it was provided
+        dico = dict()
+        if sample_weight is not None:
+            dico["sample_weight"] = sample_weight
 
-        else:
-            Xout = X
-            yout = y
-            weights = sample_weight
-
-        return AdaptationOutput(Xout, y=yout, sample_weight=weights)
+        return X, yout, dico
