@@ -658,6 +658,9 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
     base_method : str, default='flda'
         The method used to learn the subspace.
         Possible values are 'pca', 'flda', and 'lpp'.
+    length_scale : float, default=2
+        The length scale of the rbf kernel used in
+        'lpp' method.
     mu : float, default=0.1
         The parameter of the regularization in the optimization
         problem.
@@ -693,6 +696,7 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
         self,
         n_components=None,
         base_method="flda",
+        length_scale=2,
         mu=0.1,
         reg=0.01,
         max_iter=100,
@@ -705,6 +709,7 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
         if base_method not in _accepted_base_methods:
             raise ValueError(f"base_method should be in {_accepted_base_methods}")
         self.base_method = base_method
+        self.length_scale = length_scale
         self.mu = mu
         if reg is not None and (reg < 0 or reg > 1):
             raise ValueError("reg should be None or between 0 and 1.")
@@ -818,7 +823,7 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
             loss = torch.trace(W.T @ S_W @ W) / torch.trace(W.T @ S_B @ W)
         elif base_method == "lpp":
             # E is the Gaussian kernel if (y_source)_i == (y_source)_j and 0 otherwise
-            E = torch.exp(-0.5 * torch.cdist(X_source, X_source))
+            E = torch.exp(-torch.cdist(X_source, X_source) / self.length_scale)
             E = E * (y_source[:, None] == y_source[None, :])
             D = torch.diag(torch.sum(E, dim=1))
             loss = -torch.trace(W.T @ X_source.T @ (D - E) @ X_source @ W)
@@ -899,6 +904,7 @@ def TransferSubspaceLearning(
     base_estimator=None,
     n_components=None,
     base_method="flda",
+    length_scale=2,
     mu=0.1,
     reg=0.01,
     max_iter=100,
@@ -916,6 +922,9 @@ def TransferSubspaceLearning(
     base_method : str, default='flda'
         The method used to learn the subspace.
         Possible values are 'pca', 'flda', and 'lpp'.
+    length_scale : float, default=2
+        The length scale of the rbf kernel used in
+        'lpp' method.
     mu : float, default=0.1
         The parameter of the regularization in the optimization
         problem.
@@ -953,6 +962,7 @@ def TransferSubspaceLearning(
         TransferSubspaceLearningAdapter(
             n_components=n_components,
             base_method=base_method,
+            length_scale=length_scale,
             mu=mu,
             reg=reg,
             max_iter=max_iter,
