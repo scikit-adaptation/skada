@@ -8,7 +8,7 @@ from sklearn.linear_model import LogisticRegression, Ridge
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.svm import SVC
 
-from skada import JDOTClassifier, JDOTRegressor, OTLabelPropAdapter, make_da_pipeline
+from skada import JDOTClassifier, JDOTRegressor, make_da_pipeline
 from skada._ot import get_jdot_class_cost_matrix, get_tgt_loss_jdot_class
 from skada.metrics import PredictionEntropyScorer
 from skada.utils import source_target_split
@@ -190,17 +190,3 @@ def test_jdot_class_tgt_loss(da_multiclass_dataset):
         est = LogisticRegression()
         est.fit(Xs, ys)
         loss = get_tgt_loss_jdot_class(Xs, Ys, ws, est, metric="bad_metric")
-
-
-def test_OTLabelPropAdapter(da_multiclass_dataset):
-    X, y, sample_domain = da_multiclass_dataset
-
-    Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
-
-    pipe = make_da_pipeline(OTLabelPropAdapter(), LogisticRegression())
-
-    pipe.fit(X, y, sample_domain=sample_domain)
-
-    ypred = pipe.predict(Xt)
-
-    assert ypred.shape[0] == Xt.shape[0]

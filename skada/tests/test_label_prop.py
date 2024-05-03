@@ -55,7 +55,9 @@ def test_label_prop_estimator(estimator, da_blobs_dataset):
 @pytest.mark.parametrize(
     "estimator",
     [
-        make_da_pipeline(OTLabelPropAdapter(), KernelRidge()),
+        make_da_pipeline(
+            OTLabelPropAdapter(), KernelRidge().set_fit_request(sample_weight=True)
+        ),
     ],
 )
 def test_label_prop_estimator_reg(estimator, da_reg_dataset):
@@ -63,12 +65,15 @@ def test_label_prop_estimator_reg(estimator, da_reg_dataset):
     X_source, X_target, y_source, y_target = source_target_split(
         X, y, sample_domain=sample_domain
     )
+    w = np.ones_like(y)
 
     sample_domain_test = sample_domain[sample_domain < 0]
     y_train = y.copy()
     y_train[sample_domain < 0] = -1
 
     estimator.fit(X, y_train, sample_domain=sample_domain)
+
+    estimator.fit(X, y_train, sample_weight=w, sample_domain=sample_domain)
 
     y_pred = estimator.predict(X_target)
     assert np.mean((y_pred - y_target) ** 2) < 2

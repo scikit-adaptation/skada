@@ -777,6 +777,9 @@ class OTLabelPropAdapter(BaseAdapter):
         the entropy regularizationof the coupling matrix.
     """
 
+    __metadata_request__fit = {"sample_domain": True}
+    __metadata_request__fit_transform = {"sample_domain": True}
+
     def __init__(self, metric="sqeuclidean", reg=None):
         super().__init__()
         self.metric = metric
