@@ -930,7 +930,7 @@ def frank_wolfe(jac, c, clb=1., cub=1., x0=None, max_iter=1000):
     return x
 
 
-def torch_minimize(loss, x0, tol=1e-6, max_iter=1000):
+def torch_minimize(loss, x0, tol=1e-6, max_iter=1000, verbose=False):
     r""" Solves unconstrained optimization problem using pytorch
 
     Solve the following optimization problem:
@@ -948,6 +948,8 @@ def torch_minimize(loss, x0, tol=1e-6, max_iter=1000):
         Tolerance on the gradient for termination.
     max_iter : int, optional
         Maximum number of iterations to perform.
+    verbose : bool, optional
+        If True, print the final gradient norm.
 
     Returns
     -------
@@ -959,7 +961,7 @@ def torch_minimize(loss, x0, tol=1e-6, max_iter=1000):
     try:
         import torch
     except ImportError:
-        raise ImportError("solve_torch requires pytorch to be installed")
+        raise ImportError("torch_minimize requires pytorch to be installed")
 
     if type(x0) not in (list, tuple):
         x0 = [x0]
@@ -981,6 +983,9 @@ def torch_minimize(loss, x0, tol=1e-6, max_iter=1000):
     optimizer.step(closure)
 
     grad_norm = torch.cat([x.grad.flatten() for x in x0]).abs().max()
+
+    if verbose:
+        print(f"Final gradient norm: {grad_norm:.2e}")
 
     if grad_norm > tol:
         warnings.warn(
