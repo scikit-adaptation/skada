@@ -30,7 +30,7 @@ def da_reg_dataset():
         mean=0.5,
         noise=0.3,
         label="regression",
-        random_state=42,
+        random_state=43,
     )
     return X, y, sample_domain
 

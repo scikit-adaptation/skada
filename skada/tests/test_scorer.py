@@ -105,11 +105,15 @@ def test_scorer_with_entropy_requires_predict_proba(scorer, da_dataset):
 
 def test_scorer_with_log_proba():
     n_samples, n_features = 100, 5
-    rng = np.random.RandomState(42)
+    rng = np.random.default_rng(42)
     dataset = DomainAwareDataset(
         domains=[
-            (rng.rand(n_samples, n_features), rng.randint(2, size=n_samples), "s"),
-            (rng.rand(n_samples, n_features), None, "t"),
+            (
+                rng.standard_normal((n_samples, n_features)),
+                rng.integers(2, size=n_samples),
+                "s",
+            ),
+            (rng.standard_normal((n_samples, n_features)), None, "t"),
         ]
     )
     X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
