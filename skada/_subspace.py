@@ -713,6 +713,15 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
         self.tol = tol
         self.verbose = verbose
 
+        try:
+            import torch
+
+            self.torch = torch
+        except ImportError:
+            raise ImportError(
+                "TransferSubspaceLearningAdapter requires pytorch to be installed."
+            )
+
     def adapt(self, X, y=None, sample_domain=None, **kwargs):
         """Predict adaptation (weights, sample or labels).
 
@@ -833,15 +842,6 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
         self : object
             Returns self.
         """
-        try:
-            import torch
-
-            self.torch = torch
-        except ImportError:
-            raise ImportError(
-                "TransferSubspaceLearningAdapter requires pytorch to be installed."
-            )
-
         X, sample_domain = check_X_domain(
             X,
             sample_domain,
