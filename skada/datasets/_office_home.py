@@ -14,7 +14,7 @@ from typing import Tuple, Union
 
 import numpy as np
 from sklearn.datasets._base import RemoteFileMetadata, _fetch_remote
-from sklearn.utils import Bunch
+from sklearn.utils import Bunch, check_random_state
 
 from .._utils import _logger
 from ._base import DomainAwareDataset, get_data_home
@@ -33,8 +33,8 @@ _OFFICE_HOME_LOADER = FileLoaderSpec(
     extract_root=False,
     remote=RemoteFileMetadata(
         filename="OfficeHomeResnet50.zip",
-        url="https://figshare.com/ndownloader/files/46067604?private_link=682e4eb7cfef7e179719",
-        checksum="db521d8c4d3dbe2da887ba57b2ce5f43e9f9dc788b8d79479d9ce6398cfd2ff3",
+        url="https://figshare.com/ndownloader/files/46093947?private_link=682e4eb7cfef7e179719",
+        checksum="be46195bd8737e997ade333341a6c943139f974211bbbf726d760c990124f749",
     ),
 )
 
@@ -186,12 +186,10 @@ def _fetch_office_home_all(
         if not download_if_missing:
             raise OSError("Data not found and `download_if_missing` is False")
         os.makedirs(dataset_dir)
-        # juggling with `extract_root` is only required because SURF features
-        # were archived with root folder and DECAF without it
         _download_office_home(
             loader_spec.remote,
             data_home,
-            data_home if loader_spec.extract_root else dataset_dir,
+            dataset_dir,
         )
 
     (X, y, domains) = _load_office_home_all(
@@ -241,10 +239,12 @@ def _fetch_office_home(
         random_state=random_state,
     )
 
-    dataset = DomainAwareDataset()
-    dataset.add_domain(X, y, domain.value)
-
-    return (X, y) if return_X_y else dataset
+    if return_X_y:
+        return (X, y)
+    else:
+        dataset = DomainAwareDataset()
+        dataset.add_domain(X, y, domain.value)
+        return dataset
 
 
 def _download_office_home(remote_spec: RemoteFileMetadata, download_dir, extract_dir):
@@ -267,7 +267,7 @@ def _load_office_home(
     random_state: Union[None, int, np.random.RandomState] = None,
 ) -> Bunch:
     fullpath = Path(dataset_dir)
-    csv_path = str(fullpath) + "/" + "OfficeHomeResnet50.csv"
+    csv_path = fullpath / "OfficeHomeResnet50.csv"
 
     (X, y, domains) = parse_office_home_csv(csv_path)
 
@@ -277,7 +277,7 @@ def _load_office_home(
     y = y[domain_mask]
 
     if shuffle:
-        X, y = shuffle_arrays(X, y, random_state=random_state)
+        X, y = _shuffle_arrays(X, y, random_state=random_state)
 
     return X, y
 
@@ -293,7 +293,7 @@ def _load_office_home_all(
     (X, y, domains) = parse_office_home_csv(csv_path)
 
     if shuffle:
-        X, y, domains = shuffle_arrays(X, y, domains, random_state=random_state)
+        X, y, domains = _shuffle_arrays(X, y, domains, random_state=random_state)
 
     return X, y, domains
 
@@ -314,22 +314,22 @@ def parse_office_home_csv(csv_path):
         # Iterate over each row in the CSV file
         for row in reader:
             # Append the feature (first column) to the features list
-            features.append(eval(row[0]))
+            features.append(row[:-2])
             # Append the label (second column) to the labels list
-            labels.append(row[1])
+            labels.append(row[-2])
             # Append the domain (third column) to the domains list
-            domains.append(row[2])
+            domains.append(row[-1])
 
-    X = np.array(features)
+    X = np.array(features, dtype=np.float32)
     y = np.array(labels)
     domains = np.array(domains)
 
     return (X, y, domains)
 
 
-def shuffle_arrays(*arrays, random_state=None):
-    if random_state is None:
-        random_state = np.random.RandomState()
+def _shuffle_arrays(*arrays, random_state=None):
+    random_state = check_random_state(random_state)
+
     indices = np.arange(arrays[0].shape[0])
     random_state.shuffle(indices)
     shuffled_arrays = []
