@@ -224,12 +224,10 @@ def _fetch_office_home(
         if not download_if_missing:
             raise OSError("Data not found and `download_if_missing` is False")
         os.makedirs(dataset_dir)
-        # juggling with `extract_root` is only required because SURF features
-        # were archived with root folder and DECAF without it
         _download_office_home(
             loader_spec.remote,
             data_home,
-            data_home if loader_spec.extract_root else dataset_dir,
+            dataset_dir,
         )
 
     (X, y) = _load_office_home(
