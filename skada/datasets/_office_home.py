@@ -311,11 +311,11 @@ def parse_office_home_csv(csv_path):
 
         # Iterate over each row in the CSV file
         for row in reader:
-            # Append the feature (first column) to the features list
+            # Append the feature (0:2047 columns) to the features list
             features.append(row[:-2])
-            # Append the label (second column) to the labels list
+            # Append the label (2048 column) to the labels list
             labels.append(row[-2])
-            # Append the domain (third column) to the domains list
+            # Append the domain (2049 column) to the domains list
             domains.append(row[-1])
 
     X = np.array(features, dtype=np.float32)
