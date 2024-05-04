@@ -15,7 +15,7 @@ from scipy.io import loadmat
 from sklearn.datasets._base import RemoteFileMetadata, _fetch_remote
 from sklearn.utils import Bunch
 
-from .._utils import _logger
+from .._utils import _logger, _shuffle_arrays
 from ._base import DomainAwareDataset, get_data_home
 
 FileLoaderSpec = namedtuple(
@@ -205,12 +205,10 @@ def _fetch_amazon_review(
         if not download_if_missing:
             raise OSError("Data not found and `download_if_missing` is False")
         os.makedirs(dataset_dir)
-        # juggling with `extract_root` is only required because SURF features
-        # were archived with root folder and DECAF without it
         _download_amazon_review(
             loader_spec.remote,
             data_home,
-            data_home if loader_spec.extract_root else dataset_dir,
+            dataset_dir,
         )
 
     (X, y) = _load_amazon_review(
@@ -220,10 +218,12 @@ def _fetch_amazon_review(
         random_state=random_state,
     )
 
-    dataset = DomainAwareDataset()
-    dataset.add_domain(X, y, domain.value)
-
-    return (X, y) if return_X_y else dataset
+    if return_X_y:
+        return (X, y)
+    else:
+        dataset = DomainAwareDataset()
+        dataset.add_domain(X, y, domain.value)
+        return dataset
 
 
 def _download_amazon_review(remote_spec: RemoteFileMetadata, download_dir, extract_dir):
@@ -262,7 +262,7 @@ def _load_amazon_review(
     fullpath = Path(dataset_dir)
 
     mat_file = domain.value + "_400.mat"
-    mat = loadmat(str(fullpath) + "/" + mat_file)
+    mat = loadmat(fullpath / mat_file)
 
     X = np.array(
         mat["fts"],
@@ -275,16 +275,6 @@ def _load_amazon_review(
     )
 
     if shuffle:
-        X, y = shuffle_X_y(X, y, random_state)
+        X, y = _shuffle_arrays(X, y, random_state=random_state)
 
     return X, y
-
-
-def shuffle_X_y(X, y, random_state=None):
-    if random_state is None:
-        random_state = np.random.RandomState()
-    indices = np.arange(X.shape[0])
-    random_state.shuffle(indices)
-    X = X[indices]
-    y = y[indices]
-    return (X, y)
