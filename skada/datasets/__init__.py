@@ -26,6 +26,7 @@ from ._amazon_review import (
     AmazonReviewDomain,
     fetch_amazon_review,
     fetch_amazon_review_all,
+)
 from ._office_home import (
     OfficeHomeDomain,
     fetch_office_home,
