@@ -14,9 +14,9 @@ from typing import Tuple, Union
 
 import numpy as np
 from sklearn.datasets._base import RemoteFileMetadata, _fetch_remote
-from sklearn.utils import Bunch, check_random_state
+from sklearn.utils import Bunch
 
-from .._utils import _logger
+from .._utils import _logger, _shuffle_arrays
 from ._base import DomainAwareDataset, get_data_home
 
 FileLoaderSpec = namedtuple(
@@ -323,14 +323,3 @@ def parse_office_home_csv(csv_path):
     domains = np.array(domains)
 
     return (X, y, domains)
-
-
-def _shuffle_arrays(*arrays, random_state=None):
-    random_state = check_random_state(random_state)
-
-    indices = np.arange(arrays[0].shape[0])
-    random_state.shuffle(indices)
-    shuffled_arrays = []
-    for arr in arrays:
-        shuffled_arrays.append(arr[indices])
-    return tuple(shuffled_arrays)
