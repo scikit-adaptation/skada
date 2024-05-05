@@ -11,13 +11,15 @@ import warnings
 
 import numpy as np
 import scipy.linalg
+from scipy.optimize import minimize
 from sklearn.decomposition import PCA
-from sklearn.metrics import pairwise_distances
 from sklearn.metrics.pairwise import pairwise_kernels
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 from sklearn.utils import check_random_state
 
 from ._pipeline import make_da_pipeline
+from ._utils import Y_Type, _find_y_type
 from .base import BaseAdapter
 from .utils import (
     check_X_domain,
@@ -25,8 +27,8 @@ from .utils import (
     extract_source_indices,
     source_target_merge,
     source_target_split,
+    torch_minimize,
 )
-from ._utils import _find_y_type, Y_Type
 
 
 class SubspaceAlignmentAdapter(BaseAdapter):
@@ -644,106 +646,508 @@ def TransferJointMatching(
         base_estimator,
     )
 
-# Call it instead CTCAdapter ?
+
+class TransferSubspaceLearningAdapter(BaseAdapter):
+    """Domain Adaptation Using TSL: Transfer Subspace Learning.
+
+    See [27]_ for details.
+
+    Parameters
+    ----------
+    n_components : int, default=None
+        The numbers of components to learn.
+        Should be less or equal to the number of samples
+        of the source and target data.
+    base_method : str, default='flda'
+        The method used to learn the subspace.
+        Possible values are 'pca', 'flda', and 'lpp'.
+    length_scale : float, default=2
+        The length scale of the rbf kernel used in
+        'lpp' method.
+    mu : float, default=0.1
+        The parameter of the regularization in the optimization
+        problem.
+    reg : float, default=0.01
+        The regularization parameter of the covariance estimator.
+        Possible values:
+          - None: no shrinkage.
+          - float between 0 and 1: fixed shrinkage parameter.
+    max_iter : int>0, default=100
+        The maximal number of iteration before stopping when
+        fitting.
+    tol : float, default=0.01
+        The threshold for the differences between losses on two iteration
+        before the algorithm stops
+    verbose : bool, default=False
+        If True, print the final gradient norm.
+
+    Attributes
+    ----------
+    W_ : array of shape (n_features, n_components)
+        The learned projection matrix.
+
+    References
+    ----------
+    .. [27]  [Si et al., 2010] Si, S., Tao, D. and Geng, B.
+             Bregman Divergence-Based Regularization
+             for Transfer Subspace Learning.
+             In IEEE Transactions on Knowledge and Data Engineering.
+             pages 929-942
+    """
+
+    def __init__(
+        self,
+        n_components=None,
+        base_method="flda",
+        length_scale=2,
+        mu=0.1,
+        reg=0.01,
+        max_iter=100,
+        tol=0.01,
+        verbose=False,
+    ):
+        super().__init__()
+        self.n_components = n_components
+        _accepted_base_methods = ["pca", "flda", "lpp"]
+        if base_method not in _accepted_base_methods:
+            raise ValueError(f"base_method should be in {_accepted_base_methods}")
+        self.base_method = base_method
+        self.length_scale = length_scale
+        self.mu = mu
+        if reg is not None and (reg < 0 or reg > 1):
+            raise ValueError("reg should be None or between 0 and 1.")
+        self.reg = 0 if reg is None else reg
+        self.max_iter = max_iter
+        self.tol = tol
+        self.verbose = verbose
+
+    def _torch_cov(self, X):
+        """Compute the covariance matrix of X using torch."""
+        torch = self.torch
+        reg = self.reg
+
+        n_samples, d = X.shape
+        X = X - torch.mean(X, dim=0)
+        cov = X.T @ X / n_samples
+        cov = (1 - reg) * cov + reg * torch.trace(cov) * torch.eye(d)
+
+        return cov
+
+    def _D(self, W, X_source, X_target):
+        """Divergence objective function"""
+        torch = self.torch
+
+        Z_source = X_source @ W
+        Z_target = X_target @ W
+
+        sigma_1 = self._torch_cov(Z_source)
+        sigma_2 = self._torch_cov(Z_target)
+        sigma_11 = 2 * sigma_1
+        sigma_12 = sigma_1 + sigma_2
+        sigma_22 = 2 * sigma_2
+
+        L_11 = torch.linalg.cholesky(torch.linalg.inv(sigma_11))
+        L_12 = torch.linalg.cholesky(torch.linalg.inv(sigma_12))
+        L_22 = torch.linalg.cholesky(torch.linalg.inv(sigma_22))
+        Kss = torch.exp(-0.5 * torch.cdist(Z_source @ L_11, Z_source @ L_11))
+        Kst = torch.exp(-0.5 * torch.cdist(Z_source @ L_12, Z_target @ L_12))
+        Ktt = torch.exp(-0.5 * torch.cdist(Z_target @ L_22, Z_target @ L_22))
+
+        return torch.mean(Kss) + torch.mean(Ktt) - 2 * torch.mean(Kst)
+
+    def _F(self, W, X_source, y_source):
+        """Subspace learning objective function"""
+        torch = self.torch
+        base_method = self.base_method
+
+        if base_method == "pca":
+            cov = self._torch_cov(X_source)
+            loss = -torch.trace(W.T @ cov @ W)
+        elif base_method == "flda":
+            classes = torch.unique(y_source)
+            classes_means = torch.stack(
+                [torch.mean(X_source[y_source == c], dim=0) for c in classes]
+            )
+            classes_n_samples = torch.stack([torch.sum(y_source == c) for c in classes])
+            classes_means = classes_means * torch.sqrt(classes_n_samples).reshape(-1, 1)
+            S_W = self._torch_cov(classes_means)
+            S_B = self._torch_cov(X_source)
+            loss = torch.trace(W.T @ S_W @ W) / torch.trace(W.T @ S_B @ W)
+        elif base_method == "lpp":
+            # E is the Gaussian kernel if (y_source)_i == (y_source)_j and 0 otherwise
+            E = torch.exp(-torch.cdist(X_source, X_source) / self.length_scale)
+            E = E * (y_source[:, None] == y_source[None, :])
+            D = torch.diag(torch.sum(E, dim=1))
+            loss = -2 * torch.trace(W.T @ X_source.T @ (D - E) @ X_source @ W)
+
+        return loss
+
+    def fit(self, X, y=None, sample_domain=None, **kwargs):
+        """Fit adaptation parameters.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
+        try:
+            import torch
+
+            self.torch = torch
+        except ImportError:
+            raise ImportError(
+                "TransferSubspaceLearningAdapter requires pytorch to be installed."
+            )
+
+        X, sample_domain = check_X_domain(
+            X,
+            sample_domain,
+            allow_multi_source=True,
+            allow_multi_target=True,
+        )
+        X_source, X_target, y_source, _ = source_target_split(
+            X, y, sample_domain=sample_domain
+        )
+
+        if self.n_components is None:
+            n_components = min(X.shape[0], X.shape[1])
+        else:
+            n_components = self.n_components
+
+        # Convert data to torch tensors
+        X_source = torch.tensor(X_source, dtype=torch.float64)
+        y_source = torch.tensor(y_source)
+        X_target = torch.tensor(X_target, dtype=torch.float64)
+
+        # Solve the optimization problem
+        # min_W F(W) + mu * D(W)
+        # s.t. W^T W = I
+
+        def _orth(W):
+            if type(W) is np.ndarray:
+                W = np.linalg.qr(W)[0]
+            else:
+                W = torch.linalg.qr(W)[0]
+            return W
+
+        def func(W):
+            W = _orth(W)
+            loss = self._F(W, X_source, y_source)
+            loss = loss + self.mu * self._D(W, X_source, X_target)
+            return loss
+
+        # Optimize using torch solver
+        W = torch.eye(X.shape[1], dtype=torch.float64, requires_grad=True)
+        W = W[:, :n_components]
+        W, _ = torch_minimize(
+            func, W, tol=self.tol, max_iter=self.max_iter, verbose=self.verbose
+        )
+        W = _orth(W)
+
+        # store W
+        self.W_ = W
+
+        return self
+
+    def fit_transform(self, X, y=None, *, sample_domain=None, **params):
+        """Predict adaptation (weights, sample or labels).
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        X_t : array-like, shape (n_samples, n_components)
+            The data transformed to the target subspace.
+        """
+        self.fit(X, y, sample_domain=sample_domain)
+        return self.transform(X, sample_domain=sample_domain, allow_source=True)
+
+    def transform(
+        self, X, y=None, *, sample_domain=None, allow_source=False, **params
+    ) -> np.ndarray:
+        X, sample_domain = check_X_domain(
+            X,
+            sample_domain,
+            allow_source=allow_source,
+            allow_multi_source=True,
+            allow_multi_target=True,
+        )
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+
+        if X_source.shape[0]:
+            X_source = np.dot(X_source, self.W_)
+        if X_target.shape[0]:
+            X_target = np.dot(X_target, self.W_)
+        # xxx(okachaiev): this could be done through a more high-level API
+        X_adapt, _ = source_target_merge(
+            X_source, X_target, sample_domain=sample_domain
+        )
+        return X_adapt
+
+
+def TransferSubspaceLearning(
+    base_estimator=None,
+    n_components=None,
+    base_method="flda",
+    length_scale=2,
+    mu=0.1,
+    reg=0.01,
+    max_iter=100,
+    tol=0.01,
+    verbose=False,
+):
+    """Domain Adaptation Using Transfer Subspace Learning.
+
+    Parameters
+    ----------
+    n_components : int, default=None
+        The numbers of components to learn.
+        Should be less or equal to the number of samples
+        of the source and target data.
+    base_method : str, default='flda'
+        The method used to learn the subspace.
+        Possible values are 'pca', 'flda', and 'lpp'.
+    length_scale : float, default=2
+        The length scale of the rbf kernel used in
+        'lpp' method.
+    mu : float, default=0.1
+        The parameter of the regularization in the optimization
+        problem.
+    reg : float, default=0.01
+        The regularization parameter of the covariance estimator.
+        Possible values:
+          - None: no shrinkage.
+          - float between 0 and 1: fixed shrinkage parameter.
+    max_iter : int>0, default=100
+        The maximal number of iteration before stopping when
+        fitting.
+    tol : float, default=0.01
+        The threshold for the differences between losses on two iteration
+        before the algorithm stops
+    verbose : bool, default=False
+        If True, print the final gradient norm.
+
+    Returns
+    -------
+    pipeline : Pipeline
+        A pipeline containing a TransferSubspaceLearning estimator.
+
+    References
+    ----------
+    .. [27]  [Si et al., 2010] Si, S., Tao, D. and Geng, B.
+             Bregman Divergence-Based Regularization
+             for Transfer Subspace Learning.
+             In IEEE Transactions on Knowledge and Data Engineering.
+             pages 929-942
+    """
+    if base_estimator is None:
+        base_estimator = KNeighborsClassifier(n_neighbors=1)
+
+    return make_da_pipeline(
+        TransferSubspaceLearningAdapter(
+            n_components=n_components,
+            base_method=base_method,
+            length_scale=length_scale,
+            mu=mu,
+            reg=reg,
+            max_iter=max_iter,
+            tol=tol,
+            verbose=verbose,
+        ),
+        base_estimator,
+    )
+
+
 class ConditionalTransferableComponentsAdapter(BaseAdapter):
     def __init__(
         self,
         gamma,
-        eps = 1e-3,
+        n_invariant_components=2,
+        eps=1e-3,
         lmbd=1e-3,
         lmbd_s=1e-3,
         lmbd_l=1e-4,
-        max_iter=100
+        tol=1e-3,
+        max_iter=100,
     ):
         super().__init__()
         self.gamma = gamma
+        self.n_invariant_components = n_invariant_components
         self.eps = eps
         self.lmbd = lmbd
         self.lmbd_s = lmbd_s
         self.lmbd_l = lmbd_l
         self.max_iter = max_iter
         self.max_iter = max_iter
+        self.tol = tol
 
-
-    
-
-    def _mapping_optimization(self, X_source, X_target, y_source, d):
+    def _mapping_optimization(
+        self, X_source, X_target, y_source, n_invariant_components
+    ):
         """Weight optimization"""
         try:
             import torch
         except ImportError:
             raise ImportError(
-                "ConditionalTransferableComponentsAdapter requires pytorch to be installed."
+                "ConditionalTransferableComponentsAdapter \
+                requires pytorch to be installed."
             )
+
         n_s, n_t = X_source.shape[0], X_target.shape[0]
+        D = X_source.shape[1]
+
+        classes = np.unique(y_source)
+        n_c = len(classes)  # Compute the cardinality of the classes
 
         # We estimate the parameters α, W , G, and H by minimizing J_ct
-         
+
         # check y is discrete or continuous
         self.discrete_ = _find_y_type(y_source) == Y_Type.DISCRETE
 
-        def compute_Beta_A_B(discrete, alpha, G, H):
-            if discrete:
-                classes = np.unique(y_source)
-                n_c = len(classes)
+        if not self.discrete_:
+            raise NotImplementedError("Only discrete labels are supported")
 
-                R = np.zeros((X_source.shape[0], len(classes)))
-                for i, c in enumerate(classes):
-                    R[:, i] = (n_s/n_c)*(y_source == c).astype(int)
+        def compute_Beta_A_R(alpha, G, H):
+            classes = torch.unique(y_source)
+            n_c = len(classes)
 
-                Beta = R*alpha
-                A = (R@G).T
-                B = (R@H).T
-            else:
-            #TODO
-                pass
+            R_dis = torch.zeros((n_s, n_c), dtype=torch.float64)
+            for i, c in enumerate(classes):
+                R_dis[:, i] = (n_s / n_c) * (y_source == c).float()
 
-            return Beta, A, B
+            # To float64
+            # R_dis = R_dis.double()
 
-        
-        def func(alpha, W, G, H):
-            Beta, A, B = compute_Beta_A_B(self.discrete_, alpha, G, H)
-            X_ct = A * (W.T @ X_source) + B
+            Beta = (R_dis @ alpha).reshape(-1, 1)
+            A = (R_dis @ G).t()
+            B = (R_dis @ H).t()
 
-            K_s = pairwise_kernels(X_ct, metric="rbf", gamma=self.gamma)
-            K_t = pairwise_kernels(W.T @ X_target, metric="rbf", gamma=self.gamma)
-            K_t_s = pairwise_kernels(W.T@X_target, X_ct, metric="rbf", gamma=self.gamma)
+            return Beta, A, B, R_dis
 
-            L = pairwise_kernels(y_source, metric="rbf", gamma=self.gamma)
+        def func_np(alpha, W, G, H):
+            J_ct_con = func_torch(alpha, W, G, H)
+            J_ct_con = J_ct_con.detach().numpy()
+            return J_ct_con
 
-            J_ct = ((1/n_s**2)*Beta.T @ K_s @ Beta -
-                (2/n_s*n_t)*np.ones((n_s+n_t)).T @ K_t_s @ Beta +
-                (1/n_t**2)*np.ones((n_t)).T @ K_t @ np.ones((n_t))
+        def rbf_kernel(X, Y, gamma):
+            """Compute the RBF kernel matrix between X and Y."""
+            pairwise_distances = torch.cdist(X, Y, p=2)  # Euclidean distances
+            kernel_matrix = torch.exp(-gamma * pairwise_distances.pow(2))
+            return kernel_matrix
+
+        def func_torch(alpha, W, G, H):
+            Beta, A, B, R_dis = compute_Beta_A_R(alpha, G, H)
+
+            X_ct = A * (W.t() @ X_source.t()) + B
+
+            K_t = rbf_kernel(
+                (W.t() @ X_target.t()).t(), (W.t() @ X_target.t()).t(), self.gamma
+            )
+            K_tilde_s = rbf_kernel(X_ct.t(), X_ct.t(), self.gamma)
+            K_tilde_t_s = rbf_kernel((W.t() @ X_target.t()).t(), X_ct.t(), self.gamma)
+            L = rbf_kernel(y_source.view(-1, 1), y_source.view(-1, 1), self.gamma)
+
+            J_ct = (
+                (1 / n_s**2) * Beta.t() @ K_tilde_s @ Beta
+                - (2 / n_s * n_t)
+                * torch.ones((n_t, 1), dtype=torch.float64).t()
+                @ K_tilde_t_s
+                @ Beta
+                + (1 / n_t**2)
+                * torch.ones((n_t, 1), dtype=torch.float64).t()
+                @ K_t
+                @ torch.ones((n_t, 1), dtype=torch.float64)
             )
 
-            Jreg = ((self.lmbd_s/n_s) * np.linalg.norm(A - np.np.ones((d, n_s)), ord=2) +
-                (self.lmbd_l/n_s) * np.linalg.norm(B, ord=2)
-            )
+            Jreg = (self.lmbd_s / n_s) * torch.norm(
+                A - torch.ones((n_invariant_components, n_s), dtype=torch.float64), p=2
+            ) + (self.lmbd_l / n_s) * torch.norm(B, p=2)
 
-            J_ct_con = J_ct + self.lmbd * np.trace(L@np.linalg.inv(K_s + n_s*self.eps*np.eye(n_s))) + Jreg
+            J_ct_con = (
+                J_ct
+                + self.lmbd
+                * self.eps
+                * torch.trace(
+                    L
+                    @ torch.inverse(
+                        K_tilde_s + n_s * self.eps * torch.eye(n_s, dtype=torch.float64)
+                    )
+                )
+                + Jreg
+            )
 
             return J_ct_con
 
         #####
-        alpha = torch.ones(n_s, dtype=torch.float64, requires_grad=True)
-        W = torch.ones(d, n_s, dtype=torch.float64, requires_grad=True)
-        G = torch.ones((n_s, n_s), dtype=torch.float64, requires_grad=True)
-        H = torch.zeros((n_t, n_s), dtype=torch.float64, requires_grad=True)
+        X_source = torch.tensor(X_source, dtype=torch.float64)
+        X_target = torch.tensor(X_target, dtype=torch.float64)
+        y_source = torch.tensor(y_source, dtype=torch.float64)
 
-        #TODO: Use the torch_minimize function from PR # 103 and adapt it
-        # to accept multiple variables
+        alpha = torch.ones(n_c, dtype=torch.float64)
+        W = torch.ones((D, n_invariant_components), dtype=torch.float64)
+        G = torch.ones((n_c, n_invariant_components), dtype=torch.float64)
+        H = torch.zeros((n_c, n_invariant_components), dtype=torch.float64)
 
-        #TODO: Add constraints on alpha, W, G, H
+        Beta, A, B, R_dis = compute_Beta_A_R(alpha, G, H)
+
+        # TODO: Add constraints on alpha, W, G, H
         for i in range(self.max_iter):
             if i % 3 == 0:
                 # For α, we use quadratic programming (QP) to minimize
                 # Jˆct w.r.t. α under constraint (11)
-                #TODO: Switch to qp_solver here
-                alpha, _ = torch_minimize(func, alpha, args=(G, H, W), tol=self.tol, max_iter=1)
+                # Define constraints
+                alpha_constraints = (
+                    {"type": "ineq", "fun": (lambda x: -(R_dis.detach().cpu() @ x))},
+                    {"type": "eq", "fun": (lambda x: np.sum(x) - 1)},
+                )
+
+                result = minimize(
+                    func_np,
+                    x0=alpha,
+                    args=(W, G, H),
+                    method="SLSQP",
+                    constraints=alpha_constraints,
+                    options={"maxiter": 1},
+                )
+
+                alpha = result.x
+                alpha = torch.tensor(alpha, dtype=torch.float64)
             elif i % 3 == 1:
-                W, _ = torch_minimize(func, W, args=(alpha, G, H) tol=self.tol, max_iter=1)
+                # Define constraint function for Grassmann manifold: W^TW = I_d
+                # def grassmann_constraint_function(W):
+                #     return np.dot(W.T, W) - np.eye(n_invariant_components)
+
+                # grassmann_constraint = {
+                #     "type": "eq",
+                #     "fun": grassmann_constraint_function,
+                # }
+
+                (_, W, _, _), _ = torch_minimize(
+                    func_torch, (alpha, W, G, H), tol=self.tol, max_iter=1
+                )
+                W = torch.tensor(W, dtype=torch.float64)
             else:
-                (G, H), _ = torch_minimize(func, (G, H), args=(alpha, W), tol=self.tol, max_iter=1)
+                (_, _, G, H), _ = torch_minimize(
+                    func_torch, (alpha, W, G, H), tol=self.tol, max_iter=1
+                )
+                G = torch.tensor(G, dtype=torch.float64)
+                H = torch.tensor(H, dtype=torch.float64)
 
         return alpha, W, G, H
 
@@ -755,50 +1159,15 @@ class ConditionalTransferableComponentsAdapter(BaseAdapter):
         self.X_source_ = X_source
 
         self.alpha_, self.W_, self.G_, self.H_ = self._mapping_optimization(
-            X_source, X_target, y_source)
-    
-    def adapt(self, X, y=None, sample_domain=None, **kwargs):
-        X, sample_domain = check_X_domain(
-            X,
-            sample_domain
+            X_source,
+            X_target,
+            y_source,
+            n_invariant_components=self.n_invariant_components,
         )
 
-        n_s = X_source.shape[0]
+    def fit_transform(self, X, y=None, sample_domain=None, **kwargs):
+        self.fit(X, y, sample_domain)
+        return self.adapt(X, y, sample_domain)
 
-        source_idx = extract_source_indices(sample_domain)
-        X_source, X_target = X[source_idx], X[~source_idx]
-
-        if source_idx.sum() > 0:
-            if np.array_equal(self.X_source_, X[source_idx]):
-                W, G, H = self.W_, self.G_, self.H_
-            else:
-                if self.discrete_:
-                    # recompute the mapping
-                    X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
-                    source_idx = extract_source_indices(sample_domain)
-                    y_source = y[source_idx]
-                    classes = self.classes_
-                    n_c = len(classes)
-                    R = np.zeros((X_source.shape[0], len(classes)))
-                    for i, c in enumerate(classes):
-                        R[:, i] = (y_source == c).astype(int)
-
-                    W = R @ self.W_
-                    A = (n_s/n_c)*(R@self.G_).T
-                    B = (n_s/n_c)*(R@self.H_).T
-                else:
-                    # assign the nearest neighbor's mapping to the source samples
-                    C = pairwise_distances(X[source_idx], self.X_source_)
-                    idx = np.argmin(C, axis=1)
-
-                    W = C[idx] @ self.W_[idx]
-                    A = (n_s/n_c)*(C[idx]@self.G_[idx]).T
-                    B = (n_s/n_c)*(C[idx]@self.H_[idx]).T
-            X_source_adapt = A*(W.T @ X_source) + B
-            X_adapt, _ = source_target_merge(
-                X_source_adapt, X_target, sample_domain=sample_domain
-            )
-        else:
-            X_adapt = X
-
-        return X_adapt
+    def transform(self, X, y=None, sample_domain=None, allow_source=False, **params):
+        pass
