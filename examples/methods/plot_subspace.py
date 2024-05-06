@@ -9,6 +9,7 @@ to subspace shift
 # Author:   Ruben Bueno <ruben.bueno@polytechnique.edu>
 #           Antoine Collas <contact@antoinecollas.fr>
 #           Oleksii Kachaiev <kachayev@gmail.com>
+#           Yanis Lalou <yanis.lalou@polytechnique.edu>
 #
 # License: BSD 3-Clause
 # sphinx_gallery_thumbnail_number = 4
@@ -47,6 +48,10 @@ from skada.datasets import make_shifted_datasets
 #   * :ref:`Transfer Component Analysis<Illustration of the Transfer Component
 #     Analysis method>`
 #   * :ref:`Transfer Joint Matching<Illustration of the Transfer Joint Matching method>`
+#   * :ref:`Transfer Subspace Learning
+#     <Illustration of the Transfer Subspace Learning method>`
+#   * :ref:`Conditional Transferable Components
+#     <Illustration of the Conditional Transferable Components method>`
 
 
 base_classifier = SVC()
