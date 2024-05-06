@@ -7,10 +7,12 @@
 import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
+from sklearn.base import BaseEstimator
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
+from sklearn.utils.metaestimators import available_if
 
 from skada import (
     CORAL,
@@ -19,7 +21,10 @@ from skada import (
     Shared,
     SubspaceAlignmentAdapter,
     make_da_pipeline,
+    source_target_split,
 )
+from skada.base import BaseAdapter
+from skada.datasets import DomainAwareDataset
 
 
 def test_pipeline(da_dataset):
@@ -55,10 +60,11 @@ def test_pipeline(da_dataset):
 
 
 def test_per_domain_selector():
-    scaler = PerDomain(StandardScaler())
+    scaler = make_da_pipeline(PerDomain(StandardScaler()))
     X = np.array([[1.0, 0.0], [0.0, 8.0], [3.0, 0.0], [0.0, 0.0]])
     sample_domain = np.array([1, 2, 1, 2])
-    scaler.fit(X, None, sample_domain=sample_domain)
+    scaler.fit(X, y=None, sample_domain=sample_domain)
+    scaler.fit_transform(X, y=None, sample_domain=sample_domain)
     assert_array_equal(
         np.array([[-3.0, 1.0]]),
         scaler.transform(np.array([[-1.0, 1.0]]), sample_domain=np.array([1])),
@@ -171,3 +177,73 @@ def test_unwrap_nested_da_pipelines(da_dataset):
 
     # compare outputs
     assert np.allclose(y_pred, y_nested_pred)
+
+
+@pytest.mark.parametrize("_fit_transform", [(True,), (False,)])
+def test_allow_nd_x(_fit_transform):
+    class CutInputDim(BaseEstimator):
+        def fit(self, X, y=None, **params):
+            self.fitted_ = True
+
+        def transform(self, X):
+            return X[:, :, 0]
+
+        @available_if(lambda _: _fit_transform)
+        def fit_transform(self, X, y=None, **params):
+            self.fit(X, y=y, **params)
+            return self.transform(X)
+
+    pipe = make_da_pipeline(CutInputDim(), CORALAdapter())
+
+    rng = np.random.default_rng(42)
+    Xs = rng.standard_normal(size=(100, 22, 30))
+    Xt = rng.standard_normal(size=(100, 22, 30))
+    ys = rng.integers(0, 2, 100)
+    yt = rng.integers(0, 2, 100)
+
+    dataset = DomainAwareDataset()
+    dataset.add_domain(Xs, ys, "source")
+    dataset.add_domain(Xt, yt, "target")
+
+    X, y, sample_domain = dataset.pack_train(
+        as_sources=["source"], as_targets=["target"]
+    )
+    pipe.fit(X, y, sample_domain=sample_domain)
+
+
+def test_adaptation_output_propagate_labels(da_reg_dataset):
+    X, y, sample_domain = da_reg_dataset
+    _, X_target, _, target_domain = source_target_split(
+        X, sample_domain, sample_domain=sample_domain
+    )
+    output = {}
+
+    class FakeAdapter(BaseAdapter):
+        def fit_transform(self, X, y=None, sample_domain=None):
+            self.fitted_ = True
+            if y is not None:
+                assert not np.any(np.isnan(y)), "Expect unmasked labels"
+                y[::2] = np.nan
+            return X, y, dict()
+
+    class FakeEstimator(BaseEstimator):
+        def fit(self, X, y=None, **params):
+            output["fit_n_samples"] = X.shape[0]
+            self.fitted_ = True
+            return self
+
+        def predict(self, X):
+            return X
+
+    clf = make_da_pipeline(
+        StandardScaler(),
+        FakeAdapter(),
+        FakeEstimator(),
+    )
+
+    # check no errors are raised
+    clf.fit(X, y, sample_domain=sample_domain)
+    clf.predict(X_target, sample_domain=target_domain)
+
+    # output should contain only half of targets
+    assert output["fit_n_samples"] == X.shape[0] // 2

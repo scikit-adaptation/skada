@@ -231,7 +231,7 @@ def test_domain_balanced_sampler():
 
     dataset = Dataset(X_dict, y)
 
-    sampler = DomainBalancedSampler(dataset)
+    sampler = DomainBalancedSampler(dataset, 10)
     assert len(sampler) == 2 * np.sum(sample_domain > 0)
 
 

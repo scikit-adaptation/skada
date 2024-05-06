@@ -11,7 +11,7 @@
 SKADA is a library for domain adaptation (DA) with a scikit-learn and PyTorch/skorch
 compatible API with the following features:
 
-- DA estimators with a scikit-learn compatible API (fit, transform, predict).
+- DA estimators and transformers with a scikit-learn compatible API (fit, transform, predict).
 - PyTorch/skorch API for deep learning DA algorithms.
 - Classifier/Regressor and data Adapter DA algorithms compatible with scikit-learn pipelines.
 - Compatible with scikit-learn validation loops (cross_val_score, GridSearchCV, etc).
@@ -25,13 +25,13 @@ The following algorithms are currently implemented.
 - Sample reweighting methods (Gaussian [1], Discriminant [2], KLIEPReweight [3],
   DensityRatio [4], TarS [21], KMMReweight [23])
 - Sample mapping methods (CORAL [5], Optimal Transport DA OTDA [6], LinearMonge [7], LS-ConS [21])
-- Subspace methods (SubspaceAlignment [8], TCA [9])
-- Other methods (JDOT [10], DASVM [11])
+- Subspace methods (SubspaceAlignment [8], TCA [9], Transfer Subspace Learning [27])
+- Other methods (JDOT [10], DASVM [11], OT Label Propagation [28])
 
-Any methods that can be cast as an adaptation of the input data can be used as a
-scikit-learn transformer (Adapter) provides both a full Classifier/Regressor
-estimator and an `Adapter` that can be used in a DA pipeline with
-`make_da_pipeline`. Refer to the examples below and visit [the gallery](https://scikit-adaptation.github.io/auto_examples/index.html)for more details.
+Any methods that can be cast as an adaptation of the input data can be used in one of two ways:
+- a scikit-learn transformer (Adapter) which provides both a full Classifier/Regressor estimator
+ - or an `Adapter` that can be used in a DA pipeline with `make_da_pipeline`. 
+ Refer to the examples below and visit [the gallery](https://scikit-adaptation.github.io/auto_examples/index.html)for more details.
 
 ### Deep learning domain adaptation algorithms
 
@@ -52,7 +52,9 @@ estimator and an `Adapter` that can be used in a DA pipeline with
 ## Installation
 
 The library is not yet available on PyPI. You can install it from the source code.
-
+```python
+pip install git+https://github.com/scikit-adaptation/skada
+```
 
 ## Short examples
 
@@ -101,7 +103,7 @@ pipe = make_da_pipeline(GaussianReweightAdapter(),
                         LogisticRegression().set_fit_request(sample_weight=True))
 ```
 
-Finally SKADA can be used for estimating cross validation scores and parameter
+Finally SKADA can be used for cross validation scores estimation and hyperparameter
 selection :
 
 ```python
@@ -202,3 +204,7 @@ The library is distributed under the 3-Clause BSD license.
 [25] J. Huang, A. Gretton, K. Borgwardt, B. Schölkopf and A. J. Smola. Correcting sample selection bias by unlabeled data. In NIPS, 2007. (https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=07117994f0971b2fc2df95adb373c31c3d313442)
 
 [26] Long, M., Wang, J., Ding, G., Sun, J., and Yu, P. (2014). [Transfer joint matching for unsupervised domain adaptation. In IEEE Conference on Computer Vision and Pattern Recognition (CVPR), pages 1410–1417](https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=a279f53f386ac78345b67e13c1808880c718efdf)
+
+[27] S. Si, D. Tao and B. Geng. In IEEE Transactions on Knowledge and Data Engineering, (2010) [Bregman Divergence-Based Regularization for Transfer Subspace Learning](https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=4118b4fc7d61068b9b448fd499876d139baeec81)
+
+[28] Solomon, J., Rustamov, R., Guibas, L., & Butscher, A. (2014, January). [Wasserstein propagation for semi-supervised learning](https://proceedings.mlr.press/v32/solomon14.pdf). In International Conference on Machine Learning (pp. 306-314). PMLR.

@@ -20,8 +20,6 @@ from sklearn.utils import check_random_state
 from sklearn.utils.extmath import softmax
 from sklearn.utils.metadata_routing import _MetadataRequester, get_routing_for_object
 
-from skada.base import AdaptationOutput
-
 from ._utils import (
     _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
     _DEFAULT_MASKED_TARGET_REGRESSION_LABEL,
@@ -158,8 +156,6 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
 
     def _score(self, estimator, X, y, sample_domain=None, **params):
         scorer = check_scoring(estimator, self.scoring)
-        # xxx(okachaiev): similar should be done
-        # for the pipeline with re-weight adapters
         if not get_routing_for_object(scorer).consumes("score", ["sample_weight"]):
             raise ValueError(
                 "The estimator passed should accept 'sample_weight' parameter. "
@@ -234,7 +230,6 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
                 "The estimator passed should have a 'predict_proba' method. "
                 f"The estimator {estimator!r} does not."
             )
-
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
         source_idx = extract_source_indices(sample_domain)
         proba = estimator.predict_proba(
@@ -246,9 +241,7 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
             )
         else:
             log_proba = np.log(proba + 1e-7)
-
         entropy_per_sample = -proba * log_proba
-
         if self.reduction == "none":
             return self._sign * entropy_per_sample
         elif self.reduction == "sum":
@@ -419,16 +412,10 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         features_val = transformer(X_val)
         features_target = transformer(X[~source_idx])
 
-        # 3 cases:
-        # - features_train is an AdaptationOutput --> call get('X')
+        # 2 cases:
         # - features_train is a numpy array --> Do nothing
         # - features_train is a torch.Tensor --> call detach().numpy()
-        if isinstance(features_train, AdaptationOutput):
-            features_train = features_train.X
-            features_val = features_val.X
-            features_target = features_target.X
-
-        elif not isinstance(features_train, np.ndarray):
+        if not isinstance(features_train, np.ndarray):
             # The transformer comes from a deep model
             # and returns a torch.Tensor
             features_train = features_train.detach().numpy()
@@ -552,9 +539,15 @@ class CircularValidation(_BaseDomainAwareScorer):
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
         source_idx = extract_source_indices(sample_domain)
 
-        backward_estimator = deepcopy(estimator)
+        # TODO: Check if skorch works with deepcopy/clone
+        try:
+            backward_estimator = deepcopy(estimator)
+        except (TypeError, AttributeError):
+            backward_estimator = clone(estimator)
 
-        y_pred_target = estimator.predict(X[~source_idx])
+        y_pred_target = estimator.predict(
+            X[~source_idx], sample_domain=sample_domain[~source_idx]
+        )
 
         if len(np.unique(y_pred_target)) == 1:
             # Otherwise, we can get ValueError exceptions
@@ -591,7 +584,9 @@ class CircularValidation(_BaseDomainAwareScorer):
                 backward_y[source_idx] = _DEFAULT_MASKED_TARGET_REGRESSION_LABEL
 
             backward_estimator.fit(X, backward_y, sample_domain=backward_sample_domain)
-            y_pred_source = backward_estimator.predict(X[source_idx])
+            y_pred_source = backward_estimator.predict(
+                X[source_idx], sample_domain=backward_sample_domain[source_idx]
+            )
 
             if y_type == Y_Type.DISCRETE:
                 # We go back to the original labels
