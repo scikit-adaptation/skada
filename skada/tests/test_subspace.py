@@ -198,7 +198,10 @@ def test_instantiation_wrong_params(adapter, param_name, param_value):
 @pytest.mark.parametrize(
     "adapter",
     [
-        ConditionalTransferableComponentsAdapter(),
+        pytest.param(
+            ConditionalTransferableComponentsAdapter(),
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+        ),
     ],
 )
 def test_continuous_labels(adapter):
