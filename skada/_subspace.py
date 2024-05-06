@@ -3,6 +3,7 @@
 #         Oleksii Kachaiev <kachayev@gmail.com>
 #         Ruben Bueno <ruben.bueno@polytechnique.edu>
 #         Antoine Collas <contact@antoinecollas.fr>
+#         Yanis Lalou <yanis.lalou@polytechnique.edu>
 #
 # License: BSD 3-Clause
 
@@ -1201,7 +1202,9 @@ class ConditionalTransferableComponentsAdapter(BaseAdapter):
                 G = torch.tensor(G, dtype=torch.float64)
                 H = torch.tensor(H, dtype=torch.float64)
 
-        return alpha, W, G, H
+        Beta, A, B, R_dis = compute_Beta_A_R(alpha, G, H)
+
+        return alpha, W, G, H, Beta, A, B, R_dis
 
     def fit(self, X, y=None, sample_domain=None, **kwargs):
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
@@ -1210,16 +1213,106 @@ class ConditionalTransferableComponentsAdapter(BaseAdapter):
         )
         self.X_source_ = X_source
 
-        self.alpha_, self.W_, self.G_, self.H_ = self._mapping_optimization(
+        (
+            self.alpha_,
+            self.W_,
+            self.G_,
+            self.H_,
+            self.Beta_,
+            self.A_,
+            self.B_,
+            self.R_dis_,
+        ) = self._mapping_optimization(
             X_source,
             X_target,
             y_source,
             n_invariant_components=self.n_invariant_components,
         )
 
+        return self
+
     def fit_transform(self, X, y=None, sample_domain=None, **kwargs):
         self.fit(X, y, sample_domain)
-        return self.adapt(X, y, sample_domain)
+        return self.transform(X, y, sample_domain)
 
-    def transform(self, X, y=None, sample_domain=None, allow_source=False, **params):
-        pass
+    def transform(
+        self, X, y=None, *, sample_domain=None, allow_source=True, **params
+    ) -> np.ndarray:
+        X, sample_domain = check_X_domain(
+            X,
+            sample_domain,
+            allow_source=allow_source,
+            allow_multi_source=True,
+            allow_multi_target=True,
+        )
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+
+        if X_source.shape[0]:
+            X_source = np.dot(X_source, self.W_)
+            # X_source = self.A_ * (self.W_.t() @ X_source.t()) + self.B_
+        if X_target.shape[0]:
+            X_target = np.dot(X_target, self.W_)
+
+        X_adapt, _ = source_target_merge(
+            X_source, X_target, sample_domain=sample_domain
+        )
+        return X_adapt
+
+
+def ConditionalTransferableComponents(
+    base_estimator=None,
+    n_invariant_components=2,
+    gamma=1,
+    eps=1e-3,
+    lmbd=1e-3,
+    lmbd_s=1e-3,
+    lmbd_l=1e-4,
+    tol=1e-3,
+    max_iter=100,
+):
+    """Domain Adaptation Using Conditional Transferable Components.
+
+    Parameters
+    ----------
+    n_invariant_components : int, default=2
+        The number of invariant components to learn.
+    gamma : float, default=1
+        The gamma parameter of the RBF kernel.
+    eps : float, default=1e-3
+        The epsilon parameter of the RBF kernel.
+    lmbd : float, default=1e-3
+        The lambda parameter of the optimization problem.
+    lmbd_s : float, default=1e-3
+        The lambda_s parameter of the optimization problem.
+    lmbd_l : float, default=1e-4
+        The lambda_l parameter of the optimization problem.
+    tol : float, default=1e-3
+        The tolerance of the optimization problem.
+    max_iter : int, default=100
+        The maximal number of iteration before stopping when fitting.
+
+    Returns
+    -------
+    pipeline : Pipeline
+        A pipeline containing a ConditionalTransferableComponentsAdapter.
+
+    References
+    ----------
+    .. [28]  TODO
+    """
+    if base_estimator is None:
+        base_estimator = SVC()
+
+    return make_da_pipeline(
+        ConditionalTransferableComponentsAdapter(
+            gamma=gamma,
+            n_invariant_components=n_invariant_components,
+            eps=eps,
+            lmbd=lmbd,
+            lmbd_s=lmbd_s,
+            lmbd_l=lmbd_l,
+            tol=tol,
+            max_iter=max_iter,
+        ),
+        base_estimator,
+    )
