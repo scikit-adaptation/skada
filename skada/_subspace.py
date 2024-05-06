@@ -1028,6 +1028,53 @@ def TransferSubspaceLearning(
 
 
 class ConditionalTransferableComponentsAdapter(BaseAdapter):
+    """Conditional Transferable Components.
+
+    See [28]_ for details.
+
+    Parameters
+    ----------
+    n_components : int, default=None
+        The numbers of components to learn.
+        Should be less or equal to the number of samples
+        of the source and target data.
+
+    gamma : float, default=1.0
+        The gamma parameter of the RBF kernel.
+
+    eps : float, default=1e-3
+        The epsilon parameter of the RBF kernel.
+
+    lmbd : float, default=1e-3
+        The lambda parameter of the optimization problem.
+
+    lmbd_s : float, default=1e-3
+        The lambda_s parameter of the optimization problem.
+
+    lmbd_l : float, default=1e-4
+        The lambda_l parameter of the optimization problem.
+
+    tol : float, default=1e-3
+        The threshold for the differences between losses on two iteration
+        before the algorithm stops
+
+    max_iter : int, default=100
+        The maximal number of iteration before stopping when
+        fitting.
+
+    Attributes
+    ----------
+    W_ : array of shape (n_features, n_components)
+        The learned projection matrix.
+
+    References
+    ----------
+    .. [29]  Gong, M., Zhang, K., Liu, T., Tao,
+             D., Glymour, C., & Scholkopf, B. (2016).
+             Domain Adaptation with Conditional Transferable Components.
+             JMLR workshop and conference proceedings, 48, 2839-2848.
+    """
+
     def __init__(
         self,
         n_components=None,
@@ -1251,7 +1298,6 @@ class ConditionalTransferableComponentsAdapter(BaseAdapter):
 
         if X_source.shape[0]:
             X_source = np.dot(X_source, self.W_)
-            # X_source = self.A_ * (self.W_.t() @ X_source.t()) + self.B_
         if X_target.shape[0]:
             X_target = np.dot(X_target, self.W_)
 
@@ -1302,7 +1348,10 @@ def ConditionalTransferableComponents(
 
     References
     ----------
-    .. [28]  TODO
+    .. [29]  Gong, M., Zhang, K., Liu, T., Tao,
+             D., Glymour, C., & Scholkopf, B. (2016).
+             Domain Adaptation with Conditional Transferable Components.
+             JMLR workshop and conference proceedings, 48, 2839-2848.
     """
     if base_estimator is None:
         base_estimator = SVC()

@@ -379,13 +379,18 @@ plot_subspace_and_classifier(clf, "TransferSubspaceLearning")
 #     Illustration of the Conditional Transferable Components method
 # ------------------------------------------
 #
-# Conditional Transferable Components (CTC) is a method that aims to learn a subspace
-# TODO
+# The objective of Conditional Transferable Components (CTC) is to
+# learn domain-invariant representations by disentangling the data
+# representation into domain-specific and domain-invariant components.
+# By doing so, CTC enables the transfer of knowledge from the source domain
+# to the target domain while mitigating the effects of domain shift.
 #
-# See [28] for details:
+# See [29] for details:
 #
-# .. [28]  TODO
-#
+# .. [29]  Gong, M., Zhang, K., Liu, T., Tao,
+#          D., Glymour, C., & Scholkopf, B. (2016).
+#          Domain Adaptation with Conditional Transferable Components.
+#          JMLR workshop and conference proceedings, 48, 2839-2848.
 #
 
 clf = ConditionalTransferableComponents(n_components=1)
