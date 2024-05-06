@@ -21,6 +21,7 @@ from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.svm import SVC
 
 from skada import (
+    ConditionalTransferableComponents,
     SubspaceAlignment,
     TransferComponentAnalysis,
     TransferJointMatching,
@@ -373,6 +374,23 @@ plot_subspace_and_classifier(
 clf = TransferSubspaceLearning(base_classifier, n_components=1)
 clf.fit(X, y, sample_domain=sample_domain)
 plot_subspace_and_classifier(clf, "TransferSubspaceLearning")
+
+# %%
+#     Illustration of the Conditional Transferable Components method
+# ------------------------------------------
+#
+# Conditional Transferable Components (CTC) is a method that aims to learn a subspace
+# TODO
+#
+# See [28] for details:
+#
+# .. [28]  TODO
+#
+#
+
+clf = ConditionalTransferableComponents(n_components=1)
+clf.fit(X, y, sample_domain=sample_domain)
+plot_subspace_and_classifier(clf, "ConditionalTransferableComponents")
 
 
 # %%
