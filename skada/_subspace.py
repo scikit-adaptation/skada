@@ -1118,8 +1118,6 @@ class ConditionalTransferableComponentsAdapter(BaseAdapter):
         else:
             n_components = self.n_components
 
-        # We estimate the parameters α, W , G, and H by minimizing J_ct
-
         # check y is discrete or continuous
         self.discrete_ = _find_y_type(y_source) == Y_Type.DISCRETE
 
@@ -1133,9 +1131,6 @@ class ConditionalTransferableComponentsAdapter(BaseAdapter):
             R_dis = torch.zeros((n_s, n_c), dtype=torch.float64)
             for i, c in enumerate(classes):
                 R_dis[:, i] = (n_s / n_c) * (y_source == c).float()
-
-            # To float64
-            # R_dis = R_dis.double()
 
             Beta = (R_dis @ alpha).reshape(-1, 1)
             A = (R_dis @ G).t()
@@ -1209,7 +1204,6 @@ class ConditionalTransferableComponentsAdapter(BaseAdapter):
 
         Beta, A, B, R_dis = compute_Beta_A_R(alpha, G, H)
 
-        # TODO: Add constraints on alpha, W, G, H
         for i in range(self.max_iter):
             if i % 3 == 0:
                 # For α, we use quadratic programming (QP) to minimize
