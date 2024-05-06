@@ -1030,8 +1030,8 @@ def TransferSubspaceLearning(
 class ConditionalTransferableComponentsAdapter(BaseAdapter):
     def __init__(
         self,
-        gamma,
-        n_components=2,
+        n_components=None,
+        gamma=1.0,
         eps=1e-3,
         lmbd=1e-3,
         lmbd_s=1e-3,
@@ -1040,8 +1040,8 @@ class ConditionalTransferableComponentsAdapter(BaseAdapter):
         max_iter=100,
     ):
         super().__init__()
-        self.gamma = gamma
         self.n_components = n_components
+        self.gamma = gamma
         self.eps = eps
         self.lmbd = lmbd
         self.lmbd_s = lmbd_s
@@ -1050,7 +1050,7 @@ class ConditionalTransferableComponentsAdapter(BaseAdapter):
         self.max_iter = max_iter
         self.tol = tol
 
-    def _mapping_optimization(self, X_source, X_target, y_source, n_components):
+    def _mapping_optimization(self, X_source, X_target, y_source):
         """Weight optimization"""
         try:
             import torch
@@ -1065,6 +1065,11 @@ class ConditionalTransferableComponentsAdapter(BaseAdapter):
 
         classes = np.unique(y_source)
         n_c = len(classes)  # Compute the cardinality of the classes
+
+        if self.n_components is None:
+            n_components = min(X_source.shape[0], X_source.shape[1])
+        else:
+            n_components = self.n_components
 
         # We estimate the parameters α, W , G, and H by minimizing J_ct
 
@@ -1224,7 +1229,6 @@ class ConditionalTransferableComponentsAdapter(BaseAdapter):
             X_source,
             X_target,
             y_source,
-            n_components=self.n_components,
         )
 
         return self
@@ -1259,7 +1263,7 @@ class ConditionalTransferableComponentsAdapter(BaseAdapter):
 
 def ConditionalTransferableComponents(
     base_estimator=None,
-    n_components=2,
+    n_components=None,
     gamma=1,
     eps=1e-3,
     lmbd=1e-3,
@@ -1272,7 +1276,9 @@ def ConditionalTransferableComponents(
 
     Parameters
     ----------
-    n_components : int, default=2
+    base_estimator : object, default=None
+        Estimator used for fitting and prediction.
+    n_components : int, default=None
         The number of invariant components to learn.
     gamma : float, default=1
         The gamma parameter of the RBF kernel.
