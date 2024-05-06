@@ -1031,7 +1031,7 @@ class ConditionalTransferableComponentsAdapter(BaseAdapter):
     def __init__(
         self,
         gamma,
-        n_invariant_components=2,
+        n_components=2,
         eps=1e-3,
         lmbd=1e-3,
         lmbd_s=1e-3,
@@ -1041,7 +1041,7 @@ class ConditionalTransferableComponentsAdapter(BaseAdapter):
     ):
         super().__init__()
         self.gamma = gamma
-        self.n_invariant_components = n_invariant_components
+        self.n_components = n_components
         self.eps = eps
         self.lmbd = lmbd
         self.lmbd_s = lmbd_s
@@ -1050,9 +1050,7 @@ class ConditionalTransferableComponentsAdapter(BaseAdapter):
         self.max_iter = max_iter
         self.tol = tol
 
-    def _mapping_optimization(
-        self, X_source, X_target, y_source, n_invariant_components
-    ):
+    def _mapping_optimization(self, X_source, X_target, y_source, n_components):
         """Weight optimization"""
         try:
             import torch
@@ -1129,7 +1127,7 @@ class ConditionalTransferableComponentsAdapter(BaseAdapter):
             )
 
             Jreg = (self.lmbd_s / n_s) * torch.norm(
-                A - torch.ones((n_invariant_components, n_s), dtype=torch.float64), p=2
+                A - torch.ones((n_components, n_s), dtype=torch.float64), p=2
             ) + (self.lmbd_l / n_s) * torch.norm(B, p=2)
 
             J_ct_con = (
@@ -1153,9 +1151,9 @@ class ConditionalTransferableComponentsAdapter(BaseAdapter):
         y_source = torch.tensor(y_source, dtype=torch.float64)
 
         alpha = torch.ones(n_c, dtype=torch.float64)
-        W = torch.ones((D, n_invariant_components), dtype=torch.float64)
-        G = torch.ones((n_c, n_invariant_components), dtype=torch.float64)
-        H = torch.zeros((n_c, n_invariant_components), dtype=torch.float64)
+        W = torch.ones((D, n_components), dtype=torch.float64)
+        G = torch.ones((n_c, n_components), dtype=torch.float64)
+        H = torch.zeros((n_c, n_components), dtype=torch.float64)
 
         Beta, A, B, R_dis = compute_Beta_A_R(alpha, G, H)
 
@@ -1184,7 +1182,7 @@ class ConditionalTransferableComponentsAdapter(BaseAdapter):
             elif i % 3 == 1:
                 # Define constraint function for Grassmann manifold: W^TW = I_d
                 # def grassmann_constraint_function(W):
-                #     return np.dot(W.T, W) - np.eye(n_invariant_components)
+                #     return np.dot(W.T, W) - np.eye(n_components)
 
                 # grassmann_constraint = {
                 #     "type": "eq",
@@ -1226,14 +1224,14 @@ class ConditionalTransferableComponentsAdapter(BaseAdapter):
             X_source,
             X_target,
             y_source,
-            n_invariant_components=self.n_invariant_components,
+            n_components=self.n_components,
         )
 
         return self
 
     def fit_transform(self, X, y=None, sample_domain=None, **kwargs):
         self.fit(X, y, sample_domain)
-        return self.transform(X, y, sample_domain)
+        return self.transform(X, y, sample_domain=sample_domain)
 
     def transform(
         self, X, y=None, *, sample_domain=None, allow_source=True, **params
@@ -1261,7 +1259,7 @@ class ConditionalTransferableComponentsAdapter(BaseAdapter):
 
 def ConditionalTransferableComponents(
     base_estimator=None,
-    n_invariant_components=2,
+    n_components=2,
     gamma=1,
     eps=1e-3,
     lmbd=1e-3,
@@ -1274,7 +1272,7 @@ def ConditionalTransferableComponents(
 
     Parameters
     ----------
-    n_invariant_components : int, default=2
+    n_components : int, default=2
         The number of invariant components to learn.
     gamma : float, default=1
         The gamma parameter of the RBF kernel.
@@ -1306,7 +1304,7 @@ def ConditionalTransferableComponents(
     return make_da_pipeline(
         ConditionalTransferableComponentsAdapter(
             gamma=gamma,
-            n_invariant_components=n_invariant_components,
+            n_components=n_components,
             eps=eps,
             lmbd=lmbd,
             lmbd_s=lmbd_s,
