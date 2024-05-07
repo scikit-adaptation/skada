@@ -1192,6 +1192,18 @@ class ConditionalTransferableComponentsAdapter(BaseAdapter):
 
             return J_ct_con
 
+        def func_torch_constrained(alpha, W, G, H, lmdb):
+            # We use the same function as func_torch but with an additional
+            # regularization term
+            # Indeed we  should guarantee that W is on the Grassmann manifold
+            # Thus we need W^TW = I_d
+            J_ct_con = func_torch(alpha, W, G, H)
+
+            lagrangian = J_ct_con + lmdb * torch.norm(
+                W.T @ W - torch.eye(n_components), p=2
+            )
+            return lagrangian
+
         #####
         X_source = torch.tensor(X_source, dtype=torch.float64)
         X_target = torch.tensor(X_target, dtype=torch.float64)
@@ -1202,13 +1214,15 @@ class ConditionalTransferableComponentsAdapter(BaseAdapter):
         G = torch.ones((n_c, n_components), dtype=torch.float64)
         H = torch.zeros((n_c, n_components), dtype=torch.float64)
 
+        # Initialize the Lagrange multiplier for the constraint on W
+        lmbd = torch.tensor(1e-3, dtype=torch.float64)
+
         Beta, A, B, R_dis = compute_Beta_A_R(alpha, G, H)
 
         for i in range(self.max_iter):
             if i % 3 == 0:
-                # For α, we use quadratic programming (QP) to minimize
-                # Jˆct w.r.t. α under constraint (11)
-                # Define constraints
+                # For alpha, we use quadratic programming (QP) to minimize
+                # Jˆct w.r.t. alpha under constraints
                 alpha_constraints = (
                     {"type": "ineq", "fun": (lambda x: -(R_dis.detach().cpu() @ x))},
                     {"type": "eq", "fun": (lambda x: np.sum(x) - 1)},
@@ -1226,20 +1240,19 @@ class ConditionalTransferableComponentsAdapter(BaseAdapter):
                 alpha = result.x
                 alpha = torch.tensor(alpha, dtype=torch.float64)
             elif i % 3 == 1:
-                # Define constraint function for Grassmann manifold: W^TW = I_d
-                # def grassmann_constraint_function(W):
-                #     return np.dot(W.T, W) - np.eye(n_components)
-
-                # grassmann_constraint = {
-                #     "type": "eq",
-                #     "fun": grassmann_constraint_function,
-                # }
-
-                (_, W, _, _), _ = torch_minimize(
-                    func_torch, (alpha, W, G, H), tol=self.tol, max_iter=1
+                # For W, we use the gradient descent method to minimize
+                # Jˆct w.r.t. W under constraint
+                (_, W, _, _, lmbd), _ = torch_minimize(
+                    func_torch_constrained,
+                    (alpha, W, G, H, lmbd),
+                    tol=self.tol,
+                    max_iter=1,
                 )
                 W = torch.tensor(W, dtype=torch.float64)
+                lmbd = torch.tensor(lmbd, dtype=torch.float64)
             else:
+                # For G and H, we use the gradient descent method to minimize
+                # Jˆct w.r.t. G and H
                 (_, _, G, H), _ = torch_minimize(
                     func_torch, (alpha, W, G, H), tol=self.tol, max_iter=1
                 )
