@@ -913,23 +913,33 @@ class JCPOTLabelPropAdapter(BaseAdapter):
         self.max_iter = max_iter
         self.tol = tol
 
-        self.ot_adapter = ot.da.JCPOTTransport(
-            reg_e=reg, metric=metric, max_iter=max_iter, tol=tol, log=True
-        )
-
     def fit_transform(self, X, y, sample_domain=None, *, sample_weight=None):
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
 
-        sources, targets = per_domain_split(X, y, sample_domain)
+        sources, targets = per_domain_split(X, y, sample_domain=sample_domain)
 
         Xs = [X for X, y in sources.values()]
         ys = [y for X, y in sources.values()]
 
+        if len(ys) == 1:
+            Xs = Xs * 2
+            ys = ys * 2
+
         Xt = [X for X, y in targets.values()]
 
-        self.ot_adapter.fit(Xs=Xs, ys=ys, Xt=Xt)
+        Xt = np.concatenate(Xt, axis=0)
 
-        yh = self.ot_adapter.transform_labels(Xt)
+        self.ot_adapter_ = ot.da.JCPOTTransport(
+            reg_e=self.reg,
+            metric=self.metric,
+            max_iter=self.max_iter,
+            tol=self.tol,
+            log=True,
+        )
+
+        self.ot_adapter_.fit(Xs=Xs, ys=ys, Xt=Xt)
+
+        yh = self.ot_adapter_.transform_labels(Xt)
 
         self.yh_continuous_ = yh
 
