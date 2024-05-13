@@ -3,6 +3,7 @@
 #         Oleksii Kachaiev <kachayev@gmail.com>
 #         Bueno Ruben <ruben.bueno@polytechnique.edu>
 #         Antoine Collas <contact@antoinecollas.fr>
+#         Yanis Lalou <yanis.lalou@polytechnique.edu>
 #
 # License: BSD 3-Clause
 
@@ -636,7 +637,7 @@ def KLIEPReweight(
 class NearestNeighborReweightAdapter(BaseReweightAdapter):
     """Adapter based on re-weighting samples using a KNN,
 
-    See [22]_ for details.
+    See [24]_ for details.
 
     Parameters
     ----------
@@ -719,7 +720,7 @@ class NearestNeighborReweightAdapter(BaseReweightAdapter):
 
     References
     ----------
-    .. [22] Nearest neighbor-based importance weighting.
+    .. [24] Nearest neighbor-based importance weighting.
             In 2012 IEEE International Workshop on Machine
             Learning for Signal Processing, pages 1–6. IEEE.
     """
@@ -828,7 +829,7 @@ def NearestNeighborReweight(
     The last 7 parameters are the parameters from the KNN estimator that
     will be used to estimate the weights in the `adapt` method
 
-    See [22]_ for details.
+    See [24]_ for details.
 
     Parameters
     ----------
@@ -919,7 +920,7 @@ def NearestNeighborReweight(
 
     References
     ----------
-    .. [22] Nearest neighbor-based importance weighting.
+    .. [24] Nearest neighbor-based importance weighting.
             In 2012 IEEE International Workshop on Machine
             Learning for Signal Processing, pages 1–6. IEEE.
     """
