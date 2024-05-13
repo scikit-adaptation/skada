@@ -1094,7 +1094,6 @@ class ConditionalTransferableComponentsAdapter(BaseAdapter):
         self.lmbd_s = lmbd_s
         self.lmbd_l = lmbd_l
         self.max_iter = max_iter
-        self.max_iter = max_iter
         self.tol = tol
 
     def _mapping_optimization(self, X_source, X_target, y_source):
@@ -1284,7 +1283,6 @@ class ConditionalTransferableComponentsAdapter(BaseAdapter):
             X_target,
             y_source,
         )
-
         return self
 
     def fit_transform(self, X, y=None, sample_domain=None, **kwargs):
