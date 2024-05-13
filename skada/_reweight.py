@@ -661,6 +661,7 @@ class NearestNeighborReweightAdapter(BaseReweightAdapter):
 
     def __init__(
         self,
+        n_neighbors=1,
         weights="uniform",
         algorithm="auto",
         leaf_size=30,
@@ -680,7 +681,7 @@ class NearestNeighborReweightAdapter(BaseReweightAdapter):
         self.n_jobs = n_jobs
         self.laplace_smoothing = laplace_smoothing
         self.base_estimator = KNeighborsClassifier(
-            n_neighbors=1,
+            n_neighbors=n_neighbors,
             weights=self.weights,
             algorithm=self.algorithm,
             leaf_size=self.leaf_size,
@@ -746,7 +747,7 @@ class NearestNeighborReweightAdapter(BaseReweightAdapter):
 
 def NearestNeighborReweight(
     base_estimator=None,
-    laplace_smoothing=False,
+    n_neighbors=1,
     weights="uniform",
     algorithm="auto",
     leaf_size=30,
@@ -754,6 +755,7 @@ def NearestNeighborReweight(
     metric="minkowski",
     metric_params=None,
     n_jobs=None,
+    laplace_smoothing=False,
 ):
     """Density re-weighting pipeline adapter and estimator.
 
@@ -857,7 +859,7 @@ def NearestNeighborReweight(
 
     return make_da_pipeline(
         NearestNeighborReweightAdapter(
-            laplace_smoothing=laplace_smoothing,
+            n_neighbors=n_neighbors,
             weights=weights,
             algorithm=algorithm,
             leaf_size=leaf_size,
@@ -865,6 +867,7 @@ def NearestNeighborReweight(
             metric=metric,
             metric_params=metric_params,
             n_jobs=n_jobs,
+            laplace_smoothing=laplace_smoothing,
         ),
         base_estimator,
     )
