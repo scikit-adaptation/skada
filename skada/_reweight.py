@@ -672,6 +672,7 @@ class NearestNeighborReweightAdapter(BaseReweightAdapter):
         laplace_smoothing=False,
     ):
         super().__init__()
+        self.n_neighbors = n_neighbors
         self.weights = weights
         self.algorithm = algorithm
         self.leaf_size = leaf_size
@@ -681,7 +682,7 @@ class NearestNeighborReweightAdapter(BaseReweightAdapter):
         self.n_jobs = n_jobs
         self.laplace_smoothing = laplace_smoothing
         self.base_estimator = KNeighborsClassifier(
-            n_neighbors=n_neighbors,
+            n_neighbors=self.n_neighbors,
             weights=self.weights,
             algorithm=self.algorithm,
             leaf_size=self.leaf_size,
