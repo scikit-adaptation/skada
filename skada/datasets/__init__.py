@@ -1,6 +1,7 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Remi Flamary <remi.flamary@polytechnique.edu>
 #         Oleksii Kachaiev <kachayev@gmail.com>
+#         Yanis Lalou <yanis.lalou@polytechnique.edu>
 #
 # License: BSD 3-Clause
 
@@ -20,6 +21,16 @@ from ._office import (
     fetch_office31_decaf_all,
     fetch_office31_surf,
     fetch_office31_surf_all,
+)
+from ._amazon_review import (
+    AmazonReviewDomain,
+    fetch_amazon_review,
+    fetch_amazon_review_all,
+)
+from ._office_home import (
+    OfficeHomeDomain,
+    fetch_office_home,
+    fetch_office_home_all,
 )
 from ._samples_generator import (
     make_shifted_blobs,
@@ -44,4 +55,8 @@ __all__ = [
     'make_variable_frequency_dataset',
     'select_domain',
     'load_mnist_usps',
+    'fetch_amazon_review',
+    'fetch_amazon_review_all',
+    'fetch_office_home',
+    'fetch_office_home_all',
 ]

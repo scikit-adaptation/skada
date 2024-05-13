@@ -16,6 +16,7 @@ from sklearn.covariance import (
     shrunk_covariance,
 )
 from sklearn.preprocessing import StandardScaler
+from sklearn.utils import check_random_state
 from sklearn.utils.multiclass import type_of_target
 
 _logger = logging.getLogger("skada")
@@ -208,3 +209,15 @@ def _merge_domain_outputs(n_samples, domain_outputs, *, allow_containers=False):
         for idx, domain_output in domain_outputs.values():
             output[idx] = domain_output
     return output
+
+
+def _shuffle_arrays(*arrays, random_state=None):
+    """Function to shuffle multiple arrays in the same order."""
+    random_state = check_random_state(random_state)
+
+    indices = np.arange(arrays[0].shape[0])
+    random_state.shuffle(indices)
+    shuffled_arrays = []
+    for arr in arrays:
+        shuffled_arrays.append(arr[indices])
+    return tuple(shuffled_arrays)
