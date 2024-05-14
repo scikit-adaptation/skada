@@ -21,8 +21,6 @@ from sklearn.utils.extmath import softmax
 from sklearn.utils.metadata_routing import _MetadataRequester, get_routing_for_object
 
 from ._utils import (
-    _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
-    _DEFAULT_MASKED_TARGET_REGRESSION_LABEL,
     Y_Type,
     _find_y_type,
 )
@@ -564,24 +562,19 @@ class CircularValidation(_BaseDomainAwareScorer):
         else:
             y_type = _find_y_type(y[source_idx])
 
+            backward_y = y.copy()
+            backward_y[~source_idx] = y_pred_target
+
             if y_type == Y_Type.DISCRETE:
                 # We need to re-encode the target labels
                 # since some estimator like XGBoost
                 # only supports labels in [0, num_classes-1]
                 # and y_pred_target may not be in this range
                 le = LabelEncoder()
-                le.fit(y_pred_target)
-                y_pred_target = le.transform(y_pred_target)
+                le.fit(backward_y)
+                backward_y = le.transform(backward_y)
 
             backward_sample_domain = -sample_domain
-
-            backward_y = np.zeros_like(y)
-            backward_y[~source_idx] = y_pred_target
-
-            if y_type == Y_Type.DISCRETE:
-                backward_y[source_idx] = _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
-            else:
-                backward_y[source_idx] = _DEFAULT_MASKED_TARGET_REGRESSION_LABEL
 
             backward_estimator.fit(X, backward_y, sample_domain=backward_sample_domain)
             y_pred_source = backward_estimator.predict(
