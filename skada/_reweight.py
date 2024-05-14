@@ -3,10 +3,12 @@
 #         Oleksii Kachaiev <kachayev@gmail.com>
 #         Bueno Ruben <ruben.bueno@polytechnique.edu>
 #         Antoine Collas <contact@antoinecollas.fr>
+#         Yanis Lalou <yanis.lalou@polytechnique.edu>
 #
 # License: BSD 3-Clause
 
 import warnings
+from abc import abstractmethod
 
 import numpy as np
 import scipy.sparse as sp
@@ -21,7 +23,7 @@ from sklearn.utils.validation import check_is_fitted
 
 from ._pipeline import make_da_pipeline
 from ._utils import Y_Type, _estimate_covariance, _find_y_type
-from .base import AdaptationOutput, BaseAdapter, clone
+from .base import BaseAdapter, clone
 from .utils import (
     check_X_domain,
     check_X_y_domain,
@@ -33,7 +35,48 @@ from .utils import (
 EPS = np.finfo(float).eps
 
 
-class DensityReweightAdapter(BaseAdapter):
+class BaseReweightAdapter(BaseAdapter):
+    """Base class for the adapter that yields weights for samples.
+
+    Specific implementation should provide `fit` and `compute_weights`.
+    The base class takes care of the rest of machinery to make it fully
+    compatible with DA pipelines.
+    """
+
+    @abstractmethod
+    def fit(self, X, y=None, *, sample_domain=None):
+        pass
+
+    @abstractmethod
+    def compute_weights(self, X, y=None, *, sample_domain=None, **params) -> np.ndarray:
+        pass
+
+    def fit_transform(self, X, y=None, *, sample_domain=None, **params):
+        """Predict adaptation weights and returns them as an additional
+        parameters for the pipeline to propagate them into the estimator.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        X : array-like, shape (n_samples, n_components)
+            The data (same as X).
+        sample_weight : array-like, shape (n_samples,)
+            The weights of the samples.
+        """
+        self.fit(X, y=y, sample_domain=sample_domain, **params)
+        weights = self.compute_weights(X, y=y, sample_domain=sample_domain, **params)
+        return X, dict(sample_weight=weights)
+
+
+class DensityReweightAdapter(BaseReweightAdapter):
     """Adapter based on re-weighting samples using density estimation.
 
     Parameters
@@ -54,7 +97,7 @@ class DensityReweightAdapter(BaseAdapter):
         super().__init__()
         self.weight_estimator = weight_estimator or KernelDensity()
 
-    def fit(self, X, y=None, sample_domain=None):
+    def fit(self, X, y=None, *, sample_domain=None):
         """Fit adaptation parameters.
 
         Parameters
@@ -82,45 +125,18 @@ class DensityReweightAdapter(BaseAdapter):
         self.weight_estimator_target_ = target_estimator
         return self
 
-    def adapt(self, X, y=None, sample_domain=None):
-        """Predict adaptation (weights, sample or labels).
-
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            The source data.
-        y : array-like, shape (n_samples,)
-            The source labels.
-        sample_domain : array-like, shape (n_samples,)
-            The domain labels (same as sample_domain).
-
-        Returns
-        -------
-        output : :class:`skada.base.AdaptationOutput`
-            Dictionary-like object, with the following attributes.
-
-            X : array-like, shape (n_samples, n_components)
-                The data (same as X).
-            sample_weight : array-like, shape (n_samples,)
-                The weights of the samples.
-        """
+    def compute_weights(self, X, y=None, *, sample_domain=None, **params):
         check_is_fitted(self)
-        X, sample_domain = check_X_domain(X, sample_domain)
+        X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
-
-        # xxx(okachaiev): this if/else statement is used in pretty
-        #                 much every adapter. move to the API?
-        if source_idx.sum() > 0:
-            (source_idx,) = np.where(source_idx)
-            ws = self.weight_estimator_source_.score_samples(X[source_idx])
-            wt = self.weight_estimator_target_.score_samples(X[source_idx])
-            source_weights = np.exp(wt - ws)
-            source_weights /= source_weights.mean()
-            weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
-            weights[source_idx] = source_weights
-        else:
-            weights = None
-        return AdaptationOutput(X, sample_weight=weights)
+        (source_idx,) = np.where(source_idx)
+        ws = self.weight_estimator_source_.score_samples(X[source_idx])
+        wt = self.weight_estimator_target_.score_samples(X[source_idx])
+        source_weights = np.exp(wt - ws)
+        source_weights /= source_weights.mean()
+        weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
+        weights[source_idx] = source_weights
+        return weights
 
 
 def DensityReweight(
@@ -151,7 +167,7 @@ def DensityReweight(
     )
 
 
-class GaussianReweightAdapter(BaseAdapter):
+class GaussianReweightAdapter(BaseReweightAdapter):
     """Gaussian approximation re-weighting method.
 
     See [1]_ for details.
@@ -188,7 +204,7 @@ class GaussianReweightAdapter(BaseAdapter):
         super().__init__()
         self.reg = reg
 
-    def fit(self, X, y=None, sample_domain=None):
+    def fit(self, X, y=None, *, sample_domain=None):
         """Fit adaptation parameters.
 
         Parameters
@@ -214,47 +230,21 @@ class GaussianReweightAdapter(BaseAdapter):
         self.cov_target_ = _estimate_covariance(X_target, shrinkage=self.reg)
         return self
 
-    def adapt(self, X, y=None, sample_domain=None):
-        """Predict adaptation (weights, sample or labels).
-
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            The source data.
-        y : array-like, shape (n_samples,)
-            The source labels.
-        sample_domain : array-like, shape (n_samples,)
-            The domain labels (same as sample_domain).
-
-        Returns
-        -------
-        output : :class:`skada.base.AdaptationOutput`
-            Dictionary-like object, with the following attributes.
-
-            X : array-like, shape (n_samples, n_components)
-                The data (same as X).
-            sample_weight : array-like, shape (n_samples,)
-                The weights of the samples.
-        """
+    def compute_weights(self, X, y=None, *, sample_domain=None, **params):
         check_is_fitted(self)
-        X, sample_domain = check_X_domain(X, sample_domain)
+        X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
-
-        # xxx(okachaiev): move this to API
-        if source_idx.sum() > 0:
-            (source_idx,) = np.where(source_idx)
-            gaussian_target = multivariate_normal.pdf(
-                X[source_idx], self.mean_target_, self.cov_target_
-            )
-            gaussian_source = multivariate_normal.pdf(
-                X[source_idx], self.mean_source_, self.cov_source_
-            )
-            source_weights = gaussian_target / gaussian_source
-            weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
-            weights[source_idx] = source_weights
-        else:
-            weights = None
-        return AdaptationOutput(X, sample_weight=weights)
+        (source_idx,) = np.where(source_idx)
+        gaussian_target = multivariate_normal.pdf(
+            X[source_idx], self.mean_target_, self.cov_target_
+        )
+        gaussian_source = multivariate_normal.pdf(
+            X[source_idx], self.mean_source_, self.cov_source_
+        )
+        source_weights = gaussian_target / gaussian_source
+        weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
+        weights[source_idx] = source_weights
+        return weights
 
 
 def GaussianReweight(
@@ -298,7 +288,7 @@ def GaussianReweight(
     )
 
 
-class DiscriminatorReweightAdapter(BaseAdapter):
+class DiscriminatorReweightAdapter(BaseReweightAdapter):
     """Gaussian approximation re-weighting method.
 
     See [1]_ for details.
@@ -352,44 +342,20 @@ class DiscriminatorReweightAdapter(BaseAdapter):
         self.domain_classifier_ = domain_classifier
         return self
 
-    def adapt(self, X, y=None, sample_domain=None, **kwargs):
-        """Predict adaptation (weights, sample or labels).
-
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            The source data.
-        y : array-like, shape (n_samples,)
-            The source labels.
-        sample_domain : array-like, shape (n_samples,)
-            The domain labels (same as sample_domain).
-
-        Returns
-        -------
-        output : :class:`skada.base.AdaptationOutput`
-            Dictionary-like object, with the following attributes.
-
-            X : array-like, shape (n_samples, n_components)
-                The data (same as X).
-            sample_weight : array-like, shape (n_samples,)
-                The weights of the samples.
-        """
+    def compute_weights(self, X, y=None, *, sample_domain=None, **params):
         check_is_fitted(self)
-        X, sample_domain = check_X_domain(X, sample_domain)
+        X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
-
-        # xxx(okachaiev): move this to API
-        if source_idx.sum() > 0:
-            (source_idx,) = np.where(source_idx)
-            probas = self.domain_classifier_.predict_proba(X[source_idx])[:, 1]
-            probas = np.clip(probas, EPS, 1.0)
-            source_weights = (1 - probas) / probas
-            source_weights /= source_weights.mean()
-            weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
-            weights[source_idx] = source_weights
-        else:
-            weights = None
-        return AdaptationOutput(X, sample_weight=weights)
+        # xxx(okachaiev): it seems to me that would work without np.where
+        # as we only use this array for indexing
+        (source_idx,) = np.where(source_idx)
+        probas = self.domain_classifier_.predict_proba(X[source_idx])[:, 1]
+        probas = np.clip(probas, EPS, 1.0)
+        source_weights = (1 - probas) / probas
+        source_weights /= source_weights.mean()
+        weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
+        weights[source_idx] = source_weights
+        return weights
 
 
 def DiscriminatorReweight(base_estimator=None, domain_classifier=None):
@@ -426,7 +392,7 @@ def DiscriminatorReweight(base_estimator=None, domain_classifier=None):
     )
 
 
-class KLIEPReweightAdapter(BaseAdapter):
+class KLIEPReweightAdapter(BaseReweightAdapter):
     """Kullback-Leibler Importance Estimation Procedure (KLIEPReweight).
 
     The idea of KLIEPReweight is to find an importance estimate w(x) such that
@@ -579,43 +545,18 @@ class KLIEPReweightAdapter(BaseAdapter):
 
         return best_gamma_
 
-    def adapt(self, X, y=None, sample_domain=None, **kwargs):
-        """Predict adaptation (weights, sample or labels).
-
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            The source data.
-        y : array-like, shape (n_samples,)
-            The source labels.
-        sample_domain : array-like, shape (n_samples,)
-            The domain labels (same as sample_domain).
-
-        Returns
-        -------
-        output : :class:`skada.base.AdaptationOutput`
-            Dictionary-like object, with the following attributes.
-
-            X : array-like, shape (n_samples, n_components)
-                The data (same as X).
-            sample_weight : array-like, shape (n_samples,)
-                The weights of the samples.
-        """
+    def compute_weights(self, X, y=None, *, sample_domain=None, **params):
         check_is_fitted(self)
-        X, sample_domain = check_X_domain(X, sample_domain)
+        X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
-
-        if source_idx.sum() > 0:
-            (source_idx,) = np.where(source_idx)
-            A = pairwise_kernels(
-                X[source_idx], self.centers_, metric="rbf", gamma=self.best_gamma_
-            )
-            source_weights = A @ self.alpha_
-            weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
-            weights[source_idx] = source_weights
-        else:
-            weights = None
-        return AdaptationOutput(X, sample_weight=weights)
+        (source_idx,) = np.where(source_idx)
+        A = pairwise_kernels(
+            X[source_idx], self.centers_, metric="rbf", gamma=self.best_gamma_
+        )
+        source_weights = A @ self.alpha_
+        weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
+        weights[source_idx] = source_weights
+        return weights
 
     def _auto_scale_gammas(self, gamma, X):
         if isinstance(gamma, str):
@@ -693,34 +634,100 @@ def KLIEPReweight(
     )
 
 
-class NearestNeighborReweightAdapter(BaseAdapter):
-    """Adapter based on re-weighting samples using a 1NN,
+class NearestNeighborReweightAdapter(BaseReweightAdapter):
+    """Adapter based on re-weighting samples using a KNN,
 
-    See [22]_ for details.
+    See [24]_ for details.
 
     Parameters
     ----------
-    base_estimator : estimator object, optional
-        The estimator to use to estimate the densities of source and target
-        observations. If None, a KNeighborsClassifier(n_neighbors=1) estimator
-        is used.
+    n_neighbors : int, default=1
+        Number of neighbors to use for the KNN
 
-    Attributes
-    ----------
-    weight_estimator_source_ : object
-        The estimator object fitted on the source data.
-    weight_estimator_target_ : object
-        The estimator object fitted on the target data.
+    laplace_smoothing : bool, default=False, optional
+        True if we want to use laplace smoothing, and
+        thus adding 1 to all our weights (to prevent some
+        of them to be 0)
+
+    weights : {'uniform', 'distance'}, callable or None, default='uniform'
+        Weight function used in prediction.  Possible values:
+
+        - 'uniform' : uniform weights.  All points in each neighborhood
+          are weighted equally.
+        - 'distance' : weight points by the inverse of their distance.
+          in this case, closer neighbors of a query point will have a
+          greater influence than neighbors which are further away.
+        - [callable] : a user-defined function which accepts an
+          array of distances, and returns an array of the same shape
+          containing the weights.
+
+        Refer to the example entitled
+        :ref:`sphx_glr_auto_examples_neighbors_plot_classification.py`
+        showing the impact of the `weights` parameter on the decision
+        boundary.
+
+    algorithm : {'auto', 'ball_tree', 'kd_tree', 'brute'}, default='auto'
+        Algorithm used to compute the nearest neighbors:
+
+        - 'ball_tree' will use :class:`BallTree`
+        - 'kd_tree' will use :class:`KDTree`
+        - 'brute' will use a brute-force search.
+        - 'auto' will attempt to decide the most appropriate algorithm
+          based on the values passed to :meth:`fit` method.
+
+        Note: fitting on sparse input will override the setting of
+        this parameter, using brute force.
+
+    leaf_size : int, default=30
+        Leaf size passed to BallTree or KDTree.  This can affect the
+        speed of the construction and query, as well as the memory
+        required to store the tree.  The optimal value depends on the
+        nature of the problem.
+
+    p : float, default=2
+        Power parameter for the Minkowski metric. When p = 1, this is equivalent
+        to using manhattan_distance (l1), and euclidean_distance (l2) for p = 2.
+        For arbitrary p, minkowski_distance (l_p) is used. This parameter is expected
+        to be positive.
+
+    metric : str or callable, default='minkowski'
+        Metric to use for distance computation. Default is "minkowski", which
+        results in the standard Euclidean distance when p = 2. See the
+        documentation of `scipy.spatial.distance
+        <https://docs.scipy.org/doc/scipy/reference/spatial.distance.html>`_ and
+        the metrics listed in
+        :class:`~sklearn.metrics.pairwise.distance_metrics` for valid metric
+        values.
+
+        If metric is "precomputed", X is assumed to be a distance matrix and
+        must be square during fit. X may be a :term:`sparse graph`, in which
+        case only "nonzero" elements may be considered neighbors.
+
+        If metric is a callable function, it takes two arrays representing 1D
+        vectors as inputs and must return one value indicating the distance
+        between those vectors. This works for Scipy's metrics, but is less
+        efficient than passing the metric name as a string.
+
+    metric_params : dict, default=None
+        Additional keyword arguments for the metric function.
+
+    n_jobs : int, default=None
+        The number of parallel jobs to run for neighbors search.
+        ``None`` means 1 unless in a :obj:`joblib.parallel_backend` context.
+        ``-1`` means using all processors. See :term:`Glossary <n_jobs>`
+        for more details.
+        Doesn't affect :meth:`fit` method.
 
     References
     ----------
-    .. [22] Nearest neighbor-based importance weighting.
+    .. [24] Nearest neighbor-based importance weighting.
             In 2012 IEEE International Workshop on Machine
             Learning for Signal Processing, pages 1–6. IEEE.
     """
 
     def __init__(
         self,
+        n_neighbors=1,
         weights="uniform",
         algorithm="auto",
         leaf_size=30,
@@ -731,6 +738,7 @@ class NearestNeighborReweightAdapter(BaseAdapter):
         laplace_smoothing=False,
     ):
         super().__init__()
+        self.n_neighbors = n_neighbors
         self.weights = weights
         self.algorithm = algorithm
         self.leaf_size = leaf_size
@@ -740,7 +748,7 @@ class NearestNeighborReweightAdapter(BaseAdapter):
         self.n_jobs = n_jobs
         self.laplace_smoothing = laplace_smoothing
         self.base_estimator = KNeighborsClassifier(
-            n_neighbors=1,
+            n_neighbors=self.n_neighbors,
             weights=self.weights,
             algorithm=self.algorithm,
             leaf_size=self.leaf_size,
@@ -750,7 +758,7 @@ class NearestNeighborReweightAdapter(BaseAdapter):
             n_jobs=self.n_jobs,
         )
 
-    def fit(self, X, y=None, sample_domain=None):
+    def fit(self, X, y=None, *, sample_domain=None):
         """Fit adaptation parameters.
 
         Parameters
@@ -777,7 +785,7 @@ class NearestNeighborReweightAdapter(BaseAdapter):
 
         return self
 
-    def get_weights(self, Xs, Xt):
+    def _get_weights(self, Xs, Xt):
         indices_source = np.arange(Xs.shape[0])
         estimator = clone(self.base_estimator)
         estimator.fit(Xs, indices_source)
@@ -788,51 +796,25 @@ class NearestNeighborReweightAdapter(BaseAdapter):
         weights[unique] += counts
         return weights
 
-    def adapt(self, X, y=None, sample_domain=None):
-        """Predict adaptation (weights, sample or labels).
-
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            The source data.
-        y : array-like, shape (n_samples,)
-            The source labels.
-        sample_domain : array-like, shape (n_samples,)
-            The domain labels (same as sample_domain).
-
-        Returns
-        -------
-        output : :class:`skada.base.AdaptationOutput`
-            Dictionary-like object, with the following attributes.
-
-            X_t : array-like, shape (n_samples, n_components)
-                The data (same as X).
-            weights : array-like, shape (n_samples,)
-                The weights of the samples.
-        """
-        check_is_fitted(self)
-        X, sample_domain = check_X_domain(X, sample_domain)
+    def compute_weights(self, X, y=None, *, sample_domain=None, **params):
+        X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
-
-        # xxx(okachaiev): move this to API
-        if source_idx.sum() > 0:
-            (source_idx,) = np.where(source_idx)
-            indices_source = np.arange(X[source_idx].shape[0])
-            if np.array_equal(self.X_source_fit, X[source_idx]):
-                estimator = self.estimator_
-            else:
-                estimator = clone(self.base_estimator)
-                estimator.fit(X[source_idx], indices_source)
-            weights = np.ones(X.shape[0])
-            weights[source_idx] = self.get_weights(X[source_idx], X[~source_idx])
+        # xxx(okachaiev): do we need np.where here?
+        (source_idx,) = np.where(source_idx)
+        indices_source = np.arange(X[source_idx].shape[0])
+        if np.array_equal(self.X_source_fit, X[source_idx]):
+            estimator = self.estimator_
         else:
-            weights = None
-        return AdaptationOutput(X=X, sample_weight=weights)
+            estimator = clone(self.base_estimator)
+            estimator.fit(X[source_idx], indices_source)
+        weights = np.ones(X.shape[0])
+        weights[source_idx] = self._get_weights(X[source_idx], X[~source_idx])
+        return weights
 
 
 def NearestNeighborReweight(
     base_estimator=None,
-    laplace_smoothing=False,
+    n_neighbors=1,
     weights="uniform",
     algorithm="auto",
     leaf_size=30,
@@ -840,16 +822,20 @@ def NearestNeighborReweight(
     metric="minkowski",
     metric_params=None,
     n_jobs=None,
+    laplace_smoothing=False,
 ):
     """Density re-weighting pipeline adapter and estimator.
 
-    The last 7 parameters are the parameters from the 1NN estimator that
+    The last 7 parameters are the parameters from the KNN estimator that
     will be used to estimate the weights in the `adapt` method
 
-    See [22]_ for details.
+    See [24]_ for details.
 
     Parameters
     ----------
+    n_neighbors : int, default=1
+        Number of neighbors to use for the KNN
+
     base_estimator : sklearn estimator, default=None
         estimator used for fitting and prediction
 
@@ -934,7 +920,7 @@ def NearestNeighborReweight(
 
     References
     ----------
-    .. [22] Nearest neighbor-based importance weighting.
+    .. [24] Nearest neighbor-based importance weighting.
             In 2012 IEEE International Workshop on Machine
             Learning for Signal Processing, pages 1–6. IEEE.
     """
@@ -943,7 +929,7 @@ def NearestNeighborReweight(
 
     return make_da_pipeline(
         NearestNeighborReweightAdapter(
-            laplace_smoothing=laplace_smoothing,
+            n_neighbors=n_neighbors,
             weights=weights,
             algorithm=algorithm,
             leaf_size=leaf_size,
@@ -951,12 +937,13 @@ def NearestNeighborReweight(
             metric=metric,
             metric_params=metric_params,
             n_jobs=n_jobs,
+            laplace_smoothing=laplace_smoothing,
         ),
         base_estimator,
     )
 
 
-class KMMReweightAdapter(BaseAdapter):
+class KMMReweightAdapter(BaseReweightAdapter):
     """Kernel Mean Matching (KMMReweight).
 
     The idea of KMMReweight is to find an importance estimate w(x) such that
@@ -1036,7 +1023,7 @@ class KMMReweightAdapter(BaseAdapter):
                 " got '%s'" % (kernel_list, str(kernel))
             )
 
-    def fit(self, X, y=None, sample_domain=None, **kwargs):
+    def fit(self, X, y=None, *, sample_domain=None):
         """Fit adaptation parameters.
 
         Parameters
@@ -1108,54 +1095,28 @@ class KMMReweightAdapter(BaseAdapter):
         weights = np.array(weights).ravel()
         return weights
 
-    def adapt(self, X, y=None, sample_domain=None, **kwargs):
-        """Predict adaptation (weights, sample or labels).
-
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            The source data.
-        y : array-like, shape (n_samples,)
-            The source labels.
-        sample_domain : array-like, shape (n_samples,)
-            The domain labels (same as sample_domain).
-
-        Returns
-        -------
-        X_t : array-like, shape (n_samples, n_components)
-            The data (same as X).
-        y_t : array-like, shape (n_samples,)
-            The labels (same as y).
-        weights : array-like, shape (n_samples,)
-            The weights of the samples.
-        """
-        X, sample_domain = check_X_domain(X, sample_domain)
-
+    def compute_weights(self, X, y=None, *, sample_domain=None, **params):
+        check_is_fitted(self)
+        X, sample_domain = check_X_domain(X, sample_domain, allow_source=True)
         source_idx = extract_source_indices(sample_domain)
 
-        if source_idx.sum() > 0:
-            if (
-                np.array_equal(self.X_source_, X[source_idx])
-                and not self.smooth_weights
-            ):
-                source_weights = self.source_weights_
-            else:
-                K = pairwise_kernels(
-                    X[source_idx],
-                    self.X_source_,
-                    metric=self.kernel,
-                    filter_params=True,
-                    gamma=self.gamma,
-                    degree=self.degree,
-                    coef0=self.coef0,
-                )
-                source_weights = K.dot(self.source_weights_)
-            source_idx = np.where(source_idx)
-            weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
-            weights[source_idx] = source_weights
+        if np.array_equal(self.X_source_, X[source_idx]) and not self.smooth_weights:
+            source_weights = self.source_weights_
         else:
-            weights = None
-        return AdaptationOutput(X, sample_weight=weights)
+            K = pairwise_kernels(
+                X[source_idx],
+                self.X_source_,
+                metric=self.kernel,
+                filter_params=True,
+                gamma=self.gamma,
+                degree=self.degree,
+                coef0=self.coef0,
+            )
+            source_weights = K.dot(self.source_weights_)
+        source_idx = np.where(source_idx)
+        weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
+        weights[source_idx] = source_weights
+        return weights
 
 
 def KMMReweight(
@@ -1232,7 +1193,7 @@ def KMMReweight(
     )
 
 
-class MMDTarSReweightAdapter(BaseAdapter):
+class MMDTarSReweightAdapter(BaseReweightAdapter):
     """Target shift reweighting using MMD.
 
     The idea of MMDTarSReweight is to find an importance estimate beta(y) such that
@@ -1336,7 +1297,7 @@ class MMDTarSReweightAdapter(BaseAdapter):
 
         return weights, alpha
 
-    def fit(self, X, y, sample_domain=None, **kwargs):
+    def fit(self, X, y=None, *, sample_domain=None):
         """Fit adaptation parameters.
 
         Parameters
@@ -1353,7 +1314,7 @@ class MMDTarSReweightAdapter(BaseAdapter):
         self : object
             Returns self.
         """
-        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        X, sample_domain = check_X_domain(X, sample_domain)
         X_source, X_target, y_source, _ = source_target_split(
             X, y, sample_domain=sample_domain
         )
@@ -1365,58 +1326,34 @@ class MMDTarSReweightAdapter(BaseAdapter):
 
         return self
 
-    def adapt(self, X, y=None, sample_domain=None, **kwargs):
-        """Predict adaptation (weights, sample or labels).
-
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            The source data.
-        y : array-like, shape (n_samples,)
-            The source labels.
-        sample_domain : array-like, shape (n_samples,)
-            The domain labels (same as sample_domain).
-
-        Returns
-        -------
-        output : :class:`skada.base.AdaptationOutput`
-            Dictionary-like object, with the following attributes.
-
-            X : array-like, shape (n_samples, n_components)
-                The data (same as X).
-            sample_weight : array-like, shape (n_samples,)
-                The weights of the samples.
-        """
-        X, sample_domain = check_X_domain(X, sample_domain)
-
+    def compute_weights(self, X, y=None, *, sample_domain=None, **params):
+        check_is_fitted(self)
+        X, y, sample_domain = check_X_y_domain(
+            X, y, sample_domain, allow_label_masks=True
+        )
         source_idx = extract_source_indices(sample_domain)
 
-        if source_idx.sum() > 0:
-            if np.array_equal(self.X_source_, X[source_idx]):
-                source_weights = self.source_weights_
-            else:
-                if self.discrete_:
-                    # assign the classes weights to the source samples
-                    X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
-                    source_idx = extract_source_indices(sample_domain)
-                    y_source = y[source_idx]
-                    classes = self.classes_
-                    R = np.zeros((source_idx.sum(), len(classes)))
-                    for i, c in enumerate(classes):
-                        R[:, i] = (y_source == c).astype(int)
-                    source_weights = R @ self.alpha_
-                else:
-                    # assign the nearest neighbor's weights to the source samples
-                    C = pairwise_distances(X[source_idx], self.X_source_)
-                    idx = np.argmin(C, axis=1)
-                    source_weights = self.source_weights_[idx]
-            source_idx = np.where(source_idx)
-            weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
-            weights[source_idx] = source_weights
-            weights += 1e-13  # avoid negative weights
+        if np.array_equal(self.X_source_, X[source_idx]):
+            source_weights = self.source_weights_
         else:
-            weights = None
-        return AdaptationOutput(X, sample_weight=weights)
+            if self.discrete_:
+                # assign the classes weights to the source samples
+                y_source = y[source_idx]
+                classes = self.classes_
+                R = np.zeros((source_idx.sum(), len(classes)))
+                for i, c in enumerate(classes):
+                    R[:, i] = (y_source == c).astype(np.int32)
+                source_weights = R @ self.alpha_
+            else:
+                # assign the nearest neighbor's weights to the source samples
+                C = pairwise_distances(X[source_idx], self.X_source_)
+                idx = np.argmin(C, axis=1)
+                source_weights = self.source_weights_[idx]
+        source_idx = np.where(source_idx)
+        weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
+        weights[source_idx] = source_weights
+        weights += 1e-13  # avoid negative weights
+        return weights
 
 
 def MMDTarSReweight(

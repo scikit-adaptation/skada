@@ -7,6 +7,8 @@ to subspace shift
 """
 
 # Author:   Ruben Bueno <ruben.bueno@polytechnique.edu>
+#           Antoine Collas <contact@antoinecollas.fr>
+#           Oleksii Kachaiev <kachayev@gmail.com>
 #
 # License: BSD 3-Clause
 # sphinx_gallery_thumbnail_number = 4
@@ -22,6 +24,7 @@ from skada import (
     SubspaceAlignment,
     TransferComponentAnalysis,
     TransferJointMatching,
+    TransferSubspaceLearning,
     source_target_split,
 )
 from skada.datasets import make_shifted_datasets
@@ -58,14 +61,24 @@ print(f"Will be using {base_classifier} as base classifier", end="\n\n")
 
 RANDOM_SEED = 42
 
-X, y, sample_domain = make_shifted_datasets(
+dataset = make_shifted_datasets(
     n_samples_source=20,
     n_samples_target=20,
     noise=0.1,
     random_state=RANDOM_SEED,
     shift="subspace",
+    return_dataset=True,
 )
 
+X_train, y_train, sample_domain_train = dataset.pack_train(
+    as_sources=["s"],
+    as_targets=["t"],
+)
+X, y, sample_domain = dataset.pack(
+    as_sources=["s"],
+    as_targets=["t"],
+    train=False,
+)
 Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 
 # %%
@@ -154,15 +167,19 @@ def plot_subspace_and_classifier(
     )
     scores_dict[name] = score
     if name != "Without DA":
-        keys = list(clf.named_steps.keys())
-        subspace_estimator = clf.named_steps[keys[0]].base_estimator_
-        clf_on_subspace = clf.named_steps[keys[1]].base_estimator_
+        subspace_estimator = clf.steps[-2][1].get_estimator()
+        clf_on_subspace = clf.steps[-1][1].get_estimator()
 
         ax = axes[0]
 
         # Plot the source points:
-        Xs_subspace = subspace_estimator.adapt(Xs)
-        Xt_subspace = subspace_estimator.adapt(Xt)
+        Xs_subspace = subspace_estimator.transform(
+            Xs,
+            # mark all samples as sources
+            sample_domain=np.ones(Xs.shape[0]),
+            allow_source=True,
+        )
+        Xt_subspace = subspace_estimator.transform(Xt)
         ax.scatter(
             Xs_subspace,
             [1] * Xs.shape[0],
@@ -187,7 +204,7 @@ def plot_subspace_and_classifier(
         ax.set_title("Full dataset projected on the subspace", fontsize=12)
 
         ax = axes[1]
-        Xt_adapted = subspace_estimator.adapt(Xt)
+        Xt_adapted = subspace_estimator.transform(Xt)
         ax.scatter(
             Xt_adapted,
             [0] * Xt.shape[0],
@@ -296,7 +313,7 @@ plot_subspace_and_classifier(
 #        In IEEE International Conference on Computer Vision, 2013.
 
 clf = SubspaceAlignment(base_classifier, n_components=1)
-clf.fit(X, y, sample_domain=sample_domain)
+clf.fit(X_train, y_train, sample_domain=sample_domain_train)
 plot_subspace_and_classifier(clf, "Subspace Alignment")
 
 # %%
@@ -314,7 +331,7 @@ plot_subspace_and_classifier(clf, "Subspace Alignment")
 #        on Neural Networks, 2011.
 
 clf = TransferComponentAnalysis(base_classifier, n_components=1, mu=2)
-clf.fit(X, y, sample_domain=sample_domain)
+clf.fit(X_train, y_train, sample_domain=sample_domain_train)
 plot_subspace_and_classifier(clf, "TCA")
 
 # %%
@@ -332,11 +349,31 @@ plot_subspace_and_classifier(clf, "TCA")
 #         on Computer Vision and Pattern Recognition (CVPR), pages 1410–1417.
 
 clf = TransferJointMatching(base_classifier, tradeoff=0.1, n_components=1)
-clf.fit(X, y, sample_domain=sample_domain)
+clf.fit(X_train, y_train, sample_domain=sample_domain_train)
 plot_subspace_and_classifier(
     clf,
     "TransferJointMatching with rbf kernel",
 )
+
+# %%
+#     Illustration of the Transfer Subspace Learning method
+# ------------------------------------------
+#
+# Transfer Subspace Learning (TSL) is a method that aims to learn a subspace using
+# classical loss functions (e.g. PCA, Fisher LDA) but regularized so that
+# the source and target data have the same distribution once projected on the subspace.
+#
+# See [27] for details:
+#
+# .. [27]  [Si et al., 2010] Si, S., Tao, D. and Geng, B.
+#           Bregman Divergence-Based Regularization
+#           for Transfer Subspace Learning.
+#           In IEEE Transactions on Knowledge and Data Engineering.
+#           pages 929-942
+
+clf = TransferSubspaceLearning(base_classifier, n_components=1)
+clf.fit(X, y, sample_domain=sample_domain)
+plot_subspace_and_classifier(clf, "TransferSubspaceLearning")
 
 
 # %%
@@ -345,12 +382,10 @@ plot_subspace_and_classifier(
 
 
 def print_scores_as_table(scores):
-    keys = list(scores.keys())
-    lengths = [len(k) for k in keys]
-    max_lenght = max(lengths)
-    for k in keys:
-        print(f"{k}{' '*(max_lenght - len(k))} | ", end="")
-        print(f"{scores[k]*100}{' '*(6-len(str(scores[k]*100)))}%")
+    max_len = max(len(k) for k in scores.keys())
+    for k, v in scores.items():
+        print(f"{k}{' '*(max_len - len(k))} | ", end="")
+        print(f"{v*100}{' '*(6-len(str(v*100)))}%")
 
 
 print_scores_as_table(scores_dict)

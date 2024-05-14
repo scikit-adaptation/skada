@@ -33,6 +33,7 @@ def check_X_y_domain(
     allow_multi_target: bool = True,
     allow_auto_sample_domain: bool = True,
     allow_nd: bool = False,
+    allow_label_masks: bool = True,
 ):
     """
     Input validation for domain adaptation (DA) estimator.
@@ -59,6 +60,8 @@ def check_X_y_domain(
         Allow automatic generation of sample_domain if not provided.
     allow_nd : bool, optional (default=False)
         Allow X and y to be N-dimensional arrays.
+    allow_label_masks : bool, optional (default=True)
+        Allow NaNs in y.
 
     Returns
     -------
@@ -70,7 +73,7 @@ def check_X_y_domain(
         Array specifying the domain labels for each sample.
     """
     X = check_array(X, input_name='X', allow_nd=allow_nd)
-    y = check_array(y, force_all_finite=True, ensure_2d=False, input_name='y')
+    y = check_array(y, force_all_finite=not allow_label_masks, ensure_2d=False, input_name='y')
     check_consistent_length(X, y)
 
     if sample_domain is None and not allow_auto_sample_domain:
@@ -879,7 +882,7 @@ def frank_wolfe(jac, c, clb=1., cub=1., x0=None, max_iter=1000):
     return x
 
 
-def torch_minimize(loss, x0, tol=1e-6, max_iter=1000):
+def torch_minimize(loss, x0, tol=1e-6, max_iter=1000, verbose=False):
     r""" Solves unconstrained optimization problem using pytorch
 
     Solve the following optimization problem:
@@ -897,6 +900,8 @@ def torch_minimize(loss, x0, tol=1e-6, max_iter=1000):
         Tolerance on the gradient for termination.
     max_iter : int, optional
         Maximum number of iterations to perform.
+    verbose : bool, optional
+        If True, print the final gradient norm.
 
     Returns
     -------
@@ -908,7 +913,7 @@ def torch_minimize(loss, x0, tol=1e-6, max_iter=1000):
     try:
         import torch
     except ImportError:
-        raise ImportError("solve_torch requires pytorch to be installed")
+        raise ImportError("torch_minimize requires pytorch to be installed")
 
     if type(x0) not in (list, tuple):
         x0 = [x0]
@@ -930,6 +935,9 @@ def torch_minimize(loss, x0, tol=1e-6, max_iter=1000):
     optimizer.step(closure)
 
     grad_norm = torch.cat([x.grad.flatten() for x in x0]).abs().max()
+
+    if verbose:
+        print(f"Final gradient norm: {grad_norm:.2e}")
 
     if grad_norm > tol:
         warnings.warn(

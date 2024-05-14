@@ -11,6 +11,7 @@ from skada import make_da_pipeline
 from skada.deep import DeepCoral
 from skada.deep.modules import ToyModule2D
 from skada.metrics import (
+    CircularValidation,
     DeepEmbeddedValidation,
     PredictionEntropyScorer,
     SoftNeighborhoodDensity,
@@ -23,6 +24,7 @@ from skada.metrics import (
         DeepEmbeddedValidation(),
         PredictionEntropyScorer(),
         SoftNeighborhoodDensity(),
+        CircularValidation(),
     ],
 )
 def test_generic_scorer_on_deepmodel(scorer, da_dataset):

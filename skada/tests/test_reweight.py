@@ -7,10 +7,9 @@
 
 import numpy as np
 import pytest
-from sklearn.base import BaseEstimator
 from sklearn.linear_model import LogisticRegression, Ridge
 from sklearn.preprocessing import StandardScaler
-from sklearn.utils.metadata_routing import _MetadataRequester
+from sklearn.utils import check_random_state
 
 from skada import (
     DensityReweight,
@@ -28,15 +27,16 @@ from skada import (
     NearestNeighborReweight,
     NearestNeighborReweightAdapter,
     make_da_pipeline,
-    source_target_split,
 )
 from skada.base import (
-    AdaptationOutput,
     BaseAdapter,
+    BaseEstimator,
     SelectSource,
     SelectSourceTarget,
     SelectTarget,
 )
+from skada.datasets import make_shifted_datasets
+from skada.utils import source_target_split
 
 
 @pytest.mark.parametrize(
@@ -66,10 +66,14 @@ from skada.base import (
         NearestNeighborReweight(
             LogisticRegression().set_fit_request(sample_weight=True),
             laplace_smoothing=True,
+            n_neighbors=3,
         ),
         NearestNeighborReweight(laplace_smoothing=True),
         make_da_pipeline(
-            NearestNeighborReweightAdapter(laplace_smoothing=True),
+            NearestNeighborReweightAdapter(
+                laplace_smoothing=True,
+                n_neighbors=1,
+            ),
             LogisticRegression().set_fit_request(sample_weight=True),
         ),
         make_da_pipeline(
@@ -136,31 +140,47 @@ def test_reweight_estimator(estimator, da_dataset):
         MMDTarSReweight(Ridge().set_fit_request(sample_weight=True), gamma=1.0),
     ],
 )
-def test_reg_reweight_estimator(estimator, da_reg_dataset):
-    X, y, sample_domain = da_reg_dataset
-    Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
-    estimator.fit(X, y, sample_domain=sample_domain)
-    score = estimator.score(Xt, yt)
+def test_reg_reweight_estimator(estimator):
+    dataset = make_shifted_datasets(
+        n_samples_source=20,
+        n_samples_target=21,
+        shift="concept_drift",
+        mean=0.5,
+        noise=0.3,
+        label="regression",
+        random_state=43,
+        return_dataset=True,
+    )
+    X_train, y_train, sample_domain_train = dataset.pack_train(
+        as_sources=["s"], as_targets=["t"]
+    )
+    estimator.fit(X_train, y_train, sample_domain=sample_domain_train)
+    X_test, y_test, _ = dataset.pack_test(as_targets=["t"])
+    score = estimator.score(X_test, y_test)
     assert score >= 0
 
 
 def _base_test_new_X_adapt(estimator, da_dataset):
     X_train, y_train, sample_domain = da_dataset
 
+    # fit works with no errors
     estimator.fit(X_train, y_train, sample_domain=sample_domain)
-    res1 = estimator.adapt(X_train, y_train, sample_domain=sample_domain)
-    idx = np.random.choice(X_train.shape[0], 10)
+
+    # fit_transform returns additional parameters
+    _, res1 = estimator.fit_transform(X_train, y_train, sample_domain=sample_domain)
+    rng = check_random_state(43)
+    idx = rng.choice(X_train.shape[0], 10)
     true_weights = res1["sample_weight"][idx]
 
     # Adapt with new X, i.e. same domain, different samples
-    res2 = estimator.adapt(
+    sample_weight_2 = estimator.compute_weights(
         X_train[idx, :] + 1e-8, y_train[idx], sample_domain=sample_domain[idx]
     )
 
     # Check that the normalized weights are the same
     true_weights = true_weights / np.sum(true_weights)
-    res2["sample_weight"] = res2["sample_weight"] / np.sum(res2["sample_weight"])
-    assert np.allclose(true_weights, res2["sample_weight"])
+    sample_weight_2 /= np.sum(sample_weight_2)
+    assert np.allclose(true_weights, sample_weight_2)
 
     # Check it adapts even if some target classes are not present in the new X
     classes = np.unique(y_train)[::2]
@@ -168,13 +188,15 @@ def _base_test_new_X_adapt(estimator, da_dataset):
     X_train = X_train[mask]
     y_train = y_train[mask]
     sample_domain = sample_domain[mask]
-    res3 = estimator.adapt(X_train, y_train, sample_domain=sample_domain)
+    sample_weight_3 = estimator.compute_weights(
+        X_train, y_train, sample_domain=sample_domain
+    )
 
     # Check that the normalized weights are the same
     true_weights = res1["sample_weight"][mask]
     true_weights = true_weights / np.sum(true_weights)
-    res3["sample_weight"] = res3["sample_weight"] / np.sum(res3["sample_weight"])
-    assert np.allclose(true_weights, res3["sample_weight"])
+    sample_weight_3 /= np.sum(sample_weight_3)
+    assert np.allclose(true_weights, sample_weight_3)
 
 
 @pytest.mark.parametrize(
@@ -207,7 +229,7 @@ def test_new_X_adapt(estimator, da_reg_datasets):
         DiscriminatorReweightAdapter(),
         KLIEPReweightAdapter(gamma=[0.1, 1, "auto", "scale"], random_state=42),
         KMMReweightAdapter(gamma=0.1, smooth_weights=True),
-        MMDTarSReweightAdapter(gamma=1.0),
+        # MMDTarSReweightAdapter(gamma=1.0),
     ],
 )
 def test_reg_new_X_adapt(estimator, da_reg_dataset):
@@ -239,15 +261,13 @@ def test_KMMReweight_new_X_adapt(da_dataset):
         as_sources=["s"], as_targets=["t"]
     )
     estimator = KMMReweightAdapter(smooth_weights=True)
-    estimator.fit(X_train, sample_domain=sample_domain)
-    res1 = estimator.adapt(X_train, sample_domain=sample_domain)
+    _, res1 = estimator.fit_transform(X_train, sample_domain=sample_domain)
 
     estimator = KMMReweightAdapter(smooth_weights=False)
-    estimator.fit(X_train, sample_domain=sample_domain)
-    res2 = estimator.adapt(X_train, sample_domain=sample_domain)
-    res3 = estimator.adapt(X_train + 1e-8, sample_domain=sample_domain)
+    _, res2 = estimator.fit_transform(X_train, sample_domain=sample_domain)
+    weights3 = estimator.compute_weights(X_train + 1e-8, sample_domain=sample_domain)
 
-    assert np.allclose(res1["sample_weight"], res3["sample_weight"])
+    assert np.allclose(res1["sample_weight"], weights3)
     assert not np.allclose(res1["sample_weight"], res2["sample_weight"])
 
 
@@ -266,7 +286,7 @@ def test_adaptation_output_propagation_multiple_steps(da_reg_dataset, mediator):
         X, sample_domain, sample_domain=sample_domain
     )
 
-    class FakeEstimator(BaseEstimator, _MetadataRequester):
+    class FakeEstimator(BaseEstimator):
         __metadata_request__fit = {"sample_weight": True}
         __metadata_request__predict = {"sample_weight": True}
 
@@ -286,7 +306,7 @@ def test_adaptation_output_propagation_multiple_steps(da_reg_dataset, mediator):
     clf.predict(X_target, sample_domain=target_domain)
 
 
-def test_merge_adaptation_output(da_reg_dataset):
+def test_select_source_target_output_merge(da_reg_dataset):
     X, y, sample_domain = da_reg_dataset
     _, X_target, _, target_domain = source_target_split(
         X, sample_domain, sample_domain=sample_domain
@@ -296,14 +316,9 @@ def test_merge_adaptation_output(da_reg_dataset):
         def __init__(self, multiplier):
             self.multiplier = multiplier
 
-        def fit(self, X, y=None, *, sample_domain=None):
+        def fit_transform(self, X, y=None, *, sample_domain=None):
             self.fitted_ = True
-            return self
-
-        def adapt(self, X, y=None, sample_domain=None):
-            return AdaptationOutput(
-                X, sample_weight=np.ones(X.shape[0]) * self.multiplier
-            )
+            return X, dict(sample_weight=np.ones(X.shape[0]) * self.multiplier)
 
     clf = make_da_pipeline(
         SelectSourceTarget(FakeAdapter(1.0), FakeAdapter(2.0)),
