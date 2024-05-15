@@ -24,6 +24,7 @@ from ._utils import (
     _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
     _DEFAULT_MASKED_TARGET_REGRESSION_LABEL,
     Y_Type,
+    _check_y_masking,
     _find_y_type,
 )
 from .utils import check_X_y_domain, extract_source_indices, source_target_split
@@ -537,6 +538,15 @@ class CircularValidation(_BaseDomainAwareScorer):
             The computed score.
         """
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+
+        try:
+            _check_y_masking(y)
+        except ValueError:
+            raise ValueError(
+                "The labels should be masked before calling the scorer. "
+                "CircularValidation doesn't support semi-supervised DA"
+            )
+
         source_idx = extract_source_indices(sample_domain)
 
         # TODO: Check if skorch works with deepcopy/clone
