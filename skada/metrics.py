@@ -21,7 +21,10 @@ from sklearn.utils.extmath import softmax
 from sklearn.utils.metadata_routing import _MetadataRequester, get_routing_for_object
 
 from ._utils import (
+    _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
+    _DEFAULT_MASKED_TARGET_REGRESSION_LABEL,
     Y_Type,
+    _check_y_masking,
     _find_y_type,
 )
 from .utils import check_X_y_domain, extract_source_indices, source_target_split
@@ -535,6 +538,15 @@ class CircularValidation(_BaseDomainAwareScorer):
             The computed score.
         """
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+
+        try:
+            _check_y_masking(y)
+        except ValueError:
+            raise ValueError(
+                "The labels should be masked before calling the scorer. "
+                "CircularValidation doesn't support semi-supervised DA"
+            )
+
         source_idx = extract_source_indices(sample_domain)
 
         # TODO: Check if skorch works with deepcopy/clone
@@ -562,19 +574,24 @@ class CircularValidation(_BaseDomainAwareScorer):
         else:
             y_type = _find_y_type(y[source_idx])
 
-            backward_y = y.copy()
-            backward_y[~source_idx] = y_pred_target
-
             if y_type == Y_Type.DISCRETE:
                 # We need to re-encode the target labels
                 # since some estimator like XGBoost
                 # only supports labels in [0, num_classes-1]
                 # and y_pred_target may not be in this range
                 le = LabelEncoder()
-                le.fit(backward_y)
-                backward_y = le.transform(backward_y)
+                le.fit(y_pred_target)
+                y_pred_target = le.transform(y_pred_target)
 
             backward_sample_domain = -sample_domain
+
+            backward_y = np.zeros_like(y)
+            backward_y[~source_idx] = y_pred_target
+
+            if y_type == Y_Type.DISCRETE:
+                backward_y[source_idx] = _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
+            else:
+                backward_y[source_idx] = _DEFAULT_MASKED_TARGET_REGRESSION_LABEL
 
             backward_estimator.fit(X, backward_y, sample_domain=backward_sample_domain)
             y_pred_source = backward_estimator.predict(
