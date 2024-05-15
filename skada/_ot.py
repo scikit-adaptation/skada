@@ -722,7 +722,7 @@ class JDOTClassifier(DAEstimator):
 
         self.estimator_, self.lst_loss_ot_, self.lst_loss_tgt_labels_, self.sol_ = res
 
-    def predict(self, X, sample_domain=None, *, sample_weight=None):
+    def predict(self, X, sample_domain=None, *, sample_weight=None, allow_source=False):
         """Predict using the model"""
         check_is_fitted(self)
         if sample_domain is not None and np.any(sample_domain >= 0):
@@ -741,7 +741,9 @@ class JDOTClassifier(DAEstimator):
             )
 
     @available_if(_check_proba)
-    def predict_proba(self, X, sample_domain=None, *, sample_weight=None):
+    def predict_proba(
+        self, X, sample_domain=None, *, sample_weight=None, allow_source=False
+    ):
         """Predict using the model"""
         check_is_fitted(self)
         if sample_domain is not None and np.any(sample_domain >= 0):
