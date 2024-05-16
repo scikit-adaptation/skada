@@ -65,8 +65,10 @@ def fetch_office_home(
     It contains 15,500 images, with an average of around 70 images per
     class and a maximum of 99 images in a class.
 
-    For more information, see:
-    * https://arxiv.org/pdf/1706.07522v1
+    References
+    ----------
+    Venkateswara, J. Eusebio, S. Chakraborty, S. Panchanathan, Deep hashing network for
+    unsupervised domain adaptation, CVPR 2017
 
     Download it if necessary.
 
