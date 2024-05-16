@@ -23,6 +23,8 @@ from ._mapping import (
     MMDLSConSMapping,
     OTMappingAdapter,
     OTMapping,
+    MultiLinearMongeAlignmentAdapter,
+    MultiLinearMongeAlignment
 )
 from ._reweight import (
     DiscriminatorReweightAdapter,
@@ -56,10 +58,11 @@ from ._ot import (
     solve_jdot_classification,
     JDOTClassifier,
     OTLabelPropAdapter,
-    OTLabelProp)
+    OTLabelProp,
+    JCPOTLabelPropAdapter)
 from ._self_labeling import DASVMClassifier
 from ._pipeline import make_da_pipeline
-from .utils import source_target_split
+from .utils import source_target_split, per_domain_split
 
 
 # make sure that the usage of the library is not possible
@@ -89,9 +92,11 @@ __all__ = [
     "MMDLSConSMapping",
     "OTMappingAdapter",
     "OTMapping",
+    "MultiLinearMongeAlignmentAdapter",
+    "MultiLinearMongeAlignment",
     "OTLabelPropAdapter",
     "OTLabelProp",
-
+    "JCPOTLabelPropAdapter",
 
     "DiscriminatorReweightAdapter",
     "DiscriminatorReweight",
@@ -127,4 +132,5 @@ __all__ = [
     "make_da_pipeline",
 
     "source_target_split",
+    "per_domain_split",
 ]

@@ -15,6 +15,7 @@ from skada.utils import (
     extract_domains_indices,
     extract_source_indices,
     frank_wolfe,
+    per_domain_split,
     qp_solve,
     source_target_merge,
     source_target_split,
@@ -133,6 +134,34 @@ def test_source_target_split():
     assert X_target.shape == (2 * n_samples_target, 2), "X_target shape mismatch"
     assert weights_source is None, "weights_source should be None"
     assert weights_target is None, "weights_target should be None"
+
+
+def test_per_domain_split():
+    n_samples_source = 50
+    n_samples_target = 20
+    X, y, sample_domain = make_dataset_from_moons_distribution(
+        pos_source=0.1,
+        pos_target=0.9,
+        n_samples_source=n_samples_source,
+        n_samples_target=n_samples_target,
+        random_state=0,
+        return_X_y=True,
+    )
+
+    sources, targets = per_domain_split(X, sample_domain=sample_domain)
+
+    assert len(sources) == 1, "sources length mismatch"
+    assert len(targets) == 1, "targets length mismatch"
+    assert -2 in targets, "targets should contain -1"
+    assert 1 in sources, "sources should contain 1"
+
+    sample_domain_2 = np.arange(X.shape[0])
+    sample_domain_2[n_samples_source:] *= -1
+
+    sources, targets = per_domain_split(X, sample_domain=sample_domain_2)
+
+    assert len(sources) == n_samples_source, "sources length mismatch"
+    assert len(targets) == X.shape[0] - n_samples_source, "targets length mismatch"
 
 
 def test_check_X_y_allow_exceptions():
