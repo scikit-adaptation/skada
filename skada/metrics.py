@@ -351,10 +351,7 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
 
     def _no_reduc_log_loss(self, y, y_pred):
         return np.array(
-            [
-                self.cross_entropy_loss(y[i : i + 1], y_pred[i : i + 1])
-                for i in range(len(y))
-            ]
+            [self.cross_entropy_loss(y[i], y_pred[i]) for i in range(len(y))]
         )
 
     def _fit_adapt(self, features, features_target):
@@ -462,7 +459,7 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         -------
         - Cross-entropy loss.
         """
-        num_classes = y_pred.shape[1]
+        num_classes = y_pred.shape[0]
 
         # Convert integer labels to one-hot encoding
         y_true_one_hot = np.eye(num_classes)[y_true]
