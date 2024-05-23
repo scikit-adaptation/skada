@@ -442,7 +442,11 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         weights_m = np.concatenate((weighted_error, weights), axis=1)
         cov = np.cov(weights_m, rowvar=False)[0, 1]
         var_w = np.var(weights, ddof=1)
-        eta = -cov / var_w
+        if var_w == 0:
+            # If var_w == 0 then cov << 1, so we can set eta to 1
+            eta = 1
+        else:
+            eta = -cov / var_w
         return self._sign * (np.mean(weighted_error) + eta * np.mean(weights) - eta)
 
     def cross_entropy_loss(self, y_true, y_pred, epsilon=1e-15):
