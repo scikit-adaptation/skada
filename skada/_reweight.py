@@ -133,7 +133,10 @@ class DensityReweightAdapter(BaseReweightAdapter):
         ws = self.weight_estimator_source_.score_samples(X[source_idx])
         wt = self.weight_estimator_target_.score_samples(X[source_idx])
         source_weights = np.exp(wt - ws)
-        source_weights /= source_weights.mean()
+
+        if source_weights.mean() != 0:
+            source_weights /= source_weights.mean()
+
         weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
         weights[source_idx] = source_weights
         return weights
