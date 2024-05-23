@@ -171,7 +171,10 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
         ws = self.weight_estimator_source_.score_samples(X_source)
         wt = self.weight_estimator_target_.score_samples(X_source)
         weights = np.exp(wt - ws)
-        weights /= weights.sum()
+
+        if weights.sum() != 0:
+            weights /= weights.sum()
+
         return self._sign * scorer(
             estimator,
             X_source,
