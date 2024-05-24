@@ -310,7 +310,7 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
     def _prepare_routing(self, routing_request, metadata_container, params):
         if self._is_final or not self._is_transformer:
             try:
-                routed_params = routing_request._route_params(params=params)
+                routed_params = routing_request._route_params(params=params, parent=self, caller=self)
             except UnsetMetadataPassedError as e:
                 # check if every parameter given from the metadata container
                 # was accepted by the downstream (base) estimator
@@ -398,7 +398,11 @@ class Shared(BaseSelector):
         else:
             self._fit('fit', X_container, y, **params)
             X, y, method_params = X_container.merge_out(y, **params)
-            transform_params = self.routing_.transform._route_params(params=method_params)
+            transform_params = self.routing_.transform._route_params(
+                params=method_params,
+                parent=self,
+                caller=self,
+            )
             output = self.transform(X, **transform_params)
         return X_container.merge_in(output)
 
@@ -470,7 +474,11 @@ class PerDomain(BaseSelector):
         else:
             self._fit(X_container, y, **params)
             X, y, method_params = X_container.merge_out(y, **params)
-            transform_params = self.routing_.transform._route_params(params=method_params)
+            transform_params = self.routing_.transform._route_params(
+                params=method_params
+                parent=self,
+                caller=self,
+            )
             # the output of the transform call is already merged into a single ndarray
             output = self.transform(X, **transform_params)
         return X_container.merge_in(output)
@@ -691,7 +699,11 @@ class SelectSourceTarget(BaseSelector):
         else:
             self.fit(X_container, y, **params)
             X, y, method_params = X_container.merge_out(y, **params)
-            transform_params = self.routing_.transform._route_params(params=method_params)
+            transform_params = self.routing_.transform._route_params(
+                params=method_params
+                parent=self,
+                caller=self,
+            )
             output = self.transform(X, **transform_params)
         return X_container.merge_in(output)
 
