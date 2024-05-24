@@ -458,9 +458,9 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         """
         Compute cross-entropy loss for a single sample between the true label
         and the predicted probability estimates.
-        
+
         This loss allows for a changing number of classes over the validation process.
-        
+
         Parameters
         ----------
         - y_true: int
@@ -469,7 +469,7 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
             Predicted probabilities for each class.
         - epsilon: float, optional (default=1e-15)
             A small constant to avoid numerical instability.
-        
+
         Returns
         -------
         - float
