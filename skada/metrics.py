@@ -446,8 +446,8 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         cov = np.cov(weights_m, rowvar=False)[0, 1]
         var_w = np.var(weights, ddof=1)
         if var_w == 0:
-            # If var_w == 0 then cov << 1, so we can set eta to 1
-            eta = 1
+            # If var_w == 0, we set eta to 0
+            eta = 0
         else:
             eta = -cov / var_w
         return self._sign * (np.mean(weighted_error) + eta * np.mean(weights) - eta)
