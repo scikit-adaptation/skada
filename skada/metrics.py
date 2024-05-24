@@ -456,20 +456,24 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
 
     def cross_entropy_loss(self, y_true, y_pred, epsilon=1e-15):
         """
-        Compute cross-entropy loss between true labels
-        and predicted probability estimates.
-
-        This loss allows to have a changing num_classes over the validation.
-
+        Compute cross-entropy loss for a single sample between the true label
+        and the predicted probability estimates.
+        
+        This loss allows for a changing number of classes over the validation process.
+        
         Parameters
         ----------
-        - y_true: true labels (integer labels).
-        - y_pred: predicted probabilities
-        - epsilon: a small constant to avoid numerical instability (default is 1e-15).
-
+        - y_true: int
+            True label (integer label).
+        - y_pred: array-like
+            Predicted probabilities for each class.
+        - epsilon: float, optional (default=1e-15)
+            A small constant to avoid numerical instability.
+        
         Returns
         -------
-        - Cross-entropy loss.
+        - float
+            Cross-entropy loss for the single sample.
         """
         num_classes = y_pred.shape[0]
 
