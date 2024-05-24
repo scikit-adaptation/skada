@@ -174,6 +174,9 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
 
         if weights.sum() != 0:
             weights /= weights.sum()
+        else:
+            warnings.warn("All weights are zero. Using uniform weights.")
+            weights = np.ones_like(weights) / len(weights)
 
         return self._sign * scorer(
             estimator,
