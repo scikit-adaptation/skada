@@ -136,6 +136,9 @@ class DensityReweightAdapter(BaseReweightAdapter):
 
         if source_weights.mean() != 0:
             source_weights /= source_weights.mean()
+        else:
+            warnings.warn("All weights are zero. Using uniform weights.")
+            source_weights = np.ones_like(source_weights) / len(source_weights)
 
         weights = np.zeros(X.shape[0], dtype=source_weights.dtype)
         weights[source_idx] = source_weights
