@@ -475,7 +475,7 @@ class PerDomain(BaseSelector):
             self._fit(X_container, y, **params)
             X, y, method_params = X_container.merge_out(y, **params)
             transform_params = self.routing_.transform._route_params(
-                params=method_params
+                params=method_params,
                 parent=self,
                 caller=self,
             )
@@ -700,7 +700,7 @@ class SelectSourceTarget(BaseSelector):
             self.fit(X_container, y, **params)
             X, y, method_params = X_container.merge_out(y, **params)
             transform_params = self.routing_.transform._route_params(
-                params=method_params
+                params=method_params,
                 parent=self,
                 caller=self,
             )
