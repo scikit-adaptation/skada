@@ -64,7 +64,7 @@ from skada.datasets import DomainAwareDataset
         pytest.param(
             make_da_pipeline(
                 TransferSubspaceLearningAdapter(n_components=1),
-                KNeighborsClassifier(n_neighbors=1)
+                KNeighborsClassifier(n_neighbors=1),
             ),
             marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
         ),
