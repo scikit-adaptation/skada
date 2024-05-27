@@ -62,9 +62,10 @@ def fetch_amazon_review(
 
     Each features has 400 dimension.
 
-    Reference:
-        Marginalized denoising autoencoders for domain adaptation. ICML 2012.
-        Chen M, Xu Z, Weinberger K, et al.
+    References
+    ----------
+    J. McAuley, C. Targett, Q. Shi, A. Van Den Hangel, Image-based
+    recommendations on styles and substitutes, SIGIR 2015
 
     Download it if necessary.
 

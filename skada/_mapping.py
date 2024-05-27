@@ -889,7 +889,7 @@ class MMDLSConSMappingAdapter(BaseAdapter):
             if np.array_equal(self.X_source_, X[source_idx]):
                 W, B = self.W_, self.B_
             else:
-                if self.discrete_:
+                if self.discrete_ and y is not None:
                     # recompute the mapping
                     X, sample_domain = check_X_domain(X, sample_domain)
                     source_idx = extract_source_indices(sample_domain)
