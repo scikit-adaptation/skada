@@ -43,17 +43,20 @@ class Y_Type(Enum):
     DISCRETE = "discrete"
 
 
-def _estimate_covariance(X, shrinkage):
+def _estimate_covariance(X, shrinkage, assume_centered=False):
     if shrinkage is None:
-        s = empirical_covariance(X)
+        s = empirical_covariance(X, assume_centered=assume_centered)
     elif shrinkage == "auto":
-        sc = StandardScaler()  # standardize features
+        sc = StandardScaler(with_mean=not assume_centered)
         X = sc.fit_transform(X)
         s = ledoit_wolf(X)[0]
         # rescale
         s = sc.scale_[:, np.newaxis] * s * sc.scale_[np.newaxis, :]
     elif isinstance(shrinkage, Real):
-        s = shrunk_covariance(empirical_covariance(X), shrinkage)
+        s = shrunk_covariance(
+            empirical_covariance(X, assume_centered=assume_centered),
+            shrinkage=shrinkage
+        )
     return s
 
 
