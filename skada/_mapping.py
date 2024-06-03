@@ -571,9 +571,13 @@ class CORALAdapter(BaseAdapter):
           - None: no shrinkage).
           - 'auto': automatic shrinkage using the Ledoit-Wolf lemma.
           - float between 0 and 1: fixed shrinkage parameter.
+    assume_centered: bool, default=False
+        If True, data are not centered before computation.
 
     Attributes
     ----------
+    mean_source_: array, shape (n_features,)
+    mean_target_: array, shape (n_features,)
     cov_source_inv_sqrt_: array, shape (n_features, n_features)
         Inverse of the square root of covariance of the source data with regularization.
     cov_target_sqrt_: array, shape (n_features, n_features)
@@ -586,9 +590,10 @@ class CORALAdapter(BaseAdapter):
            In Advances in Computer Vision and Pattern Recognition, 2017.
     """
 
-    def __init__(self, reg="auto"):
+    def __init__(self, reg="auto", assume_centered=False):
         super().__init__()
         self.reg = reg
+        self.assume_centered = assume_centered
 
     def fit(self, X, y=None, sample_domain=None):
         """Fit adaptation parameters.
@@ -612,8 +617,14 @@ class CORALAdapter(BaseAdapter):
         )
         X_source, X_target = source_target_split(X, sample_domain=sample_domain)
 
-        cov_source_ = _estimate_covariance(X_source, shrinkage=self.reg)
-        cov_target_ = _estimate_covariance(X_target, shrinkage=self.reg)
+        self.mean_source_ = np.mean(X_source, axis=0)
+        self.mean_target_ = np.mean(X_target, axis=0)
+        cov_source_ = _estimate_covariance(
+            X_source, shrinkage=self.reg, assume_centered=self.assume_centered
+        )
+        cov_target_ = _estimate_covariance(
+            X_target, shrinkage=self.reg, assume_centered=self.assume_centered
+        )
         self.cov_source_inv_sqrt_ = _invsqrtm(cov_source_)
         self.cov_target_sqrt_ = _sqrtm(cov_target_)
         return self
@@ -648,15 +659,26 @@ class CORALAdapter(BaseAdapter):
             allow_multi_source=True,
             allow_multi_target=True,
         )
-        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+        X_source_adapt, X_target_adapt = source_target_split(
+            X, sample_domain=sample_domain
+        )
 
-        if X_source.shape[0] > 0:
-            X_source_adapt = np.dot(X_source, self.cov_source_inv_sqrt_)
+        # Adapt the source data
+        if X_source_adapt.shape[0] > 0:
+            # Center data
+            if not self.assume_centered:
+                X_source_adapt = X_source_adapt - self.mean_source_
+
+            # Whitening and coloring source data
+            X_source_adapt = np.dot(X_source_adapt, self.cov_source_inv_sqrt_)
             X_source_adapt = np.dot(X_source_adapt, self.cov_target_sqrt_)
-        else:
-            X_source_adapt = X_source
+
+        # Adapt the target data
+        if X_target_adapt.shape[0] > 0 and not self.assume_centered:
+            X_target_adapt = X_target_adapt - self.mean_target_
+
         X_adapt, _ = source_target_merge(
-            X_source_adapt, X_target, sample_domain=sample_domain
+            X_source_adapt, X_target_adapt, sample_domain=sample_domain
         )
         return X_adapt
 
@@ -664,6 +686,7 @@ class CORALAdapter(BaseAdapter):
 def CORAL(
     base_estimator=None,
     reg="auto",
+    assume_centered=False,
 ):
     """CORAL pipeline with adapter and estimator.
 
@@ -680,6 +703,8 @@ def CORAL(
           - None: no shrinkage).
           - 'auto': automatic shrinkage using the Ledoit-Wolf lemma.
           - float between 0 and 1: fixed shrinkage parameter.
+    assume_centered: bool, default=False
+        If True, data are not centered before computation.
 
     Returns
     -------
@@ -696,7 +721,7 @@ def CORAL(
         base_estimator = SVC(kernel="rbf")
 
     return make_da_pipeline(
-        CORALAdapter(reg=reg),
+        CORALAdapter(reg=reg, assume_centered=assume_centered),
         base_estimator,
     )
 
