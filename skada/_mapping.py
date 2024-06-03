@@ -576,8 +576,8 @@ class CORALAdapter(BaseAdapter):
 
     Attributes
     ----------
-    mean_source: array, shape (n_features,)
-    mean_target: array, shape (n_features,)
+    mean_source_: array, shape (n_features,)
+    mean_target_: array, shape (n_features,)
     cov_source_inv_sqrt_: array, shape (n_features, n_features)
         Inverse of the square root of covariance of the source data with regularization.
     cov_target_sqrt_: array, shape (n_features, n_features)
@@ -617,8 +617,8 @@ class CORALAdapter(BaseAdapter):
         )
         X_source, X_target = source_target_split(X, sample_domain=sample_domain)
 
-        self.mean_source = np.mean(X_source, axis=0)
-        self.mean_target = np.mean(X_target, axis=0)
+        self.mean_source_ = np.mean(X_source, axis=0)
+        self.mean_target_ = np.mean(X_target, axis=0)
         cov_source_ = _estimate_covariance(
             X_source, shrinkage=self.reg, assume_centered=self.assume_centered
         )
@@ -667,7 +667,7 @@ class CORALAdapter(BaseAdapter):
         if X_source_adapt.shape[0] > 0:
             # Center data
             if not self.assume_centered:
-                X_source_adapt = X_source_adapt - self.mean_source
+                X_source_adapt = X_source_adapt - self.mean_source_
 
             # Whitening and coloring source data
             X_source_adapt = np.dot(X_source_adapt, self.cov_source_inv_sqrt_)
@@ -675,7 +675,7 @@ class CORALAdapter(BaseAdapter):
 
         # Adapt the target data
         if X_target_adapt.shape[0] > 0 and not self.assume_centered:
-            X_target_adapt = X_target_adapt - self.mean_target
+            X_target_adapt = X_target_adapt - self.mean_target_
 
         X_adapt, _ = source_target_merge(
             X_source_adapt, X_target_adapt, sample_domain=sample_domain
