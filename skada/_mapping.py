@@ -616,14 +616,10 @@ class CORALAdapter(BaseAdapter):
         X_source, X_target = source_target_split(X, sample_domain=sample_domain)
 
         cov_source_ = _estimate_covariance(
-            X_source,
-            shrinkage=self.reg,
-            assume_centered=self.assume_centered
+            X_source, shrinkage=self.reg, assume_centered=self.assume_centered
         )
         cov_target_ = _estimate_covariance(
-            X_target,
-            shrinkage=self.reg,
-            assume_centered=self.assume_centered
+            X_target, shrinkage=self.reg, assume_centered=self.assume_centered
         )
         self.cov_source_inv_sqrt_ = _invsqrtm(cov_source_)
         self.cov_target_sqrt_ = _sqrtm(cov_target_)
@@ -659,7 +655,9 @@ class CORALAdapter(BaseAdapter):
             allow_multi_source=True,
             allow_multi_target=True,
         )
-        X_source_adapt, X_target_adapt = source_target_split(X, sample_domain=sample_domain)
+        X_source_adapt, X_target_adapt = source_target_split(
+            X, sample_domain=sample_domain
+        )
 
         # Adapt the source data
         if X_source_adapt.shape[0] > 0:

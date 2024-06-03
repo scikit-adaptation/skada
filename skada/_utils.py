@@ -55,7 +55,7 @@ def _estimate_covariance(X, shrinkage, assume_centered=False):
     elif isinstance(shrinkage, Real):
         s = shrunk_covariance(
             empirical_covariance(X, assume_centered=assume_centered),
-            shrinkage=shrinkage
+            shrinkage=shrinkage,
         )
     return s
 
