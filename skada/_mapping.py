@@ -571,7 +571,7 @@ class CORALAdapter(BaseAdapter):
           - None: no shrinkage).
           - 'auto': automatic shrinkage using the Ledoit-Wolf lemma.
           - float between 0 and 1: fixed shrinkage parameter.
-    assume_centered: bool, default=True
+    assume_centered: bool, default=False
         If True, data are not centered before computation.
 
     Attributes
@@ -588,7 +588,7 @@ class CORALAdapter(BaseAdapter):
            In Advances in Computer Vision and Pattern Recognition, 2017.
     """
 
-    def __init__(self, reg="auto", assume_centered=True):
+    def __init__(self, reg="auto", assume_centered=False):
         super().__init__()
         self.reg = reg
         self.assume_centered = assume_centered
@@ -661,14 +661,19 @@ class CORALAdapter(BaseAdapter):
         )
         X_source_adapt, X_target_adapt = source_target_split(X, sample_domain=sample_domain)
 
+        # Adapt the source data
         if X_source_adapt.shape[0] > 0:
             # Center data
-            if self.assume_centered == False:
+            if not self.assume_centered:
                 X_source_adapt = X_source_adapt - X_source_adapt.mean(axis=0)
 
             # Whitening and coloring source data
             X_source_adapt = np.dot(X_source_adapt, self.cov_source_inv_sqrt_)
             X_source_adapt = np.dot(X_source_adapt, self.cov_target_sqrt_)
+
+        # Adapt the target data
+        if X_target_adapt.shape[0] > 0 and not self.assume_centered:
+            X_target_adapt = X_target_adapt - X_target_adapt.mean(axis=0)
 
         X_adapt, _ = source_target_merge(
             X_source_adapt, X_target_adapt, sample_domain=sample_domain
@@ -679,7 +684,7 @@ class CORALAdapter(BaseAdapter):
 def CORAL(
     base_estimator=None,
     reg="auto",
-    assume_centered=True,
+    assume_centered=False,
 ):
     """CORAL pipeline with adapter and estimator.
 
@@ -696,7 +701,7 @@ def CORAL(
           - None: no shrinkage).
           - 'auto': automatic shrinkage using the Ledoit-Wolf lemma.
           - float between 0 and 1: fixed shrinkage parameter.
-    assume_centered: bool, default=True
+    assume_centered: bool, default=False
         If True, data are not centered before computation.
 
     Returns
