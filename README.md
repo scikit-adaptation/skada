@@ -25,7 +25,7 @@ The following algorithms are currently implemented.
 - Sample reweighting methods (Gaussian [1], Discriminant [2], KLIEPReweight [3],
   DensityRatio [4], TarS [21], KMMReweight [23])
 - Sample mapping methods (CORAL [5], Optimal Transport DA OTDA [6], LinearMonge [7], LS-ConS [21])
-- Subspace methods (SubspaceAlignment [8], TCA [9], Transfer Subspace Learning [27])
+- Subspace methods (SubspaceAlignment [8], TCA [9], Transfer Subspace Learning [27], CTC [29])
 - Other methods (JDOT [10], DASVM [11], OT Label Propagation [28])
 
 Any methods that can be cast as an adaptation of the input data can be used in one of two ways:
@@ -208,3 +208,5 @@ The library is distributed under the 3-Clause BSD license.
 [27] S. Si, D. Tao and B. Geng. In IEEE Transactions on Knowledge and Data Engineering, (2010) [Bregman Divergence-Based Regularization for Transfer Subspace Learning](https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=4118b4fc7d61068b9b448fd499876d139baeec81)
 
 [28] Solomon, J., Rustamov, R., Guibas, L., & Butscher, A. (2014, January). [Wasserstein propagation for semi-supervised learning](https://proceedings.mlr.press/v32/solomon14.pdf). In International Conference on Machine Learning (pp. 306-314). PMLR.
+
+[29] Gong, M., Zhang, K., Liu, T., Tao, D., Glymour, C., & Scholkopf, B. (2016). [Domain Adaptation with Conditional Transferable Components](https://proceedings.mlr.press/v48/gong16.pdf). JMLR workshop and conference proceedings, 48, 2839-2848.

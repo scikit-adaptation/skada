@@ -939,11 +939,11 @@ def torch_minimize(loss, x0, tol=1e-6, max_iter=1000, verbose=False):
     if verbose:
         print(f"Final gradient norm: {grad_norm:.2e}")
 
-    if grad_norm > tol:
-        warnings.warn(
-            "Optimization did not converge. "
-            f"Final gradient maximum value: {grad_norm:.2e} > {tol:.2e}"
-        )
+        if grad_norm > tol:
+            warnings.warn(
+                "Optimization did not converge. "
+                f"Final gradient maximum value: {grad_norm:.2e} > {tol:.2e}"
+            )
 
     solution = [x.detach().numpy() for x in x0]
     if len(solution) == 1:

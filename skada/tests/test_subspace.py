@@ -2,6 +2,7 @@
 #         Remi Flamary <remi.flamary@polytechnique.edu>
 #         Oleksii Kachaiev <kachayev@gmail.com>
 #         Antoine Collas <contact@antoinecollas.fr>
+#         Yanis Lalou <yanis.lalou@polytechnique.edu>
 #
 # License: BSD 3-Clause
 
@@ -16,6 +17,8 @@ except ImportError:
     torch = False
 
 from skada import (
+    ConditionalTransferableComponents,
+    ConditionalTransferableComponentsAdapter,
     SubspaceAlignment,
     SubspaceAlignmentAdapter,
     TransferComponentAnalysis,
@@ -68,6 +71,17 @@ from skada.datasets import DomainAwareDataset
             ),
             marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
         ),
+        pytest.param(
+            ConditionalTransferableComponents(n_components=1),
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+        ),
+        pytest.param(
+            make_da_pipeline(
+                ConditionalTransferableComponentsAdapter(n_components=1),
+                LogisticRegression(),
+            ),
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+        ),
     ],
 )
 def test_subspace_estimator(estimator, da_dataset):
@@ -112,6 +126,20 @@ def test_subspace_estimator(estimator, da_dataset):
             2,
             5,
             4,
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+        ),
+        pytest.param(
+            ConditionalTransferableComponentsAdapter(),
+            5,
+            3,
+            3,
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+        ),
+        pytest.param(
+            ConditionalTransferableComponentsAdapter(),
+            2,
+            3,
+            2,
             marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
         ),
     ],
@@ -166,3 +194,39 @@ def test_subspace_default_n_components(adapter, n_samples, n_features, n_compone
 def test_instantiation_wrong_params(adapter, param_name, param_value):
     with pytest.raises(ValueError):
         adapter(**{param_name: param_value})
+
+
+@pytest.mark.parametrize(
+    "adapter",
+    [
+        pytest.param(
+            ConditionalTransferableComponentsAdapter(),
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+        ),
+    ],
+)
+def test_continuous_labels(adapter):
+    rng = np.random.default_rng(42)
+    X_source, y_source, X_target, y_target = (
+        rng.standard_normal((5, 3)),
+        rng.standard_normal((5, 1)),
+        rng.standard_normal((5, 3)),
+        rng.standard_normal((5, 1)),
+    )
+
+    y_source = y_source.flatten()
+    y_target = y_target.flatten()
+
+    dataset = DomainAwareDataset(
+        [
+            (X_source, y_source, "s"),
+            (X_target, y_target, "t"),
+        ]
+    )
+
+    X_train, y_train, sample_domain = dataset.pack_train(
+        as_sources=["s"], as_targets=["t"]
+    )
+
+    with pytest.raises(NotImplementedError):
+        adapter.fit_transform(X_train, y_train, sample_domain=sample_domain)
