@@ -169,6 +169,7 @@ def test_prediction_entropy_scorer_reduction(da_dataset):
 
 def test_circular_validation(da_dataset):
     X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    _, unmasked_y, _ = da_dataset.pack_test(as_targets=["t"])
     estimator = make_da_pipeline(
         DensityReweightAdapter(),
         LogisticRegression().set_fit_request(sample_weight=True),
@@ -177,6 +178,10 @@ def test_circular_validation(da_dataset):
     estimator.fit(X, y, sample_domain=sample_domain)
 
     scorer = CircularValidation()
+
+    with pytest.raises(ValueError):
+        scorer._score(estimator, X, unmasked_y, sample_domain=sample_domain)
+
     score = scorer._score(estimator, X, y, sample_domain=sample_domain)
     assert ~np.isnan(score), "the score is computed"
 
@@ -194,12 +199,17 @@ def test_circular_validation(da_dataset):
     assert ~np.isnan(score), "the score is computed"
 
     # Test regression task
-    X, y, sample_domain = make_shifted_datasets(
+    dataset_reg = make_shifted_datasets(
         n_samples_source=10,
         n_samples_target=10,
         noise=None,
         label="regression",
+        return_dataset=True,
     )
+
+    X, y, sample_domain = dataset_reg.pack_train(as_sources=["s"], as_targets=["t"])
+    _, unmasked_y, _ = dataset_reg.pack_test(as_targets=["t"])
+
     estimator_regression = make_da_pipeline(
         DensityReweightAdapter(),
         LinearRegression().set_fit_request(sample_weight=True),
@@ -209,6 +219,10 @@ def test_circular_validation(da_dataset):
     scorer = CircularValidation(
         source_scorer=mean_squared_error, greater_is_better=False
     )
+
+    with pytest.raises(ValueError):
+        scorer._score(estimator_regression, X, unmasked_y, sample_domain=sample_domain)
+
     score = scorer._score(estimator_regression, X, y, sample_domain=sample_domain)
     assert ~np.isnan(score), "the score is computed"
 

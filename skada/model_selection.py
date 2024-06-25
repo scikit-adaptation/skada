@@ -14,7 +14,14 @@ from sklearn.model_selection._split import (
     _num_samples,
     _validate_shuffle_split,
 )
-from sklearn.utils import _approximate_mode, check_random_state, indexable
+from sklearn.utils import check_random_state, indexable
+
+try:
+    from sklearn.utils import _approximate_mode
+except ImportError:
+    # to handle changes introduced in sklearn 1.5
+    # see https://github.com/scikit-learn/scikit-learn/pull/28481
+    from sklearn.utils.extmath import _approximate_mode
 from sklearn.utils.metadata_routing import _MetadataRequester
 from sklearn.utils.validation import check_array
 
