@@ -33,14 +33,15 @@ from skada.datasets import make_shifted_datasets
 #     The subspaces methods
 # ------------------------------------------
 #
-# Firstly we are in the case of unsupervised domain adaptation, it means that
-# we know the labels of the source data but not from the target data.
-# The goal of subspace is to project data from a d dimensional space
-# into a d' dimensional space with d'<d.
-# This kind of da method is especially good when we work with subspace
-# shift, meaning that there is a subspace on which, when projected on it,
-# the source and target data have the same distributions.
-#
+# Supspace methods are used in unsupervised domain adaptation.
+# In this case, we have labeled data for the source domain but not for the target
+# domain.
+# The goal of subspace methods is to project data from a d-dimensional space
+# into a lower-dimensional space with d' < d.
+# Subspace methods are particularly effective when dealing with subspace shift,
+# where the source and target data have the same distributions when projected onto a
+# subspace.
+
 # The Subspace methods implemented and illustrated are the following:
 #   * :ref:`Subspace Alignment<Illustration of the Subspace Alignment method>`
 #   * :ref:`Transfer Component Analysis<Illustration of the Transfer Component
@@ -339,7 +340,7 @@ plot_subspace_and_classifier(clf, "TCA")
 #
 # In most of the previous works, we explored two learning strategies independently for
 # domain adaptation: feature matching and instance reweighting. Transfer Joint Matching
-# (TJM) aims to use both, by adding a constant to tradeoff between to two.
+# (TJM) aims to use both, by adding a constant to tradeoff between the two.
 #
 # See [26] for details:
 #

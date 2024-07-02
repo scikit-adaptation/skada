@@ -39,8 +39,8 @@ ylim = (-1, 1.3)
 # We generate our 2D dataset with 2 classes
 # ------------------------------------------
 #
-# We generate a simple 2D dataset from moon distribution, where source and target
-# are not taken from the same location in the moons. This dataset thus present
+# We generate a simple 2D dataset from a moon distribution, where source and target
+# are not taken from the same location in the moons. This dataset thus presents a
 # covariate shift.
 
 X, y, sample_domain = make_dataset_from_moons_distribution(
@@ -86,7 +86,7 @@ figure.suptitle("data points", fontsize=20)
 # The main problem here is that we only know the distribution of the points
 # from the target dataset, our goal is to label it.
 #
-# The algorithm of the DASVM consist in fitting multiple base_estimator (SVC) by:
+# The DASVM method consist in fitting multiple base_estimator (SVC) by:
 #     - Removing from the training dataset (if possible)
 #       `k` points from the source dataset for which the current
 #       estimator is doing well
