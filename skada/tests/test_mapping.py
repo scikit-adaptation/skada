@@ -109,7 +109,8 @@ def test_mapping_estimator(estimator, da_blobs_dataset):
         make_da_pipeline(LinearOTMappingAdapter(), Ridge()),
         LinearOTMapping(Ridge()),
         make_da_pipeline(CORALAdapter(), Ridge()),
-        CORAL(Ridge()),
+        CORAL(Ridge(), assume_centered=False),
+        CORAL(Ridge(), assume_centered=True),
         pytest.param(
             make_da_pipeline(MMDLSConSMappingAdapter(gamma=1e-3), Ridge()),
             marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
@@ -185,7 +186,7 @@ def _base_test_new_X_adapt(estimator, da_dataset):
         (ClassRegularizerOTMappingAdapter(norm="lpl1")),
         (ClassRegularizerOTMappingAdapter(norm="l1l2")),
         (LinearOTMappingAdapter()),
-        (CORALAdapter()),
+        (CORALAdapter(assume_centered=True)),
         (
             pytest.param(
                 MMDLSConSMappingAdapter(gamma=1e-3),
@@ -215,7 +216,7 @@ def test_new_X_adapt(estimator):
         OTMappingAdapter(),
         EntropicOTMappingAdapter(),
         LinearOTMappingAdapter(),
-        CORALAdapter(),
+        CORALAdapter(assume_centered=True),
         pytest.param(
             MMDLSConSMappingAdapter(gamma=1e-3),
             marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),

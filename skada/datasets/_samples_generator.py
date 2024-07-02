@@ -385,6 +385,7 @@ def make_shifted_datasets(
     sigma_regression=None,
     regression_scaling_constant=27,
     center=((0, 2)),
+    center_cov_shift=((0, 2)),
     random_state=None,
     return_X_y=True,
     return_dataset=False,
@@ -436,6 +437,8 @@ def make_shifted_datasets(
         Parameter of the RBF kernel.
     center : array-like of shape (1, 2), default=((0, 2))
         Center of the distribution.
+    center_cov_shift : array-like of shape (1, 2), default=((0, 2))
+        Center of the covariate-shift.
     random_state : int, RandomState instance or None, default=None
         Determines random number generation for dataset creation. Pass an int
         for reproducible output across multiple function calls.
@@ -498,7 +501,7 @@ def make_shifted_datasets(
             label,
         )
 
-        w = np.exp(-gamma * np.sum((X_target - np.array(center)) ** 2, 1))
+        w = np.exp(-gamma * np.sum((X_target - np.array(center_cov_shift)) ** 2, 1))
         w /= w.sum()
 
         isel = rng.choice(len(w), size=(8 * n_samples_target,), replace=False, p=w)
