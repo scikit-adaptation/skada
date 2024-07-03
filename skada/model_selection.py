@@ -407,6 +407,7 @@ class StratifiedDomainShuffleSplit(BaseDomainAwareShuffleSplit):
         groups, group_indices = np.unique(groups_array, return_inverse=True, axis=0)
         n_groups = groups.shape[0]
 
+        group_indices = group_indices.flatten()
         group_counts = np.bincount(group_indices)
         if np.min(group_counts) < 2:
             raise ValueError(
