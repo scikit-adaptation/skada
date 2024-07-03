@@ -351,11 +351,11 @@ class StratifiedDomainShuffleSplit(BaseDomainAwareShuffleSplit):
     ... ):
     ...     print(f"Fold {i}:")
     ...     print(f"  Train: index={train_index}, "
-    ...     f'''group={[[b, a]
+    ...     f'''group={[[b.item(), a.item()]
     ...     for a, b in zip(y[train_index], sample_domain[train_index])
     ...     ]}''')
     ...     print(f"  Test: index={test_index}, "
-    ...     f'''group={[[b, a]
+    ...     f'''group={[[b.item(), a.item()]
     ...     for a, b in zip(y[test_index], sample_domain[test_index])
     ...     ]}''')
     Fold 0:
