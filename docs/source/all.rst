@@ -65,6 +65,7 @@ DAEstimators with adapters (Pipeline):
       SubspaceAlignment
       TransferComponentAnalysis
       TransferJointMatching
+      ConditionalTransferableComponents
       CORAL
       OTMapping
       EntropicOTMapping
@@ -81,6 +82,7 @@ Adapters:
       TransferComponentAnalysisAdapter
       TransferJointMatchingAdapter
       TransferSubspaceLearning
+      ConditionalTransferableComponentsAdapter
       CORALAdapter
       OTMappingAdapter
       EntropicOTMappingAdapter

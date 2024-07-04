@@ -9,6 +9,7 @@ to subspace shift
 # Author:   Ruben Bueno <ruben.bueno@polytechnique.edu>
 #           Antoine Collas <contact@antoinecollas.fr>
 #           Oleksii Kachaiev <kachayev@gmail.com>
+#           Yanis Lalou <yanis.lalou@polytechnique.edu>
 #
 # License: BSD 3-Clause
 # sphinx_gallery_thumbnail_number = 4
@@ -21,6 +22,7 @@ from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.svm import SVC
 
 from skada import (
+    ConditionalTransferableComponents,
     SubspaceAlignment,
     TransferComponentAnalysis,
     TransferJointMatching,
@@ -46,6 +48,10 @@ from skada.datasets import make_shifted_datasets
 #   * :ref:`Transfer Component Analysis<Illustration of the Transfer Component
 #     Analysis method>`
 #   * :ref:`Transfer Joint Matching<Illustration of the Transfer Joint Matching method>`
+#   * :ref:`Transfer Subspace Learning
+#     <Illustration of the Transfer Subspace Learning method>`
+#   * :ref:`Conditional Transferable Components
+#     <Illustration of the Conditional Transferable Components method>`
 
 
 base_classifier = SVC()
@@ -373,6 +379,28 @@ plot_subspace_and_classifier(
 clf = TransferSubspaceLearning(base_classifier, n_components=1)
 clf.fit(X, y, sample_domain=sample_domain)
 plot_subspace_and_classifier(clf, "TransferSubspaceLearning")
+
+# %%
+#     Illustration of the Conditional Transferable Components method
+# ------------------------------------------
+#
+# The objective of Conditional Transferable Components (CTC) is to
+# learn domain-invariant representations by disentangling the data
+# representation into domain-specific and domain-invariant components.
+# By doing so, CTC enables the transfer of knowledge from the source domain
+# to the target domain while mitigating the effects of domain shift.
+#
+# See [29] for details:
+#
+# .. [29]  Gong, M., Zhang, K., Liu, T., Tao,
+#          D., Glymour, C., & Scholkopf, B. (2016).
+#          Domain Adaptation with Conditional Transferable Components.
+#          JMLR workshop and conference proceedings, 48, 2839-2848.
+#
+
+clf = ConditionalTransferableComponents(n_components=1)
+clf.fit(X, y, sample_domain=sample_domain)
+plot_subspace_and_classifier(clf, "ConditionalTransferableComponents")
 
 
 # %%

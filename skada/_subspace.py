@@ -3,6 +3,7 @@
 #         Oleksii Kachaiev <kachayev@gmail.com>
 #         Ruben Bueno <ruben.bueno@polytechnique.edu>
 #         Antoine Collas <contact@antoinecollas.fr>
+#         Yanis Lalou <yanis.lalou@polytechnique.edu>
 #
 # License: BSD 3-Clause
 
@@ -11,6 +12,7 @@ import warnings
 
 import numpy as np
 import scipy.linalg
+from scipy.optimize import minimize
 from sklearn.decomposition import PCA
 from sklearn.metrics.pairwise import pairwise_kernels
 from sklearn.neighbors import KNeighborsClassifier
@@ -18,9 +20,11 @@ from sklearn.svm import SVC
 from sklearn.utils import check_random_state
 
 from ._pipeline import make_da_pipeline
+from ._utils import Y_Type, _find_y_type
 from .base import BaseAdapter
 from .utils import (
     check_X_domain,
+    check_X_y_domain,
     extract_source_indices,
     source_target_merge,
     source_target_split,
@@ -1018,6 +1022,355 @@ def TransferSubspaceLearning(
             max_iter=max_iter,
             tol=tol,
             verbose=verbose,
+        ),
+        base_estimator,
+    )
+
+
+class ConditionalTransferableComponentsAdapter(BaseAdapter):
+    """Conditional Transferable Components.
+
+    See [28]_ for details.
+
+    Parameters
+    ----------
+    n_components : int, default=None
+        The numbers of components to learn.
+        Should be less or equal to the number of samples
+        of the source and target data.
+
+    gamma : float, default=1.0
+        The gamma parameter of the RBF kernel.
+
+    eps : float, default=1e-3
+        The epsilon parameter of the RBF kernel.
+
+    lmbd : float, default=1e-3
+        The lambda parameter of the optimization problem.
+
+    lmbd_s : float, default=1e-3
+        The lambda_s parameter of the optimization problem.
+
+    lmbd_l : float, default=1e-4
+        The lambda_l parameter of the optimization problem.
+
+    tol : float, default=1e-3
+        The threshold for the differences between losses on two iteration
+        before the algorithm stops
+
+    max_iter : int, default=100
+        The maximal number of iteration before stopping when
+        fitting.
+
+    Attributes
+    ----------
+    W_ : array of shape (n_features, n_components)
+        The learned projection matrix.
+
+    References
+    ----------
+    .. [29]  Gong, M., Zhang, K., Liu, T., Tao,
+             D., Glymour, C., & Scholkopf, B. (2016).
+             Domain Adaptation with Conditional Transferable Components.
+             JMLR workshop and conference proceedings, 48, 2839-2848.
+    """
+
+    def __init__(
+        self,
+        n_components=None,
+        gamma=1.0,
+        eps=1e-3,
+        lmbd=1e-3,
+        lmbd_s=1e-3,
+        lmbd_l=1e-4,
+        tol=1e-3,
+        max_iter=100,
+    ):
+        super().__init__()
+        self.n_components = n_components
+        self.gamma = gamma
+        self.eps = eps
+        self.lmbd = lmbd
+        self.lmbd_s = lmbd_s
+        self.lmbd_l = lmbd_l
+        self.max_iter = max_iter
+        self.tol = tol
+
+    def _mapping_optimization(self, X_source, X_target, y_source):
+        """Weight optimization"""
+        try:
+            import torch
+        except ImportError:
+            raise ImportError(
+                "ConditionalTransferableComponentsAdapter \
+                requires pytorch to be installed."
+            )
+
+        n_s, n_t = X_source.shape[0], X_target.shape[0]
+        D = X_source.shape[1]
+
+        classes = np.unique(y_source)
+        n_c = len(classes)  # Compute the cardinality of the classes
+
+        if self.n_components is None:
+            n_components = min(X_source.shape[0], X_source.shape[1])
+        else:
+            n_components = self.n_components
+
+        # check y is discrete or continuous
+        self.discrete_ = _find_y_type(y_source) == Y_Type.DISCRETE
+
+        if not self.discrete_:
+            raise NotImplementedError("Only discrete labels are supported")
+
+        def compute_Beta_A_R(alpha, G, H):
+            classes = torch.unique(y_source)
+            n_c = len(classes)
+
+            R_dis = torch.zeros((n_s, n_c), dtype=torch.float64)
+            for i, c in enumerate(classes):
+                R_dis[:, i] = (n_s / n_c) * (y_source == c).float()
+
+            Beta = (R_dis @ alpha).reshape(-1, 1)
+            A = (R_dis @ G).t()
+            B = (R_dis @ H).t()
+
+            return Beta, A, B, R_dis
+
+        def func_np(alpha, W, G, H):
+            J_ct_con = func_torch(alpha, W, G, H)
+            J_ct_con = J_ct_con.detach().numpy()
+            return J_ct_con
+
+        def rbf_kernel(X, Y, gamma):
+            """Compute the RBF kernel matrix between X and Y."""
+            pairwise_distances = torch.cdist(X, Y, p=2)  # Euclidean distances
+            kernel_matrix = torch.exp(-gamma * pairwise_distances.pow(2))
+            return kernel_matrix
+
+        def func_torch(alpha, W, G, H):
+            Beta, A, B, R_dis = compute_Beta_A_R(alpha, G, H)
+
+            X_ct = A * (W.t() @ X_source.t()) + B
+
+            K_t = rbf_kernel(
+                (W.t() @ X_target.t()).t(), (W.t() @ X_target.t()).t(), self.gamma
+            )
+            K_tilde_s = rbf_kernel(X_ct.t(), X_ct.t(), self.gamma)
+            K_tilde_t_s = rbf_kernel((W.t() @ X_target.t()).t(), X_ct.t(), self.gamma)
+            L = rbf_kernel(y_source.view(-1, 1), y_source.view(-1, 1), self.gamma)
+
+            J_ct = (
+                (1 / n_s**2) * Beta.t() @ K_tilde_s @ Beta
+                - (2 / n_s * n_t)
+                * torch.ones((n_t, 1), dtype=torch.float64).t()
+                @ K_tilde_t_s
+                @ Beta
+                + (1 / n_t**2)
+                * torch.ones((n_t, 1), dtype=torch.float64).t()
+                @ K_t
+                @ torch.ones((n_t, 1), dtype=torch.float64)
+            )
+
+            Jreg = (self.lmbd_s / n_s) * torch.norm(
+                A - torch.ones((n_components, n_s), dtype=torch.float64), p=2
+            ) + (self.lmbd_l / n_s) * torch.norm(B, p=2)
+
+            J_ct_con = (
+                J_ct
+                + self.lmbd
+                * self.eps
+                * torch.trace(
+                    L
+                    @ torch.inverse(
+                        K_tilde_s + n_s * self.eps * torch.eye(n_s, dtype=torch.float64)
+                    )
+                )
+                + Jreg
+            )
+
+            return J_ct_con
+
+        def func_torch_constrained(alpha, W, G, H, lmdb):
+            # We use the same function as func_torch but with an additional
+            # regularization term
+            # Indeed we  should guarantee that W is on the Grassmann manifold
+            # Thus we need W^TW = I_d
+            J_ct_con = func_torch(alpha, W, G, H)
+
+            lagrangian = J_ct_con + lmdb * torch.norm(
+                W.T @ W - torch.eye(n_components), p=2
+            )
+            return lagrangian
+
+        #####
+        X_source = torch.tensor(X_source, dtype=torch.float64)
+        X_target = torch.tensor(X_target, dtype=torch.float64)
+        y_source = torch.tensor(y_source, dtype=torch.float64)
+
+        alpha = torch.ones(n_c, dtype=torch.float64)
+        W = torch.ones((D, n_components), dtype=torch.float64)
+        G = torch.ones((n_c, n_components), dtype=torch.float64)
+        H = torch.zeros((n_c, n_components), dtype=torch.float64)
+
+        # Initialize the Lagrange multiplier for the constraint on W
+        lmbd = torch.tensor(1e-3, dtype=torch.float64)
+
+        Beta, A, B, R_dis = compute_Beta_A_R(alpha, G, H)
+
+        for i in range(self.max_iter):
+            if i % 3 == 0:
+                # For alpha, we use quadratic programming (QP) to minimize
+                # Jˆct w.r.t. alpha under constraints
+                alpha_constraints = (
+                    {"type": "ineq", "fun": (lambda x: -(R_dis.detach().cpu() @ x))},
+                    {"type": "eq", "fun": (lambda x: np.sum(x) - 1)},
+                )
+
+                result = minimize(
+                    func_np,
+                    x0=alpha,
+                    args=(W, G, H),
+                    method="SLSQP",
+                    constraints=alpha_constraints,
+                    options={"maxiter": 1},
+                )
+
+                alpha = result.x
+                alpha = torch.tensor(alpha, dtype=torch.float64)
+            elif i % 3 == 1:
+                # For W, we use the gradient descent method to minimize
+                # Jˆct w.r.t. W under constraint
+                (_, W, _, _, lmbd), _ = torch_minimize(
+                    func_torch_constrained,
+                    (alpha, W, G, H, lmbd),
+                    tol=self.tol,
+                    max_iter=1,
+                )
+                W = torch.tensor(W, dtype=torch.float64)
+                lmbd = torch.tensor(lmbd, dtype=torch.float64)
+            else:
+                # For G and H, we use the gradient descent method to minimize
+                # Jˆct w.r.t. G and H
+                (_, _, G, H), _ = torch_minimize(
+                    func_torch, (alpha, W, G, H), tol=self.tol, max_iter=1
+                )
+                G = torch.tensor(G, dtype=torch.float64)
+                H = torch.tensor(H, dtype=torch.float64)
+
+        Beta, A, B, R_dis = compute_Beta_A_R(alpha, G, H)
+
+        return alpha, W, G, H, Beta, A, B, R_dis
+
+    def fit(self, X, y=None, sample_domain=None, **kwargs):
+        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        X_source, X_target, y_source, _ = source_target_split(
+            X, y, sample_domain=sample_domain
+        )
+        self.X_source_ = X_source
+
+        (
+            self.alpha_,
+            self.W_,
+            self.G_,
+            self.H_,
+            self.Beta_,
+            self.A_,
+            self.B_,
+            self.R_dis_,
+        ) = self._mapping_optimization(
+            X_source,
+            X_target,
+            y_source,
+        )
+        return self
+
+    def fit_transform(self, X, y=None, sample_domain=None, **kwargs):
+        self.fit(X, y, sample_domain)
+        return self.transform(X, y, sample_domain=sample_domain)
+
+    def transform(
+        self, X, y=None, *, sample_domain=None, allow_source=True, **params
+    ) -> np.ndarray:
+        X, sample_domain = check_X_domain(
+            X,
+            sample_domain,
+            allow_source=allow_source,
+            allow_multi_source=True,
+            allow_multi_target=True,
+        )
+        X_source, X_target = source_target_split(X, sample_domain=sample_domain)
+
+        if X_source.shape[0]:
+            X_source = np.dot(X_source, self.W_)
+        if X_target.shape[0]:
+            X_target = np.dot(X_target, self.W_)
+
+        X_adapt, _ = source_target_merge(
+            X_source, X_target, sample_domain=sample_domain
+        )
+        return X_adapt
+
+
+def ConditionalTransferableComponents(
+    base_estimator=None,
+    n_components=None,
+    gamma=1,
+    eps=1e-3,
+    lmbd=1e-3,
+    lmbd_s=1e-3,
+    lmbd_l=1e-4,
+    tol=1e-3,
+    max_iter=100,
+):
+    """Domain Adaptation Using Conditional Transferable Components.
+
+    Parameters
+    ----------
+    base_estimator : object, default=None
+        Estimator used for fitting and prediction.
+    n_components : int, default=None
+        The number of invariant components to learn.
+    gamma : float, default=1
+        The gamma parameter of the RBF kernel.
+    eps : float, default=1e-3
+        The epsilon parameter of the RBF kernel.
+    lmbd : float, default=1e-3
+        The lambda parameter of the optimization problem.
+    lmbd_s : float, default=1e-3
+        The lambda_s parameter of the optimization problem.
+    lmbd_l : float, default=1e-4
+        The lambda_l parameter of the optimization problem.
+    tol : float, default=1e-3
+        The tolerance of the optimization problem.
+    max_iter : int, default=100
+        The maximal number of iteration before stopping when fitting.
+
+    Returns
+    -------
+    pipeline : Pipeline
+        A pipeline containing a ConditionalTransferableComponentsAdapter.
+
+    References
+    ----------
+    .. [29]  Gong, M., Zhang, K., Liu, T., Tao,
+             D., Glymour, C., & Scholkopf, B. (2016).
+             Domain Adaptation with Conditional Transferable Components.
+             JMLR workshop and conference proceedings, 48, 2839-2848.
+    """
+    if base_estimator is None:
+        base_estimator = SVC()
+
+    return make_da_pipeline(
+        ConditionalTransferableComponentsAdapter(
+            gamma=gamma,
+            n_components=n_components,
+            eps=eps,
+            lmbd=lmbd,
+            lmbd_s=lmbd_s,
+            lmbd_l=lmbd_l,
+            tol=tol,
+            max_iter=max_iter,
         ),
         base_estimator,
     )
