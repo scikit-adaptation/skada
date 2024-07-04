@@ -35,12 +35,12 @@ from skada.utils import extract_source_indices
 
 # %%
 #
-#     The reweighting methods
+# Reweighting Methods
 # ------------------------------------------
-# The goal of reweighting methods is to estimate some weights for the
-# source dataset in order to then fit a estimator on the source dataset,
-# while taking those weights into account, so that the fitted estimator is
-# well suited to predicting labels from points drawn from the target distribution.
+# The purpose of reweighting methods is to estimate weights for the source dataset.
+# These weights are then used to fit an estimator on the source dataset, taking the
+# weights into account. The goal is to ensure that the fitted estimator is suitable
+# for predicting labels from the target distribution.
 #
 # Reweighting methods implemented and illustrated are the following:
 #   * :ref:`Density Reweighting<Illustration of the Density Reweighting method>`
