@@ -76,7 +76,8 @@ plt.title("Target data")
 # -----------------------
 #
 # SKADA estimators are used like scikit-learn estimators. The only difference is
-# that the :code:`sample_domain` array must be passed by name when fitting the estimator.
+# that the :code:`sample_domain` array must be passed by name when fitting the
+# estimator.
 
 
 # create a DA estimator
@@ -97,8 +98,9 @@ print("Accuracy on target:", clf.score(Xt, yt))
 # -----------------------------
 #
 
-# SKADA estimators can be used as the final estimator of a scikit-learn pipeline. Again, the only
-# difference is that the :code:`sample_domain` array must be passed by name during in fit.
+# SKADA estimators can be used as the final estimator of a scikit-learn pipeline.
+# Again, the only difference is that the :code:`sample_domain` array must be passed
+# by name during in fit.
 
 
 # create a DA pipeline
@@ -120,7 +122,7 @@ print("Accuracy on target:", pipe.score(Xt, yt))
 #
 # .. WARNING::
 
-#   Note that as illustrated below for reweighting adapters, one needs a 
+#   Note that as illustrated below for reweighting adapters, one needs a
 #   subsequent estimator that takes :code:`sample_weight` as an input parameter.
 #   This can be done using the :code:`set_fit_request` method of the estimator
 #   by calling :code:`.set_fit_request(sample_weight=True)`.
