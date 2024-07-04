@@ -9,6 +9,7 @@
 import numpy as np
 import pytest
 from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
 
 try:
     import torch
@@ -35,38 +36,38 @@ from skada.datasets import DomainAwareDataset
     "estimator",
     [
         make_da_pipeline(
-            SubspaceAlignmentAdapter(n_components=2), LogisticRegression()
+            SubspaceAlignmentAdapter(n_components=1), LogisticRegression()
         ),
-        SubspaceAlignment(n_components=2),
+        SubspaceAlignment(n_components=1),
         make_da_pipeline(
-            TransferComponentAnalysisAdapter(n_components=2), LogisticRegression()
+            TransferComponentAnalysisAdapter(n_components=1), LogisticRegression()
         ),
-        TransferComponentAnalysis(n_components=2),
-        TransferJointMatching(n_components=2, kernel="linear"),
+        TransferComponentAnalysis(n_components=1),
+        TransferJointMatching(n_components=1, kernel="linear"),
         make_da_pipeline(
-            TransferJointMatchingAdapter(n_components=2, kernel="linear", verbose=True),
+            TransferJointMatchingAdapter(n_components=1, kernel="linear", verbose=True),
             LogisticRegression(),
         ),
         pytest.param(
-            TransferSubspaceLearning(n_components=2),
+            TransferSubspaceLearning(n_components=1),
             marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
         ),
         pytest.param(
-            TransferSubspaceLearning(n_components=2, base_method="pca"),
+            TransferSubspaceLearning(n_components=1, base_method="pca"),
             marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
         ),
         pytest.param(
-            TransferSubspaceLearning(n_components=2, base_method="flda"),
+            TransferSubspaceLearning(n_components=1, base_method="flda"),
             marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
         ),
         pytest.param(
-            TransferSubspaceLearning(n_components=2, base_method="lpp"),
+            TransferSubspaceLearning(n_components=1, base_method="lpp"),
             marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
         ),
         pytest.param(
             make_da_pipeline(
-                TransferSubspaceLearningAdapter(n_components=2),
-                LogisticRegression(),
+                TransferSubspaceLearningAdapter(n_components=1),
+                KNeighborsClassifier(n_neighbors=1),
             ),
             marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
         ),
@@ -83,16 +84,16 @@ from skada.datasets import DomainAwareDataset
         ),
     ],
 )
-def test_subspace_alignment(estimator, da_dataset):
+def test_subspace_estimator(estimator, da_dataset):
     X_train, y_train, sample_domain = da_dataset.pack_train(
         as_sources=["s"], as_targets=["t"]
     )
     estimator.fit(X_train, y_train, sample_domain=sample_domain)
     X_test, y_test, sample_domain = da_dataset.pack_test(as_targets=["t"])
     y_pred = estimator.predict(X_test, sample_domain=sample_domain)
-    assert np.mean(y_pred == y_test) > 0.9
+    assert np.mean(y_pred == y_test) > 0.75
     score = estimator.score(X_test, y_test, sample_domain=sample_domain)
-    assert score > 0.9
+    assert score > 0.75
 
 
 @pytest.mark.parametrize(

@@ -24,6 +24,7 @@ from ._utils import (
     _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
     _DEFAULT_MASKED_TARGET_REGRESSION_LABEL,
     Y_Type,
+    _check_y_masking,
     _find_y_type,
 )
 from .utils import check_X_y_domain, extract_source_indices, source_target_split
@@ -156,7 +157,9 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
 
     def _score(self, estimator, X, y, sample_domain=None, **params):
         scorer = check_scoring(estimator, self.scoring)
-        if not get_routing_for_object(scorer).consumes("score", ["sample_weight"]):
+        if "sample_weight" not in get_routing_for_object(estimator).consumes(
+            "score", ["sample_weight"]
+        ):
             raise ValueError(
                 "The estimator passed should accept 'sample_weight' parameter. "
                 f"The estimator {estimator!r} does not."
@@ -170,7 +173,13 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
         ws = self.weight_estimator_source_.score_samples(X_source)
         wt = self.weight_estimator_target_.score_samples(X_source)
         weights = np.exp(wt - ws)
-        weights /= weights.sum()
+
+        if weights.sum() != 0:
+            weights /= weights.sum()
+        else:
+            warnings.warn("All weights are zero. Using uniform weights.")
+            weights = np.ones_like(weights) / len(weights)
+
         return self._sign * scorer(
             estimator,
             X_source,
@@ -350,10 +359,7 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
 
     def _no_reduc_log_loss(self, y, y_pred):
         return np.array(
-            [
-                self.cross_entropy_loss(y[i : i + 1], y_pred[i : i + 1])
-                for i in range(len(y))
-            ]
+            [self.cross_entropy_loss(y[i], y_pred[i]) for i in range(len(y))]
         )
 
     def _fit_adapt(self, features, features_target):
@@ -441,27 +447,35 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         weights_m = np.concatenate((weighted_error, weights), axis=1)
         cov = np.cov(weights_m, rowvar=False)[0, 1]
         var_w = np.var(weights, ddof=1)
-        eta = -cov / var_w
+        if var_w == 0:
+            # If var_w == 0, we set eta to 0
+            eta = 0
+        else:
+            eta = -cov / var_w
         return self._sign * (np.mean(weighted_error) + eta * np.mean(weights) - eta)
 
     def cross_entropy_loss(self, y_true, y_pred, epsilon=1e-15):
         """
-        Compute cross-entropy loss between true labels
-        and predicted probability estimates.
+        Compute cross-entropy loss for a single sample between the true label
+        and the predicted probability estimates.
 
-        This loss allows to have a changing num_classes over the validation.
+        This loss allows for a changing number of classes over the validation process.
 
         Parameters
         ----------
-        - y_true: true labels (integer labels).
-        - y_pred: predicted probabilities
-        - epsilon: a small constant to avoid numerical instability (default is 1e-15).
+        - y_true: int
+            True label (integer label).
+        - y_pred: array-like
+            Predicted probabilities for each class.
+        - epsilon: float, optional (default=1e-15)
+            A small constant to avoid numerical instability.
 
         Returns
         -------
-        - Cross-entropy loss.
+        - float
+            Cross-entropy loss for the single sample.
         """
-        num_classes = y_pred.shape[1]
+        num_classes = y_pred.shape[0]
 
         # Convert integer labels to one-hot encoding
         y_true_one_hot = np.eye(num_classes)[y_true]
@@ -537,6 +551,15 @@ class CircularValidation(_BaseDomainAwareScorer):
             The computed score.
         """
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+
+        try:
+            _check_y_masking(y)
+        except ValueError:
+            raise ValueError(
+                "The labels should be masked before calling the scorer. "
+                "CircularValidation doesn't support semi-supervised DA"
+            )
+
         source_idx = extract_source_indices(sample_domain)
 
         # TODO: Check if skorch works with deepcopy/clone

@@ -10,6 +10,8 @@ from enum import Enum
 from numbers import Real
 
 import numpy as np
+import sklearn
+from packaging.version import Version
 from sklearn.covariance import (
     empirical_covariance,
     ledoit_wolf,
@@ -18,6 +20,8 @@ from sklearn.covariance import (
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils import check_random_state
 from sklearn.utils.multiclass import type_of_target
+
+_SKLEARN_OLDER_15 = Version(sklearn.__version__) >= Version("1.5.0")
 
 _logger = logging.getLogger("skada")
 _logger.setLevel(logging.DEBUG)
@@ -39,17 +43,20 @@ class Y_Type(Enum):
     DISCRETE = "discrete"
 
 
-def _estimate_covariance(X, shrinkage):
+def _estimate_covariance(X, shrinkage, assume_centered=False):
     if shrinkage is None:
-        s = empirical_covariance(X)
+        s = empirical_covariance(X, assume_centered=assume_centered)
     elif shrinkage == "auto":
-        sc = StandardScaler()  # standardize features
+        sc = StandardScaler(with_mean=not assume_centered)
         X = sc.fit_transform(X)
         s = ledoit_wolf(X)[0]
         # rescale
         s = sc.scale_[:, np.newaxis] * s * sc.scale_[np.newaxis, :]
     elif isinstance(shrinkage, Real):
-        s = shrunk_covariance(empirical_covariance(X), shrinkage)
+        s = shrunk_covariance(
+            empirical_covariance(X, assume_centered=assume_centered),
+            shrinkage=shrinkage,
+        )
     return s
 
 
@@ -221,3 +228,10 @@ def _shuffle_arrays(*arrays, random_state=None):
     for arr in arrays:
         shuffled_arrays.append(arr[indices])
     return tuple(shuffled_arrays)
+
+
+def _route_params(request, params, caller):
+    if _SKLEARN_OLDER_15:
+        return request._route_params(params=params, parent=caller, caller=caller)
+    else:
+        return request._route_params(params=params)

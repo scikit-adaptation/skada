@@ -66,10 +66,14 @@ from skada.utils import source_target_split
         NearestNeighborReweight(
             LogisticRegression().set_fit_request(sample_weight=True),
             laplace_smoothing=True,
+            n_neighbors=3,
         ),
         NearestNeighborReweight(laplace_smoothing=True),
         make_da_pipeline(
-            NearestNeighborReweightAdapter(laplace_smoothing=True),
+            NearestNeighborReweightAdapter(
+                laplace_smoothing=True,
+                n_neighbors=1,
+            ),
             LogisticRegression().set_fit_request(sample_weight=True),
         ),
         make_da_pipeline(
