@@ -351,11 +351,11 @@ class StratifiedDomainShuffleSplit(BaseDomainAwareShuffleSplit):
     ... ):
     ...     print(f"Fold {i}:")
     ...     print(f"  Train: index={train_index}, "
-    ...     f'''group={[[b, a]
+    ...     f'''group={[[b.item(), a.item()]
     ...     for a, b in zip(y[train_index], sample_domain[train_index])
     ...     ]}''')
     ...     print(f"  Test: index={test_index}, "
-    ...     f'''group={[[b, a]
+    ...     f'''group={[[b.item(), a.item()]
     ...     for a, b in zip(y[test_index], sample_domain[test_index])
     ...     ]}''')
     Fold 0:
@@ -407,6 +407,7 @@ class StratifiedDomainShuffleSplit(BaseDomainAwareShuffleSplit):
         groups, group_indices = np.unique(groups_array, return_inverse=True, axis=0)
         n_groups = groups.shape[0]
 
+        group_indices = group_indices.flatten()
         group_counts = np.bincount(group_indices)
         if np.min(group_counts) < 2:
             raise ValueError(
