@@ -15,8 +15,7 @@ import numpy as np
 from sklearn.model_selection import ShuffleSplit, cross_val_score
 from sklearn.svm import SVC
 
-from skada import EntropicOTMapping, source_target_split
-from skada._pipeline import make_da_pipeline
+from skada import EntropicOTMapping, make_da_pipeline, source_target_split
 from skada.datasets import make_shifted_datasets
 from skada.metrics import SupervisedScorer
 
