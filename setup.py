@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name='skada',
-    version='0',
+    version='0.3',
     description='A domain adaptation toolbox to reduce shift between domains.',
 
     # The project's main homepage.
