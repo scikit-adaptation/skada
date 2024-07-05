@@ -10,7 +10,7 @@ type: software
 authors:
   - given-names: Théo
     family-names: Gnassounou
-    affiliation: Université Paris Saclay
+    affiliation: University Paris-Saclay, Inria, CEA
   - given-names: Oleksii
     family-names: Kachaiev
   - given-names: Rémi
@@ -18,35 +18,35 @@ authors:
     affiliation: 'École Polytechnique, IP Paris'
   - given-names: Antoine
     family-names: Collas
-    affiliation: INRIA Saclay
+    affiliation: 'University Paris-Saclay, Inria, CEA'
   - given-names: Yanis
     family-names: Lalou
     affiliation: 'École Polytechnique, IP Paris'
   - given-names: Antoine
     name-particle: de
     family-names: Mathelin
-    affiliation: ENS Paris Saclay
+    affiliation: 'ENS Paris Saclay'
   - given-names: Alexandre
     family-names: Gramfort
-    affiliation: INRIA Saclay
+    affiliation: 'University Paris-Saclay, Inria, CEA'
   - given-names: Ruben
     family-names: Bueno
     affiliation: 'École Polytechnique, IP Paris'
   - given-names: Florent
     family-names: Michel
-    affiliation: INRIA Saclay
+    affiliation: 'University Paris-Saclay, Inria, CEA'
   - given-names: Apolline
     family-names: Mellot
-    affiliation: INRIA Saclay
+    affiliation: 'University Paris-Saclay, Inria, CEA'
   - given-names: Virginie
     family-names: ' Loison'
-    affiliation: INRIA Saclay
+    affiliation: 'University Paris-Saclay, Inria, CEA'
   - given-names: Ambroise
     family-names: Odonnat
     affiliation: Huawei Noah’s Ark Lab
   - given-names: Thomas
     family-names: Moreau
-    affiliation: INRIA Saclay
+    affiliation: 'University Paris-Saclay, Inria, CEA'
 repository-code: 'https://github.com/scikit-adaptation/skada/'
 url: 'https://scikit-adaptation.github.io/'
 abstract: >-
