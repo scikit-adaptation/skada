@@ -20,7 +20,12 @@ from sklearn.utils.metadata_routing import (
 from sklearn.utils.metaestimators import available_if
 from sklearn.utils.validation import check_is_fitted
 
-from skada._utils import _apply_domain_masks, _remove_masked, _merge_domain_outputs
+from skada._utils import (
+    _apply_domain_masks,
+    _merge_domain_outputs,
+    _remove_masked,
+    _route_params
+)
 from skada.utils import check_X_domain, check_X_y_domain, extract_source_indices
 
 
@@ -310,7 +315,7 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
     def _prepare_routing(self, routing_request, metadata_container, params):
         if self._is_final or not self._is_transformer:
             try:
-                routed_params = routing_request._route_params(params=params)
+                routed_params = _route_params(routing_request, params, self)
             except UnsetMetadataPassedError as e:
                 # check if every parameter given from the metadata container
                 # was accepted by the downstream (base) estimator
@@ -398,7 +403,7 @@ class Shared(BaseSelector):
         else:
             self._fit('fit', X_container, y, **params)
             X, y, method_params = X_container.merge_out(y, **params)
-            transform_params = self.routing_.transform._route_params(params=method_params)
+            transform_params = _route_params(self.routing_.transform, method_params, self)
             output = self.transform(X, **transform_params)
         return X_container.merge_in(output)
 
@@ -470,7 +475,7 @@ class PerDomain(BaseSelector):
         else:
             self._fit(X_container, y, **params)
             X, y, method_params = X_container.merge_out(y, **params)
-            transform_params = self.routing_.transform._route_params(params=method_params)
+            transform_params = _route_params(self.routing_.transform, method_params, self)
             # the output of the transform call is already merged into a single ndarray
             output = self.transform(X, **transform_params)
         return X_container.merge_in(output)
@@ -691,7 +696,7 @@ class SelectSourceTarget(BaseSelector):
         else:
             self.fit(X_container, y, **params)
             X, y, method_params = X_container.merge_out(y, **params)
-            transform_params = self.routing_.transform._route_params(params=method_params)
+            transform_params = _route_params(self.routing_.transform, method_params, self)
             output = self.transform(X, **transform_params)
         return X_container.merge_in(output)
 

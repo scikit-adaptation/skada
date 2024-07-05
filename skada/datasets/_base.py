@@ -1,4 +1,5 @@
 # Author: Oleksii Kachaiev <kachayev@gmail.com>
+#         Yanis Lalou <yanis.lalou@polytechnique.edu>
 #
 # License: BSD 3-Clause
 
@@ -182,7 +183,7 @@ class DomainAwareDataset:
             # xxx(okachaiev): this is horribly inefficient, re-write when API is fixed
             Xs.append(X)
             ys.append(y)
-            sample_domains.append(np.ones_like(y) * domain_id)
+            sample_domains.append(np.ones_like(y, dtype=int) * domain_id)
             domain_labels[domain_name] = domain_id
         # xxx(okachaiev): code duplication, re-write when API is fixed
         dtype = None
@@ -212,7 +213,7 @@ class DomainAwareDataset:
             # xxx(okachaiev): this is horribly inefficient, rewrite when API is fixed
             Xs.append(X)
             ys.append(y)
-            sample_domains.append(-1 * domain_id * np.ones_like(y))
+            sample_domains.append(-1 * domain_id * np.ones_like(y, dtype=int))
             domain_labels[domain_name] = -1 * domain_id
 
         # xxx(okachaiev): so far this only works if source and target has the same size

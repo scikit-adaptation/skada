@@ -138,7 +138,7 @@ class SubspaceAlignmentAdapter(BaseAdapter):
         if X_source.shape[0]:
             X_source = np.dot(self.pca_source_.transform(X_source), self.M_)
         if X_target.shape[0]:
-            X_target = np.dot(self.pca_target_.transform(X_target), self.M_)
+            X_target = self.pca_target_.transform(X_target)
         X_adapt, _ = source_target_merge(
             X_source, X_target, sample_domain=sample_domain
         )

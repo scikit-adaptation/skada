@@ -1,4 +1,5 @@
 # Author: Oleksii Kachaiev <kachayev@gmail.com>
+#         Yanis Lalou <yanis.lalou@polytechnique.edu>
 #
 # License: BSD 3-Clause
 
@@ -62,3 +63,13 @@ def test_dataset_repr():
         "DomainAwareDataset(domains=['s1', 's2', 't1', 't2', 's3', ...])\n"
         "Number of domains: 6\nTotal size: 17"
     )
+
+
+def test_dataset_y_string():
+    dataset = DomainAwareDataset()
+    dataset.add_domain(np.array([1.0, 2.0]), np.array(["a", "b"]), "s1")
+    dataset.add_domain(np.array([10.0, 20.0, 30.0]), np.array(["a", "a", "b"]), "t1")
+
+    X, y, sample_domain = dataset.pack_train(as_sources=["s1"], as_targets=["t1"])
+
+    X, y, sample_domain = dataset.pack_test(as_targets=["t1"])
