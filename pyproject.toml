@@ -34,5 +34,8 @@ all = ["torch", "torchvision", "skorch"]
 deep = ["torch", "torchvision", "skorch"]
 subspace = ["torch"]
 
+[tool.setuptools]
+packages = ["skada"]
+
 [tool.setuptools.dynamic]
 version = {attr = "skada.version.__version__"}
