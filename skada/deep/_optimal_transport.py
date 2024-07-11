@@ -67,7 +67,7 @@ class DeepJDOTLoss(BaseDALoss):
         return loss
 
 
-def DeepJDOT(module, layer_name, reg=1, reg_cl=1, target_criterion=None, **kwargs):
+def DeepJDOT(module, layer_names, reg=1, reg_cl=1, target_criterion=None, **kwargs):
     """DeepJDOT.
 
        See [13]_.
@@ -76,9 +76,10 @@ def DeepJDOT(module, layer_name, reg=1, reg_cl=1, target_criterion=None, **kwarg
     ----------
     module : torch module (class or instance)
         A PyTorch :class:`~torch.nn.Module`.
-    layer_name : str
-        The name of the module's layer whose outputs are
+    layer_names : str
+        List of the names of the module's layers whose outputs are
         collected during the training for the adaptation.
+        If only one layer is needed, it could be a string.
     reg : float, default=1
         Regularization parameter.
     reg_cl : float, default=1
@@ -99,7 +100,7 @@ def DeepJDOT(module, layer_name, reg=1, reg_cl=1, target_criterion=None, **kwarg
     net = DomainAwareNet(
         module=DomainAwareModule,
         module__base_module=module,
-        module__layer_name=layer_name,
+        module__layer_names=layer_names,
         iterator_train=DomainBalancedDataLoader,
         criterion=DomainAwareCriterion,
         criterion__criterion=nn.CrossEntropyLoss(),

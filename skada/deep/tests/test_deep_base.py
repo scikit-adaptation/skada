@@ -197,9 +197,9 @@ def test_return_features():
         random_state=42,
         return_dataset=True,
     )
-
+    layer_names = "dropout"
     method = DomainAwareNet(
-        DomainAwareModule(module, "dropout"),
+        DomainAwareModule(module, layer_names),
         iterator_train=DomainBalancedDataLoader,
         criterion=DomainAwareCriterion(torch.nn.CrossEntropyLoss(), BaseDALoss()),
         batch_size=10,
@@ -212,8 +212,23 @@ def test_return_features():
 
     # without dict
     features = method.predict_features(torch.tensor(X_test))
-    assert features.shape[1] == num_features
-    assert features.shape[0] == X_test.shape[0]
+    assert features[0].shape[1] == num_features
+    assert features[0].shape[0] == X_test.shape[0]
+
+    layer_names = ["dense0", "dense1"]
+    method = DomainAwareNet(
+        DomainAwareModule(module, layer_names),
+        iterator_train=DomainBalancedDataLoader,
+        criterion=DomainAwareCriterion(torch.nn.CrossEntropyLoss(), BaseDALoss()),
+        batch_size=10,
+        max_epochs=2,
+        train_split=None,
+    )
+
+    features = method.predict_features(torch.tensor(X_test))
+    assert len(features) == len(layer_names)
+    assert features[0].shape[1] == num_features
+    assert features[0].shape[0] == X_test.shape[0]
 
 
 def test_domain_balanced_sampler():

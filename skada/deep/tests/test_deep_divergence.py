@@ -31,7 +31,7 @@ def test_deepcoral():
     method = DeepCoral(
         ToyModule2D(),
         reg=1,
-        layer_name="dropout",
+        layer_names="dropout",
         batch_size=10,
         max_epochs=10,
         train_split=None,
@@ -76,7 +76,7 @@ def test_dan(sigmas):
         ToyModule2D(),
         reg=1,
         sigmas=sigmas,
-        layer_name="dropout",
+        layer_names="dropout",
         batch_size=10,
         max_epochs=10,
         train_split=None,

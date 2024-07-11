@@ -42,7 +42,7 @@ def test_dann(domain_classifier, domain_criterion, num_features):
         domain_classifier=domain_classifier,
         num_features=num_features,
         domain_criterion=domain_criterion,
-        layer_name="dropout",
+        layer_names="dropout",
         batch_size=10,
         max_epochs=10,
         train_split=None,
@@ -94,7 +94,7 @@ def test_cdan(domain_classifier, domain_criterion, num_feature, max_feature, n_c
         n_classes=n_classes,
         domain_criterion=domain_criterion,
         max_features=max_feature,
-        layer_name="dropout",
+        layer_names="dropout",
         batch_size=10,
         max_epochs=10,
         train_split=None,
@@ -122,7 +122,7 @@ def test_missing_num_features():
             domain_classifier=None,
             num_features=None,
             domain_criterion=BCELoss(),
-            layer_name="dropout",
+            layer_names="dropout",
             batch_size=10,
             max_epochs=10,
             train_split=None,
@@ -135,7 +135,7 @@ def test_missing_num_features():
             domain_classifier=None,
             num_features=None,
             domain_criterion=BCELoss(),
-            layer_name="dropout",
+            layer_names="dropout",
             batch_size=10,
             max_epochs=10,
             train_split=None,
@@ -151,7 +151,7 @@ def test_missing_n_classes():
             num_features=10,
             n_classes=None,
             domain_criterion=BCELoss(),
-            layer_name="dropout",
+            layer_names="dropout",
             batch_size=10,
             max_epochs=10,
             train_split=None,
@@ -174,6 +174,7 @@ def test_return_features():
         return_dataset=True,
     )
 
+    layer_names = "dropout"
     method = CDAN(
         ToyModule2D(),
         reg=1,
@@ -181,7 +182,7 @@ def test_return_features():
         num_features=num_features,
         n_classes=n_classes,
         domain_criterion=BCELoss(),
-        layer_name="dropout",
+        layer_names=layer_names,
         batch_size=10,
         max_epochs=10,
         train_split=None,
@@ -193,5 +194,25 @@ def test_return_features():
     # without dict
     method.initialize()
     features = method.predict_features(torch.tensor(X_test))
-    assert features.shape[1] == num_features
-    assert features.shape[0] == X_test.shape[0]
+    assert features[0].shape[1] == num_features
+    assert features[0].shape[0] == X_test.shape[0]
+
+    layer_names = ["dense0", "dense1"]
+    method = CDAN(
+        ToyModule2D(),
+        reg=1,
+        domain_classifier=None,
+        num_features=num_features,
+        n_classes=n_classes,
+        domain_criterion=BCELoss(),
+        layer_names=layer_names,
+        batch_size=10,
+        max_epochs=10,
+        train_split=None,
+    )
+
+    method.initialize()
+    features = method.predict_features(torch.tensor(X_test))
+    assert len(features) == len(layer_names)
+    assert features[0].shape[1] == num_features
+    assert features[0].shape[0] == X_test.shape[0]

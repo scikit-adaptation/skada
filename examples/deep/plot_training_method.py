@@ -47,7 +47,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # ----------------------------------------------------------------------------
 model = DeepCoral(
     MNISTtoUSPSNet(),
-    layer_name="fc1",
+    layer_names="fc1",
     batch_size=batch_size,
     max_epochs=max_epochs,
     train_split=False,
@@ -68,7 +68,7 @@ dataset = Dataset(X_dict, torch.tensor(y))
 
 model = DeepCoral(
     MNISTtoUSPSNet(),
-    layer_name="fc1",
+    layer_names="fc1",
     batch_size=batch_size,
     max_epochs=max_epochs,
     train_split=False,
