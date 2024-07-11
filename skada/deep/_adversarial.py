@@ -78,7 +78,7 @@ class DANNLoss(BaseDALoss):
 
 def DANN(
     module,
-    layer_name,
+    layer_names,
     reg=1,
     domain_classifier=None,
     num_features=None,
@@ -91,11 +91,11 @@ def DANN(
 
     Parameters
     ----------
-    module : torch module (class or instance)
+    module : torch module (class or instance)v
         A PyTorch :class:`~torch.nn.Module`. In general, the
         uninstantiated class should be passed, although instantiated
         modules will also work.
-    layer_name : str
+    layer_names : str
         The name of the module's layer whose outputs are
         collected during the training.
     reg : float, default=1
@@ -130,7 +130,7 @@ def DANN(
     net = DomainAwareNet(
         module=DomainAwareModule,
         module__base_module=module,
-        module__layer_name=layer_name,
+        module__layer_names=layer_names,
         module__domain_classifier=domain_classifier,
         iterator_train=DomainBalancedDataLoader,
         criterion=DomainAwareCriterion,
@@ -211,8 +211,9 @@ class CDANModule(DomainAwareModule):
     module : torch module (class or instance)
         A PyTorch :class:`~torch.nn.Module`.
     layer_name : str
-        The name of the module's layer whose outputs are
-        collected during the training for adaptation.
+        List of the names of the module's layers whose outputs are
+        collected during the training for the adaptation.
+        If only one layer is needed, it could be a string.
     domain_classifier : torch module
         A PyTorch :class:`~torch.nn.Module` used to classify the
         domain.
@@ -230,12 +231,12 @@ class CDANModule(DomainAwareModule):
     def __init__(
         self,
         base_module,
-        layer_name,
+        layer_names,
         domain_classifier,
         max_features=4096,
         random_state=42,
     ):
-        super().__init__(base_module, layer_name, domain_classifier)
+        super().__init__(base_module, layer_names, domain_classifier)
         self.max_features = max_features
         self.random_state = random_state
 
@@ -245,75 +246,99 @@ class CDANModule(DomainAwareModule):
 
             X_t = X[~source_idx]
             X_s = X[source_idx]
+
             # predict
             y_pred_s = self.base_module_(X_s)
-            features_s = self.intermediate_layers[self.layer_name]
+            features_s = [
+                self.intermediate_layers[layer_name].reshape(len(X_s), -1)
+                for layer_name in self.layer_names
+            ]
             y_pred_t = self.base_module_(X_t)
-            features_t = self.intermediate_layers[self.layer_name]
-
-            n_classes = y_pred_s.shape[1]
-            n_features = features_s.shape[1]
-            if n_features * n_classes > self.max_features:
-                random_layer = _RandomLayer(
-                    self.random_state,
-                    input_dims=[n_features, n_classes],
-                    output_dim=self.max_features,
-                )
-            else:
-                random_layer = None
-
-            # Compute the input for the domain classifier
-            if random_layer is None:
-                multilinear_map = torch.bmm(
-                    y_pred_s.unsqueeze(2), features_s.unsqueeze(1)
-                )
-                multilinear_map_target = torch.bmm(
-                    y_pred_t.unsqueeze(2), features_t.unsqueeze(1)
-                )
-
-                multilinear_map = multilinear_map.view(-1, n_features * n_classes)
-                multilinear_map_target = multilinear_map_target.view(
-                    -1, n_features * n_classes
-                )
-
-            else:
-                multilinear_map = random_layer.forward([features_s, y_pred_s])
-                multilinear_map_target = random_layer.forward([features_t, y_pred_t])
-
-            domain_pred_s = self.domain_classifier_(multilinear_map)
-            domain_pred_t = self.domain_classifier_(multilinear_map_target)
-            domain_pred = torch.empty(len(sample_domain), device=domain_pred_s.device)
-            domain_pred[source_idx] = domain_pred_s
-            domain_pred[~source_idx] = domain_pred_t
+            features_t = [
+                self.intermediate_layers[layer_name].reshape(len(X_t), -1)
+                for layer_name in self.layer_names
+            ]
 
             y_pred = torch.empty(
                 (len(sample_domain), y_pred_s.shape[1]), device=y_pred_s.device
             )
             y_pred[source_idx] = y_pred_s
             y_pred[~source_idx] = y_pred_t
+            n_classes = y_pred_s.shape[1]
 
-            features = torch.empty(
-                (len(sample_domain), features_s.shape[1]), device=features_s.device
-            )
-            features[source_idx] = features_s
-            features[~source_idx] = features_t
+            features = []
+            domain_preds = []
+            for i in range(len(features_s)):
+                features.append(
+                    torch.empty(
+                        (len(sample_domain), features_s[i].shape[1]),
+                        device=features_s[i].device,
+                    )
+                )
+                features[i][source_idx] = features_s[i]
+                features[i][~source_idx] = features_t[i]
+
+                n_features = features_s[i].shape[1]
+                if n_features * n_classes > self.max_features:
+                    random_layer = _RandomLayer(
+                        self.random_state,
+                        input_dims=[n_features, n_classes],
+                        output_dim=self.max_features,
+                    )
+                else:
+                    random_layer = None
+
+                # Compute the input for the domain classifier
+                if random_layer is None:
+                    multilinear_map = torch.bmm(
+                        y_pred_s.unsqueeze(2), features_s[i].unsqueeze(1)
+                    )
+                    multilinear_map_target = torch.bmm(
+                        y_pred_t.unsqueeze(2), features_t[i].unsqueeze(1)
+                    )
+
+                    multilinear_map = multilinear_map.view(-1, n_features * n_classes)
+                    multilinear_map_target = multilinear_map_target.view(
+                        -1, n_features * n_classes
+                    )
+
+                else:
+                    multilinear_map = random_layer.forward([features_s[i], y_pred_s])
+                    multilinear_map_target = random_layer.forward(
+                        [features_t[i], y_pred_t]
+                    )
+
+                domain_pred_s = self.domain_classifier_(multilinear_map)
+                domain_pred_t = self.domain_classifier_(multilinear_map_target)
+                domain_pred = torch.empty(
+                    len(sample_domain), device=domain_pred_s.device
+                )
+                domain_pred[source_idx] = domain_pred_s
+                domain_pred[~source_idx] = domain_pred_t
+                domain_preds.append(domain_pred)
 
             return (
                 y_pred,
-                domain_pred,
+                domain_preds,
                 features,
                 sample_domain,
             )
         else:
             if return_features:
-                return self.base_module_(X), self.intermediate_layers[self.layer_name]
+                return (
+                    self.base_module_(X),
+                    [
+                        self.intermediate_layers[layer_name].reshape(len(X), -1)
+                        for layer_name in self.layer_names
+                    ],
+                )
             else:
                 return self.base_module_(X)
 
 
 def CDAN(
     module,
-    layer_name,
+    layer_names,
     reg=1,
     max_features=4096,
     domain_classifier=None,
@@ -332,7 +357,7 @@ def CDAN(
         A PyTorch :class:`~torch.nn.Module`. In general, the
         uninstantiated class should be passed, although instantiated
         modules will also work.
-    layer_name : str
+    layer_names : str
         The name of the module's layer whose outputs are
         collected during the training.
     reg : float, default=1
@@ -345,7 +370,7 @@ def CDAN(
         A PyTorch :class:`~torch.nn.Module` used to classify the
         domain. If None, a domain classifier is created following [1]_.
     num_features : int, default=None
-        Size of the embedding space e.g. the size of the output of layer_name.
+        Size of the embedding space e.g. the size of the output of layer_names.
         If domain_classifier is None, num_features has to be
         provided.
     n_classes : int, default None
@@ -375,7 +400,7 @@ def CDAN(
     net = DomainAwareNet(
         module=CDANModule,
         module__base_module=module,
-        module__layer_name=layer_name,
+        module__layer_names=layer_names,
         module__domain_classifier=domain_classifier,
         module__max_features=max_features,
         iterator_train=DomainBalancedDataLoader,

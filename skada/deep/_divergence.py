@@ -50,7 +50,7 @@ class DeepCoralLoss(BaseDALoss):
         return loss
 
 
-def DeepCoral(module, layer_name, reg=1, **kwargs):
+def DeepCoral(module, layer_names, reg=1, **kwargs):
     """DeepCORAL domain adaptation method.
 
     From [12]_.
@@ -59,9 +59,10 @@ def DeepCoral(module, layer_name, reg=1, **kwargs):
     ----------
     module : torch module (class or instance)
         A PyTorch :class:`~torch.nn.Module`.
-    layer_name : str
-        The name of the module's layer whose outputs are
+    layer_names : str
+        List of the names of the module's layers whose outputs are
         collected during the training for the adaptation.
+        If only one layer is needed, it could be a string.
     reg : float, optional (default=1)
         The regularization parameter of the covariance estimator.
 
@@ -74,7 +75,7 @@ def DeepCoral(module, layer_name, reg=1, **kwargs):
     net = DomainAwareNet(
         module=DomainAwareModule,
         module__base_module=module,
-        module__layer_name=layer_name,
+        module__layer_names=layer_names,
         iterator_train=DomainBalancedDataLoader,
         criterion=DomainAwareCriterion,
         criterion__criterion=torch.nn.CrossEntropyLoss(),
@@ -123,7 +124,7 @@ class DANLoss(BaseDALoss):
         return loss
 
 
-def DAN(module, layer_name, reg=1, sigmas=None, **kwargs):
+def DAN(module, layer_names, reg=1, sigmas=None, **kwargs):
     """DAN domain adaptation method.
 
     See [14]_.
@@ -132,9 +133,10 @@ def DAN(module, layer_name, reg=1, sigmas=None, **kwargs):
     ----------
     module : torch module (class or instance)
         A PyTorch :class:`~torch.nn.Module`.
-    layer_name : str
-        The name of the module's layer whose outputs are
+    layer_names : str
+        List of the names of the module's layers whose outputs are
         collected during the training for the adaptation.
+        If only one layer is needed, it could be a string.
     reg : float, optional (default=1)
         The regularization parameter of the covariance estimator.
     sigmas : array-like, optional (default=None)
@@ -149,7 +151,7 @@ def DAN(module, layer_name, reg=1, sigmas=None, **kwargs):
     net = DomainAwareNet(
         module=DomainAwareModule,
         module__base_module=module,
-        module__layer_name=layer_name,
+        module__layer_names=layer_names,
         iterator_train=DomainBalancedDataLoader,
         criterion=DomainAwareCriterion(
             torch.nn.CrossEntropyLoss(), DANLoss(sigmas=sigmas), reg=reg

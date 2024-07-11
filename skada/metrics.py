@@ -316,7 +316,12 @@ class SoftNeighborhoodDensity(_BaseDomainAwareScorer):
 class DeepEmbeddedValidation(_BaseDomainAwareScorer):
     """Loss based on source data using features representation to weight samples.
 
-    See [20]_ for details.
+    DEV scorer use feature space to compute the weights of the samples.
+    If the method is a deep model, the last layer of the model is used to
+    compute the features. If several layer name are provided, the last layer
+    is taken as the last layer name.
+    If the method is a sklearn model, the features are the input data.
+    See [20]_ for more details.
 
     Parameters
     ----------
@@ -384,7 +389,11 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
 
         if not isinstance(estimator, BaseEstimator):
             # The estimator is a deep model
-            transformer = estimator.predict_features
+            def get_last_feature(x):
+                features = estimator.predict_features(x)
+                return features[-1].detach().numpy()
+
+            transformer = get_last_feature
             has_transform_method = True
         else:
             # We need to find the last layer of the pipeline with a transform method
@@ -421,12 +430,12 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         # 2 cases:
         # - features_train is a numpy array --> Do nothing
         # - features_train is a torch.Tensor --> call detach().numpy()
-        if not isinstance(features_train, np.ndarray):
-            # The transformer comes from a deep model
-            # and returns a torch.Tensor
-            features_train = features_train.detach().numpy()
-            features_val = features_val.detach().numpy()
-            features_target = features_target.detach().numpy()
+        # if not isinstance(features_train, np.ndarray):
+        #     # The transformer comes from a deep model
+        #     # and returns a torch.Tensor
+        #     features_train = features_train.detach().numpy()
+        #     features_val = features_val.detach().numpy()
+        #     features_target = features_target.detach().numpy()
 
         self._fit_adapt(features_train, features_target)
         N_train, N_target = len(features_train), len(features_target)

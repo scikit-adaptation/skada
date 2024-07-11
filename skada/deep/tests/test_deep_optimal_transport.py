@@ -31,7 +31,7 @@ def test_deepjdot():
         ToyModule2D(),
         reg=1,
         reg_cl=1,
-        layer_name="dropout",
+        layer_names="dropout",
         batch_size=10,
         max_epochs=10,
         train_split=None,

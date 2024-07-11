@@ -21,7 +21,7 @@ from skada.deep.modules import DomainClassifier, ToyModule2D
             ToyModule2D(),
             reg=1,
             domain_classifier=DomainClassifier(num_features=10),
-            layer_name="dropout",
+            layer_names="dropout",
             batch_size=10,
             max_epochs=10,
             train_split=None,
@@ -29,7 +29,7 @@ from skada.deep.modules import DomainClassifier, ToyModule2D
         DeepCoral(
             ToyModule2D(),
             reg=1,
-            layer_name="dropout",
+            layer_names="dropout",
             batch_size=10,
             max_epochs=10,
             train_split=None,

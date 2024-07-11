@@ -50,7 +50,7 @@ model.score(X_test, y=y_test)
 # ----------------------------------------------------------------------------
 model = DeepCoral(
     MNISTtoUSPSNet(),
-    layer_name="fc1",
+    layer_names="fc1",
     batch_size=128,
     max_epochs=5,
     train_split=False,

@@ -34,7 +34,7 @@ def test_generic_scorer_on_deepmodel(scorer, da_dataset):
     estimator = DeepCoral(
         ToyModule2D(proba=True),
         reg=1,
-        layer_name="dropout",
+        layer_names="dropout",
         batch_size=10,
         max_epochs=10,
         train_split=None,
@@ -68,7 +68,7 @@ def test_generic_scorer(scorer, da_dataset):
     net = DeepCoral(
         ToyModule2D(proba=True),
         reg=1,
-        layer_name="dropout",
+        layer_names="dropout",
         batch_size=10,
         max_epochs=10,
         train_split=None,

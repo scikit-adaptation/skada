@@ -29,7 +29,7 @@ class DomainAwareCriterion(torch.nn.Module):
         The initialized criterion (loss) used to compute the
         loss to reduce the divergence between domains.
     reg: float, default=1
-        Regularization parameter.
+        Regularization parameter or list of parameters for each layer.
     """
 
     def __init__(self, criterion, adapt_criterion, reg=1):
@@ -57,33 +57,45 @@ class DomainAwareCriterion(torch.nn.Module):
         y_true :
             The true labels. Available for source, masked for target.
         """
-        y_pred, domain_pred, features, sample_domain = y_pred  # unpack
-        source_idx = (sample_domain >= 0)
+        y_pred, domain_preds, features, sample_domain = y_pred  # unpack
+        source_idx = sample_domain >= 0
         y_pred_s = y_pred[source_idx]
         y_pred_t = y_pred[~source_idx]
 
-        if domain_pred is not None:
-            domain_pred_s = domain_pred[source_idx]
-            domain_pred_t = domain_pred[~source_idx]
+        if domain_preds is not None:
+            domain_pred_s = [
+                domain_preds[i][source_idx] for i in range(len(domain_preds))
+            ]
+            domain_pred_t = [
+                domain_preds[i][~source_idx] for i in range(len(domain_preds))
+            ]
         else:
             domain_pred_s = None
             domain_pred_t = None
 
-        features_s = features[source_idx]
-        features_t = features[~source_idx]
+        features_s = [features[i][source_idx] for i in range(len(features))]
+        features_t = [features[i][~source_idx] for i in range(len(features))]
 
-        # predict
-        return self.criterion(
-            y_pred_s, y_true[source_idx]
-        ) + self.reg * self.adapt_criterion(
-            y_true[source_idx],
-            y_pred_s,
-            y_pred_t,
-            domain_pred_s,
-            domain_pred_t,
-            features_s,
-            features_t,
-        )
+        base_loss = self.criterion(y_pred_s, y_true[source_idx])
+
+        adapt_loss = []
+        for i in range(len(features)):
+            reg = self.reg[i] if isinstance(self.reg, list) else self.reg
+            adapt_loss.append(
+                reg
+                * self.adapt_criterion(
+                    y_true[source_idx],
+                    y_pred_s,
+                    y_pred_t,
+                    domain_pred_s[i] if domain_pred_s is not None else None,
+                    domain_pred_t[i] if domain_pred_s is not None else None,
+                    features_s[i],
+                    features_t[i],
+                )
+            )
+        adapt_loss = sum(adapt_loss)
+
+        return base_loss + adapt_loss
 
 
 class BaseDALoss(torch.nn.Module):
@@ -222,32 +234,35 @@ class DomainAwareModule(torch.nn.Module):
     ----------
     module : torch module (class or instance)
         A PyTorch :class:`~torch.nn.Module`.
-    layer_name : str
-        The name of the module's layer whose outputs are
+    layer_names : str
+        List of the names of the module's layers whose outputs are
         collected during the training for the adaptation.
+        If only one layer is needed, it could be a string.
     domain_classifier : torch module, default=None
         A PyTorch :class:`~torch.nn.Module` used to classify the
         domain. Could be None.
     """
 
-    def __init__(self, base_module, layer_name, domain_classifier=None):
+    def __init__(self, base_module, layer_names, domain_classifier=None):
         super(DomainAwareModule, self).__init__()
         self.base_module_ = base_module
         self.domain_classifier_ = domain_classifier
-        self.layer_name = layer_name
+        self.layer_names = (
+            layer_names if isinstance(layer_names, list) else [layer_names]
+        )
         self.intermediate_layers = {}
         self._setup_hooks()
 
     def _setup_hooks(self):
         _register_forwards_hook(
-            self.base_module_, self.intermediate_layers, [self.layer_name]
+            self.base_module_, self.intermediate_layers, self.layer_names
         )
 
     def get_params(self, deep=True) -> Dict[str, Any]:
         return {
-            'base_module': self.base_module_,
-            'layer_name': self.layer_name,
-            'domain_classifier': self.domain_classifier_,
+            "base_module": self.base_module_,
+            "layer_names": self.layer_names,
+            "domain_classifier": self.domain_classifier_,
         }
 
     def __sklearn_clone__(self) -> torch.nn.Module:
@@ -257,51 +272,68 @@ class DomainAwareModule(torch.nn.Module):
 
     def forward(self, X, sample_domain=None, is_fit=False, return_features=False):
         if is_fit:
-            source_idx = (sample_domain >= 0)
+            source_idx = sample_domain >= 0
 
             X_s = X[source_idx]
             X_t = X[~source_idx]
             # predict
             y_pred_s = self.base_module_(X_s)
-            features_s = self.intermediate_layers[self.layer_name]
+            features_s = [
+                self.intermediate_layers[layer_name].reshape(len(X_s), -1)
+                for layer_name in self.layer_names
+            ]
             y_pred_t = self.base_module_(X_t)
-            features_t = self.intermediate_layers[self.layer_name]
-
-            if self.domain_classifier_ is not None:
-                domain_pred_s = self.domain_classifier_(features_s)
-                domain_pred_t = self.domain_classifier_(features_t)
-                domain_pred = torch.empty(
-                    (len(sample_domain)), 
-                    device=domain_pred_s.device
-                )
-                domain_pred[source_idx] = domain_pred_s
-                domain_pred[~source_idx] = domain_pred_t
-            else:
-                domain_pred = None
+            features_t = [
+                self.intermediate_layers[layer_name].reshape(len(X_t), -1)
+                for layer_name in self.layer_names
+            ]
 
             y_pred = torch.empty(
-                (len(sample_domain), y_pred_s.shape[1]),
-                device=y_pred_s.device
+                (len(sample_domain), y_pred_s.shape[1]), device=y_pred_s.device
             )
             y_pred[source_idx] = y_pred_s
             y_pred[~source_idx] = y_pred_t
 
-            features = torch.empty(
-                (len(sample_domain), features_s.shape[1]),
-                device=features_s.device
-            )
-            features[source_idx] = features_s
-            features[~source_idx] = features_t
+            features = []
+            for i in range(len(features_s)):
+                features.append(
+                    torch.empty(
+                        (len(sample_domain), features_s[i].shape[1]),
+                        device=features_s[i].device,
+                    )
+                )
+                features[i][source_idx] = features_s[i]
+                features[i][~source_idx] = features_t[i]
+
+            if self.domain_classifier_ is not None:
+                domain_preds = []
+                for i in range(len(features)):
+                    domain_pred_s = self.domain_classifier_(features_s[i])
+                    domain_pred_t = self.domain_classifier_(features_t[i])
+                    domain_pred = torch.empty(
+                        (len(sample_domain)), device=domain_pred_s.device
+                    )
+                    domain_pred[source_idx] = domain_pred_s
+                    domain_pred[~source_idx] = domain_pred_t
+                    domain_preds.append(domain_pred)
+            else:
+                domain_preds = None
 
             return (
                 y_pred,
-                domain_pred,
+                domain_preds,
                 features,
                 sample_domain,
             )
         else:
             if return_features:
-                return self.base_module_(X), self.intermediate_layers[self.layer_name]
+                return (
+                    self.base_module_(X),
+                    [
+                        self.intermediate_layers[layer_name].reshape(len(X), -1)
+                        for layer_name in self.layer_names
+                    ],
+                )
             else:
                 return self.base_module_(X)
 
