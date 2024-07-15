@@ -1,0 +1,60 @@
+
+
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+dynamic = ["version"]
+name = "skada"
+description = "A Python package for domain adaptation compatible with scikit-learn and Pytorch."
+authors = [
+        {name = "SKADA Team"},
+        ]
+license = {file = "COPYING"}
+readme = "README.md"
+dependencies = [
+    "numpy >= 1.24",
+    "scipy >= 1.10",
+    "scikit-learn >= 1.4.0",
+    "POT >= 0.9.3",
+]
+keywords = ["domain-adaptation", "scikit-learn", "pytorch", 
+            "machine learning", "deep learning"]
+classifiers=[
+  "Intended Audience :: Science/Research",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: BSD License",
+  "Programming Language :: C",
+  "Programming Language :: Python",
+  "Topic :: Software Development",
+  "Topic :: Scientific/Engineering",
+  "Development Status :: 3 - Alpha",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX",
+  "Operating System :: Unix",
+  "Operating System :: MacOS",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+
+[project.urls]
+homepage = "https://scikit-adaptation.github.io/"
+documentation = "https://scikit-adaptation.github.io/"
+repository = "https://github.com/scikit-adaptation/skada/"
+
+# Optional dependencies
+[project.optional-dependencies]
+all = ["torch", "torchvision", "skorch"]
+deep = ["torch", "torchvision", "skorch"]
+subspace = ["torch"]
+
+[tool.setuptools]
+packages = ["skada"]
+
+[tool.setuptools.dynamic]
+version = {attr = "skada.version.__version__"}

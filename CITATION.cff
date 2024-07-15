@@ -1,0 +1,62 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: 'SKADA : Scikit Adaptation'
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Théo
+    family-names: Gnassounou
+    affiliation: University Paris-Saclay, Inria, CEA
+  - given-names: Oleksii
+    family-names: Kachaiev
+  - given-names: Rémi
+    family-names: Flamary
+    affiliation: 'École Polytechnique, IP Paris'
+  - given-names: Antoine
+    family-names: Collas
+    affiliation: 'University Paris-Saclay, Inria, CEA'
+  - given-names: Yanis
+    family-names: Lalou
+    affiliation: 'École Polytechnique, IP Paris'
+  - given-names: Antoine
+    name-particle: de
+    family-names: Mathelin
+    affiliation: 'ENS Paris Saclay'
+  - given-names: Alexandre
+    family-names: Gramfort
+    affiliation: 'University Paris-Saclay, Inria, CEA'
+  - given-names: Ruben
+    family-names: Bueno
+    affiliation: 'École Polytechnique, IP Paris'
+  - given-names: Florent
+    family-names: Michel
+    affiliation: 'University Paris-Saclay, Inria, CEA'
+  - given-names: Apolline
+    family-names: Mellot
+    affiliation: 'University Paris-Saclay, Inria, CEA'
+  - given-names: Virginie
+    family-names: ' Loison'
+    affiliation: 'University Paris-Saclay, Inria, CEA'
+  - given-names: Ambroise
+    family-names: Odonnat
+    affiliation: Huawei Noah’s Ark Lab
+  - given-names: Thomas
+    family-names: Moreau
+    affiliation: 'University Paris-Saclay, Inria, CEA'
+repository-code: 'https://github.com/scikit-adaptation/skada/'
+url: 'https://scikit-adaptation.github.io/'
+abstract: >-
+  Python Domain Adaptation toolbow compatible with
+  scikit-learn and PyTorch
+keywords:
+  - machine learning
+  - scikit-learn
+  - pytorch
+  - domain adaptation
+license: BSD-3-Clause
+version: 0.3.0
+date-released: 2024-07-04
