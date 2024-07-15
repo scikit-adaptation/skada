@@ -4,6 +4,7 @@
 [![Build Status](https://github.com/scikit-adaptation/skada/actions/workflows/testing.yml/badge.svg)](https://github.com/scikit-adaptation/skada/actions)
 [![Codecov Status](https://codecov.io/gh/scikit-adaptation/skada/branch/main/graph/badge.svg)](https://codecov.io/gh/scikit-adaptation/skada)
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.12666838.svg)](https://doi.org/10.5281/zenodo.12666838)
 
 > [!WARNING]
 > This library is currently in a phase of active development. All features are subject to change without prior notice. If you are interested in collaborating, please feel free to reach out by opening an issue or starting a discussion.
@@ -15,6 +16,25 @@ compatible API with the following features:
 - PyTorch/skorch API for deep learning DA algorithms.
 - Classifier/Regressor and data Adapter DA algorithms compatible with scikit-learn pipelines.
 - Compatible with scikit-learn validation loops (cross_val_score, GridSearchCV, etc).
+
+**Citation**: If you use this library in your research, please cite the following reference:
+
+```
+Gnassounou T., Kachaiev O., Flamary R., Collas A., Lalou Y., de Mathelin A., Gramfort A., Bueno R., Michel F., Mellot A.,  Loison V., Odonnat A., Moreau T. (2024). SKADA : Scikit Adaptation (version 0.3.0). URL: https://scikit-adaptation.github.io/
+```
+
+or in Bibtex format :
+
+```bibtex
+@misc{gnassounou2024skada,
+author = {Gnassounou, Théo and Kachaiev, Oleksii and Flamary, Rémi and Collas, Antoine and Lalou, Yanis and de Mathelin, Antoine and Gramfort, Alexandre and Bueno, Ruben and Michel, Florent and Mellot, Apolline and  Loison, Virginie and Odonnat, Ambroise and Moreau, Thomas},
+month = {7},
+title = {SKADA : Scikit Adaptation},
+url = {https://scikit-adaptation.github.io/},
+year = {2024}
+}
+```
+
 
 ## Implemented algorithms
 
@@ -212,3 +232,4 @@ The library is distributed under the 3-Clause BSD license.
 [29] Montesuma, Eduardo Fernandes, and Fred Maurice Ngole Mboula. ["Wasserstein barycenter for multi-source domain adaptation."](https://openaccess.thecvf.com/content/CVPR2021/papers/Montesuma_Wasserstein_Barycenter_for_Multi-Source_Domain_Adaptation_CVPR_2021_paper.pdf) In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition, pp. 16785-16793. 2021.
 
 [30] Gnassounou, Theo, Rémi Flamary, and Alexandre Gramfort. ["Convolution Monge Mapping Normalization for learning on sleep data."](https://proceedings.neurips.cc/paper_files/paper/2023/file/21718991f6acf19a42376b5c7a8668c5-Paper-Conference.pdf) Advances in Neural Information Processing Systems 36 (2024).
+

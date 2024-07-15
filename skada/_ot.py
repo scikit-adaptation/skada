@@ -722,7 +722,7 @@ class JDOTClassifier(DAEstimator):
 
         self.estimator_, self.lst_loss_ot_, self.lst_loss_tgt_labels_, self.sol_ = res
 
-    def predict(self, X, sample_domain=None, *, sample_weight=None):
+    def predict(self, X, sample_domain=None, *, sample_weight=None, allow_source=False):
         """Predict using the model"""
         check_is_fitted(self)
         if sample_domain is not None and np.any(sample_domain >= 0):
@@ -741,7 +741,9 @@ class JDOTClassifier(DAEstimator):
             )
 
     @available_if(_check_proba)
-    def predict_proba(self, X, sample_domain=None, *, sample_weight=None):
+    def predict_proba(
+        self, X, sample_domain=None, *, sample_weight=None, allow_source=False
+    ):
         """Predict using the model"""
         check_is_fitted(self)
         if sample_domain is not None and np.any(sample_domain >= 0):
@@ -778,6 +780,8 @@ class OTLabelPropAdapter(BaseAdapter):
         The entropic  regularization parameter for the optimal transport
         problem. If None, the exact OT is solved, else it is used to weight
         the entropy regularizationof the coupling matrix.
+    n_iter_max: int
+        Maximum number of iterations for the OT solver.
 
     Attributes
     ----------
@@ -798,10 +802,11 @@ class OTLabelPropAdapter(BaseAdapter):
     __metadata_request__fit = {"sample_weight": True}
     __metadata_request__fit_transform = {"sample_weight": True}
 
-    def __init__(self, metric="sqeuclidean", reg=None):
+    def __init__(self, metric="sqeuclidean", reg=None, n_iter_max=200):
         super().__init__()
         self.metric = metric
         self.reg = reg
+        self.n_iter_max = n_iter_max
 
     def fit_transform(self, X, y, sample_domain=None, *, sample_weight=None):
         """Fit adaptation parameters"""
@@ -818,7 +823,7 @@ class OTLabelPropAdapter(BaseAdapter):
             wt = ot.unif(Xt.shape[0])
 
         M = ot.dist(Xs, Xt, metric=self.metric)
-        G = ot.solve(M, ws, wt, reg=self.reg).plan
+        G = ot.solve(M, ws, wt, reg=self.reg, max_iter=self.n_iter_max).plan
 
         self.discrete_ = discrete = _find_y_type(ys) == Y_Type.DISCRETE
         if discrete:
@@ -852,7 +857,7 @@ class OTLabelPropAdapter(BaseAdapter):
         return X, yout, dico
 
 
-def OTLabelProp(base_estimator=None, reg=0, metric="sqeuclidean"):
+def OTLabelProp(base_estimator=None, reg=0, metric="sqeuclidean", n_iter_max=200):
     """Label propagation using optimal transport plan.
 
     This adapter uses the optimal transport plan to propagate labels from
@@ -873,6 +878,8 @@ def OTLabelProp(base_estimator=None, reg=0, metric="sqeuclidean"):
     metric : str, default='sqeuclidean'
         The metric to use for the cost matrix. Can be 'sqeuclidean' for
         squared euclidean distance, 'euclidean' for euclidean distance,
+    n_iter_max: int
+        Maximum number of iterations for the OT solver.
 
     Returns
     -------
@@ -890,7 +897,7 @@ def OTLabelProp(base_estimator=None, reg=0, metric="sqeuclidean"):
         base_estimator = SVC(kernel="rbf").set_fit_request(sample_weight=True)
 
     return make_da_pipeline(
-        OTLabelPropAdapter(reg=reg, metric=metric),
+        OTLabelPropAdapter(reg=reg, metric=metric, n_iter_max=n_iter_max),
         base_estimator,
     )
 

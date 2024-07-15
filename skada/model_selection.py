@@ -14,7 +14,14 @@ from sklearn.model_selection._split import (
     _num_samples,
     _validate_shuffle_split,
 )
-from sklearn.utils import _approximate_mode, check_random_state, indexable
+from sklearn.utils import check_random_state, indexable
+
+try:
+    from sklearn.utils import _approximate_mode
+except ImportError:
+    # to handle changes introduced in sklearn 1.5
+    # see https://github.com/scikit-learn/scikit-learn/pull/28481
+    from sklearn.utils.extmath import _approximate_mode
 from sklearn.utils.metadata_routing import _MetadataRequester
 from sklearn.utils.validation import check_array
 
@@ -344,11 +351,11 @@ class StratifiedDomainShuffleSplit(BaseDomainAwareShuffleSplit):
     ... ):
     ...     print(f"Fold {i}:")
     ...     print(f"  Train: index={train_index}, "
-    ...     f'''group={[[b, a]
+    ...     f'''group={[[b.item(), a.item()]
     ...     for a, b in zip(y[train_index], sample_domain[train_index])
     ...     ]}''')
     ...     print(f"  Test: index={test_index}, "
-    ...     f'''group={[[b, a]
+    ...     f'''group={[[b.item(), a.item()]
     ...     for a, b in zip(y[test_index], sample_domain[test_index])
     ...     ]}''')
     Fold 0:
@@ -400,6 +407,7 @@ class StratifiedDomainShuffleSplit(BaseDomainAwareShuffleSplit):
         groups, group_indices = np.unique(groups_array, return_inverse=True, axis=0)
         n_groups = groups.shape[0]
 
+        group_indices = group_indices.flatten()
         group_counts = np.bincount(group_indices)
         if np.min(group_counts) < 2:
             raise ValueError(
