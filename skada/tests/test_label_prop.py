@@ -10,6 +10,7 @@ except ImportError:
 import pytest
 
 from skada import (
+    JCPOTLabelProp,
     JCPOTLabelPropAdapter,
     OTLabelProp,
     OTLabelPropAdapter,
@@ -27,6 +28,7 @@ from skada.datasets import DomainAwareDataset
         OTLabelProp(LogisticRegression()),
         OTLabelProp(),
         make_da_pipeline(JCPOTLabelPropAdapter(), LogisticRegression()),
+        JCPOTLabelProp(),
     ],
 )
 def test_label_prop_estimator(estimator, da_blobs_dataset):

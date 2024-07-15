@@ -233,3 +233,5 @@ The library is distributed under the 3-Clause BSD license.
 
 [30] Gnassounou, Theo, Rémi Flamary, and Alexandre Gramfort. ["Convolution Monge Mapping Normalization for learning on sleep data."](https://proceedings.neurips.cc/paper_files/paper/2023/file/21718991f6acf19a42376b5c7a8668c5-Paper-Conference.pdf) Advances in Neural Information Processing Systems 36 (2024).
 
+[31] Redko, Ievgen, Nicolas Courty, Rémi Flamary, and Devis Tuia.[ "Optimal transport for multi-source domain adaptation under target shift."](https://proceedings.mlr.press/v89/redko19a/redko19a.pdf) In The 22nd International Conference on artificial intelligence and statistics, pp. 849-858. PMLR, 2019.
+

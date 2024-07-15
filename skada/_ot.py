@@ -907,7 +907,30 @@ class JCPOTLabelPropAdapter(BaseAdapter):
 
     This adapter uses the optimal transport plan to propagate labels from
     sources to target domain with target shift (change in proportion of
-    classes). This was proposed in  [31]
+    classes). This was proposed in [31].
+
+    Parameters
+    ----------
+    metric : str, default='sqeuclidean'
+        The metric to use for the cost matrix. Can be 'sqeuclidean' for
+        squared euclidean distance, 'euclidean' for euclidean distance,
+    reg : float, default=1
+        The entropic  regularization parameter for the optimal transport
+        problem.
+    max_iter : int, default=10
+        Maximum number of iterations for the JCPOT solver.
+    tol : float, default=1e-9
+        Tolerance for loss variations (OT and mse) stopping iterations.
+    verbose : bool, default=False
+        Print loss along iterations if True.
+
+
+    References
+    ----------
+    [31] Redko, Ievgen, Nicolas Courty, Rémi Flamary, and Devis Tuia. "Optimal
+         transport for multi-source domain adaptation under target shift." In
+         The 22nd International Conference on artificial intelligence and
+         statistics, pp. 849-858. PMLR, 2019.
 
     """
 
@@ -957,3 +980,61 @@ class JCPOTLabelPropAdapter(BaseAdapter):
         yout[sample_domain < 0] = yh
 
         return X, yout, {}
+
+
+def JCPOTLabelProp(
+    base_estimator=None,
+    reg=1,
+    metric="sqeuclidean",
+    max_iter=10,
+    tol=1e-9,
+    verbose=False,
+):
+    """JCPOT Label Propagation Adapter for multi source target shift
+
+    This adapter uses the optimal transport plan to propagate labels from
+    sources to target domain with target shift (change in proportion of
+    classes). This was proposed in [31].
+
+    Parameters
+    ----------
+    base_estimator : object, default=LinearRegression()
+        The base estimator to be used for the classification task. This
+        estimator should optimize a classification loss corresponding to the
+        given metric and provide compatible predict method (decision_function of
+        predict_proba).
+    reg : float, default=1
+        The entropic  regularization parameter for the optimal transport
+        problem.
+    metric : str, default='sqeuclidean'
+        The metric to use for the cost matrix. Can be 'sqeuclidean' for
+        squared euclidean distance, 'euclidean' for euclidean distance,
+    max_iter : int, default=10
+        Maximum number of iterations for the JCPOT solver.
+    tol : float, default=1e-9
+        Tolerance for loss variations (OT and mse) stopping iterations.
+    verbose : bool, default=False
+        Print loss along iterations if True.
+
+    Returns
+    -------
+    adapter : JCPOTLabelPropAdapter
+        The optimal transport label propagation adapter.
+
+    References
+    ----------
+    [31] Redko, Ievgen, Nicolas Courty, Rémi Flamary, and Devis Tuia. "Optimal
+         transport for multi-source domain adaptation under target shift." In
+         The 22nd International Conference on artificial intelligence and
+         statistics, pp. 849-858. PMLR, 2019.
+
+    """
+    if base_estimator is None:
+        base_estimator = LogisticRegression()
+
+    return make_da_pipeline(
+        JCPOTLabelPropAdapter(
+            reg=reg, metric=metric, max_iter=max_iter, tol=tol, verbose=verbose
+        ),
+        base_estimator,
+    )
