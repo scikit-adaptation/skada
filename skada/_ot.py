@@ -912,13 +912,14 @@ class JCPOTLabelPropAdapter(BaseAdapter):
     """
 
     def __init__(
-        self, metric="sqeuclidean", reg=None, max_iter=10, tol=1e-9, verbose=False
+        self, metric="sqeuclidean", reg=1, max_iter=10, tol=1e-9, verbose=False
     ):
         super().__init__()
         self.metric = metric
         self.reg = reg
         self.max_iter = max_iter
         self.tol = tol
+        self.verbose = verbose
 
     def fit_transform(self, X, y, sample_domain=None, *, sample_weight=None):
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
@@ -946,7 +947,7 @@ class JCPOTLabelPropAdapter(BaseAdapter):
 
         self.ot_adapter_.fit(Xs=Xs, ys=ys, Xt=Xt)
 
-        yh = self.ot_adapter_.transform_labels(Xt)
+        yh = self.ot_adapter_.transform_labels(ys)
 
         self.yh_continuous_ = yh
 
