@@ -392,7 +392,7 @@ print(f"LabelProp Accuracy on target: {acc_t:.2f}")
 
 
 yt_pred = clf_jcpot.predict(Xt)
-acc_s_jcpot = (ys_pred == ys).mean()
+acc_s_jcpot = (yt_pred == yt).mean()
 
 print(f"JCPOT Accuracy on target: {acc_s_jcpot:.2f}")
 
