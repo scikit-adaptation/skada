@@ -31,8 +31,14 @@ import numpy as np
 from sklearn.kernel_ridge import KernelRidge
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import mean_squared_error
+from sklearn.svm import SVC
 
-from skada import OTLabelPropAdapter, make_da_pipeline, source_target_split
+from skada import (
+    JCPOTLabelPropAdapter,
+    OTLabelPropAdapter,
+    make_da_pipeline,
+    source_target_split,
+)
 from skada.datasets import make_shifted_datasets
 
 # %%
@@ -329,4 +335,97 @@ plt.scatter(Xt[:, 0], Xt[:, 1], c=yht, cmap="tab10", vmax=9, label="Target")
 
 
 plt.title("Propagated labels data")
+plt.axis(ax)
+
+
+# %%
+# Generate classification classification dataset and plot it
+# -----------------------------------------------------
+#
+# We generate a simple 2D target shift dataset.
+
+X, y, sample_domain = make_shifted_datasets(
+    n_samples_source=20,
+    n_samples_target=20,
+    shift="target_shift",
+    noise=0.2,
+    random_state=42,
+)
+
+
+Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
+
+
+plt.figure(5, (10, 5))
+plt.subplot(1, 2, 1)
+plt.scatter(Xs[:, 0], Xs[:, 1], c=ys, cmap="tab10", vmax=9, label="Source")
+plt.title("Source data")
+ax = plt.axis()
+
+plt.subplot(1, 2, 2)
+plt.scatter(Xt[:, 0], Xt[:, 1], c=yt, cmap="tab10", vmax=9, label="Target")
+plt.title("Target data")
+plt.axis(ax)
+
+
+# %%
+# Train with LabelProp and JCPOT + classifier
+# -------------------------
+#
+# On this target shift dataset, we can see that the label propagation method
+# does not work well because it finds correspondences between the source and
+# target samples with different classes. In this case JCPOT is more robust
+# to this kind of shift because it estimates the class proportions in the target.
+
+
+clf = make_da_pipeline(OTLabelPropAdapter(), SVC())
+clf.fit(X, y, sample_domain=sample_domain)
+
+clf_jcpot = make_da_pipeline(JCPOTLabelPropAdapter(reg=0.1), SVC())
+clf_jcpot.fit(X, y, sample_domain=sample_domain)
+
+
+yt_pred = clf.predict(Xt)
+acc_t = (yt_pred == yt).mean()
+
+print(f"LabelProp Accuracy on target: {acc_t:.2f}")
+
+
+yt_pred = clf_jcpot.predict(Xt)
+acc_s_jcpot = (ys_pred == ys).mean()
+
+print(f"JCPOT Accuracy on target: {acc_s_jcpot:.2f}")
+
+XX, YY = np.meshgrid(np.linspace(ax[0], ax[1], 100), np.linspace(ax[2], ax[3], 100))
+Z = clf.predict(np.c_[XX.ravel(), YY.ravel()]).reshape(XX.shape)
+Z_jcpot = clf_jcpot.predict(np.c_[XX.ravel(), YY.ravel()]).reshape(XX.shape)
+
+
+plt.figure(7, (10, 5))
+
+
+plt.subplot(1, 2, 1)
+plt.scatter(Xt[:, 0], Xt[:, 1], c=yt, cmap="tab10", vmax=9, label="Prediction")
+plt.imshow(
+    Z,
+    extent=(ax[0], ax[1], ax[2], ax[3]),
+    origin="lower",
+    alpha=0.5,
+    cmap="tab10",
+    vmax=9,
+)
+plt.title(f"LabelProp reglog on target (ACC={acc_t:.2f})")
+plt.axis(ax)
+
+plt.subplot(1, 2, 2)
+plt.scatter(Xt[:, 0], Xt[:, 1], c=yt, cmap="tab10", vmax=9, label="Prediction")
+plt.imshow(
+    Z_jcpot,
+    extent=(ax[0], ax[1], ax[2], ax[3]),
+    origin="lower",
+    alpha=0.5,
+    cmap="tab10",
+    vmax=9,
+)
+plt.title(f"JCPOT reglog on target (ACC={acc_s_jcpot:.2f})")
 plt.axis(ax)
