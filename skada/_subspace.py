@@ -769,6 +769,11 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
         before the algorithm stops
     verbose : bool, default=False
         If True, print the final gradient norm.
+    n_subsample : int, default=None
+        The number of subsamples to use in the optimization problem.
+        default is None, which means that all samples are used.
+    random_state : int, RandomState instance or None, default=None
+        Determines random number generation for subsampling.
 
     Attributes
     ----------
@@ -794,6 +799,8 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
         max_iter=100,
         tol=0.01,
         verbose=False,
+        n_subsample=None,
+        random_state=None,
     ):
         super().__init__()
         self.n_components = n_components
@@ -809,6 +816,8 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
         self.max_iter = max_iter
         self.tol = tol
         self.verbose = verbose
+        self.n_subsample = n_subsample
+        self.random_state = random_state
 
     def _torch_cov(self, X):
         """Compute the covariance matrix of X using torch."""
@@ -903,6 +912,18 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
             allow_multi_source=True,
             allow_multi_target=True,
         )
+
+        if self.n_subsample is not None:
+            random_state = check_random_state(self.random_state)
+            indices = random_state.choice(
+                np.arange(X.shape[0]), min(self.n_subsample, X.shape[0]), replace=False
+            )
+            X = X[indices]
+            sample_domain = sample_domain[indices]
+            y = y[indices]
+            print("subsample")
+            print(X.shape)
+
         X_source, X_target, y_source, _ = source_target_split(
             X, y, sample_domain=sample_domain
         )
@@ -1000,6 +1021,8 @@ def TransferSubspaceLearning(
     max_iter=100,
     tol=0.01,
     verbose=False,
+    n_subsample=None,
+    random_state=None,
 ):
     """Domain Adaptation Using Transfer Subspace Learning.
 
@@ -1031,6 +1054,11 @@ def TransferSubspaceLearning(
         before the algorithm stops
     verbose : bool, default=False
         If True, print the final gradient norm.
+    n_subsample : int, default=None
+        The number of subsamples to use in the optimization problem.
+        default is None, which means that all samples are used.
+    random_state : int, RandomState instance or None, default=None
+        Determines random number generation for subsampling.
 
     Returns
     -------
@@ -1058,6 +1086,8 @@ def TransferSubspaceLearning(
             max_iter=max_iter,
             tol=tol,
             verbose=verbose,
+            n_subsample=n_subsample,
+            random_state=random_state,
         ),
         base_estimator,
     )
