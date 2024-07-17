@@ -40,6 +40,7 @@ from skada.datasets import DomainAwareDataset
             TransferComponentAnalysisAdapter(n_components=1), LogisticRegression()
         ),
         TransferComponentAnalysis(n_components=1),
+        TransferComponentAnalysis(n_components=1, n_subsample=10, random_state=0),
         TransferJointMatching(n_components=1, kernel="linear"),
         make_da_pipeline(
             TransferJointMatchingAdapter(n_components=1, kernel="linear", verbose=True),

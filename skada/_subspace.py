@@ -227,6 +227,12 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
     mu : float, default=0.1
         The parameter of the regularization in the optimization
         problem.
+    n_subsample : int, default=None
+        The number of subsamples to use in the optimization problem.
+        default is None, which means that all samples are used.
+    random_state : int, RandomState instance or None, default=None
+        Determines random number generation for subsampling.
+
 
     Attributes
     ----------
@@ -248,11 +254,20 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
            on Neural Networks, 2011.
     """
 
-    def __init__(self, kernel="rbf", n_components=None, mu=0.1):
+    def __init__(
+        self,
+        kernel="rbf",
+        n_components=None,
+        mu=0.1,
+        n_subsample=None,
+        random_state=None,
+    ):
         super().__init__()
         self.kernel = kernel
         self.n_components = n_components
         self.mu = mu
+        self.n_subsample = n_subsample
+        self.random_state = random_state
 
     def fit(self, X, y=None, *, sample_domain=None):
         """Fit adaptation parameters.
@@ -277,6 +292,15 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
             allow_multi_source=True,
             allow_multi_target=True,
         )
+
+        if self.n_subsample is not None:
+            random_state = check_random_state(self.random_state)
+            indices = random_state.choice(
+                np.arange(X.shape[0]), min(self.n_subsample, X.shape[0]), replace=False
+            )
+            X = X[indices]
+            sample_domain = sample_domain[indices]
+
         self.X_source_, self.X_target_ = source_target_split(
             X, sample_domain=sample_domain
         )
@@ -298,6 +322,8 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
 
         A = np.eye(ns + nt) + self.mu * K @ L @ K
         B = K @ H @ K
+
+        # solution = scipy.linalg.solve(A, B, assume_a="pos")
         solution = np.linalg.solve(A, B)
 
         eigvals, eigvects = np.linalg.eigh(solution)
@@ -372,7 +398,12 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
 
 
 def TransferComponentAnalysis(
-    base_estimator=None, kernel="rbf", n_components=None, mu=0.1
+    base_estimator=None,
+    kernel="rbf",
+    n_components=None,
+    mu=0.1,
+    n_subsample=None,
+    random_state=None,
 ):
     """Domain Adaptation Using Transfer Component Analysis.
 
@@ -391,6 +422,11 @@ def TransferComponentAnalysis(
     mu : float, default=0.1
         The parameter of the regularization in the optimization
         problem.
+    n_subsample : int, default=None
+        The number of subsamples to use in the optimization problem.
+        default is None, which means that all samples are used.
+    random_state : int, RandomState instance or None, default=None
+        Determines random number generation for subsampling.
 
     Returns
     -------
@@ -408,7 +444,11 @@ def TransferComponentAnalysis(
 
     return make_da_pipeline(
         TransferComponentAnalysisAdapter(
-            kernel=kernel, n_components=n_components, mu=mu
+            kernel=kernel,
+            n_components=n_components,
+            mu=mu,
+            n_subsample=n_subsample,
+            random_state=random_state,
         ),
         base_estimator,
     )
