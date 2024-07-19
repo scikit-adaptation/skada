@@ -479,6 +479,11 @@ class TransferJointMatchingAdapter(BaseAdapter):
         before the algorithm stops
     verbose : bool, default=False
         If True, print the loss value at each iteration.
+    n_subsample : int, default=None
+        The number of subsamples to use in the optimization problem.
+        default is None, which means that all samples are used.
+    random_state : int, RandomState instance or None, default=None
+        Determines random number generation for subsampling.
 
     Attributes
     ----------
@@ -501,6 +506,8 @@ class TransferJointMatchingAdapter(BaseAdapter):
         kernel="rbf",
         tol=0.01,
         verbose=False,
+        n_subsample=None,
+        random_state=None,
     ):
         super().__init__()
         self.n_components = n_components
@@ -509,6 +516,8 @@ class TransferJointMatchingAdapter(BaseAdapter):
         self.max_iter = max_iter
         self.tol = tol
         self.verbose = verbose
+        self.n_subsample = n_subsample
+        self.random_state = random_state
 
     def fit_transform(self, X, y=None, *, sample_domain=None, **params):
         """Predict adaptation (weights, sample or labels).
@@ -608,6 +617,15 @@ class TransferJointMatchingAdapter(BaseAdapter):
             allow_multi_source=True,
             allow_multi_target=True,
         )
+
+        if self.n_subsample is not None:
+            random_state = check_random_state(self.random_state)
+            indices = random_state.choice(
+                np.arange(X.shape[0]), min(self.n_subsample, X.shape[0]), replace=False
+            )
+            X = X[indices]
+            sample_domain = sample_domain[indices]
+
         X_source, X_target = source_target_split(X, sample_domain=sample_domain)
 
         if self.n_components is None:
@@ -687,6 +705,8 @@ def TransferJointMatching(
     kernel="rbf",
     max_iter=100,
     tol=0.01,
+    n_subsample=None,
+    random_state=None,
 ):
     """
 
@@ -708,6 +728,13 @@ def TransferJointMatching(
     kernel : kernel object, default='rbf'
         The kernel computed between data.
     tol :
+        The threshold for the differences between losses on two iteration
+        before the algorithm stops
+    n_subsample : int, default=None
+        The number of subsamples to use in the optimization problem.
+        default is None, which means that all samples are used.
+    random_state : int, RandomState instance or None, default=None
+        Determines random number generation for subsampling.
 
     Returns
     -------
@@ -731,6 +758,8 @@ def TransferJointMatching(
             kernel=kernel,
             max_iter=max_iter,
             tol=tol,
+            n_subsample=n_subsample,
+            random_state=random_state,
         ),
         base_estimator,
     )
@@ -918,9 +947,9 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
             indices = random_state.choice(
                 np.arange(X.shape[0]), min(self.n_subsample, X.shape[0]), replace=False
             )
-            X = X[indices].copy()
-            sample_domain = sample_domain[indices].copy()
-            y = y[indices].copy()
+            X = X[indices]
+            sample_domain = sample_domain[indices]
+            y = y[indices]
 
         X_source, X_target, y_source, _ = source_target_split(
             X, y, sample_domain=sample_domain
