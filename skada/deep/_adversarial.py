@@ -82,6 +82,7 @@ def DANN(
     reg=1,
     domain_classifier=None,
     num_features=None,
+    base_criterion=None,
     domain_criterion=None,
     **kwargs,
 ):
@@ -109,6 +110,9 @@ def DANN(
         the feature extractor.
         If domain_classifier is None, num_features has to be
         provided.
+    base_criterion : torch criterion (class)
+        The base criterion used to compute the loss with source
+        labels. If None, the default is `torch.nn.CrossEntropyLoss`.
     domain_criterion : torch criterion (class)
         The criterion (loss) used to compute the
         DANN loss. If None, a BCELoss is used.
@@ -127,6 +131,9 @@ def DANN(
             )
         domain_classifier = DomainClassifier(num_features=num_features)
 
+    if base_criterion is None:
+        base_criterion = torch.nn.CrossEntropyLoss()
+
     net = DomainAwareNet(
         module=DomainAwareModule,
         module__base_module=module,
@@ -134,7 +141,7 @@ def DANN(
         module__domain_classifier=domain_classifier,
         iterator_train=DomainBalancedDataLoader,
         criterion=DomainAwareCriterion,
-        criterion__criterion=nn.CrossEntropyLoss(),
+        criterion__base_criterion=base_criterion,
         criterion__reg=reg,
         criterion__adapt_criterion=DANNLoss(domain_criterion=domain_criterion),
         **kwargs,
@@ -319,6 +326,7 @@ def CDAN(
     domain_classifier=None,
     num_features=None,
     n_classes=None,
+    base_criterion=None,
     domain_criterion=None,
     **kwargs,
 ):
@@ -351,6 +359,9 @@ def CDAN(
     n_classes : int, default None
         Number of output classes.
         If domain_classifier is None, n_classes has to be provided.
+    base_criterion : torch criterion (class)
+        The base criterion used to compute the loss with source
+        labels. If None, the default is `torch.nn.CrossEntropyLoss`.
     domain_criterion : torch criterion (class)
         The criterion (loss) used to compute the
         CDAN loss. If None, a BCELoss is used.
@@ -372,6 +383,9 @@ def CDAN(
         num_features = np.min([num_features * n_classes, max_features])
         domain_classifier = DomainClassifier(num_features=num_features)
 
+    if base_criterion is None:
+        base_criterion = torch.nn.CrossEntropyLoss()
+
     net = DomainAwareNet(
         module=CDANModule,
         module__base_module=module,
@@ -380,7 +394,7 @@ def CDAN(
         module__max_features=max_features,
         iterator_train=DomainBalancedDataLoader,
         criterion=DomainAwareCriterion,
-        criterion__criterion=nn.CrossEntropyLoss(),
+        criterion__base_criterion=base_criterion,
         criterion__reg=reg,
         criterion__adapt_criterion=CDANLoss(domain_criterion=domain_criterion),
         **kwargs,

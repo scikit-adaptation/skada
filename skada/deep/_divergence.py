@@ -50,7 +50,7 @@ class DeepCoralLoss(BaseDALoss):
         return loss
 
 
-def DeepCoral(module, layer_name, reg=1, **kwargs):
+def DeepCoral(module, layer_name, reg=1, base_criterion=None, **kwargs):
     """DeepCORAL domain adaptation method.
 
     From [12]_.
@@ -64,6 +64,9 @@ def DeepCoral(module, layer_name, reg=1, **kwargs):
         collected during the training for the adaptation.
     reg : float, optional (default=1)
         The regularization parameter of the covariance estimator.
+    base_criterion : torch criterion (class)
+        The base criterion used to compute the loss with source
+        labels. If None, the default is `torch.nn.CrossEntropyLoss`.
 
     References
     ----------
@@ -71,13 +74,16 @@ def DeepCoral(module, layer_name, reg=1, **kwargs):
             Correlation alignment for deep domain
             adaptation. In ECCV Workshops, 2016.
     """
+    if base_criterion is None:
+        base_criterion = torch.nn.CrossEntropyLoss()
+
     net = DomainAwareNet(
         module=DomainAwareModule,
         module__base_module=module,
         module__layer_name=layer_name,
         iterator_train=DomainBalancedDataLoader,
         criterion=DomainAwareCriterion,
-        criterion__criterion=torch.nn.CrossEntropyLoss(),
+        criterion__base_criterion=base_criterion,
         criterion__reg=reg,
         criterion__adapt_criterion=DeepCoralLoss(),
         **kwargs,
@@ -123,7 +129,7 @@ class DANLoss(BaseDALoss):
         return loss
 
 
-def DAN(module, layer_name, reg=1, sigmas=None, **kwargs):
+def DAN(module, layer_name, reg=1, sigmas=None, base_criterion=None, **kwargs):
     """DAN domain adaptation method.
 
     See [14]_.
@@ -139,6 +145,9 @@ def DAN(module, layer_name, reg=1, sigmas=None, **kwargs):
         The regularization parameter of the covariance estimator.
     sigmas : array-like, optional (default=None)
         The sigmas for the Gaussian kernel.
+    base_criterion : torch criterion (class)
+        The base criterion used to compute the loss with source
+        labels. If None, the default is `torch.nn.CrossEntropyLoss`.
 
     References
     ----------
@@ -146,15 +155,16 @@ def DAN(module, layer_name, reg=1, sigmas=None, **kwargs):
             Features with Deep Adaptation Networks.
             In ICML, 2015.
     """
+    if base_criterion is None:
+        base_criterion = torch.nn.CrossEntropyLoss()
+
     net = DomainAwareNet(
         module=DomainAwareModule,
         module__base_module=module,
         module__layer_name=layer_name,
         iterator_train=DomainBalancedDataLoader,
-        criterion=DomainAwareCriterion(
-            torch.nn.CrossEntropyLoss(), DANLoss(sigmas=sigmas), reg=reg
-        ),
-        criterion__criterion=torch.nn.CrossEntropyLoss(),
+        criterion=DomainAwareCriterion,
+        criterion__base_criterion=base_criterion,
         criterion__reg=reg,
         criterion__adapt_criterion=DANLoss(sigmas=sigmas),
         **kwargs,
