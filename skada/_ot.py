@@ -17,7 +17,7 @@ from sklearn.utils.validation import check_is_fitted
 from ._pipeline import make_da_pipeline
 from ._utils import Y_Type, _find_y_type
 from .base import BaseAdapter, DAEstimator
-from .utils import check_X_y_domain, source_target_split
+from .utils import check_X_y_domain, per_domain_split, source_target_split
 
 
 def get_jdot_class_cost_matrix(Ys, Xt, estimator=None, metric="multinomial"):
@@ -898,5 +898,143 @@ def OTLabelProp(base_estimator=None, reg=0, metric="sqeuclidean", n_iter_max=200
 
     return make_da_pipeline(
         OTLabelPropAdapter(reg=reg, metric=metric, n_iter_max=n_iter_max),
+        base_estimator,
+    )
+
+
+class JCPOTLabelPropAdapter(BaseAdapter):
+    """JCPOT Label Propagation Adapter for multi source target shift
+
+    This adapter uses the optimal transport plan to propagate labels from
+    sources to target domain with target shift (change in proportion of
+    classes). This was proposed in [31].
+
+    Parameters
+    ----------
+    metric : str, default='sqeuclidean'
+        The metric to use for the cost matrix. Can be 'sqeuclidean' for
+        squared euclidean distance, 'euclidean' for euclidean distance,
+    reg : float, default=1
+        The entropic  regularization parameter for the optimal transport
+        problem.
+    max_iter : int, default=10
+        Maximum number of iterations for the JCPOT solver.
+    tol : float, default=1e-9
+        Tolerance for loss variations (OT and mse) stopping iterations.
+    verbose : bool, default=False
+        Print loss along iterations if True.
+
+
+    References
+    ----------
+    [31] Redko, Ievgen, Nicolas Courty, Rémi Flamary, and Devis Tuia. "Optimal
+         transport for multi-source domain adaptation under target shift." In
+         The 22nd International Conference on artificial intelligence and
+         statistics, pp. 849-858. PMLR, 2019.
+
+    """
+
+    def __init__(
+        self, metric="sqeuclidean", reg=1, max_iter=10, tol=1e-9, verbose=False
+    ):
+        super().__init__()
+        self.metric = metric
+        self.reg = reg
+        self.max_iter = max_iter
+        self.tol = tol
+        self.verbose = verbose
+
+    def fit_transform(self, X, y, sample_domain=None, *, sample_weight=None):
+        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+
+        sources, targets = per_domain_split(X, y, sample_domain=sample_domain)
+
+        Xs = [X for X, y in sources.values()]
+        ys = [y for X, y in sources.values()]
+
+        if len(ys) == 1:
+            Xs = Xs * 2
+            ys = ys * 2
+
+        Xt = [X for X, y in targets.values()]
+
+        Xt = np.concatenate(Xt, axis=0)
+
+        self.ot_adapter_ = ot.da.JCPOTTransport(
+            reg_e=self.reg,
+            metric=self.metric,
+            max_iter=self.max_iter,
+            tol=self.tol,
+            log=True,
+        )
+
+        self.ot_adapter_.fit(Xs=Xs, ys=ys, Xt=Xt)
+
+        yh = self.ot_adapter_.transform_labels(ys)
+
+        self.yh_continuous_ = yh
+
+        yh = np.argmax(yh, axis=1)
+
+        yout = -np.ones_like(y)
+        yout[sample_domain < 0] = yh
+
+        return X, yout, {}
+
+
+def JCPOTLabelProp(
+    base_estimator=None,
+    reg=1,
+    metric="sqeuclidean",
+    max_iter=10,
+    tol=1e-9,
+    verbose=False,
+):
+    """JCPOT Label Propagation Adapter for multi source target shift
+
+    This adapter uses the optimal transport plan to propagate labels from
+    sources to target domain with target shift (change in proportion of
+    classes). This was proposed in [31].
+
+    Parameters
+    ----------
+    base_estimator : object, default=LinearRegression()
+        The base estimator to be used for the classification task. This
+        estimator should optimize a classification loss corresponding to the
+        given metric and provide compatible predict method (decision_function of
+        predict_proba).
+    reg : float, default=1
+        The entropic  regularization parameter for the optimal transport
+        problem.
+    metric : str, default='sqeuclidean'
+        The metric to use for the cost matrix. Can be 'sqeuclidean' for
+        squared euclidean distance, 'euclidean' for euclidean distance,
+    max_iter : int, default=10
+        Maximum number of iterations for the JCPOT solver.
+    tol : float, default=1e-9
+        Tolerance for loss variations (OT and mse) stopping iterations.
+    verbose : bool, default=False
+        Print loss along iterations if True.
+
+    Returns
+    -------
+    adapter : JCPOTLabelPropAdapter
+        The optimal transport label propagation adapter.
+
+    References
+    ----------
+    [31] Redko, Ievgen, Nicolas Courty, Rémi Flamary, and Devis Tuia. "Optimal
+         transport for multi-source domain adaptation under target shift." In
+         The 22nd International Conference on artificial intelligence and
+         statistics, pp. 849-858. PMLR, 2019.
+
+    """
+    if base_estimator is None:
+        base_estimator = LogisticRegression()
+
+    return make_da_pipeline(
+        JCPOTLabelPropAdapter(
+            reg=reg, metric=metric, max_iter=max_iter, tol=tol, verbose=verbose
+        ),
         base_estimator,
     )

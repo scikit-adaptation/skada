@@ -9,6 +9,8 @@ from abc import abstractmethod
 
 import numpy as np
 from ot import da
+from ot.gaussian import bures_wasserstein_barycenter, bures_wasserstein_mapping
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics.pairwise import pairwise_distances
 from sklearn.svm import SVC
 
@@ -17,7 +19,9 @@ from ._utils import Y_Type, _estimate_covariance, _find_y_type
 from .base import BaseAdapter, clone
 from .utils import (
     check_X_domain,
+    extract_domains_indices,
     extract_source_indices,
+    per_domain_split,
     source_target_merge,
     source_target_split,
     torch_minimize,
@@ -440,6 +444,9 @@ def ClassRegularizerOTMapping(
 class LinearOTMappingAdapter(BaseOTMappingAdapter):
     """Domain Adaptation Using Optimal Transport.
 
+    Uses Gaussian Monge mapping to align source and target domains as proposed
+    in [7].
+
     Parameters
     ----------
     reg : float, (default=1e-08)
@@ -453,6 +460,12 @@ class LinearOTMappingAdapter(BaseOTMappingAdapter):
         The OT object based on linear operator between empirical
         distributions fitted on the source
         and target data.
+
+    References
+    ----------
+    .. [7] Flamary, R., Lounici, K., & Ferrari, A. (2019). Concentration bounds
+        for linear monge mapping estimation and optimal transport domain
+        adaptation. arXiv preprint arXiv:1905.10155.
     """
 
     def __init__(self, reg=1e-08, bias=True):
@@ -471,7 +484,8 @@ def LinearOTMapping(
 ):
     """Returns a the linear OT mapping method with adapter and estimator.
 
-    see [6]_ for details.
+    Uses Gaussian Monge mapping to align source and target domains as proposed
+    in [7].
 
     Parameters
     ----------
@@ -501,6 +515,239 @@ def LinearOTMapping(
             reg=reg,
             bias=bias,
         ),
+        base_estimator,
+    )
+
+
+def _get_cov_mean(X, w=None, bias=True):
+    """Returns covariance and mean
+
+    Parameters
+    ----------
+    X : array-like, shape (n_samples, n_features)
+        The source data.
+    w : array-like, shape (n_samples,)
+        The weights of the samples.
+    bias: bool, optional (default=True)
+        estimate bias (mean).
+
+    Returns
+    -------
+    cov : array-like, shape (n_features, n_features)
+        The covariance matrix.
+    mean : array-like, shape (n_features,)
+        The mean vector.
+    """
+    if w is None:
+        w = np.ones(X.shape[0])
+    if bias:
+        mean = np.average(X, axis=0, weights=w)
+    else:
+        mean = np.zeros(X.shape[1])
+    X = X - mean
+    cov = np.dot(w * X.T, X) / np.sum(w)
+    return cov, mean
+
+
+class MultiLinearMongeAlignmentAdapter(BaseAdapter):
+    """Aligns multiple domains using Gaussian Monge mapping to a barycenter.
+
+    The method is a simplified extension of [29] using the Bures-Wasserstein
+    distance and mapping of [7] to align multiple source domains to a
+    barycenter. The sued of barycenter alignment with gaussien assumption was
+    proposed in [30].
+
+    Parameters
+    ----------
+    reg : float, optional (default=1e-08)
+        Regularization parameter added to the diagonal of the covariance.
+    bias : bool, optional (default=True)
+        Estimate bias.
+    test_time : bool, optional (default=False)
+        If True, the estimator can be updated at test time to map new
+        target domains unseen during training
+
+    Attributes
+    ----------
+    cov_means_sources_ : dict
+        Dictionary of covariance and mean for each source domain.
+    cov_means_targets_ : dict
+        Dictionary of covariance and mean for each target domain.
+    barycenter_ : tuple
+        Barycenter of the source domains (mean, cov).
+    _mappings_ : dict
+        Dictionary of mappings for each domain.
+
+    References
+    ----------
+    .. [29] Montesuma, Eduardo Fernandes, and Fred Maurice Ngole Mboula.
+        "Wasserstein barycenter for multi-source domain adaptation." In Proceedings
+        of the IEEE/CVF conference on computer vision and pattern recognition, pp.
+        16785-16793. 2021.
+
+    .. [7] Flamary, R., Lounici, K., & Ferrari, A. (2019). Concentration bounds
+        for linear monge mapping estimation and optimal transport domain
+        adaptation. arXiv preprint arXiv:1905.10155.
+
+    .. [30] Gnassounou, Theo, Rémi Flamary, and Alexandre Gramfort. "Convolution
+        Monge Mapping Normalization for learning on sleep data." Advances in
+        Neural Information Processing Systems 36 (2024).
+
+    """
+
+    def __init__(self, reg=1e-08, bias=True, test_time=False):
+        super().__init__()
+        self.reg = reg
+        self.bias = bias
+        self.test_time = test_time
+
+    def fit(self, X, y=None, *, sample_domain=None):
+        """Fit adaptation parameters.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
+        X, sample_domain = check_X_domain(X, sample_domain)
+        sources, targets = per_domain_split(X, y, None, sample_domain=sample_domain)
+
+        self.cov_means_sources_ = {
+            domain: _get_cov_mean(X, w, bias=self.bias)
+            for domain, (X, y, w) in sources.items()
+        }
+
+        self.cov_means_targets_ = {
+            domain: _get_cov_mean(X, w, bias=self.bias)
+            for domain, (X, y, w) in targets.items()
+        }
+
+        C = np.stack([cov for cov, mean in self.cov_means_sources_.values()])
+        m = np.stack([mean for cov, mean in self.cov_means_sources_.values()])
+
+        self.barycenter_ = bures_wasserstein_barycenter(
+            m,
+            C,
+            eps=self.reg,
+        )
+
+        self.mappings_ = {
+            domain: bures_wasserstein_mapping(
+                mean,
+                self.barycenter_[0],
+                cov,
+                self.barycenter_[1],
+            )
+            for domain, (cov, mean) in self.cov_means_sources_.items()
+        }
+
+        mapping_target = {
+            domain: bures_wasserstein_mapping(
+                mean,
+                self.barycenter_[0],
+                cov,
+                self.barycenter_[1],
+            )
+            for domain, (cov, mean) in self.cov_means_targets_.items()
+        }
+
+        self.mappings_.update(mapping_target)
+
+        return self
+
+    def fit_transform(self, X, y=None, sample_domain=None, **params):
+        """Predict adaptation (weights, sample or labels).
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        X_t : array-like, shape (n_samples, n_components)
+            The data (same as X).
+        """
+        self.fit(X, y, sample_domain=sample_domain)
+        return self.transform(X, sample_domain=sample_domain, allow_source=True)
+
+    def transform(
+        self, X, y=None, *, sample_domain=None, allow_source=False, **params
+    ) -> np.ndarray:
+        X, sample_domain = check_X_domain(
+            X, sample_domain, allow_multi_source=True, allow_multi_target=True
+        )
+        idx = extract_domains_indices(sample_domain)
+        X_adapt = X.copy()
+
+        for domain, sel in idx.items():
+            A, b = self.mappings_[domain]
+            X_adapt[sel] = X[sel].dot(A) + b
+
+        return X_adapt
+
+
+def MultiLinearMongeAlignment(
+    base_estimator=None, reg=1e-08, bias=True, test_time=False
+):
+    """MultiLinearMongeAlignment pipeline with adapter and estimator.
+
+    The method is a simplified extension of [29] using the Bures-Wasserstein
+    distance and mapping of [7] to align multiple source domains to a
+    barycenter. The sued of barycenter alignment with gaussien assumption was
+    proposed in [30].
+
+    Parameters
+    ----------
+    base_estimator : object, optional (default=None)
+        The base estimator to fit on the target dataset.
+    reg : float, optional (default=1e-08)
+        Regularization parameter added to the diagonal of the covariance.
+    bias : bool, optional (default=True)
+        Estimate bias.
+    test_time : bool, optional (default=False)
+        If True, the estimator can be updated at test time to map new
+        target domains unseen during training
+
+    Returns
+    -------
+    pipeline : Pipeline
+        Pipeline containing MultiLinearMongeAlignment adapter and base
+        estimator.
+
+    References
+    ----------
+    .. [29] Montesuma, Eduardo Fernandes, and Fred Maurice Ngole Mboula.
+        "Wasserstein barycenter for multi-source domain adaptation." In Proceedings
+        of the IEEE/CVF conference on computer vision and pattern recognition, pp.
+        16785-16793. 2021.
+
+    .. [7] Flamary, R., Lounici, K., & Ferrari, A. (2019). Concentration bounds
+        for linear monge mapping estimation and optimal transport domain
+        adaptation. arXiv preprint arXiv:1905.10155.
+
+    .. [30] Gnassounou, Theo, Rémi Flamary, and Alexandre Gramfort. "Convolution
+        Monge Mapping Normalization for learning on sleep data." Advances in
+        Neural Information Processing Systems 36 (2024).
+    """
+    if base_estimator is None:
+        base_estimator = LogisticRegression()
+
+    return make_da_pipeline(
+        MultiLinearMongeAlignmentAdapter(reg=reg, bias=bias, test_time=test_time),
         base_estimator,
     )
 
