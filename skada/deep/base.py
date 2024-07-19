@@ -28,7 +28,7 @@ class DomainAwareCriterion(torch.nn.Module):
 
     Parameters
     ----------
-    criterion : torch criterion (class)
+    base_criterion : torch criterion (class)
         The initialized criterion (loss) used to optimize the
         module with prediction on source.
     adapt_criterion : torch criterion (class)
@@ -38,9 +38,9 @@ class DomainAwareCriterion(torch.nn.Module):
         Regularization parameter.
     """
 
-    def __init__(self, criterion, adapt_criterion, reg=1):
+    def __init__(self, base_criterion, adapt_criterion, reg=1):
         super(DomainAwareCriterion, self).__init__()
-        self.criterion = criterion
+        self.base_criterion = base_criterion
         self.adapt_criterion = adapt_criterion
         self.reg = reg
 
@@ -79,7 +79,7 @@ class DomainAwareCriterion(torch.nn.Module):
         features_t = features[~source_idx]
 
         # predict
-        return self.criterion(
+        return self.base_criterion(
             y_pred_s, y_true[source_idx]
         ) + self.reg * self.adapt_criterion(
             y_true[source_idx],
