@@ -918,11 +918,9 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
             indices = random_state.choice(
                 np.arange(X.shape[0]), min(self.n_subsample, X.shape[0]), replace=False
             )
-            X = X[indices]
-            sample_domain = sample_domain[indices]
-            y = y[indices]
-            print("subsample")
-            print(X.shape)
+            X = X[indices].copy()
+            sample_domain = sample_domain[indices].copy()
+            y = y[indices].copy()
 
         X_source, X_target, y_source, _ = source_target_split(
             X, y, sample_domain=sample_domain

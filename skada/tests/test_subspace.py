@@ -51,6 +51,10 @@ from skada.datasets import DomainAwareDataset
             marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
         ),
         pytest.param(
+            TransferSubspaceLearning(n_components=1, n_subsample=10, random_state=0),
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+        ),
+        pytest.param(
             TransferSubspaceLearning(n_components=1, base_method="pca"),
             marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
         ),

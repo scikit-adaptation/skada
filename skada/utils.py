@@ -917,7 +917,7 @@ def torch_minimize(loss, x0, tol=1e-6, max_iter=1000, verbose=False):
 
     if type(x0) not in (list, tuple):
         x0 = [x0]
-    x0 = [torch.tensor(x, requires_grad=True, dtype=torch.float64) for x in x0]
+    x0 = [torch.tensor(x, dtype=torch.float64).clone().detach().requires_grad_(True) for x in x0]
 
     optimizer = torch.optim.LBFGS(
         x0,
