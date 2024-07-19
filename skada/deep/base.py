@@ -16,6 +16,12 @@ from .utils import _register_forwards_hook
 
 from skada.base import _DAMetadataRequesterMixin
 
+import numpy as np
+from skorch.utils import to_device
+from skorch.utils import to_numpy
+from skorch.utils import to_tensor
+from skorch.dataset import unpack_data
+from collections.abc import Mapping
 
 class DomainAwareCriterion(torch.nn.Module):
     """Criterion for domain aware loss
@@ -497,7 +503,41 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         if not torch.is_tensor(X):
             X = torch.tensor(X)
 
-        _, features = self.module_(
-            X, sample_domain=None, is_fit=False, return_features=True
-        )
-        return features
+
+        features_list = []
+        for features in self.feature_iter(X, training=False, return_features=True):
+            features = features[0] if isinstance(features, tuple) else features
+            features_list.append(to_numpy(features))
+        features_list = np.concatenate(features_list, 0)
+        return features_list
+
+
+    def feature_iter(self, X, training=False, device='cpu', return_features=True):
+        dataset = self.get_dataset(X)
+        iterator = self.get_iterator(dataset, training=training)
+        for batch in iterator:
+            _, features = self.feature_eval_step(batch, training=training, return_features=return_features)
+            yield to_device(features, device=device)
+
+
+    def feature_eval_step(self, batch, training=False, return_features=True):
+        self.check_is_fitted()
+        Xi, _ = unpack_data(batch)
+        with torch.set_grad_enabled(training):
+            self._set_training(training)
+            return self.feature_infer(Xi, return_features)
+        
+    def feature_infer(self, x, return_features):
+        """Perform a single inference step on a batch of data.
+
+        Parameters
+        ----------
+        x : input data
+          A batch of the input data.
+
+        """
+        x = to_tensor(x, device=self.device)
+        if isinstance(x, Mapping):
+            x_dict = self._merge_x_and_fit_params(x, {"return_features":return_features})
+            return self.module_(**x_dict)
+        return self.module_(x, return_features=return_features)
