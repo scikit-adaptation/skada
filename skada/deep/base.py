@@ -5,16 +5,17 @@
 # License: BSD 3-Clause
 
 from abc import abstractmethod
-from typing import Any, Dict
+from typing import Dict, Any, Union
 
 import torch
-from torch.utils.data import DataLoader, Sampler
+from torch.utils.data import DataLoader, Sampler, Dataset
 from sklearn.base import _clone_parametrized
 from skorch import NeuralNetClassifier
 
 from .utils import _register_forwards_hook
 
 from skada.base import _DAMetadataRequesterMixin
+from skada.utils import check_X_domain, check_X_y_domain
 
 import numpy as np
 from skorch.utils import to_device
@@ -38,11 +39,12 @@ class DomainAwareCriterion(torch.nn.Module):
         Regularization parameter.
     """
 
-    def __init__(self, base_criterion, adapt_criterion, reg=1):
+    def __init__(self, base_criterion, adapt_criterion, reg=1, reduce=None):
         super(DomainAwareCriterion, self).__init__()
         self.base_criterion = base_criterion
         self.adapt_criterion = adapt_criterion
         self.reg = reg
+        self.reduce = reduce
 
     def forward(
         self,
@@ -80,7 +82,7 @@ class DomainAwareCriterion(torch.nn.Module):
 
         # predict
         return self.base_criterion(
-            y_pred_s, y_true[source_idx]
+            y_pred_s, y_true[source_idx], reduce=self.reduce
         ) + self.reg * self.adapt_criterion(
             y_true[source_idx],
             y_pred_s,
@@ -89,6 +91,7 @@ class DomainAwareCriterion(torch.nn.Module):
             domain_pred_t,
             features_s,
             features_t,
+            reduce=self.reduce,
         )
 
 
@@ -261,16 +264,27 @@ class DomainAwareModule(torch.nn.Module):
         estimator._setup_hooks()
         return estimator
 
-    def forward(self, X, sample_domain=None, is_fit=False, return_features=False):
+    def forward(self, X, sample_domain=None, sample_weight=None, is_fit=False, return_features=False):
         if is_fit:
             source_idx = (sample_domain >= 0)
 
             X_s = X[source_idx]
             X_t = X[~source_idx]
+
+            # Pass sample_weight to base_module_
+            if sample_weight is not None:
+                sample_weight_s = sample_weight[source_idx]
+                sample_weight_t = sample_weight[~source_idx]
+                y_pred_s = self.base_module_(X_s, sample_weight=sample_weight_s)
+                y_pred_t = self.base_module_(X_t, sample_weight=sample_weight_t)
+            else:
+                y_pred_s = self.base_module_(X_s)
+                y_pred_t = self.base_module_(X_t)
+
             # predict
-            y_pred_s = self.base_module_(X_s)
+            #y_pred_s = self.base_module_(X_s)
             features_s = self.intermediate_layers[self.layer_name]
-            y_pred_t = self.base_module_(X_t)
+            #y_pred_t = self.base_module_(X_t)
             features_t = self.intermediate_layers[self.layer_name]
 
             if self.domain_classifier_ is not None:
@@ -307,237 +321,361 @@ class DomainAwareModule(torch.nn.Module):
             )
         else:
             if return_features:
-                return self.base_module_(X), self.intermediate_layers[self.layer_name]
+                return self.base_module_(X, sample_weight=sample_weight), self.intermediate_layers[self.layer_name]
             else:
-                return self.base_module_(X)
+                return self.base_module_(X, sample_weight=sample_weight)
 
 
 class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
-    """Domain aware net
+    __metadata_request__fit = {"sample_weight": True}
+    __metadata_request__score = {"sample_weight": True}
+    """
+    A domain-aware neural network classifier with sample weight support.
 
-    A wrapper for NeuralNetClassifier to give a dict as input to the fit.
+    This class extends NeuralNetClassifier to handle domain-specific input data
+    and sample weights. It supports various input formats and provides methods 
+    for training, prediction, and feature extraction while considering domain 
+    information and sample weights.
 
-    Parameters
-    ----------
-    module : torch module
-        The module to use.
+    Parameters:
+    -----------
+    module : torch.nn.Module
+        The PyTorch module to be used as the core of the classifier.
+    iterator_train : torch.utils.data.DataLoader, optional
+        Custom data loader for training. If None, DomainBalancedDataLoader is used.
+    criterion__reduce : bool, optional
+        Whether to reduce the loss in the criterion. Default is False.
     **kwargs : dict
-        Keyword arguments passed to the skorch NeuralNetClassifier class.
+        Additional keyword arguments passed to the skorch NeuralNetClassifier.
     """
 
-    def __init__(self, module, iterator_train=None, **kwargs):
+    def __init__(self, module, iterator_train=None, criterion__reduce=False, **kwargs):
+        iterator_train = DomainBalancedDataLoader if iterator_train is None else iterator_train
+        super().__init__(module, iterator_train=iterator_train, criterion__reduce=criterion__reduce, **kwargs)
+
+    def fit(self, X: Union[Dict, torch.Tensor, np.ndarray, Dataset],
+            y: Union[torch.Tensor, np.ndarray], 
+            sample_domain: Union[torch.Tensor, np.ndarray] = None,
+            sample_weight: Union[torch.Tensor, np.ndarray] = None, **fit_params):
+        """
+        Fit the model to the provided data.
+
+        Parameters:
+        -----------
+        X : dict, torch.Tensor, np.ndarray, or torch.utils.data.Dataset
+            The input data. If dict, it should contain 'X' and 'sample_domain' keys.
+        y : torch.Tensor or np.ndarray
+            The target data.
+        sample_domain : torch.Tensor or np.ndarray, optional
+            The domain of each sample (if not provided in X).
+        sample_weight : torch.Tensor or np.ndarray, optional
+            The weight of each sample.
+        **fit_params : dict
+            Additional parameters passed to the fit method of the base class.
+
+        Returns:
+        --------
+        self : DomainAwareNet
+            The fitted model.
+        """
         # TODO val is not working
         # if train_split is None:
-        #     iterator_valid = None
+        # iterator_valid = None
         # else:
-        #     iterator_valid = (
-        #         DomainBalancedDataLoader if iterator_valid is None else iterator_valid
-        #     )
-        iterator_train = (
-            DomainBalancedDataLoader if iterator_train is None else iterator_train
-        )
+        # iterator_valid = (
+        # DomainBalancedDataLoader if iterator_valid is None else iterator_valid
+        # )
+        X = self._prepare_input(X, sample_domain, sample_weight)
+        X['X'], y, X['sample_domain'] = check_X_y_domain(X['X'], y, X['sample_domain'], allow_source=True)
+        return super().fit(X, y, **fit_params)
 
-        super().__init__(module, iterator_train=iterator_train, **kwargs)
-
-    def fit(self, X, y, sample_domain=None, **fit_params):
-        """Fit the model
-
-        Parameters
-        ----------
-        X : dict, torch tensor, array-like or torch dataset
-            The input data. If a dict, it should contain a key 'X' with the
-            input data and a key 'sample_domain' with the domain of each
-            sample.
-            If X is a dataset, the dataset should return a dict.
-        y : torch tensor, or array-like
-            The target data.
-        sample_domain : torch tensor
-            The domain of each sample.
+    def predict(self, X: Union[Dict, torch.Tensor, np.ndarray, Dataset], 
+                sample_domain: Union[torch.Tensor, np.ndarray] = None, 
+                sample_weight: Union[torch.Tensor, np.ndarray] = None, **predict_params):
         """
-        if isinstance(X, dict):
-            if "X" not in X.keys():
-                raise ValueError("X should contain a key 'X' with the input data.")
-            if "sample_domain" not in X.keys():
-                raise ValueError(
-                    "X should contain a key 'sample_domain' "
-                    "with the domain of each sample."
-                )
-        elif isinstance(X, torch.utils.data.Dataset):
-            test_sample = X[0][0]
-            if isinstance(test_sample, dict):
-                if "X" not in test_sample.keys():
-                    raise ValueError("X should contain a key 'X' with the input data.")
-                if "sample_domain" not in test_sample.keys():
-                    raise ValueError(
-                        "X should contain a key 'sample_domain' "
-                        "with the domain of each sample."
-                    )
-            else:
-                raise ValueError("Dataset should contain a dict as X.")
-        else:
-            X = {"X": X}
-            X["sample_domain"] = sample_domain
+        Make predictions on the provided data.
 
-        return super().fit(X, y, is_fit=True, **fit_params)
+        Parameters:
+        -----------
+        X : dict, torch.Tensor, np.ndarray, or torch.utils.data.Dataset
+            The input data for prediction.
+        sample_domain : torch.Tensor or np.ndarray, optional
+            The domain of each sample (if not provided in X).
+        sample_weight : torch.Tensor or np.ndarray, optional
+            The weight of each sample (not used in prediction, but included for consistency).
+        **predict_params : dict
+            Additional parameters passed to the predict method of the base class.
 
-    def predict(self, X, sample_domain=None, **predict_params):
-        """model prediction
-
-        Parameters
-        ----------
-        X : dict, torch tensor, array-like or torch dataset
-            The input data. If a dict, it should contain a key 'X' with the
-            input data and a key 'sample_domain' with the domain of each
-            sample.
-            If X is a dataset, the dataset should return a dict.
-        sample_domain : torch tensor
-            The domain of each sample.
-            Could be None since the sample are not used in predict.
+        Returns:
+        --------
+        np.ndarray
+            The predicted classes.
         """
-        if isinstance(X, dict):
-            if "X" not in X.keys():
-                raise ValueError("X should contain a key 'X' with the input data.")
-            if "sample_domain" not in X.keys():
-                raise ValueError(
-                    "X should contain a key 'sample_domain' "
-                    "with the domain of each sample."
-                )
-        elif isinstance(X, torch.utils.data.Dataset):
-            test_sample = X[0][0]
-            if isinstance(test_sample, dict):
-                if "X" not in test_sample.keys():
-                    raise ValueError("X should contain a key 'X' with the input data.")
-                if "sample_domain" not in test_sample.keys():
-                    raise ValueError(
-                        "X should contain a key 'sample_domain' "
-                        "with the domain of each sample."
-                    )
-            else:
-                raise ValueError("Dataset should contain a dict as X.")
-        else:
-            X = {"X": X}
-            X["sample_domain"] = sample_domain
+        X = self._prepare_input(X, sample_domain, sample_weight)
+        X['X'], X['sample_domain'] = check_X_domain(X['X'], X['sample_domain'], 
+                                                    allow_source=True, allow_target=True,
+                                                    allow_multi_source=True, allow_multi_target=True)
         return super().predict(X, **predict_params)
 
-    def predict_proba(self, X, sample_domain=None, **predict_params):
-        """model prediction
-
-        Parameters
-        ----------
-        X : dict, torch tensor, array-like or torch dataset
-            The input data. If a dict, it should contain a key 'X' with the
-            input data and a key 'sample_domain' with the domain of each
-            sample.
-            If X is a dataset, the dataset should return a dict.
-        sample_domain : torch tensor
-            The domain of each sample.
-            Could be None since the sample are not used in predict.
+    def predict_proba(self, X: Union[Dict, torch.Tensor, np.ndarray, Dataset], 
+                      sample_domain: Union[torch.Tensor, np.ndarray] = None, 
+                      sample_weight: Union[torch.Tensor, np.ndarray] = None, **predict_params):
         """
-        if isinstance(X, dict):
-            if "X" not in X.keys():
-                raise ValueError("X should contain a key 'X' with the input data.")
-            if "sample_domain" not in X.keys():
-                raise ValueError(
-                    "X should contain a key 'sample_domain' "
-                    "with the domain of each sample."
-                )
-        elif isinstance(X, torch.utils.data.Dataset):
-            test_sample = X[0][0]
-            if isinstance(test_sample, dict):
-                if "X" not in test_sample.keys():
-                    raise ValueError("X should contain a key 'X' with the input data.")
-                if "sample_domain" not in test_sample.keys():
-                    raise ValueError(
-                        "X should contain a key 'sample_domain' "
-                        "with the domain of each sample."
-                    )
-            else:
-                raise ValueError("Dataset should contain a dict as X.")
-        else:
-            X = {"X": X}
-            X["sample_domain"] = sample_domain
+        Predict class probabilities for the provided data.
+
+        Parameters:
+        -----------
+        X : dict, torch.Tensor, np.ndarray, or torch.utils.data.Dataset
+            The input data for prediction.
+        sample_domain : torch.Tensor or np.ndarray, optional
+            The domain of each sample (if not provided in X).
+        sample_weight : torch.Tensor or np.ndarray, optional
+            The weight of each sample (not used in prediction, but included for consistency).
+        **predict_params : dict
+            Additional parameters passed to the predict_proba method of the base class.
+
+        Returns:
+        --------
+        np.ndarray
+            The predicted class probabilities.
+        """
+        X = self._prepare_input(X, sample_domain, sample_weight)
+        X['X'], X['sample_domain'] = check_X_domain(X['X'], X['sample_domain'], 
+                                                    allow_source=True, allow_target=True,
+                                                    allow_multi_source=True, allow_multi_target=True)
         return super().predict_proba(X, **predict_params)
-
-    def score(self, X, y, sample_domain=None, **score_params):
-        """model score
-
-        Parameters
-        ----------
-        X : dict, torch tensor, array-like
-            The input data. If a dict, it should contain a key 'X' with the
-            input data and a key 'sample_domain' with the domain of each
-            sample.
-        y : torch tensor
-            The target data.
-        sample_domain : torch tensor
-            The domain of each sample.
-            Could be None since the sample are not used in score.
+    
+    def predict_features(self, X: Union[Dict, torch.Tensor, np.ndarray, Dataset]):
         """
-        if isinstance(X, dict):
-            if "X" not in X.keys():
-                raise ValueError("X should contain a key 'X' with the input data.")
-            if "sample_domain" not in X.keys():
-                raise ValueError(
-                    "X should contain a key 'sample_domain' "
-                    "with the domain of each sample."
-                )
-        else:
-            X = {"X": X}
-            X["sample_domain"] = sample_domain
-        return super().score(X, y, **score_params)
+        Extract features from the input data using the trained model.
 
-    def predict_features(self, X):
-        """get features
+        Parameters:
+        -----------
+        X : dict, torch.Tensor, np.ndarray, or torch.utils.data.Dataset
+            The input data for feature extraction.
 
-        Parameters
-        ----------
-        X : dict, torch tensor, array-like or torch dataset
-            The input data. If a dict, it should contain a key 'X' with the
-            input data and a key 'sample_domain' with the domain of each
-            sample.
-            If X is a dataset, the dataset should return a dict..
+        Returns:
+        --------
+        np.ndarray
+            The extracted features.
         """
         if not self.initialized_:
             self.initialize()
 
-        if not torch.is_tensor(X):
-            X = torch.tensor(X)
+        X = self._prepare_input(X, None)
+        X, sample_domain = check_X_domain(X['X'], X['sample_domain'], 
+                                          allow_source=True, allow_target=True,
+                                          allow_multi_source=True, allow_multi_target=True)
 
+        X = torch.tensor(X) if not torch.is_tensor(X) else X
 
         features_list = []
         for features in self.feature_iter(X, training=False, return_features=True):
             features = features[0] if isinstance(features, tuple) else features
             features_list.append(to_numpy(features))
-        features_list = np.concatenate(features_list, 0)
-        return features_list
+        return np.concatenate(features_list, 0)
 
+    def score(self, X: Union[Dict, torch.Tensor, np.ndarray], y: Union[torch.Tensor, np.ndarray], 
+              sample_domain: Union[torch.Tensor, np.ndarray] = None, 
+              sample_weight: Union[torch.Tensor, np.ndarray] = None, **score_params):
+        """
+        Compute the mean accuracy on the provided data and labels.
 
-    def feature_iter(self, X, training=False, device='cpu', return_features=True):
+        Parameters:
+        -----------
+        X : dict, torch.Tensor, or np.ndarray
+            The input data for scoring.
+        y : torch.Tensor or np.ndarray
+            The true labels.
+        sample_domain : torch.Tensor or np.ndarray, optional
+            The domain of each sample (if not provided in X).
+        sample_weight : torch.Tensor or np.ndarray, optional
+            The weight of each sample (not used in scoring, but included for consistency).
+        **score_params : dict
+            Additional parameters passed to the score method of the base class.
+
+        Returns:
+        --------
+        float
+            The mean accuracy score.
+        """
+        X = self._prepare_input(X, sample_domain, sample_weight)
+        X['X'], X['sample_domain'] = check_X_domain(X['X'], X['sample_domain'], 
+                                                    allow_source=True, allow_target=True,
+                                                    allow_multi_source=True, allow_multi_target=True)
+        return super().score(X, y, **score_params)
+    
+    def feature_iter(self, X: torch.Tensor, training: bool = False, device: str = 'cpu', return_features: bool = True):
+        """
+        Iterate over the input data and yield features.
+
+        Parameters:
+        -----------
+        X : torch.Tensor
+            The input data.
+        training : bool, optional
+            Whether to use training mode (default is False).
+        device : str, optional
+            The device to use for computation (default is 'cpu').
+        return_features : bool, optional
+            Whether to return features (default is True).
+
+        Yields:
+        -------
+        torch.Tensor
+            The extracted features for each batch.
+        """
         dataset = self.get_dataset(X)
         iterator = self.get_iterator(dataset, training=training)
         for batch in iterator:
             _, features = self.feature_eval_step(batch, training=training, return_features=return_features)
             yield to_device(features, device=device)
 
+    def feature_eval_step(self, batch: Any, training: bool = False, return_features: bool = True):
+        """
+        Perform a single feature evaluation step.
 
-    def feature_eval_step(self, batch, training=False, return_features=True):
+        Parameters:
+        -----------
+        batch : Any
+            The input batch data.
+        training : bool, optional
+            Whether to use training mode (default is False).
+        return_features : bool, optional
+            Whether to return features (default is True).
+
+        Returns:
+        --------
+        tuple
+            A tuple containing the output and features.
+        """
         self.check_is_fitted()
         Xi, _ = unpack_data(batch)
         with torch.set_grad_enabled(training):
             self._set_training(training)
             return self.feature_infer(Xi, return_features)
         
-    def feature_infer(self, x, return_features):
-        """Perform a single inference step on a batch of data.
+    def feature_infer(self, x: Union[torch.Tensor, Dict[str, Any]], return_features: bool):
+        """
+        Perform inference to extract features.
 
-        Parameters
-        ----------
-        x : input data
-          A batch of the input data.
+        Parameters:
+        -----------
+        x : torch.Tensor or dict
+            The input data.
+        return_features : bool
+            Whether to return features.
 
+        Returns:
+        --------
+        torch.Tensor or tuple
+            The output of the module, potentially including extracted features.
         """
         x = to_tensor(x, device=self.device)
-        if isinstance(x, Mapping):
-            x_dict = self._merge_x_and_fit_params(x, {"return_features":return_features})
+        if isinstance(x, dict):
+            x_dict = self._merge_x_and_fit_params(x, {"return_features": return_features})
             return self.module_(**x_dict)
         return self.module_(x, return_features=return_features)
+
+    def _prepare_input(self, X: Union[Dict, torch.Tensor, np.ndarray, Dataset], 
+                       sample_domain: Union[torch.Tensor, np.ndarray] = None,
+                       sample_weight: Union[torch.Tensor, np.ndarray] = None) -> Dict[str, Any]:
+        """
+        Prepare the input data for processing, including sample weights if provided.
+
+        Parameters:
+        -----------
+        X : dict, torch.Tensor, np.ndarray, or torch.utils.data.Dataset
+            The input data.
+        sample_domain : torch.Tensor or np.ndarray, optional
+            The domain of each sample.
+        sample_weight : torch.Tensor or np.ndarray, optional
+            The weight of each sample.
+
+        Returns:
+        --------
+        dict
+            A dictionary containing 'X', 'sample_domain', and optionally 'sample_weight' keys.
+
+        Raises:
+        -------
+        ValueError
+            If the input format is invalid or missing required information.
+        """
+        if isinstance(X, dict):
+            if "X" not in X or "sample_domain" not in X:
+                raise ValueError("X should contain both 'X' and 'sample_domain' keys.")
+            if sample_weight is not None:
+                X['sample_weight'] = sample_weight
+            return X
+        elif isinstance(X, Dataset):
+            return self._process_dataset(X)
+        else:
+            result = {"X": X, "sample_domain": sample_domain}
+            if sample_weight is not None:
+                result['sample_weight'] = sample_weight
+            return result
+
+    def _process_dataset(self, dataset: Dataset) -> Dict[str, np.ndarray]:
+        """
+        Process a PyTorch Dataset into a dictionary format.
+
+        Parameters:
+        -----------
+        dataset : torch.utils.data.Dataset
+            The input dataset to process.
+
+        Returns:
+        --------
+        dict
+            A dictionary containing 'X', 'sample_domain', and optionally 'sample_weight' as numpy arrays.
+
+        Raises:
+        -------
+        ValueError
+            If the dataset samples are not in the expected format.
+        """
+        X, sample_domain, sample_weight = [], [], []
+        has_sample_weight = False
+        for sample in dataset:
+            if not isinstance(sample, dict) or "X" not in sample or "sample_domain" not in sample:
+                raise ValueError("Dataset samples should be dictionaries with 'X' and 'sample_domain' keys.")
+            X.append(sample['X'])
+            sample_domain.append(sample['sample_domain'])
+            if 'sample_weight' in sample and sample['sample_weight'] is not None:
+                sample_weight.append(sample['sample_weight'])
+                has_sample_weight = True
+        result = {"X": np.array(X), "sample_domain": np.array(sample_domain)}
+        if has_sample_weight:
+            result['sample_weight'] = np.array(sample_weight)
+        return result
+
+    def get_loss(self, y_pred, y_true, X, *args, **kwargs):
+        """
+        Calculate the weighted loss using sample weights.
+
+        Parameters:
+        -----------
+        y_pred : torch.Tensor
+            The predicted values.
+        y_true : torch.Tensor
+            The true values.
+        X : dict
+            The input data dictionary, which may contain 'sample_weight'.
+        *args : tuple
+            Additional positional arguments.
+        **kwargs : dict
+            Additional keyword arguments.
+
+        Returns:
+        --------
+        torch.Tensor
+            The calculated loss, weighted by sample weights if provided.
+        """
+        loss_unreduced = super().get_loss(y_pred, y_true, X, *args, **kwargs)
+        if 'sample_weight' in X and X['sample_weight'] is not None:
+            sample_weight = to_tensor(X['sample_weight'], device=self.device)
+            loss_reduced = (sample_weight * loss_unreduced).mean()
+        else:
+            loss_reduced = loss_unreduced.mean()
+        return loss_reduced
