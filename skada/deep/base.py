@@ -82,7 +82,7 @@ class DomainAwareCriterion(torch.nn.Module):
 
         # predict
         return self.base_criterion(
-            y_pred_s, y_true[source_idx], reduce=self.reduce
+            y_pred_s, y_true[source_idx],
         ) + self.reg * self.adapt_criterion(
             y_true[source_idx],
             y_pred_s,
@@ -91,7 +91,6 @@ class DomainAwareCriterion(torch.nn.Module):
             domain_pred_t,
             features_s,
             features_t,
-            reduce=self.reduce,
         )
 
 
@@ -387,7 +386,7 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         # )
         X = self._prepare_input(X, sample_domain, sample_weight)
         X['X'], y, X['sample_domain'] = check_X_y_domain(X['X'], y, X['sample_domain'], allow_source=True)
-        return super().fit(X, y, **fit_params)
+        return super().fit(X, y, is_fit=True, **fit_params)
 
     def predict(self, X: Union[Dict, torch.Tensor, np.ndarray, Dataset], 
                 sample_domain: Union[torch.Tensor, np.ndarray] = None, 
