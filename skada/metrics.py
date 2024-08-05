@@ -186,7 +186,6 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
             y_source,
             sample_domain=sample_domain[sample_domain >= 0],
             sample_weight=weights,
-            allow_source=True,
             **params,
         )
 
