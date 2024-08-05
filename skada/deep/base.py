@@ -7,6 +7,7 @@
 from abc import abstractmethod
 from typing import Dict, Any, Union
 
+from regex import P
 import torch
 from torch.utils.data import DataLoader, Sampler, Dataset
 from sklearn.base import _clone_parametrized
@@ -262,6 +263,7 @@ class DomainAwareModule(torch.nn.Module):
         estimator = _clone_parametrized(self, safe=True)
         estimator._setup_hooks()
         return estimator
+    
 
     def forward(self, X, sample_domain=None, sample_weight=None, is_fit=False, return_features=False):
         if is_fit:
@@ -274,17 +276,24 @@ class DomainAwareModule(torch.nn.Module):
             if sample_weight is not None:
                 sample_weight_s = sample_weight[source_idx]
                 sample_weight_t = sample_weight[~source_idx]
+
                 y_pred_s = self.base_module_(X_s, sample_weight=sample_weight_s)
+                features_s = self.intermediate_layers[self.layer_name]
+
                 y_pred_t = self.base_module_(X_t, sample_weight=sample_weight_t)
+                features_t = self.intermediate_layers[self.layer_name]
             else:
                 y_pred_s = self.base_module_(X_s)
+                features_s = self.intermediate_layers[self.layer_name]
+
                 y_pred_t = self.base_module_(X_t)
+                features_t = self.intermediate_layers[self.layer_name]
 
             # predict
             #y_pred_s = self.base_module_(X_s)
-            features_s = self.intermediate_layers[self.layer_name]
+            #features_s = self.intermediate_layers[self.layer_name]
             #y_pred_t = self.base_module_(X_t)
-            features_t = self.intermediate_layers[self.layer_name]
+            #features_t = self.intermediate_layers[self.layer_name]
 
             if self.domain_classifier_ is not None:
                 domain_pred_s = self.domain_classifier_(features_s)
@@ -302,6 +311,7 @@ class DomainAwareModule(torch.nn.Module):
                 (len(sample_domain), y_pred_s.shape[1]),
                 device=y_pred_s.device
             )
+
             y_pred[source_idx] = y_pred_s
             y_pred[~source_idx] = y_pred_t
 
@@ -309,6 +319,11 @@ class DomainAwareModule(torch.nn.Module):
                 (len(sample_domain), features_s.shape[1]),
                 device=features_s.device
             )
+            
+            
+           
+           
+
             features[source_idx] = features_s
             features[~source_idx] = features_t
 
