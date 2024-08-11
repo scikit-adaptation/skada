@@ -29,22 +29,36 @@ class DomainAwareCriterion(torch.nn.Module):
 
     Parameters
     ----------
-    base_criterion : torch criterion (class)
+    base_criterion : torch criterion (instance)
         The initialized criterion (loss) used to optimize the
         module with prediction on source.
-    adapt_criterion : torch criterion (class)
+    adapt_criterion : torch criterion (instance)
         The initialized criterion (loss) used to compute the
         loss to reduce the divergence between domains.
     reg: float, default=1
         Regularization parameter.
+    reduce: bool or None, default=None
+        Whether to reduce the loss. If None, uses the default behavior of the criteria.
     """
 
-    def __init__(self, base_criterion, adapt_criterion, reg=1, reduce=None):
+    def __init__(self, base_criterion, adapt_criterion, reg=1, reduce=False):
         super(DomainAwareCriterion, self).__init__()
         self.base_criterion = base_criterion
         self.adapt_criterion = adapt_criterion
         self.reg = reg
         self.reduce = reduce
+
+        # Update the reduce parameter for both criteria if specified
+        if reduce is not None:
+            if hasattr(self.base_criterion, 'reduction'):
+                self.base_criterion.reduction = 'none' if reduce is False else 'mean'
+            elif hasattr(self.base_criterion, 'reduce'):
+                self.base_criterion.reduce = reduce
+
+            if hasattr(self.adapt_criterion, 'reduction'):
+                self.adapt_criterion.reduction = 'none' if reduce is False else 'mean'
+            elif hasattr(self.adapt_criterion, 'reduce'):
+                self.adapt_criterion.reduce = reduce
 
     def forward(
         self,
@@ -346,15 +360,13 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         The PyTorch module to be used as the core of the classifier.
     iterator_train : torch.utils.data.DataLoader, optional
         Custom data loader for training. If None, DomainBalancedDataLoader is used.
-    criterion__reduce : bool, optional
-        Whether to reduce the loss in the criterion. Default is False.
     **kwargs : dict
         Additional keyword arguments passed to the skorch NeuralNetClassifier.
     """
 
-    def __init__(self, module, iterator_train=None, criterion__reduce=False, **kwargs):
+    def __init__(self, module, iterator_train=None, **kwargs):
         iterator_train = DomainBalancedDataLoader if iterator_train is None else iterator_train
-        super().__init__(module, iterator_train=iterator_train, criterion__reduce=criterion__reduce, **kwargs)
+        super().__init__(module, iterator_train=iterator_train, **kwargs)
 
     def fit(self, X: Union[Dict, torch.Tensor, np.ndarray, Dataset],
             y: Union[torch.Tensor, np.ndarray], 
@@ -641,13 +653,29 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         X, sample_domain, sample_weight = [], [], []
         has_sample_weight = False
         for sample in dataset:
-            if not isinstance(sample, dict) or "X" not in sample or "sample_domain" not in sample:
-                raise ValueError("Dataset samples should be dictionaries with 'X' and 'sample_domain' keys.")
-            X.append(sample['X'])
-            sample_domain.append(sample['sample_domain'])
-            if 'sample_weight' in sample and sample['sample_weight'] is not None:
-                sample_weight.append(sample['sample_weight'])
-                has_sample_weight = True
+            if isinstance(sample, dict):
+                # Sample is a dictionary
+                if "X" not in sample or "sample_domain" not in sample:
+                    raise ValueError("Dataset samples should be dictionaries with 'X' and 'sample_domain' keys.")
+                X.append(sample['X'])
+                sample_domain.append(sample['sample_domain'])
+                if 'sample_weight' in sample and sample['sample_weight'] is not None:
+                    sample_weight.append(sample['sample_weight'])
+                    has_sample_weight = True
+            elif isinstance(sample, tuple) and len(sample) == 2:
+                # Sample is a tuple (X, y) from skorch.dataset.Dataset
+                x, _ = sample
+                if isinstance(x, dict) and 'X' in x and 'sample_domain' in x:
+                    X.append(x['X'])
+                    sample_domain.append(x['sample_domain'])
+                    if 'sample_weight' in x and x['sample_weight'] is not None:
+                        sample_weight.append(x['sample_weight'])
+                        has_sample_weight = True
+                else:
+                    raise ValueError("For tuple samples, X should be a dictionary with 'X' and 'sample_domain' keys.")
+            else:
+                raise ValueError("Dataset samples should be either dictionaries or tuples (X, y).")
+
         result = {"X": np.array(X), "sample_domain": np.array(sample_domain)}
         if has_sample_weight:
             result['sample_weight'] = np.array(sample_weight)
