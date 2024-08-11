@@ -288,12 +288,6 @@ class DomainAwareModule(torch.nn.Module):
                 y_pred_t = self.base_module_(X_t)
                 features_t = self.intermediate_layers[self.layer_name]
 
-            # predict
-            #y_pred_s = self.base_module_(X_s)
-            #features_s = self.intermediate_layers[self.layer_name]
-            #y_pred_t = self.base_module_(X_t)
-            #features_t = self.intermediate_layers[self.layer_name]
-
             if self.domain_classifier_ is not None:
                 domain_pred_s = self.domain_classifier_(features_s)
                 domain_pred_t = self.domain_classifier_(features_t)
@@ -318,10 +312,6 @@ class DomainAwareModule(torch.nn.Module):
                 (len(sample_domain), features_s.shape[1]),
                 device=features_s.device
             )
-            
-            
-           
-           
 
             features[source_idx] = features_s
             features[~source_idx] = features_t
