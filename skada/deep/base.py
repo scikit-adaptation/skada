@@ -7,7 +7,6 @@
 from abc import abstractmethod
 from typing import Dict, Any, Union
 
-from regex import P
 import torch
 from torch.utils.data import DataLoader, Sampler, Dataset
 from sklearn.base import _clone_parametrized
