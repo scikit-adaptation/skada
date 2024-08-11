@@ -23,6 +23,7 @@ from skada.metrics import (
     CircularValidation,
     DeepEmbeddedValidation,
     ImportanceWeightedScorer,
+    MixValScorer,
     PredictionEntropyScorer,
     SoftNeighborhoodDensity,
     SupervisedScorer,
@@ -246,3 +247,29 @@ def test_deep_embedding_validation_no_transform(da_dataset):
     )["test_score"]
     assert scores.shape[0] == 3, "evaluate 3 splits"
     assert np.all(~np.isnan(scores)), "all scores are computed"
+
+
+def test_mixval_scorer(da_dataset):
+    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    estimator = make_da_pipeline(
+        DensityReweightAdapter(),
+        LogisticRegression()
+        .set_fit_request(sample_weight=True)
+        .set_score_request(sample_weight=True),
+    )
+    cv = ShuffleSplit(n_splits=3, test_size=0.3, random_state=0)
+
+    # Test with default parameters
+    scorer = MixValScorer(lmbd=0.7)
+    scores = cross_validate(
+        estimator,
+        X,
+        y,
+        cv=cv,
+        params={"sample_domain": sample_domain},
+        scoring=scorer,
+    )["test_score"]
+
+    assert scores.shape[0] == 3, "evaluate 3 splits"
+    assert np.all(~np.isnan(scores)), "all scores are computed"
+    assert np.all(scores >= 0) and np.all(scores <= 1), "scores are between 0 and 1"
