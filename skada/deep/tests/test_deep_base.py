@@ -298,3 +298,47 @@ def test_domain_balanced_dataloader():
         X, y = batch
         sample_domain = X["sample_domain"]
         assert len(sample_domain > 0) == len(sample_domain < 0)
+
+
+def test_sample_weight():
+    n_samples = 10
+    num_features = 5
+    module = ToyModule2D(num_features=num_features)
+    module.eval()
+
+    # Create a simple dataset with a known class imbalance
+    dataset = make_shifted_datasets(
+        n_samples_source=n_samples,
+        n_samples_target=n_samples,
+        shift="concept_drift",
+        noise=0.1,
+        random_state=42,
+        return_dataset=True,
+    )
+
+    # Initialize the domain aware network
+    method = DomainAwareNet(
+        DomainAwareModule(module, "dropout"),
+        iterator_train=DomainBalancedDataLoader,
+        criterion=DomainAwareCriterion(torch.nn.CrossEntropyLoss(), TestLoss()),
+        batch_size=5,
+        max_epochs=1,
+        train_split=None,
+    )
+
+    # Prepare the training data
+    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X = X.astype(np.float32)
+    sample_weights = np.ones_like(y, dtype=np.float32)
+
+    # Fit the model with sample weights
+    method.fit(X, y, sample_domain=sample_domain, sample_weight=sample_weights)
+
+    # Check loss is non-zero
+    assert method.history[-1]["train_loss"] > 0.1
+
+    # Check that the loss is 0 when the sample weights are 0
+    sample_weights = np.zeros_like(y, dtype=np.float32)
+    method.fit(X, y, sample_domain=sample_domain, sample_weight=sample_weights)
+
+    assert method.history[-1]["train_loss"] == 0
