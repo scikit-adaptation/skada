@@ -614,8 +614,6 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         if isinstance(X, dict):
             if "X" not in X or "sample_domain" not in X:
                 raise ValueError("X should contain both 'X' and 'sample_domain' keys.")
-            if sample_weight is not None:
-                X['sample_weight'] = sample_weight
             return X, None
         elif isinstance(X, Dataset):
             return self._process_dataset(X)
