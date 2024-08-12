@@ -1,6 +1,7 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Remi Flamary <remi.flamary@polytechnique.edu>
 #         Yanis Lalou <yanis.lalou@polytechnique.edu>
+#         Antoine Collas <contact@antoinecollas.fr>
 #
 # License: BSD 3-Clause
 
@@ -716,7 +717,7 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         if 'sample_weight' in X and X['sample_weight'] is not None:
             sample_weight = to_tensor(X['sample_weight'], device=self.device)
             sample_weight = sample_weight[X['sample_domain'] > 0]
-            if loss.shape[0] == 1 and sample_weight.shape[0] > 1:
+            if loss.dim() == 0 and len(sample_weight) > 1:
                 raise ValueError(
                     "You are using a criterion function that returns a scalar loss value, but sample weights are provided."
                 )

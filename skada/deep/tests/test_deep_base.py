@@ -1,6 +1,7 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Oleksii Kachaiev <kachayev@gmail.com>
 #         Yanis Lalou <yanis.lalou@polytechnique.edu>
+#         Antoine Collas <contact@antoinecollas.fr>
 #
 # License: BSD 3-Clause
 import pytest
@@ -344,3 +345,41 @@ def test_sample_weight():
     method.fit(X, y, sample_domain=sample_domain, sample_weight=sample_weight)
 
     assert method.history[-1]["train_loss"] == 0
+
+
+def test_sample_weight_error_with_reduce_none():
+    n_samples = 10
+    num_features = 5
+    module = ToyModule2D(num_features=num_features)
+    module.eval()
+
+    # Create a simple dataset
+    dataset = make_shifted_datasets(
+        n_samples_source=n_samples,
+        n_samples_target=n_samples,
+        shift="concept_drift",
+        noise=0.1,
+        random_state=42,
+        return_dataset=True,
+    )
+
+    # Initialize the domain aware network with reduce=None
+    method = DomainAwareNet(
+        DomainAwareModule(module, "dropout"),
+        iterator_train=DomainBalancedDataLoader,
+        criterion=DomainAwareCriterion(
+            torch.nn.CrossEntropyLoss(), TestLoss(), reduce=None
+        ),
+        batch_size=5,
+        max_epochs=1,
+        train_split=None,
+    )
+
+    # Prepare the training data
+    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X = X.astype(np.float32)
+    sample_weight = np.ones_like(y, dtype=np.float32)
+
+    # Expect an error when fitting with reduce=None and sample weights provided
+    with pytest.raises(ValueError):
+        method.fit(X, y, sample_domain=sample_domain, sample_weight=sample_weight)
