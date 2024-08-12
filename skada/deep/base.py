@@ -697,8 +697,6 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
                     "You are using a criterion function that returns a scalar loss value, but sample weights are provided."
                 )
 
-            loss = (sample_weight * loss).mean()
-        else:
-            loss = loss.mean()
+            loss = sample_weight * loss
 
-        return loss
+        return loss.mean()
