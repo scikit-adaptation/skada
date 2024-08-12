@@ -334,17 +334,40 @@ def test_sample_weight():
     X = X.astype(np.float32)
     sample_weight = np.ones_like(y, dtype=np.float32)
 
-    # Fit the model with sample weights
-    method.fit(X, y, sample_domain=sample_domain, sample_weight=sample_weight)
+    # Prepare the test data
+    X_test, y_test, sample_domain_test = dataset.pack_test(as_targets=["t"])
+    X_test = X_test.astype(np.float32)
+    sample_weight_test = np.ones_like(y_test, dtype=np.float32)
 
-    # Check loss is non-zero
-    assert method.history[-1]["train_loss"] > 0.1
+    # Fit the model with sample weights and numpy inputs
+    method.fit(X, y, sample_domain=sample_domain, sample_weight=sample_weight)
+    assert method.history[-1]["train_loss"] > 0.1  # loss should be non-zero
+    method.score(X_test, y_test, sample_domain_test, sample_weight=sample_weight_test)
 
     # Check that the loss is 0 when the sample weights are 0
     sample_weight = np.zeros_like(y, dtype=np.float32)
     method.fit(X, y, sample_domain=sample_domain, sample_weight=sample_weight)
-
     assert method.history[-1]["train_loss"] == 0
+
+    # tensor input
+    method.fit(
+        torch.tensor(X),
+        torch.tensor(y),
+        sample_domain=torch.tensor(sample_domain),
+        sample_weight=torch.tensor(sample_weight),
+    )
+    method.score(
+        torch.tensor(X_test),
+        torch.tensor(y_test),
+        sample_domain=torch.tensor(sample_domain_test),
+        sample_weight=torch.tensor(sample_weight_test),
+    )
+
+    # dataset input
+    X_dict = {"X": X, "sample_domain": sample_domain, "sample_weight": sample_weight}
+
+    torch_dataset = Dataset(X_dict, y)
+    method.fit(torch_dataset, y=None)
 
 
 def test_sample_weight_error_with_reduction_none():
