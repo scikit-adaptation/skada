@@ -649,20 +649,17 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         X, y, sample_domain, sample_weight = [], [], [], []
         has_y, has_sample_weight = False, False
         for sample in dataset:
-            if isinstance(sample, tuple) and len(sample) == 2:
-                # Sample is a tuple (X, y) from skorch.dataset.Dataset
-                x, y_ = sample
-                if isinstance(x, dict) and 'X' in x and 'sample_domain' in x:
-                    X.append(x['X'])
-                    sample_domain.append(x['sample_domain'])
-                    y.append(y_)
-                    if 'sample_weight' in x and x['sample_weight'] is not None:
-                        sample_weight.append(x['sample_weight'])
-                        has_sample_weight = True
-                else:
-                    raise ValueError("For tuple samples, X should be a dictionary with 'X' and 'sample_domain' keys.")
+            # Sample is a tuple (X, y) from skorch.dataset.Dataset
+            x, y_ = sample
+            if isinstance(x, dict) and 'X' in x and 'sample_domain' in x:
+                X.append(x['X'])
+                sample_domain.append(x['sample_domain'])
+                y.append(y_)
+                if 'sample_weight' in x and x['sample_weight'] is not None:
+                    sample_weight.append(x['sample_weight'])
+                    has_sample_weight = True
             else:
-                raise ValueError("Dataset samples should be tuples (X, y).")
+                raise ValueError("For tuple samples, X should be a dictionary with 'X' and 'sample_domain' keys.")
 
         result = {"X": np.array(X), "sample_domain": np.array(sample_domain)}
         y = np.array(y)
