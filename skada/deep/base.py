@@ -501,6 +501,7 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         #                                   allow_source=True, allow_target=True,
         #                                   allow_multi_source=True, allow_multi_target=True)
 
+        X, sample_domain = X['X'], X['sample_domain']
         X = torch.tensor(X) if not torch.is_tensor(X) else X
 
         features_list = []
