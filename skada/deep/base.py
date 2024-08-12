@@ -402,8 +402,14 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         self : DomainAwareNet
             The fitted model.
         """
-        X = self._prepare_input(X, sample_domain, sample_weight)
-        X['X'], y, X['sample_domain'] = check_X_y_domain(X['X'], y, X['sample_domain'], allow_source=True)
+        X, y_ = self._prepare_input(X, sample_domain, sample_weight)
+        y = y_ if y is None else y
+
+        # TODO: check X and y
+        # but it requires to adapt check_X_y_domain
+        # to handle dict, Dataset, torch.Tensor, ...
+        # X['X'], y, X['sample_domain'] = check_X_y_domain(X['X'], y, X['sample_domain'], allow_source=True)
+
         return super().fit(X, y, is_fit=True, **fit_params)
 
     def predict(self, X: Union[Dict, torch.Tensor, np.ndarray, Dataset], 
@@ -428,10 +434,15 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         np.ndarray
             The predicted classes.
         """
-        X = self._prepare_input(X, sample_domain, sample_weight)
-        X['X'], X['sample_domain'] = check_X_domain(X['X'], X['sample_domain'], 
-                                                    allow_source=True, allow_target=True,
-                                                    allow_multi_source=True, allow_multi_target=True)
+        X, _ = self._prepare_input(X, sample_domain, sample_weight)
+
+        # TODO: check X
+        # but it requires to adapt check_X_domain
+        # to handle dict, Dataset, torch.Tensor, ...
+        # X['X'], X['sample_domain'] = check_X_domain(X['X'], X['sample_domain'], 
+        #                                             allow_source=True, allow_target=True,
+        #                                             allow_multi_source=True, allow_multi_target=True)
+
         return super().predict(X, **predict_params)
 
     def predict_proba(self, X: Union[Dict, torch.Tensor, np.ndarray, Dataset], 
@@ -456,10 +467,15 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         np.ndarray
             The predicted class probabilities.
         """
-        X = self._prepare_input(X, sample_domain, sample_weight)
-        X['X'], X['sample_domain'] = check_X_domain(X['X'], X['sample_domain'], 
-                                                    allow_source=True, allow_target=True,
-                                                    allow_multi_source=True, allow_multi_target=True)
+        X, _ = self._prepare_input(X, sample_domain, sample_weight)
+
+        # TODO: check X
+        # but it requires to adapt check_X_domain
+        # to handle dict, Dataset, torch.Tensor, ...
+        # X['X'], X['sample_domain'] = check_X_domain(X['X'], X['sample_domain'], 
+        #                                             allow_source=True, allow_target=True,
+        #                                             allow_multi_source=True, allow_multi_target=True)
+
         return super().predict_proba(X, **predict_params)
     
     def predict_features(self, X: Union[Dict, torch.Tensor, np.ndarray, Dataset]):
@@ -479,10 +495,11 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         if not self.initialized_:
             self.initialize()
 
-        X = self._prepare_input(X, None)
-        X, sample_domain = check_X_domain(X['X'], X['sample_domain'], 
-                                          allow_source=True, allow_target=True,
-                                          allow_multi_source=True, allow_multi_target=True)
+        X, _ = self._prepare_input(X, None)
+
+        # X, sample_domain = check_X_domain(X['X'], X['sample_domain'], 
+        #                                   allow_source=True, allow_target=True,
+        #                                   allow_multi_source=True, allow_multi_target=True)
 
         X = torch.tensor(X) if not torch.is_tensor(X) else X
 
@@ -516,10 +533,15 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         float
             The mean accuracy score.
         """
-        X = self._prepare_input(X, sample_domain, sample_weight)
-        X['X'], X['sample_domain'] = check_X_domain(X['X'], X['sample_domain'], 
-                                                    allow_source=True, allow_target=True,
-                                                    allow_multi_source=True, allow_multi_target=True)
+        X, _ = self._prepare_input(X, sample_domain, sample_weight)
+
+        # TODO: check X
+        # but it requires to adapt check_X_domain
+        # to handle dict, Dataset, torch.Tensor, ...
+        # X['X'], X['sample_domain'] = check_X_domain(X['X'], X['sample_domain'], 
+        #                                             allow_source=True, allow_target=True,
+        #                                             allow_multi_source=True, allow_multi_target=True)
+
         return super().score(X, y, **score_params)
     
     def feature_iter(self, X: torch.Tensor, training: bool = False, device: str = 'cpu', return_features: bool = True):
@@ -596,7 +618,7 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
 
     def _prepare_input(self, X: Union[Dict, torch.Tensor, np.ndarray, Dataset], 
                        sample_domain: Union[torch.Tensor, np.ndarray] = None,
-                       sample_weight: Union[torch.Tensor, np.ndarray] = None) -> Dict[str, Any]:
+                       sample_weight: Union[torch.Tensor, np.ndarray] = None) -> Union[Dict[str, Any], np.ndarray]:
         """
         Prepare the input data for processing, including sample weights if provided.
 
@@ -612,7 +634,9 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         Returns:
         --------
         dict
-            A dictionary containing 'X', 'sample_domain', and optionally 'sample_weight' keys.
+            A dictionary containing 'X', 'sample_domain', and optionally 'y' and 'sample_weight' keys.
+        np.ndarray
+            y as a numpy array.
 
         Raises:
         -------
@@ -624,16 +648,16 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
                 raise ValueError("X should contain both 'X' and 'sample_domain' keys.")
             if sample_weight is not None:
                 X['sample_weight'] = sample_weight
-            return X
+            return X, None
         elif isinstance(X, Dataset):
             return self._process_dataset(X)
         else:
             result = {"X": X, "sample_domain": sample_domain}
             if sample_weight is not None:
                 result['sample_weight'] = sample_weight
-            return result
+            return result, None
 
-    def _process_dataset(self, dataset: Dataset) -> Dict[str, np.ndarray]:
+    def _process_dataset(self, dataset: Dataset) -> Union[Dict[str, np.ndarray], np.ndarray]:
         """
         Process a PyTorch Dataset into a dictionary format.
 
@@ -645,15 +669,17 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         Returns:
         --------
         dict
-            A dictionary containing 'X', 'sample_domain', and optionally 'sample_weight' as numpy arrays.
+            A dictionary containing 'X', 'sample_domain', and optionally 'y' and 'sample_weight' as numpy arrays.
+        np.ndarray
+            y as a numpy array.
 
         Raises:
         -------
         ValueError
             If the dataset samples are not in the expected format.
         """
-        X, sample_domain, sample_weight = [], [], []
-        has_sample_weight = False
+        X, y, sample_domain, sample_weight = [], [], [], []
+        has_y, has_sample_weight = False, False
         for sample in dataset:
             if isinstance(sample, dict):
                 # Sample is a dictionary
@@ -661,15 +687,21 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
                     raise ValueError("Dataset samples should be dictionaries with 'X' and 'sample_domain' keys.")
                 X.append(sample['X'])
                 sample_domain.append(sample['sample_domain'])
+                if "y" in sample and sample['y'] is not None:
+                    y.append(sample['y'])
+                    has_y = True
                 if 'sample_weight' in sample and sample['sample_weight'] is not None:
                     sample_weight.append(sample['sample_weight'])
                     has_sample_weight = True
             elif isinstance(sample, tuple) and len(sample) == 2:
                 # Sample is a tuple (X, y) from skorch.dataset.Dataset
-                x, _ = sample
+                x, y_ = sample
                 if isinstance(x, dict) and 'X' in x and 'sample_domain' in x:
                     X.append(x['X'])
                     sample_domain.append(x['sample_domain'])
+                    if y_ is not None:
+                        y.append(y_)
+                        has_y = True
                     if 'sample_weight' in x and x['sample_weight'] is not None:
                         sample_weight.append(x['sample_weight'])
                         has_sample_weight = True
@@ -679,9 +711,13 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
                 raise ValueError("Dataset samples should be either dictionaries or tuples (X, y).")
 
         result = {"X": np.array(X), "sample_domain": np.array(sample_domain)}
+        if has_y:
+            y = np.array(y)
+        else:
+            y = None
         if has_sample_weight:
             result['sample_weight'] = np.array(sample_weight)
-        return result
+        return result, y
 
     def get_loss(self, y_pred, y_true, X, *args, **kwargs):
         """
