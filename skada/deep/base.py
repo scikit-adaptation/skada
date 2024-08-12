@@ -37,28 +37,27 @@ class DomainAwareCriterion(torch.nn.Module):
         loss to reduce the divergence between domains.
     reg: float, default=1
         Regularization parameter.
-    reduce: bool or None, default=None
-        Whether to reduce the loss. If None, uses the default behavior of the criteria.
+    reduction: str, default='mean'
+        Specifies the reduction to apply to the output: 'none' | 'mean' | 'sum'.
+        'none': no reduction will be applied,
+        'mean': the sum of the output will be divided by the number of elements in the output,
+        'sum': the output will be summed. 
     """
 
-    def __init__(self, base_criterion, adapt_criterion, reg=1, reduce=None):
+    def __init__(self, base_criterion, adapt_criterion, reg=1, reduction='mean'):
         super(DomainAwareCriterion, self).__init__()
         self.base_criterion = base_criterion
         self.adapt_criterion = adapt_criterion
         self.reg = reg
-        self.reduce = reduce
 
         # Update the reduce parameter for both criteria if specified
-        if reduce is not None:
-            if hasattr(self.base_criterion, 'reduction'):
-                self.base_criterion.reduction = 'none' if reduce is False else 'mean'
-            elif hasattr(self.base_criterion, 'reduce'):
-                self.base_criterion.reduce = reduce
+        if hasattr(self.base_criterion, 'reduction'):
+            self.base_criterion.reduction = reduction
 
-            if hasattr(self.adapt_criterion, 'reduction'):
-                self.adapt_criterion.reduction = 'none' if reduce is False else 'mean'
-            elif hasattr(self.adapt_criterion, 'reduce'):
-                self.adapt_criterion.reduce = reduce
+        # TODO: implement losses between source and target
+        # that are sum of the losses of each sample
+        # if hasattr(self.adapt_criterion, 'reduction'):
+        #     self.adapt_criterion.reduction = reduction
 
     def forward(
         self,

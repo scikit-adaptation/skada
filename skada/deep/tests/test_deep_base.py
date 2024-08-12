@@ -322,7 +322,7 @@ def test_sample_weight():
         DomainAwareModule(module, "dropout"),
         iterator_train=DomainBalancedDataLoader,
         criterion=DomainAwareCriterion(
-            torch.nn.CrossEntropyLoss(), TestLoss(), reduce=False
+            torch.nn.CrossEntropyLoss(), TestLoss(), reduction="none"
         ),
         batch_size=5,
         max_epochs=1,
@@ -347,7 +347,7 @@ def test_sample_weight():
     assert method.history[-1]["train_loss"] == 0
 
 
-def test_sample_weight_error_with_reduce_none():
+def test_sample_weight_error_with_reduction_none():
     n_samples = 10
     num_features = 5
     module = ToyModule2D(num_features=num_features)
@@ -363,12 +363,12 @@ def test_sample_weight_error_with_reduce_none():
         return_dataset=True,
     )
 
-    # Initialize the domain aware network with reduce=None
+    # Initialize the domain aware network with reduction set to 'mean'
     method = DomainAwareNet(
         DomainAwareModule(module, "dropout"),
         iterator_train=DomainBalancedDataLoader,
         criterion=DomainAwareCriterion(
-            torch.nn.CrossEntropyLoss(), TestLoss(), reduce=None
+            torch.nn.CrossEntropyLoss(), TestLoss(), reduction="mean"
         ),
         batch_size=5,
         max_epochs=1,
@@ -380,6 +380,6 @@ def test_sample_weight_error_with_reduce_none():
     X = X.astype(np.float32)
     sample_weight = np.ones_like(y, dtype=np.float32)
 
-    # Expect an error when fitting with reduce=None and sample weights provided
+    # Expect an error when fitting with reduction='none' and sample weights provided
     with pytest.raises(ValueError):
         method.fit(X, y, sample_domain=sample_domain, sample_weight=sample_weight)
