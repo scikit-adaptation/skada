@@ -15,7 +15,6 @@ from skorch import NeuralNetClassifier
 from .utils import _register_forwards_hook
 
 from skada.base import _DAMetadataRequesterMixin
-from skada.utils import check_X_domain, check_X_y_domain
 
 import numpy as np
 from skorch.utils import to_device
@@ -406,9 +405,8 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         y = y_ if y is None else y
 
         # TODO: check X and y
-        # but it requires to adapt check_X_y_domain
+        # but it requires to adapt skada.utils.check_X_y_domain
         # to handle dict, Dataset, torch.Tensor, ...
-        # X['X'], y, X['sample_domain'] = check_X_y_domain(X['X'], y, X['sample_domain'], allow_source=True)
 
         return super().fit(X, y, is_fit=True, **fit_params)
 
@@ -435,14 +433,6 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
             The predicted classes.
         """
         X, _ = self._prepare_input(X, sample_domain, sample_weight)
-
-        # TODO: check X
-        # but it requires to adapt check_X_domain
-        # to handle dict, Dataset, torch.Tensor, ...
-        # X['X'], X['sample_domain'] = check_X_domain(X['X'], X['sample_domain'], 
-        #                                             allow_source=True, allow_target=True,
-        #                                             allow_multi_source=True, allow_multi_target=True)
-
         return super().predict(X, **predict_params)
 
     def predict_proba(self, X: Union[Dict, torch.Tensor, np.ndarray, Dataset], 
@@ -468,14 +458,6 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
             The predicted class probabilities.
         """
         X, _ = self._prepare_input(X, sample_domain, sample_weight)
-
-        # TODO: check X
-        # but it requires to adapt check_X_domain
-        # to handle dict, Dataset, torch.Tensor, ...
-        # X['X'], X['sample_domain'] = check_X_domain(X['X'], X['sample_domain'], 
-        #                                             allow_source=True, allow_target=True,
-        #                                             allow_multi_source=True, allow_multi_target=True)
-
         return super().predict_proba(X, **predict_params)
     
     def predict_features(self, X: Union[Dict, torch.Tensor, np.ndarray, Dataset]):
@@ -496,11 +478,6 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
             self.initialize()
 
         X, _ = self._prepare_input(X, None)
-
-        # X, sample_domain = check_X_domain(X['X'], X['sample_domain'], 
-        #                                   allow_source=True, allow_target=True,
-        #                                   allow_multi_source=True, allow_multi_target=True)
-
         X, sample_domain = X['X'], X['sample_domain']
         X = torch.tensor(X) if not torch.is_tensor(X) else X
 
@@ -535,14 +512,6 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
             The mean accuracy score.
         """
         X, _ = self._prepare_input(X, sample_domain, sample_weight)
-
-        # TODO: check X
-        # but it requires to adapt check_X_domain
-        # to handle dict, Dataset, torch.Tensor, ...
-        # X['X'], X['sample_domain'] = check_X_domain(X['X'], X['sample_domain'], 
-        #                                             allow_source=True, allow_target=True,
-        #                                             allow_multi_source=True, allow_multi_target=True)
-
         return super().score(X, y, **score_params)
     
     def feature_iter(self, X: torch.Tensor, training: bool = False, device: str = 'cpu', return_features: bool = True):
