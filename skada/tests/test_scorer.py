@@ -260,7 +260,7 @@ def test_mixval_scorer(da_dataset):
     cv = ShuffleSplit(n_splits=3, test_size=0.3, random_state=0)
 
     # Test with default parameters
-    scorer = MixValScorer(lmbd=0.7)
+    scorer = MixValScorer(alpha=0.7)
     scores = cross_validate(
         estimator,
         X,

@@ -12,7 +12,7 @@ from copy import deepcopy
 import numpy as np
 from sklearn.base import BaseEstimator, clone
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, balanced_accuracy_score, check_scoring
+from sklearn.metrics import balanced_accuracy_score, check_scoring
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KernelDensity
 from sklearn.preprocessing import LabelEncoder, Normalizer
@@ -632,7 +632,7 @@ class MixValScorer(_BaseDomainAwareScorer):
 
     Parameters
     ----------
-    lmbd : float, default=0.55
+    alpha : float, default=0.55
         Mixing parameter for mixup.
     random_state : int, RandomState instance or None, default=None
         Controls the randomness of the mixing process.
@@ -641,7 +641,7 @@ class MixValScorer(_BaseDomainAwareScorer):
 
     Attributes
     ----------
-    lmbd : float
+    alpha : float
         Mixing parameter.
     random_state : RandomState
         Random number generator.
@@ -657,45 +657,14 @@ class MixValScorer(_BaseDomainAwareScorer):
 
     def __init__(
         self,
-        lmbd=0.55,
+        alpha=0.55,
         random_state=None,
         greater_is_better=True,
     ):
         super().__init__()
-        self.lmbd = lmbd
+        self.alpha = alpha
         self.random_state = random_state
         self._sign = 1 if greater_is_better else -1
-
-    def _generate_mixed_samples(self, X, y_pred):
-        """
-        Generate mixed samples using mixup.
-
-        Parameters
-        ----------
-        X : array-like of shape (n_samples, n_features)
-            The input samples.
-        y_pred : array-like of shape (n_samples, n_classes)
-            The predicted probabilities for each class.
-
-        Returns
-        -------
-        X_mixed : array-like of shape (n_samples, n_features)
-            The mixed input samples.
-        y_mixed : array-like of shape (n_samples, n_classes)
-            The mixed labels.
-        """
-        rng = check_random_state(self.random_state)
-        n_samples, n_features = X.shape
-
-        # Generate indices for mixing
-        idx = np.arange(n_samples)
-        rand_idx = rng.randint(0, n_samples, size=n_samples)
-
-        # Mix samples
-        X_mixed = self.lmbd * X[idx] + (1 - self.lmbd) * X[rand_idx]
-        y_mixed = self.lmbd * y_pred[idx] + (1 - self.lmbd) * y_pred[rand_idx]
-
-        return X_mixed, y_mixed
 
     def _score(self, estimator, X, y=None, sample_domain=None, **params):
         """
@@ -719,25 +688,44 @@ class MixValScorer(_BaseDomainAwareScorer):
         """
         X, _, sample_domain = check_X_y_domain(X, y, sample_domain)
         source_idx = extract_source_indices(sample_domain)
+        X_target = X[~source_idx]
+
+        rng = check_random_state(self.random_state)
+        rand_idx = rng.permutation(X_target.shape[0])
 
         # Get predictions for target samples
-        y_pred = estimator.predict_proba(
-            X[~source_idx], sample_domain=sample_domain[~source_idx]
+        pred_a = estimator.predict_proba(
+            X_target, sample_domain=sample_domain[~source_idx]
+        )
+        pl_a = pred_a.argmax(axis=1)
+        pl_b = pl_a[rand_idx]
+
+        # Intra-cluster and inter-cluster mixup
+        same_idx = (pl_a == pl_b).nonzero()[0]
+        diff_idx = (pl_a != pl_b).nonzero()[0]
+
+        # Mixup with images and hard pseudo labels
+        mix_inputs = self.alpha * X_target + (1 - self.alpha) * X_target[rand_idx]
+        mix_labels = pl_a if self.alpha > 0.5 else pl_b
+
+        # Obtain predictions for the mixed samples
+        mix_pred = estimator.predict_proba(
+            mix_inputs, sample_domain=np.full(mix_inputs.shape[0], -1)
+        )
+        mix_pred_labels = mix_pred.argmax(axis=1)
+
+        # Calculate ICE scores for two-dimensional probing
+        ice_same = (
+            np.sum(mix_pred_labels[same_idx] == mix_labels[same_idx])
+            / same_idx.shape[0]
+        )
+        ice_diff = (
+            np.sum(mix_pred_labels[diff_idx] == mix_labels[diff_idx])
+            / diff_idx.shape[0]
         )
 
-        # Generate mixed samples
-        X_mixed, y_mixed = self._generate_mixed_samples(X[~source_idx], y_pred)
-
-        # Get predictions for mixed samples
-        y_pred_mixed = estimator.predict_proba(
-            X_mixed, sample_domain=np.full(X_mixed.shape[0], -1)
-        )
-
-        # Calculate ICE score
-        ice_score = accuracy_score(y_mixed.argmax(axis=1), y_pred_mixed.argmax(axis=1))
-
-        print("y_mixed shape: ", y_mixed)
-        print("y_pred_mixed shape: ", y_pred_mixed)
-        print("ice_score: ", ice_score)
+        # In the paper they use the avg of rank
+        # Here we use a simple average
+        ice_score = (ice_same + ice_diff) / 2
 
         return self._sign * ice_score
