@@ -320,7 +320,9 @@ def test_sample_weight():
     method = DomainAwareNet(
         DomainAwareModule(module, "dropout"),
         iterator_train=DomainBalancedDataLoader,
-        criterion=DomainAwareCriterion(torch.nn.CrossEntropyLoss(), TestLoss()),
+        criterion=DomainAwareCriterion(
+            torch.nn.CrossEntropyLoss(), TestLoss(), reduce=False
+        ),
         batch_size=5,
         max_epochs=1,
         train_split=None,
@@ -329,16 +331,16 @@ def test_sample_weight():
     # Prepare the training data
     X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
     X = X.astype(np.float32)
-    sample_weights = np.ones_like(y, dtype=np.float32)
+    sample_weight = np.ones_like(y, dtype=np.float32)
 
     # Fit the model with sample weights
-    method.fit(X, y, sample_domain=sample_domain, sample_weight=sample_weights)
+    method.fit(X, y, sample_domain=sample_domain, sample_weight=sample_weight)
 
     # Check loss is non-zero
     assert method.history[-1]["train_loss"] > 0.1
 
     # Check that the loss is 0 when the sample weights are 0
-    sample_weights = np.zeros_like(y, dtype=np.float32)
-    method.fit(X, y, sample_domain=sample_domain, sample_weight=sample_weights)
+    sample_weight = np.zeros_like(y, dtype=np.float32)
+    method.fit(X, y, sample_domain=sample_domain, sample_weight=sample_weight)
 
     assert method.history[-1]["train_loss"] == 0

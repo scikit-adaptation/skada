@@ -711,10 +711,18 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         torch.Tensor
             The calculated loss, weighted by sample weights if provided.
         """
-        loss_unreduced = super().get_loss(y_pred, y_true, X, *args, **kwargs)
+        loss = super().get_loss(y_pred, y_true, X, *args, **kwargs)
+
         if 'sample_weight' in X and X['sample_weight'] is not None:
             sample_weight = to_tensor(X['sample_weight'], device=self.device)
-            loss_reduced = (sample_weight * loss_unreduced).mean()
+            sample_weight = sample_weight[X['sample_domain'] > 0]
+            if loss.shape[0] == 1 and sample_weight.shape[0] > 1:
+                raise ValueError(
+                    "You are using a criterion function that returns a scalar loss value, but sample weights are provided."
+                )
+
+            loss = (sample_weight * loss).mean()
         else:
-            loss_reduced = loss_unreduced.mean()
-        return loss_reduced
+            loss = loss.mean()
+
+        return loss
