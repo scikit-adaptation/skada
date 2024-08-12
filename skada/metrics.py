@@ -638,6 +638,11 @@ class MixValScorer(_BaseDomainAwareScorer):
         Controls the randomness of the mixing process.
     greater_is_better : bool, default=True
         Whether higher scores are better.
+    ice_type : {'both', 'intra', 'inter'}, default='both'
+        Type of ICE score to compute:
+        - 'both': Compute both intra-cluster and inter-cluster ICE scores (average).
+        - 'intra': Compute only intra-cluster ICE score.
+        - 'inter': Compute only inter-cluster ICE score.
 
     Attributes
     ----------
@@ -647,6 +652,8 @@ class MixValScorer(_BaseDomainAwareScorer):
         Random number generator.
     _sign : int
         1 if greater_is_better is True, -1 otherwise.
+    ice_type : str
+        Type of ICE score to compute.
 
     References
     ----------
@@ -660,11 +667,16 @@ class MixValScorer(_BaseDomainAwareScorer):
         alpha=0.55,
         random_state=None,
         greater_is_better=True,
+        ice_type="both",
     ):
         super().__init__()
         self.alpha = alpha
         self.random_state = random_state
         self._sign = 1 if greater_is_better else -1
+        self.ice_type = ice_type
+
+        if self.ice_type not in ["both", "intra", "inter"]:
+            raise ValueError("ice_type must be 'both', 'intra', or 'inter'")
 
     def _score(self, estimator, X, y=None, sample_domain=None, **params):
         """
@@ -714,18 +726,24 @@ class MixValScorer(_BaseDomainAwareScorer):
         )
         mix_pred_labels = mix_pred.argmax(axis=1)
 
-        # Calculate ICE scores for two-dimensional probing
-        ice_same = (
-            np.sum(mix_pred_labels[same_idx] == mix_labels[same_idx])
-            / same_idx.shape[0]
-        )
-        ice_diff = (
-            np.sum(mix_pred_labels[diff_idx] == mix_labels[diff_idx])
-            / diff_idx.shape[0]
-        )
+        # Calculate ICE scores based on ice_type
+        if self.ice_type in ["both", "intra"]:
+            ice_same = (
+                np.sum(mix_pred_labels[same_idx] == mix_labels[same_idx])
+                / same_idx.shape[0]
+            )
 
-        # In the paper they use the avg of rank
-        # Here we use a simple average
-        ice_score = (ice_same + ice_diff) / 2
+        if self.ice_type in ["both", "inter"]:
+            ice_diff = (
+                np.sum(mix_pred_labels[diff_idx] == mix_labels[diff_idx])
+                / diff_idx.shape[0]
+            )
+
+        if self.ice_type == "both":
+            ice_score = (ice_same + ice_diff) / 2
+        elif self.ice_type == "intra":
+            ice_score = ice_same
+        else:  # self.ice_type == 'inter'
+            ice_score = ice_diff
 
         return self._sign * ice_score

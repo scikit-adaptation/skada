@@ -260,7 +260,7 @@ def test_mixval_scorer(da_dataset):
     cv = ShuffleSplit(n_splits=3, test_size=0.3, random_state=0)
 
     # Test with default parameters
-    scorer = MixValScorer(alpha=0.7)
+    scorer = MixValScorer(alpha=0.55, random_state=42)
     scores = cross_validate(
         estimator,
         X,
@@ -273,3 +273,27 @@ def test_mixval_scorer(da_dataset):
     assert scores.shape[0] == 3, "evaluate 3 splits"
     assert np.all(~np.isnan(scores)), "all scores are computed"
     assert np.all(scores >= 0) and np.all(scores <= 1), "scores are between 0 and 1"
+
+    # Test different ice_type options
+    for ice_type in ["both", "intra", "inter"]:
+        scorer = MixValScorer(alpha=0.55, random_state=42, ice_type=ice_type)
+        scores = cross_validate(
+            estimator,
+            X,
+            y,
+            cv=cv,
+            params={"sample_domain": sample_domain},
+            scoring=scorer,
+        )["test_score"]
+
+        assert scores.shape[0] == 3, f"evaluate 3 splits for ice_type={ice_type}"
+        assert np.all(
+            ~np.isnan(scores)
+        ), f"all scores are computed for ice_type={ice_type}"
+        assert np.all(scores >= 0) and np.all(
+            scores <= 1
+        ), f"scores are between 0 and 1 for ice_type={ice_type}"
+
+    # Test invalid ice_type
+    with pytest.raises(ValueError):
+        MixValScorer(ice_type="invalid")
