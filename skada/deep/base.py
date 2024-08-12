@@ -365,7 +365,16 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
     """
 
     def __init__(self, module, iterator_train=None, **kwargs):
-        iterator_train = DomainBalancedDataLoader if iterator_train is None else iterator_train
+        # TODO val is not working
+        # if train_split is None:
+        #     iterator_valid = None
+        # else:
+        #     iterator_valid = (
+        #         DomainBalancedDataLoader if iterator_valid is None else iterator_valid
+        #     )
+        iterator_train = (
+            DomainBalancedDataLoader if iterator_train is None else iterator_train
+        )
         super().__init__(module, iterator_train=iterator_train, **kwargs)
 
     def fit(self, X: Union[Dict, torch.Tensor, np.ndarray, Dataset],
@@ -393,13 +402,6 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         self : DomainAwareNet
             The fitted model.
         """
-        # TODO val is not working
-        # if train_split is None:
-        # iterator_valid = None
-        # else:
-        # iterator_valid = (
-        # DomainBalancedDataLoader if iterator_valid is None else iterator_valid
-        # )
         X = self._prepare_input(X, sample_domain, sample_weight)
         X['X'], y, X['sample_domain'] = check_X_y_domain(X['X'], y, X['sample_domain'], allow_source=True)
         return super().fit(X, y, is_fit=True, **fit_params)
