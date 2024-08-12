@@ -41,7 +41,7 @@ class DomainAwareCriterion(torch.nn.Module):
         Whether to reduce the loss. If None, uses the default behavior of the criteria.
     """
 
-    def __init__(self, base_criterion, adapt_criterion, reg=1, reduce=False):
+    def __init__(self, base_criterion, adapt_criterion, reg=1, reduce=None):
         super(DomainAwareCriterion, self).__init__()
         self.base_criterion = base_criterion
         self.adapt_criterion = adapt_criterion
