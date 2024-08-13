@@ -180,6 +180,7 @@ DA metrics :py:mod:`skada.metrics`
    DeepEmbeddedValidation
    SoftNeighborhoodDensity
    CircularValidation
+   MixValScorer
 
 
 Model Selection :py:mod:`skada.model_selection`
