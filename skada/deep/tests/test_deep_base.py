@@ -216,6 +216,15 @@ def test_return_features():
     assert features.shape[1] == num_features
     assert features.shape[0] == X_test.shape[0]
 
+    # Test the feature_infer method
+    _, features = method.feature_infer(torch.tensor(X_test))
+    assert features.shape == (X_test.shape[0], num_features)
+
+    # Test the feature_infer method with dictionary input
+    X_test_dict = {"X": X_test, "sample_domain": np.zeros(len(X_test))}
+    _, features = method.feature_infer(X_test_dict)
+    assert features.shape == (X_test.shape[0], num_features)
+
 
 def test_domain_balanced_sampler():
     n_samples = 20
