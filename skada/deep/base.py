@@ -480,7 +480,7 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         X = torch.tensor(X) if not torch.is_tensor(X) else X
 
         features_list = []
-        for features in self.feature_iter(X, training=False, return_features=True):
+        for features in self.feature_iter(X, training=False):
             features = features[0] if isinstance(features, tuple) else features
             features_list.append(to_numpy(features))
         return np.concatenate(features_list, 0)
@@ -512,7 +512,7 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         X, _ = self._prepare_input(X, sample_domain, sample_weight)
         return super().score(X, y, **score_params)
     
-    def feature_iter(self, X: torch.Tensor, training: bool = False, device: str = 'cpu', return_features: bool = True):
+    def feature_iter(self, X: torch.Tensor, training: bool = False, device: str = 'cpu'):
         """
         Iterate over the input data and yield features.
 
@@ -524,8 +524,6 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
             Whether to use training mode (default is False).
         device : str, optional
             The device to use for computation (default is 'cpu').
-        return_features : bool, optional
-            Whether to return features (default is True).
 
         Yields:
         -------
@@ -535,10 +533,10 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         dataset = self.get_dataset(X)
         iterator = self.get_iterator(dataset, training=training)
         for batch in iterator:
-            _, features = self.feature_eval_step(batch, training=training, return_features=return_features)
+            _, features = self.feature_eval_step(batch, training=training)
             yield to_device(features, device=device)
 
-    def feature_eval_step(self, batch: Any, training: bool = False, return_features: bool = True):
+    def feature_eval_step(self, batch: Any, training: bool = False):
         """
         Perform a single feature evaluation step.
 
@@ -548,8 +546,6 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
             The input batch data.
         training : bool, optional
             Whether to use training mode (default is False).
-        return_features : bool, optional
-            Whether to return features (default is True).
 
         Returns:
         --------
@@ -560,9 +556,9 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         Xi, _ = unpack_data(batch)
         with torch.set_grad_enabled(training):
             self._set_training(training)
-            return self.feature_infer(Xi, return_features)
+            return self.feature_infer(Xi)
         
-    def feature_infer(self, x: Union[torch.Tensor, Dict[str, Any]], return_features: bool):
+    def feature_infer(self, x: Union[torch.Tensor, Dict[str, Any]], **fit_params):
         """
         Perform inference to extract features.
 
@@ -570,8 +566,9 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         -----------
         x : torch.Tensor or dict
             The input data.
-        return_features : bool
-            Whether to return features.
+        **fit_params : dict
+            Additional parameters passed to the ``forward`` method of
+            the module and to the ``self.train_split`` call.
 
         Returns:
         --------
@@ -580,9 +577,9 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         """
         x = to_tensor(x, device=self.device)
         if isinstance(x, dict):
-            x_dict = self._merge_x_and_fit_params(x, {"return_features": return_features})
-            return self.module_(**x_dict)
-        return self.module_(x, return_features=return_features)
+            x_dict = self._merge_x_and_fit_params(x, fit_params)
+            return self.module_(return_features=True, **x_dict)
+        return self.module_(x, return_features=True, **fit_params)
 
     def _prepare_input(self, X: Union[Dict, torch.Tensor, np.ndarray, Dataset], 
                        sample_domain: Union[torch.Tensor, np.ndarray] = None,
