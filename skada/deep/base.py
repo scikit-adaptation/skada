@@ -576,7 +576,7 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
             The output of the module, potentially including extracted features.
         """
         x = to_tensor(x, device=self.device)
-        if isinstance(x, dict):
+        if isinstance(x, Mapping):
             x_dict = self._merge_x_and_fit_params(x, fit_params)
             return self.module_(return_features=True, **x_dict)
         return self.module_(x, return_features=True, **fit_params)
