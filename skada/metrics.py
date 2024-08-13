@@ -706,37 +706,31 @@ class MixValScorer(_BaseDomainAwareScorer):
         rand_idx = rng.permutation(X_target.shape[0])
 
         # Get predictions for target samples
-        pred_a = estimator.predict_proba(
-            X_target, sample_domain=sample_domain[~source_idx]
-        )
-        pl_a = pred_a.argmax(axis=1)
-        pl_b = pl_a[rand_idx]
+        labels_a = estimator.predict(X_target, sample_domain=sample_domain[~source_idx])
+        labels_b = labels_a[rand_idx]
 
         # Intra-cluster and inter-cluster mixup
-        same_idx = (pl_a == pl_b).nonzero()[0]
-        diff_idx = (pl_a != pl_b).nonzero()[0]
+        same_idx = (labels_a == labels_b).nonzero()[0]
+        diff_idx = (labels_a != labels_b).nonzero()[0]
 
         # Mixup with images and hard pseudo labels
         mix_inputs = self.alpha * X_target + (1 - self.alpha) * X_target[rand_idx]
-        mix_labels = pl_a if self.alpha > 0.5 else pl_b
+        mix_labels = self.alpha * labels_a + (1 - self.alpha) * labels_b
 
         # Obtain predictions for the mixed samples
-        mix_pred = estimator.predict_proba(
+        mix_pred = estimator.predict(
             mix_inputs, sample_domain=np.full(mix_inputs.shape[0], -1)
         )
-        mix_pred_labels = mix_pred.argmax(axis=1)
 
         # Calculate ICE scores based on ice_type
         if self.ice_type in ["both", "intra"]:
             ice_same = (
-                np.sum(mix_pred_labels[same_idx] == mix_labels[same_idx])
-                / same_idx.shape[0]
+                np.sum(mix_pred[same_idx] == mix_labels[same_idx]) / same_idx.shape[0]
             )
 
         if self.ice_type in ["both", "inter"]:
             ice_diff = (
-                np.sum(mix_pred_labels[diff_idx] == mix_labels[diff_idx])
-                / diff_idx.shape[0]
+                np.sum(mix_pred[diff_idx] == mix_labels[diff_idx]) / diff_idx.shape[0]
             )
 
         if self.ice_type == "both":
