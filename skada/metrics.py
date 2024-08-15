@@ -15,7 +15,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import balanced_accuracy_score, check_scoring
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KernelDensity
-from sklearn.preprocessing import LabelBinarizer, LabelEncoder, Normalizer
+from sklearn.preprocessing import LabelEncoder, Normalizer
 from sklearn.utils import check_random_state
 from sklearn.utils.extmath import softmax
 from sklearn.utils.metadata_routing import _MetadataRequester, get_routing_for_object
@@ -729,12 +729,10 @@ class MixValScorer(_BaseDomainAwareScorer):
 
         # Mixup with X_target and hard pseudo labels
         mix_inputs = self.alpha * X_target + (1 - self.alpha) * X_target[rand_idx]
-        lb = LabelBinarizer(neg_label=False, pos_label=True).fit(y[source_idx])
-        one_hot_labels_a = lb.transform(labels_a)
-        one_hot_labels_b = lb.transform(labels_b)
-        mix_labels = np.argmax(
-            self.alpha * one_hot_labels_a + (1 - self.alpha) * one_hot_labels_b, axis=1
-        )
+        if self.alpha > 0.5:
+            mix_labels = labels_a
+        else:
+            mix_labels = labels_b
 
         # Calculate ICE scores based on ice_type
         if self.ice_type in ["both", "intra"]:
