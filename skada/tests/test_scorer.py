@@ -297,3 +297,13 @@ def test_mixval_scorer(da_dataset):
     # Test invalid ice_type
     with pytest.raises(ValueError):
         MixValScorer(ice_type="invalid")
+
+
+def test_mixval_scorer_regression(da_reg_dataset):
+    X, y, sample_domain = da_reg_dataset
+
+    estimator = make_da_pipeline(DensityReweightAdapter(), LinearRegression())
+
+    scorer = MixValScorer(alpha=0.55, random_state=42)
+    with pytest.raises(ValueError):
+        scorer(estimator, X, y, sample_domain)
