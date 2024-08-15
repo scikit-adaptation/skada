@@ -731,17 +731,22 @@ class MixValScorer(_BaseDomainAwareScorer):
             self.alpha * one_hot_labels_a + (1 - self.alpha) * one_hot_labels_b, axis=1
         )
 
-        # Obtain predictions for the mixed samples
-        mix_pred = estimator.predict(
-            mix_inputs, sample_domain=np.full(mix_inputs.shape[0], -1)
-        )
-
         # Calculate ICE scores based on ice_type
         if self.ice_type in ["both", "intra"]:
-            ice_same = scorer(mix_labels[same_idx], mix_pred[same_idx])
+            ice_same = scorer(
+                estimator,
+                mix_inputs[same_idx],
+                mix_labels[same_idx],
+                sample_domain=np.full(same_idx.shape[0], -1),
+            )
 
         if self.ice_type in ["both", "inter"]:
-            ice_diff = scorer(mix_labels[diff_idx], mix_pred[diff_idx])
+            ice_diff = scorer(
+                estimator,
+                mix_inputs[diff_idx],
+                mix_labels[diff_idx],
+                sample_domain=np.full(diff_idx.shape[0], -1),
+            )
 
         if self.ice_type == "both":
             ice_score = (ice_same + ice_diff) / 2
