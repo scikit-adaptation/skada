@@ -15,7 +15,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import balanced_accuracy_score, check_scoring
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KernelDensity
-from sklearn.preprocessing import LabelEncoder, Normalizer
+from sklearn.preprocessing import LabelBinarizer, LabelEncoder, Normalizer
 from sklearn.utils import check_random_state
 from sklearn.utils.extmath import softmax
 from sklearn.utils.metadata_routing import _MetadataRequester, get_routing_for_object
@@ -634,15 +634,20 @@ class MixValScorer(_BaseDomainAwareScorer):
     ----------
     alpha : float, default=0.55
         Mixing parameter for mixup.
-    random_state : int, RandomState instance or None, default=None
-        Controls the randomness of the mixing process.
-    greater_is_better : bool, default=True
-        Whether higher scores are better.
     ice_type : {'both', 'intra', 'inter'}, default='both'
         Type of ICE score to compute:
         - 'both': Compute both intra-cluster and inter-cluster ICE scores (average).
         - 'intra': Compute only intra-cluster ICE score.
         - 'inter': Compute only inter-cluster ICE score.
+    scoring : str or callable, default=None
+        A string (see model evaluation documentation) or
+        a scorer callable object / function with signature
+        ``scorer(estimator, X, y)``.
+        If None, the provided estimator object's `score` method is used.
+    greater_is_better : bool, default=True
+        Whether higher scores are better.
+    random_state : int, RandomState instance or None, default=None
+        Controls the randomness of the mixing process.
 
     Attributes
     ----------
@@ -665,15 +670,17 @@ class MixValScorer(_BaseDomainAwareScorer):
     def __init__(
         self,
         alpha=0.55,
-        random_state=None,
-        greater_is_better=True,
         ice_type="both",
+        scoring=None,
+        greater_is_better=True,
+        random_state=None,
     ):
         super().__init__()
         self.alpha = alpha
-        self.random_state = random_state
-        self._sign = 1 if greater_is_better else -1
         self.ice_type = ice_type
+        self.scoring = scoring
+        self._sign = 1 if greater_is_better else -1
+        self.random_state = random_state
 
         if self.ice_type not in ["both", "intra", "inter"]:
             raise ValueError("ice_type must be 'both', 'intra', or 'inter'")
@@ -698,6 +705,8 @@ class MixValScorer(_BaseDomainAwareScorer):
         score : float
             The ICE score.
         """
+        scorer = check_scoring(estimator, self.scoring)
+
         X, _, sample_domain = check_X_y_domain(X, y, sample_domain)
         source_idx = extract_source_indices(sample_domain)
         X_target = X[~source_idx]
@@ -713,9 +722,14 @@ class MixValScorer(_BaseDomainAwareScorer):
         same_idx = (labels_a == labels_b).nonzero()[0]
         diff_idx = (labels_a != labels_b).nonzero()[0]
 
-        # Mixup with images and hard pseudo labels
+        # Mixup with X_target and hard pseudo labels
         mix_inputs = self.alpha * X_target + (1 - self.alpha) * X_target[rand_idx]
-        mix_labels = self.alpha * labels_a + (1 - self.alpha) * labels_b
+        lb = LabelBinarizer(neg_label=False, pos_label=True).fit(y[source_idx])
+        one_hot_labels_a = lb.transform(labels_a)
+        one_hot_labels_b = lb.transform(labels_b)
+        mix_labels = np.argmax(
+            self.alpha * one_hot_labels_a + (1 - self.alpha) * one_hot_labels_b, axis=1
+        )
 
         # Obtain predictions for the mixed samples
         mix_pred = estimator.predict(
@@ -724,14 +738,10 @@ class MixValScorer(_BaseDomainAwareScorer):
 
         # Calculate ICE scores based on ice_type
         if self.ice_type in ["both", "intra"]:
-            ice_same = (
-                np.sum(mix_pred[same_idx] == mix_labels[same_idx]) / same_idx.shape[0]
-            )
+            ice_same = scorer(mix_labels[same_idx], mix_pred[same_idx])
 
         if self.ice_type in ["both", "inter"]:
-            ice_diff = (
-                np.sum(mix_pred[diff_idx] == mix_labels[diff_idx]) / diff_idx.shape[0]
-            )
+            ice_diff = scorer(mix_labels[diff_idx], mix_pred[diff_idx])
 
         if self.ice_type == "both":
             ice_score = (ice_same + ice_diff) / 2
