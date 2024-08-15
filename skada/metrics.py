@@ -740,7 +740,7 @@ class MixValScorer(_BaseDomainAwareScorer):
                 estimator,
                 mix_inputs[same_idx],
                 mix_labels[same_idx],
-                sample_domain=np.full(same_idx.shape[0], -1),
+                sample_domain=sample_domain[~source_idx][same_idx],
             )
 
         if self.ice_type in ["both", "inter"]:
@@ -748,7 +748,7 @@ class MixValScorer(_BaseDomainAwareScorer):
                 estimator,
                 mix_inputs[diff_idx],
                 mix_labels[diff_idx],
-                sample_domain=np.full(diff_idx.shape[0], -1),
+                sample_domain=sample_domain[~source_idx][diff_idx],
             )
 
         if self.ice_type == "both":
