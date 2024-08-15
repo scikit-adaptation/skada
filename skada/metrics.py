@@ -711,6 +711,11 @@ class MixValScorer(_BaseDomainAwareScorer):
         source_idx = extract_source_indices(sample_domain)
         X_target = X[~source_idx]
 
+        # Check from y values if it is a classification problem
+        y_type = _find_y_type(y)
+        if y_type != Y_Type.DISCRETE:
+            raise ValueError("MixVal scorer only supports classification problems.")
+
         rng = check_random_state(self.random_state)
         rand_idx = rng.permutation(X_target.shape[0])
 
