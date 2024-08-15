@@ -729,18 +729,19 @@ class MixValScorer(_BaseDomainAwareScorer):
 
         # Mixup with X_target and hard pseudo labels
         mix_inputs = self.alpha * X_target + (1 - self.alpha) * X_target[rand_idx]
-        if self.alpha > 0.5:
+        if self.alpha >= 0.5:
             mix_labels = labels_a
         else:
             mix_labels = labels_b
 
         # Calculate ICE scores based on ice_type
+        # TODO: handle multiple target domains
         if self.ice_type in ["both", "intra"]:
             ice_same = scorer(
                 estimator,
                 mix_inputs[same_idx],
                 mix_labels[same_idx],
-                sample_domain=sample_domain[~source_idx][same_idx],
+                sample_domain=np.full(same_idx.shape[0], -1),
             )
 
         if self.ice_type in ["both", "inter"]:
@@ -748,7 +749,7 @@ class MixValScorer(_BaseDomainAwareScorer):
                 estimator,
                 mix_inputs[diff_idx],
                 mix_labels[diff_idx],
-                sample_domain=sample_domain[~source_idx][diff_idx],
+                sample_domain=np.full(diff_idx.shape[0], -1),
             )
 
         if self.ice_type == "both":
