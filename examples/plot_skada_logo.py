@@ -82,7 +82,7 @@ def draw_S(
             rotated_curve[:, 0],
             color=color_S if not white else "w",
             linewidth=start_length - length_step * i,
-            alpha=1 - i / 10,
+            alpha=1 - i / (final_angle / angle_step),
             solid_capstyle="round",
         )
 
@@ -172,7 +172,7 @@ def draw_S(
 
 
 # %%
-fig, ax = draw_S()
+fig, ax = draw_S(angle_step=18, final_angle=70, start_length=25, length_step=7)
 
 fontsize = 250
 y_axis = 1.5
