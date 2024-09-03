@@ -27,6 +27,7 @@ class ToyModule2D(torch.nn.Module):
     def forward(
         self,
         X,
+        sample_weight=None,
     ):
         """XXX add docstring here."""
         X = self.nonlin(self.dense0(X))
@@ -67,7 +68,7 @@ class ToyCNN(nn.Module):
         self.num_features = self._num_features(n_channels, input_size)
         self.fc = nn.Linear(self.num_features, n_classes)
 
-    def forward(self, x):
+    def forward(self, x, sample_weight=None):
         """XXX add docstring here."""
         x = self.feature_extractor(x)
         x = self.fc(x.flatten(start_dim=1))
@@ -88,7 +89,7 @@ class GradientReversalLayer(Function):
     """
 
     @staticmethod
-    def forward(ctx, x, alpha):
+    def forward(ctx, x, alpha, sample_weight=None):
         """XXX add docstring here."""
         ctx.alpha = alpha
 
@@ -130,7 +131,7 @@ class DomainClassifier(nn.Module):
         )
         self.alpha = alpha
 
-    def forward(self, x):
+    def forward(self, x, sample_weight=None):
         """Forward pass.
 
         Parameters
@@ -160,7 +161,7 @@ class MNISTtoUSPSNet(nn.Module):
         self.fc2 = nn.Linear(128, 10)
         self.maxpool = nn.MaxPool2d(2)
 
-    def forward(self, x):
+    def forward(self, x, sample_weight=None):
         """XXX add docstring here."""
         x = self.conv1(x)
         x = self.relu1(x)
