@@ -256,7 +256,9 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
             )
         else:
             log_proba = np.log(proba + 1e-7)
+        infty_mask = np.isneginf(log_proba)
         entropy_per_sample = -proba * log_proba
+        entropy_per_sample[infty_mask] = 0  # x*log(x) -> 0 as x -> 0
         if self.reduction == "none":
             return self._sign * entropy_per_sample
         elif self.reduction == "sum":
