@@ -323,8 +323,8 @@ def test_mixval_scorer_regression(da_reg_dataset):
 def test_scorer_with_nd_input(scorer, da_dataset):
     X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
 
-    # Reshape X to be 3D
-    X_3d = X.reshape(X.shape[0], -1, 1)
+    # Repeat data to have a 3D input
+    X_3d = np.repeat(X[:, :, None], repeats=3, axis=2)
 
     estimator = make_da_pipeline(
         DummyClassifier(strategy="stratified", random_state=42)
