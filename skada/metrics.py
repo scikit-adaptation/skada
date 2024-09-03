@@ -136,9 +136,11 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
 
         Parameters
         ----------
-        X : array-like, shape (n_samples, n_features)
+        X : array-like, shape (n_samples, *), where * is any number
+            of dimensions of at least 1
             The source data.
-        X_target : array-like, shape (n_samples, n_features)
+        X_target : array-like, shape (n_samples, *), where * is any number
+            of dimensions of at least 1
             The target data.
 
         Returns
@@ -151,6 +153,8 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
             weight_estimator = KernelDensity()
         self.weight_estimator_source_ = clone(weight_estimator)
         self.weight_estimator_target_ = clone(weight_estimator)
+        X_source = X_source.reshape(X_source.shape[0], -1)
+        X_target = X_target.reshape(X_target.shape[0], -1)
         self.weight_estimator_source_.fit(X_source)
         self.weight_estimator_target_.fit(X_target)
         return self
@@ -169,6 +173,8 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
         X_source, X_target, y_source, _ = source_target_split(
             X, y, sample_domain=sample_domain
         )
+        X_source = X_source.reshape(X_source.shape[0], -1)
+        X_target = X_target.reshape(X_target.shape[0], -1)
         self._fit(X_source, X_target)
         ws = self.weight_estimator_source_.score_samples(X_source)
         wt = self.weight_estimator_target_.score_samples(X_source)
