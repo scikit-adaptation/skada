@@ -312,6 +312,7 @@ def test_mixval_scorer_regression(da_reg_dataset):
 @pytest.mark.parametrize(
     "scorer",
     [
+        SupervisedScorer(),
         ImportanceWeightedScorer(),
         PredictionEntropyScorer(),
         SoftNeighborhoodDensity(),
@@ -332,12 +333,19 @@ def test_scorer_with_nd_input(scorer, da_dataset):
         .set_score_request(sample_weight=True),
     )
     cv = ShuffleSplit(n_splits=3, test_size=0.3, random_state=0)
+    if isinstance(scorer, SupervisedScorer):
+        _, target_labels, _ = da_dataset.pack(
+            as_sources=["s"], as_targets=["t"], train=False
+        )
+        params = {"sample_domain": sample_domain, "target_labels": target_labels}
+    else:
+        params = {"sample_domain": sample_domain}
     scores = cross_validate(
         estimator,
         X_3d,
         y,
         cv=cv,
-        params={"sample_domain": sample_domain},
+        params=params,
         scoring=scorer,
         error_score="raise",
     )["test_score"]
