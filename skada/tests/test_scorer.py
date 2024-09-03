@@ -7,7 +7,7 @@
 
 import numpy as np
 import pytest
-from sklearn.dummy import DummyRegressor
+from sklearn.dummy import DummyClassifier, DummyRegressor
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import ShuffleSplit, cross_validate
@@ -307,3 +307,40 @@ def test_mixval_scorer_regression(da_reg_dataset):
     scorer = MixValScorer(alpha=0.55, random_state=42)
     with pytest.raises(ValueError):
         scorer(estimator, X, y, sample_domain)
+
+
+@pytest.mark.parametrize(
+    "scorer",
+    [
+        ImportanceWeightedScorer(),
+        # PredictionEntropyScorer(),
+        SoftNeighborhoodDensity(),
+        # DeepEmbeddedValidation(),
+        # CircularValidation(),
+        # MixValScorer(alpha=0.55, random_state=42),
+    ],
+)
+def test_scorer_with_nd_input(scorer, da_dataset):
+    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+
+    # Reshape X to be 3D
+    X_3d = X.reshape(X.shape[0], -1, 1)
+
+    estimator = make_da_pipeline(
+        DummyClassifier(strategy="stratified", random_state=42)
+        .set_fit_request(sample_weight=True)
+        .set_score_request(sample_weight=True),
+    )
+    cv = ShuffleSplit(n_splits=3, test_size=0.3, random_state=0)
+    scores = cross_validate(
+        estimator,
+        X_3d,
+        y,
+        cv=cv,
+        params={"sample_domain": sample_domain},
+        scoring=scorer,
+        error_score="raise",
+    )["test_score"]
+
+    assert scores.shape[0] == 3, "evaluate 3 splits"
+    assert np.all(~np.isnan(scores)), "all scores are computed"

@@ -72,7 +72,7 @@ class SupervisedScorer(_BaseDomainAwareScorer):
     ):
         scorer = check_scoring(estimator, self.scoring)
 
-        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        X, y, sample_domain = check_X_y_domain(X, y, sample_domain, allow_nd=True)
         source_idx = extract_source_indices(sample_domain)
 
         return self._sign * scorer(
@@ -165,7 +165,7 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
                 f"The estimator {estimator!r} does not."
             )
 
-        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        X, y, sample_domain = check_X_y_domain(X, y, sample_domain, allow_nd=True)
         X_source, X_target, y_source, _ = source_target_split(
             X, y, sample_domain=sample_domain
         )
@@ -239,7 +239,7 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
                 "The estimator passed should have a 'predict_proba' method. "
                 f"The estimator {estimator!r} does not."
             )
-        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        X, y, sample_domain = check_X_y_domain(X, y, sample_domain, allow_nd=True)
         source_idx = extract_source_indices(sample_domain)
         proba = estimator.predict_proba(
             X[~source_idx], sample_domain=sample_domain[~source_idx], **params
@@ -298,7 +298,7 @@ class SoftNeighborhoodDensity(_BaseDomainAwareScorer):
                 f"The estimator {estimator!r} does not."
             )
 
-        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        X, y, sample_domain = check_X_y_domain(X, y, sample_domain, allow_nd=True)
         source_idx = extract_source_indices(sample_domain)
         proba = estimator.predict_proba(
             X[~source_idx], sample_domain=sample_domain[~source_idx], **params
@@ -403,7 +403,7 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
             # We use the input data as features
             transformer = identity
 
-        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        X, y, sample_domain = check_X_y_domain(X, y, sample_domain, allow_nd=True)
         source_idx = extract_source_indices(sample_domain)
         rng = check_random_state(self.random_state)
         X_train, X_val, _, y_val, _, sample_domain_val = train_test_split(
@@ -550,7 +550,7 @@ class CircularValidation(_BaseDomainAwareScorer):
         float
             The computed score.
         """
-        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        X, y, sample_domain = check_X_y_domain(X, y, sample_domain, allow_nd=True)
 
         try:
             _check_y_masking(y)
@@ -707,7 +707,7 @@ class MixValScorer(_BaseDomainAwareScorer):
         """
         scorer = check_scoring(estimator, self.scoring)
 
-        X, _, sample_domain = check_X_y_domain(X, y, sample_domain)
+        X, _, sample_domain = check_X_y_domain(X, y, sample_domain, allow_nd=True)
         source_idx = extract_source_indices(sample_domain)
         X_target = X[~source_idx]
 
