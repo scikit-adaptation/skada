@@ -184,11 +184,6 @@ def test_stratified_domain_shuffle_split_exceptions():
     ],
 )
 def test_cv_with_nd_dimensional_X(da_dataset, cv):
-    # Create a 3D input X
-    # X = np.random.rand(1000, 5, 5)  # 100 samples, each 5x5
-    # y = np.random.randint(0, 2, 1000)  # Binary labels
-    # sample_domain = np.random.randint(0, 2, 1000)  # 2 domains
-
     X, y, sample_domain = da_dataset.pack_lodo()
     # Transform X from 2D to 3D
     X = X.reshape(X.shape[0], -1, 1)  # Reshape to (n_samples, n_features, 1)
