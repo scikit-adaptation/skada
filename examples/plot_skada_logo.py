@@ -45,7 +45,7 @@ def draw_S(
     angle_step=13,
     s=150,
     alpha=0.9,
-    linewidth=1,
+    linewidths=1,
     random_state=42,
     white=False,
 ):
@@ -114,13 +114,7 @@ def draw_S(
 
     dots_keep = np.array(dots_keep)
     dots_class = np.array(dots_class)
-    # Plot the dots
-    # choose the cmap with two colors
-    s = 150
-    alpha = 0.9
-    linewidths = 1
 
-    # plot the dots with different color and shape depending of the class
     ax.scatter(
         dots_keep[dots_class == 0, 1],
         dots_keep[dots_class == 0, 0],
@@ -174,7 +168,7 @@ def draw_S(
 # %%
 fig, ax = draw_S(angle_step=18, final_angle=70, start_length=25, length_step=7)
 
-fontsize = 250
+fontsize = 125
 y_axis = 1.5
 ax.text(
     11,
