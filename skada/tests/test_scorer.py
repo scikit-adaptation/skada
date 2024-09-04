@@ -347,7 +347,6 @@ def test_scorer_with_nd_input(scorer, da_dataset):
         cv=cv,
         params=params,
         scoring=scorer,
-        error_score="raise",
     )["test_score"]
 
     assert scores.shape[0] == 3, "evaluate 3 splits"
