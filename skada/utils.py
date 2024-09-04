@@ -355,7 +355,7 @@ def source_target_merge(
     *arrays,
     sample_domain: Optional[np.ndarray] = None
 ) -> Sequence[np.ndarray]:
-    f""" Merge source and target domain data based on sample domain labels.
+    """Merge source and target domain data based on sample domain labels.
 
     Parameters
     ----------
@@ -521,6 +521,15 @@ def source_target_merge(
         )
 
     return (*merges, sample_domain)
+
+
+# Update the docstring to replace placeholders with actual values
+source_target_merge.__doc__ = source_target_merge.__doc__.format(
+    _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL=_DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
+    _DEFAULT_MASKED_TARGET_REGRESSION_LABEL=_DEFAULT_MASKED_TARGET_REGRESSION_LABEL,
+    _DEFAULT_SOURCE_DOMAIN_LABEL=_DEFAULT_SOURCE_DOMAIN_LABEL,
+    _DEFAULT_TARGET_DOMAIN_LABEL=_DEFAULT_TARGET_DOMAIN_LABEL
+)
 
 
 def _merge_arrays(
