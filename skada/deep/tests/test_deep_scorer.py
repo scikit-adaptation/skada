@@ -7,7 +7,7 @@ import pytest
 from sklearn.model_selection import ShuffleSplit, cross_validate
 from sklearn.preprocessing import StandardScaler
 
-from skada import make_da_pipeline
+from skada import make_da_pipeline, source_target_split
 from skada.deep import DeepCoral
 from skada.deep.modules import ToyCNN, ToyModule2D
 from skada.metrics import (
@@ -97,8 +97,15 @@ def test_dev_cnn(da_dataset):
     X = np.repeat(X[..., np.newaxis], repeats=5, axis=-1)  # Make it batched 2D data
 
     scorer = DeepEmbeddedValidation()
+    _, n_channels, input_size = X.shape
+    y_source, _ = source_target_split(y, sample_domain=sample_domain)
+    n_classes = len(np.unique(y_source))
     module = ToyCNN(
-        n_channels=3, input_size=100, n_classes=2, kernel_size=3, out_channels=2
+        n_channels=n_channels,
+        input_size=input_size,
+        n_classes=n_classes,
+        kernel_size=3,
+        out_channels=2,
     )
 
     net = DeepCoral(
