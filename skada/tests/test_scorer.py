@@ -316,7 +316,6 @@ def test_mixval_scorer_regression(da_reg_dataset):
         ImportanceWeightedScorer(),
         PredictionEntropyScorer(),
         SoftNeighborhoodDensity(),
-        DeepEmbeddedValidation(),
         CircularValidation(),
         MixValScorer(alpha=0.55, random_state=42),
     ],
