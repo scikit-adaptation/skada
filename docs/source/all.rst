@@ -223,3 +223,20 @@ Datasets :py:mod:`skada.datasets`
    make_variable_frequency_dataset
 
 
+Utilities :py:mod:`skada.utils`
+--------------------------------
+
+.. currentmodule:: skada.utils
+
+.. automodule:: skada.utils
+   :no-members:
+   :no-inherited-members:
+
+.. autosummary::
+   :toctree: gen_modules/
+   :template: function.rst
+
+   check_X_y_domain
+   extract_source_indices
+   extract_domains_indices
+   source_target_merge
