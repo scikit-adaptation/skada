@@ -120,10 +120,12 @@ DA pipeline
 Utilities
 ^^^^^^^^^
 
+.. autosummary::
+   :toctree: gen_modules/
+   :template: function.rst
 
-
-
-
+   source_target_split
+   per_domain_split
 
 
 
