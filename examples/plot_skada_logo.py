@@ -39,11 +39,11 @@ def bezier_curve(t, points):
 
 
 def draw_S(
-    start_length=25,
-    length_step=7,
+    start_length=9,
+    length_step=2.5,
     final_angle=70,
     angle_step=18,
-    s=150,
+    s=30,
     alpha=0.9,
     linewidths=1,
     random_state=42,
@@ -52,7 +52,7 @@ def draw_S(
     rng = np.random.RandomState(random_state)
 
     # Create a figure and axis
-    fig, ax = plt.subplots(figsize=(6, 6))
+    fig, ax = plt.subplots(figsize=(2, 2))
     ax.set_xlim(-1, 11)
     ax.set_ylim(-2, 11.2)
 
@@ -168,7 +168,7 @@ def draw_S(
 # %%
 fig, ax = draw_S()
 
-fontsize = 250
+fontsize = 80
 y_axis = 1.5
 ax.text(
     11,
@@ -202,7 +202,6 @@ ax.text(
     fontsize=fontsize,
     color=color_0,
 )
-
 
 # Save the figure
 plt.savefig(
@@ -240,10 +239,10 @@ plt.savefig(
 # %%
 fig, ax = draw_S(white=True)
 
-fontsize = 250
+fontsize = 80
 y_axis = 1.5
 ax.text(
-    10,
+    11,
     y_axis,
     r"\bf\textsf{K}",
     usetex=True,
@@ -251,7 +250,7 @@ ax.text(
     color="w",
 )
 ax.text(
-    16,
+    17.5,
     y_axis,
     r"\bf\textsf{A}",
     usetex=True,
@@ -259,7 +258,7 @@ ax.text(
     color="w",
 )
 ax.text(
-    22.5,
+    24.5,
     y_axis,
     r"\bf\textsf{D}",
     usetex=True,
@@ -267,7 +266,7 @@ ax.text(
     color="w",
 )
 ax.text(
-    28,
+    31,
     y_axis,
     r"\bf\textsf{A}",
     usetex=True,
