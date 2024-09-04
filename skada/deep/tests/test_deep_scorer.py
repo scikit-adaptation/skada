@@ -92,11 +92,9 @@ def test_generic_scorer(scorer, da_dataset):
     assert np.all(~np.isnan(scores)), "all scores are computed"
 
 
-def test_dev_cnn():
-    # Generate random data
-    X = np.random.rand(100, 3, 100)
-    y = np.random.randint(1, 2, size=100)
-    sample_domain = np.random.choice([-1, 2], size=100)
+def test_dev_cnn(da_dataset):
+    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X = np.repeat(X[..., np.newaxis], repeats=5, axis=-1)  # Make it batched 2D data
 
     scorer = DeepEmbeddedValidation()
     module = ToyCNN(
