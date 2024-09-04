@@ -412,7 +412,6 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
             transformer = identity
 
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain, allow_nd=True)
-        X = X.reshape(X.shape[0], -1)
         source_idx = extract_source_indices(sample_domain)
         rng = check_random_state(self.random_state)
         X_train, X_val, _, y_val, _, sample_domain_val = train_test_split(
@@ -439,7 +438,11 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
 
         self._fit_adapt(features_train, features_target)
         N_train, N_target = len(features_train), len(features_target)
+
+        # We need to reshape the features to be 2D
+        features_val = features_val.reshape(features_val.shape[0], -1)
         domain_pred = self.domain_classifier_.predict_proba(features_val)
+
         weights = (N_train / N_target) * domain_pred[:, :1] / domain_pred[:, 1:]
         if not isinstance(estimator, BaseEstimator):
             # Deep estimators dont accept allow_source parameter
