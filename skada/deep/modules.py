@@ -65,10 +65,13 @@ class ToyCNN(nn.Module):
         self.feature_extractor = nn.Sequential(
             nn.Conv1d(n_channels, out_channels, kernel_size),
             nn.ReLU(),
-            nn.AvgPool1d(kernel_size),
         )
         self.num_features = self._num_features(n_channels, input_size)
-        self.fc = nn.Linear(self.num_features, n_classes)
+        self.fc = nn.Sequential(
+            nn.AdaptiveAvgPool1d(1),
+            nn.Flatten(start_dim=1),
+            nn.Linear(out_channels, n_classes),
+        )
 
     def forward(self, x, sample_weight=None):
         """Forward pass of the network.
@@ -86,7 +89,7 @@ class ToyCNN(nn.Module):
             Output tensor of shape (batch_size, n_classes).
         """
         x = self.feature_extractor(x)
-        x = self.fc(x.flatten(start_dim=1))
+        x = self.fc(x)
         return x
 
     def _num_features(self, n_channels, input_size):
