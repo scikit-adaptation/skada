@@ -95,6 +95,7 @@ def test_generic_scorer(scorer, da_dataset):
 def test_dev_cnn(da_dataset):
     X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
     X = np.repeat(X[..., np.newaxis], repeats=5, axis=-1)  # Make it batched 2D data
+    X = X.astype(np.float32)
 
     scorer = DeepEmbeddedValidation()
     _, n_channels, input_size = X.shape
@@ -120,7 +121,7 @@ def test_dev_cnn(da_dataset):
     cv = ShuffleSplit(n_splits=3, test_size=0.3, random_state=0)
     scores = cross_validate(
         net,
-        X.astype(np.float32),
+        X,
         y,
         cv=cv,
         params={"sample_domain": sample_domain},
