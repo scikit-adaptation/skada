@@ -4,6 +4,7 @@
 
 import numpy as np
 import pytest
+import torch
 from sklearn.model_selection import ShuffleSplit, cross_validate
 from sklearn.preprocessing import StandardScaler
 
@@ -108,6 +109,8 @@ def test_dev_cnn_features_nd(da_dataset):
         kernel_size=3,
         out_channels=2,
     )
+    # Assert features more than 2D
+    assert module.feature_extractor(torch.tensor(X)).ndim > 2
 
     net = DeepCoral(
         module,
