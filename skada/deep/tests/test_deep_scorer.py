@@ -87,7 +87,6 @@ def test_generic_scorer(scorer, da_dataset):
         cv=cv,
         params={"sample_domain": sample_domain},
         scoring=scorer,
-        error_score="raise",
     )["test_score"]
     assert scores.shape[0] == 3, "evaluate 3 splits"
     assert np.all(~np.isnan(scores)), "all scores are computed"
@@ -121,7 +120,6 @@ def test_dev_cnn():
         cv=cv,
         params={"sample_domain": sample_domain},
         scoring=scorer,
-        error_score="raise",
     )["test_score"]
     assert scores.shape[0] == 3, "evaluate 3 splits"
     assert np.all(~np.isnan(scores)), "all scores are computed"
