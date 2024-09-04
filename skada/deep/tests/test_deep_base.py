@@ -1,6 +1,7 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Oleksii Kachaiev <kachayev@gmail.com>
 #         Yanis Lalou <yanis.lalou@polytechnique.edu>
+#         Antoine Collas <contact@antoinecollas.fr>
 #
 # License: BSD 3-Clause
 import pytest
@@ -215,6 +216,15 @@ def test_return_features():
     assert features.shape[1] == num_features
     assert features.shape[0] == X_test.shape[0]
 
+    # Test the feature_infer method
+    _, features = method.feature_infer(torch.tensor(X_test))
+    assert features.shape == (X_test.shape[0], num_features)
+
+    # Test the feature_infer method with dictionary input
+    X_test_dict = {"X": X_test, "sample_domain": np.zeros(len(X_test))}
+    _, features = method.feature_infer(X_test_dict)
+    assert features.shape == (X_test.shape[0], num_features)
+
 
 def test_domain_balanced_sampler():
     n_samples = 20
@@ -298,3 +308,110 @@ def test_domain_balanced_dataloader():
         X, y = batch
         sample_domain = X["sample_domain"]
         assert len(sample_domain > 0) == len(sample_domain < 0)
+
+
+def test_sample_weight():
+    n_samples = 10
+    num_features = 5
+    module = ToyModule2D(num_features=num_features)
+    module.eval()
+
+    # Create a simple dataset with a known class imbalance
+    dataset = make_shifted_datasets(
+        n_samples_source=n_samples,
+        n_samples_target=n_samples,
+        shift="concept_drift",
+        noise=0.1,
+        random_state=42,
+        return_dataset=True,
+    )
+
+    # Initialize the domain aware network
+    method = DomainAwareNet(
+        DomainAwareModule(module, "dropout"),
+        iterator_train=DomainBalancedDataLoader,
+        criterion=DomainAwareCriterion(
+            torch.nn.CrossEntropyLoss(), TestLoss(), reduction="none"
+        ),
+        batch_size=5,
+        max_epochs=1,
+        train_split=None,
+    )
+
+    # Prepare the training data
+    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X = X.astype(np.float32)
+    sample_weight = np.ones_like(y, dtype=np.float32)
+
+    # Prepare the test data
+    X_test, y_test, sample_domain_test = dataset.pack_test(as_targets=["t"])
+    X_test = X_test.astype(np.float32)
+    sample_weight_test = np.ones_like(y_test, dtype=np.float32)
+
+    # Fit the model with sample weights and numpy inputs
+    method.fit(X, y, sample_domain=sample_domain, sample_weight=sample_weight)
+    assert method.history[-1]["train_loss"] > 0.1  # loss should be non-zero
+    method.score(X_test, y_test, sample_domain_test, sample_weight=sample_weight_test)
+
+    # Check that the loss is 0 when the sample weights are 0
+    sample_weight = np.zeros_like(y, dtype=np.float32)
+    method.fit(X, y, sample_domain=sample_domain, sample_weight=sample_weight)
+    assert method.history[-1]["train_loss"] == 0
+
+    # tensor input
+    method.fit(
+        torch.tensor(X),
+        torch.tensor(y),
+        sample_domain=torch.tensor(sample_domain),
+        sample_weight=torch.tensor(sample_weight),
+    )
+    method.score(
+        torch.tensor(X_test),
+        torch.tensor(y_test),
+        sample_domain=torch.tensor(sample_domain_test),
+        sample_weight=torch.tensor(sample_weight_test),
+    )
+
+    # dataset input
+    X_dict = {"X": X, "sample_domain": sample_domain, "sample_weight": sample_weight}
+
+    torch_dataset = Dataset(X_dict, y)
+    method.fit(torch_dataset, y=None)
+
+
+def test_sample_weight_error_with_reduction_none():
+    n_samples = 10
+    num_features = 5
+    module = ToyModule2D(num_features=num_features)
+    module.eval()
+
+    # Create a simple dataset
+    dataset = make_shifted_datasets(
+        n_samples_source=n_samples,
+        n_samples_target=n_samples,
+        shift="concept_drift",
+        noise=0.1,
+        random_state=42,
+        return_dataset=True,
+    )
+
+    # Initialize the domain aware network with reduction set to 'mean'
+    method = DomainAwareNet(
+        DomainAwareModule(module, "dropout"),
+        iterator_train=DomainBalancedDataLoader,
+        criterion=DomainAwareCriterion(
+            torch.nn.CrossEntropyLoss(), TestLoss(), reduction="mean"
+        ),
+        batch_size=5,
+        max_epochs=1,
+        train_split=None,
+    )
+
+    # Prepare the training data
+    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X = X.astype(np.float32)
+    sample_weight = np.ones_like(y, dtype=np.float32)
+
+    # Expect an error when fitting with reduction='none' and sample weights provided
+    with pytest.raises(ValueError):
+        method.fit(X, y, sample_domain=sample_domain, sample_weight=sample_weight)
