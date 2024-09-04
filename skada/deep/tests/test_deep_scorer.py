@@ -92,7 +92,7 @@ def test_generic_scorer(scorer, da_dataset):
     assert np.all(~np.isnan(scores)), "all scores are computed"
 
 
-def test_dev_cnn(da_dataset):
+def test_dev_cnn_features_nd(da_dataset):
     X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
     X = np.repeat(X[..., np.newaxis], repeats=5, axis=-1)  # Make it batched 2D data
     X = X.astype(np.float32)
