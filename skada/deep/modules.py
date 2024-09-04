@@ -41,7 +41,9 @@ class ToyModule2D(torch.nn.Module):
 
 
 class ToyCNN(nn.Module):
-    """Toy CNN for examples and tests.
+    """Toy CNN for examples and tests on classification tasks.
+
+    Made for 2D data (e.g. time series) with shape (batch_size, n_channels, input_size).
 
     Parameters
     ----------
@@ -69,7 +71,20 @@ class ToyCNN(nn.Module):
         self.fc = nn.Linear(self.num_features, n_classes)
 
     def forward(self, x, sample_weight=None):
-        """XXX add docstring here."""
+        """Forward pass of the network.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor of shape (batch_size, n_channels, input_size).
+        sample_weight : torch.Tensor, optional
+            Sample weights for the loss computation of shape (batch_size,).
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor of shape (batch_size, n_classes).
+        """
         x = self.feature_extractor(x)
         x = self.fc(x.flatten(start_dim=1))
         return x
