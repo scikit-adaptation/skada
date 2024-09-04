@@ -9,7 +9,7 @@ from sklearn.preprocessing import StandardScaler
 
 from skada import make_da_pipeline
 from skada.deep import DeepCoral
-from skada.deep.modules import ToyModule2D
+from skada.deep.modules import ToyCNN, ToyModule2D
 from skada.metrics import (
     CircularValidation,
     DeepEmbeddedValidation,
@@ -82,6 +82,40 @@ def test_generic_scorer(scorer, da_dataset):
     cv = ShuffleSplit(n_splits=3, test_size=0.3, random_state=0)
     scores = cross_validate(
         estimator,
+        X.astype(np.float32),
+        y,
+        cv=cv,
+        params={"sample_domain": sample_domain},
+        scoring=scorer,
+        error_score="raise",
+    )["test_score"]
+    assert scores.shape[0] == 3, "evaluate 3 splits"
+    assert np.all(~np.isnan(scores)), "all scores are computed"
+
+
+def test_dev_cnn():
+    # Generate random data
+    X = np.random.rand(100, 3, 100)
+    y = np.random.randint(1, 2, size=100)
+    sample_domain = np.random.choice([-1, 2], size=100)
+
+    scorer = DeepEmbeddedValidation()
+    module = ToyCNN(
+        n_channels=3, input_size=100, n_classes=2, kernel_size=3, out_channels=2
+    )
+
+    net = DeepCoral(
+        module,
+        reg=1,
+        layer_name="feature_extractor",
+        batch_size=10,
+        max_epochs=10,
+        train_split=None,
+    )
+
+    cv = ShuffleSplit(n_splits=3, test_size=0.3, random_state=0)
+    scores = cross_validate(
+        net,
         X.astype(np.float32),
         y,
         cv=cv,

@@ -436,6 +436,10 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
             features_val = features_val.detach().numpy()
             features_target = features_target.detach().numpy()
 
+        # We need to reshape the features to be 2D
+        features_train = features_train.reshape(features_train.shape[0], -1)
+        features_target = features_target.reshape(features_target.shape[0], -1)
+
         self._fit_adapt(features_train, features_target)
         N_train, N_target = len(features_train), len(features_target)
 
@@ -444,6 +448,7 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         domain_pred = self.domain_classifier_.predict_proba(features_val)
 
         weights = (N_train / N_target) * domain_pred[:, :1] / domain_pred[:, 1:]
+
         if not isinstance(estimator, BaseEstimator):
             # Deep estimators dont accept allow_source parameter
             y_pred = estimator.predict_proba(X_val, sample_domain_val)
