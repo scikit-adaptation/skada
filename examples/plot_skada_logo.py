@@ -24,8 +24,8 @@ import numpy as np
 plt.rcParams.update({"text.usetex": True, "font.family": "Computer Modern"})
 
 color_S = "black"
-color_1 = "#239aa9"
-color_0 = "#fe3434"
+color_1 = "#2364aa"
+color_0 = "#c84630"
 color_unlabel = "#999c81"
 
 
@@ -39,10 +39,10 @@ def bezier_curve(t, points):
 
 
 def draw_S(
-    start_length=20,
-    length_step=4,
-    final_angle=50,
-    angle_step=13,
+    start_length=25,
+    length_step=7,
+    final_angle=70,
+    angle_step=18,
     s=150,
     alpha=0.9,
     linewidths=1,
@@ -166,9 +166,9 @@ def draw_S(
 
 
 # %%
-fig, ax = draw_S(angle_step=18, final_angle=70, start_length=25, length_step=7)
+fig, ax = draw_S()
 
-fontsize = 125
+fontsize = 250
 y_axis = 1.5
 ax.text(
     11,
