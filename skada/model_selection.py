@@ -80,7 +80,10 @@ class BaseDomainAwareShuffleSplit(SplitSampleDomainRequesterMixin, metaclass=ABC
         """
         # automatically derive sample_domain if it is not provided
         X, sample_domain = check_X_domain(
-            X, sample_domain, allow_auto_sample_domain=True
+            X,
+            sample_domain,
+            allow_auto_sample_domain=True,
+            allow_nd=True,
         )
         X, y, sample_domain = indexable(X, y, sample_domain)
         yield from self._iter_indices(X, y, sample_domain=sample_domain)
@@ -138,7 +141,7 @@ class SourceTargetShuffleSplit(BaseDomainAwareShuffleSplit):
         self._default_test_size = 0.1
 
     def _iter_indices(self, X, y=None, sample_domain=None):
-        X, sample_domain = check_X_domain(X, sample_domain)
+        X, sample_domain = check_X_domain(X, sample_domain, allow_nd=True)
         indices = extract_source_indices(sample_domain)
         (source_idx,) = np.where(indices)
         (target_idx,) = np.where(~indices)
@@ -225,7 +228,10 @@ class LeaveOneDomainOut(SplitSampleDomainRequesterMixin):
         """
         # automatically derive sample_domain if it is not provided
         X, sample_domain = check_X_domain(
-            X, sample_domain, allow_auto_sample_domain=True
+            X,
+            sample_domain,
+            allow_auto_sample_domain=True,
+            allow_nd=True,
         )
         X, y, sample_domain = indexable(X, y, sample_domain)
         # xxx(okachaiev): make sure all domains are given both as sources and targets
@@ -253,7 +259,7 @@ class LeaveOneDomainOut(SplitSampleDomainRequesterMixin):
                 yield split_idx[train_idx], split_idx[test_idx]
 
     def _iter_indices(self, X, y=None, sample_domain=None):
-        X, sample_domain = check_X_domain(X, sample_domain)
+        X, sample_domain = check_X_domain(X, sample_domain, allow_nd=True)
         indices = extract_source_indices(sample_domain)
         (source_idx,) = np.where(indices)
         (target_idx,) = np.where(~indices)
@@ -383,7 +389,10 @@ class StratifiedDomainShuffleSplit(BaseDomainAwareShuffleSplit):
         # License: BSD
 
         X, sample_domain = check_X_domain(
-            X, sample_domain, allow_auto_sample_domain=True
+            X,
+            sample_domain,
+            allow_auto_sample_domain=True,
+            allow_nd=True,
         )
         X, y, sample_domain = indexable(X, y, sample_domain)
 
@@ -532,7 +541,7 @@ class DomainShuffleSplit(BaseDomainAwareShuffleSplit):
             raise ValueError("under_sampling should be between 0 and 1")
 
     def _iter_indices(self, X, y=None, sample_domain=None):
-        X, sample_domain = check_X_domain(X, sample_domain)
+        X, sample_domain = check_X_domain(X, sample_domain, allow_nd=True)
         domain_source_idx_dict, domain_target_idx_dict = extract_domains_indices(
             sample_domain, split_source_target=True
         )
