@@ -7,7 +7,11 @@ import numpy as np
 import pytest
 from sklearn.utils import check_random_state
 
-from skada._utils import _check_y_masking, _merge_domain_outputs
+from skada._utils import (
+    _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
+    _check_y_masking,
+    _merge_domain_outputs,
+)
 from skada.datasets import make_dataset_from_moons_distribution
 from skada.utils import (
     check_X_domain,
@@ -20,9 +24,6 @@ from skada.utils import (
     source_target_merge,
     source_target_split,
     torch_minimize,
-)
-from skada._utils import (
-    _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
 )
 
 try:
@@ -426,10 +427,25 @@ def test_source_target_merge():
     y_target = None
     sample_domain = np.array([1, 1, 1, -2, -2])
 
-    X, y, _ = source_target_merge(X_source, X_target, y_source, y_target, sample_domain=sample_domain)
+    X, y, _ = source_target_merge(
+        X_source, X_target, y_source, y_target, sample_domain=sample_domain
+    )
 
-    np.testing.assert_array_equal(X, np.array([[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]]))
-    np.testing.assert_array_equal(y, np.array([0, 1, 1, _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL, _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL]))
+    np.testing.assert_array_equal(
+        X, np.array([[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]])
+    )
+    np.testing.assert_array_equal(
+        y,
+        np.array(
+            [
+                0,
+                1,
+                1,
+                _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
+                _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
+            ]
+        ),
+    )
 
     # Test moons dataset with 2 domains
     n_samples_source = 50
