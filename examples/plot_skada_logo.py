@@ -52,9 +52,9 @@ def draw_S(
     rng = np.random.RandomState(random_state)
 
     # Create a figure and axis
-    fig, ax = plt.subplots(figsize=(2, 2))
-    ax.set_xlim(-1, 11)
-    ax.set_ylim(-2, 11.2)
+    plt.figure(1, (2, 2))
+    plt.xlim(-1, 11)
+    plt.ylim(-2, 11.2)
 
     # Define the control points for the Bézier curve
     points = np.array([[2, 8], [4, 10], [6, 0], [8, 2]])
@@ -77,7 +77,7 @@ def draw_S(
         )
 
         # Plot the S shape
-        ax.plot(
+        plt.plot(
             rotated_curve[:, 1],
             rotated_curve[:, 0],
             color=color_S if not white else "w",
@@ -87,7 +87,7 @@ def draw_S(
         )
 
     # Plot the S shape
-    ax.plot(
+    plt.plot(
         curve[:, 1],
         curve[:, 0],
         color=color_S if not white else "w",
@@ -115,7 +115,7 @@ def draw_S(
     dots_keep = np.array(dots_keep)
     dots_class = np.array(dots_class)
 
-    ax.scatter(
+    plt.scatter(
         dots_keep[dots_class == 0, 1],
         dots_keep[dots_class == 0, 0],
         color=color_unlabel if not white else "w",
@@ -125,7 +125,7 @@ def draw_S(
         linewidths=linewidths,
     )
 
-    ax.scatter(
+    plt.scatter(
         dots_keep[dots_class == 1, 1],
         dots_keep[dots_class == 1, 0],
         color=color_unlabel if not white else "w",
@@ -139,7 +139,7 @@ def draw_S(
         np.dot(dots_keep - rotation_center, rotation_matrix) + rotation_center
     )
 
-    ax.scatter(
+    plt.scatter(
         dots_rotated[dots_class == 0, 1],
         dots_rotated[dots_class == 0, 0],
         color=color_1 if not white else "w",
@@ -149,7 +149,7 @@ def draw_S(
         linewidths=linewidths,
     )
 
-    ax.scatter(
+    plt.scatter(
         dots_rotated[dots_class == 1, 1],
         dots_rotated[dots_class == 1, 0],
         color=color_0 if not white else "w",
@@ -160,17 +160,33 @@ def draw_S(
     )
 
     # Hide axes
-    ax.axis("off")
+    plt.axis("off")
 
-    return fig, ax
+    return fig
 
 
 # %%
-fig, ax = draw_S()
+fig = draw_S()
 
-fontsize = 80
+# Save the figure
+plt.savefig(
+    "skada_logo.svg",
+    dpi=300,
+    bbox_inches="tight",
+)
+plt.savefig(
+    "skada_logo.pdf",
+    dpi=300,
+    bbox_inches="tight",
+)
+
+
+# %%
+fig = draw_S()
+
+fontsize = 85
 y_axis = 1.5
-ax.text(
+plt.text(
     11,
     y_axis,
     r"\bf\textsf{K}",
@@ -178,7 +194,7 @@ ax.text(
     fontsize=fontsize,
     color="black",
 )
-ax.text(
+plt.text(
     17.5,
     y_axis,
     r"\bf\textsf{A}",
@@ -186,7 +202,7 @@ ax.text(
     fontsize=fontsize,
     color="black",
 )
-ax.text(
+plt.text(
     24.5,
     y_axis,
     r"\bf\textsf{D}",
@@ -194,7 +210,7 @@ ax.text(
     fontsize=fontsize,
     color=color_1,
 )
-ax.text(
+plt.text(
     31,
     y_axis,
     r"\bf\textsf{A}",
@@ -214,34 +230,14 @@ plt.savefig(
     dpi=300,
     bbox_inches="tight",
 )
-plt.savefig(
-    "skada_logo_full.png",
-    dpi=300,
-    bbox_inches="tight",
-)
+
 
 # %%
+fig = draw_S(white=True)
 
-fig, ax = draw_S()
-
-# Save the figure
-plt.savefig(
-    "skada_logo.svg",
-    dpi=300,
-    bbox_inches="tight",
-)
-plt.savefig(
-    "skada_logo.pdf",
-    dpi=300,
-    bbox_inches="tight",
-)
-
-# %%
-fig, ax = draw_S(white=True)
-
-fontsize = 80
+fontsize = 85
 y_axis = 1.5
-ax.text(
+plt.text(
     11,
     y_axis,
     r"\bf\textsf{K}",
@@ -249,7 +245,7 @@ ax.text(
     fontsize=fontsize,
     color="w",
 )
-ax.text(
+plt.text(
     17.5,
     y_axis,
     r"\bf\textsf{A}",
@@ -257,7 +253,7 @@ ax.text(
     fontsize=fontsize,
     color="w",
 )
-ax.text(
+plt.text(
     24.5,
     y_axis,
     r"\bf\textsf{D}",
@@ -265,7 +261,7 @@ ax.text(
     fontsize=fontsize,
     color="w",
 )
-ax.text(
+plt.text(
     31,
     y_axis,
     r"\bf\textsf{A}",
