@@ -47,14 +47,17 @@ def draw_S(
     alpha=0.9,
     linewidths=1,
     random_state=42,
+    figsize=(2, 2),
     white=False,
 ):
     rng = np.random.RandomState(random_state)
 
     # Create a figure and axis
-    plt.figure(1, (2, 2))
-    plt.xlim(-1, 11)
-    plt.ylim(-2, 11.2)
+    plt.figure(1, figsize)
+    if figsize == (2, 2):
+        plt.xlim(-1, 11)
+    else:
+        plt.xlim(-1, 35)
 
     # Define the control points for the Bézier curve
     points = np.array([[2, 8], [4, 10], [6, 0], [8, 2]])
@@ -166,28 +169,26 @@ def draw_S(
 
 
 # %%
-fig = draw_S()
+fig = draw_S(figsize=(2, 2))
 
 # Save the figure
 plt.savefig(
     "skada_logo.svg",
     dpi=300,
-    bbox_inches="tight",
 )
 plt.savefig(
     "skada_logo.pdf",
     dpi=300,
-    bbox_inches="tight",
 )
 
 
 # %%
-fig = draw_S()
+fig = draw_S(figsize=(6, 2))
 
 fontsize = 85
 y_axis = 1.5
 plt.text(
-    11,
+    10,
     y_axis,
     r"\bf\textsf{K}",
     usetex=True,
@@ -195,7 +196,7 @@ plt.text(
     color="black",
 )
 plt.text(
-    17.5,
+    17,
     y_axis,
     r"\bf\textsf{A}",
     usetex=True,
@@ -203,7 +204,7 @@ plt.text(
     color="black",
 )
 plt.text(
-    24.5,
+    23.5,
     y_axis,
     r"\bf\textsf{D}",
     usetex=True,
@@ -211,7 +212,7 @@ plt.text(
     color=color_1,
 )
 plt.text(
-    31,
+    30.5,
     y_axis,
     r"\bf\textsf{A}",
     usetex=True,
@@ -219,6 +220,7 @@ plt.text(
     color=color_0,
 )
 
+# plt.tight_layout()
 # Save the figure
 plt.savefig(
     "skada_logo_full.svg",
@@ -233,12 +235,12 @@ plt.savefig(
 
 
 # %%
-fig = draw_S(white=True)
+fig = draw_S(figsize=(6, 2), white=True)
 
 fontsize = 85
 y_axis = 1.5
 plt.text(
-    11,
+    10,
     y_axis,
     r"\bf\textsf{K}",
     usetex=True,
@@ -246,7 +248,7 @@ plt.text(
     color="w",
 )
 plt.text(
-    17.5,
+    17,
     y_axis,
     r"\bf\textsf{A}",
     usetex=True,
@@ -254,7 +256,7 @@ plt.text(
     color="w",
 )
 plt.text(
-    24.5,
+    23.5,
     y_axis,
     r"\bf\textsf{D}",
     usetex=True,
@@ -262,7 +264,7 @@ plt.text(
     color="w",
 )
 plt.text(
-    31,
+    30.5,
     y_axis,
     r"\bf\textsf{A}",
     usetex=True,
@@ -272,7 +274,7 @@ plt.text(
 
 
 # Save the figure
-plt.savefig("skada_logo_full_white.svg", dpi=300, bbox_inches="tight", transparent=True)
-plt.savefig("skada_logo_full_white.pdf", dpi=300, bbox_inches="tight", transparent=True)
+plt.savefig("skada_logo_full_white.svg", transparent=True)
+plt.savefig("skada_logo_full_white.pdf", transparent=True)
 
 # %%
