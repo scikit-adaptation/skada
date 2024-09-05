@@ -409,7 +409,6 @@ def source_target_merge(
            [ 7,  8],
            [ 9, 10]])
     >>> y
-    array([0, 1, 1, {_DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL}, {_DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL}])
     array([ 0,  1,  1, {_DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL}, {_DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL}])
     """
 
