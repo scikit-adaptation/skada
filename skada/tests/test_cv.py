@@ -166,3 +166,38 @@ def test_stratified_domain_shuffle_split_exceptions():
     splitter = StratifiedDomainShuffleSplit(n_splits=4, test_size=0.1, random_state=0)
     with pytest.raises(ValueError):
         next(iter(splitter.split(X, y, sample_domain)))
+
+
+@pytest.mark.parametrize(
+    "cv",
+    [
+        (GroupShuffleSplit(n_splits=2, test_size=0.3, random_state=0)),
+        (GroupKFold(n_splits=2)),
+        (LeaveOneGroupOut()),
+        (SourceTargetShuffleSplit(n_splits=2, test_size=0.3, random_state=0)),
+        (
+            DomainShuffleSplit(
+                n_splits=2, test_size=0.3, random_state=0, under_sampling=1
+            )
+        ),
+        (StratifiedDomainShuffleSplit(n_splits=2, test_size=0.3, random_state=0)),
+    ],
+)
+def test_cv_with_nd_dimensional_X(da_dataset, cv):
+    X, y, sample_domain = da_dataset.pack_lodo()
+    # Transform X from 2D to 3D
+    X = X.reshape(X.shape[0], -1, 1)  # Reshape to (n_samples, n_features, 1)
+    assert X.ndim == 3, "X should be 3-dimensional after reshaping"
+
+    splits = list(cv.split(X, y, sample_domain))
+
+    for train, test in splits:
+        assert isinstance(train, np.ndarray) and isinstance(
+            test, np.ndarray
+        ), "split indices should be numpy arrays"
+        assert len(train) + len(test) == len(
+            X
+        ), "train and test indices should cover all samples"
+        assert (
+            len(np.intersect1d(train, test)) == 0
+        ), "train and test indices should not overlap"

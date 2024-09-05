@@ -337,6 +337,34 @@ def test_check_X_allow_exceptions():
         )
 
 
+def test_check_X_domain_multi_nd():
+    # Create a 3D array (10 samples, 2 features, 3 channels)
+    X = np.random.rand(10, 2, 3)
+    sample_domain = np.array([1] * 5 + [-1] * 5)
+
+    # Test with allow_nd=True
+    check_X_domain(X, sample_domain=sample_domain, allow_nd=True)
+
+    # Test with allow_nd=False (should raise an error)
+    with pytest.raises(ValueError, match="Found array with dim 3. None expected <= 2."):
+        check_X_domain(X, sample_domain=sample_domain, allow_nd=False)
+
+
+def test_check_X_y_domain_multi_nd():
+    # Create a 3D array for X (10 samples, 2 features, 3 channels)
+    X = np.random.rand(10, 2, 3)
+    # Create a 2D array for y (10 samples, 2 outputs)
+    y = np.random.rand(10, 2)
+    sample_domain = np.array([1] * 5 + [-1] * 5)
+
+    # Test with allow_nd=True
+    check_X_y_domain(X, y, sample_domain=sample_domain, allow_nd=True)
+
+    # Test with allow_nd=False (should raise an error for X)
+    with pytest.raises(ValueError, match="Found array with dim 3. None expected <= 2."):
+        check_X_y_domain(X, y, sample_domain=sample_domain, allow_nd=False)
+
+
 def test_extract_source_indices():
     n_samples_source = 50
     n_samples_target = 20
