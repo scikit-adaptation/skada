@@ -412,7 +412,6 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
             transformer = identity
 
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain, allow_nd=True)
-        X = X.reshape(X.shape[0], -1)
         source_idx = extract_source_indices(sample_domain)
         rng = check_random_state(self.random_state)
         X_train, X_val, _, y_val, _, sample_domain_val = train_test_split(
