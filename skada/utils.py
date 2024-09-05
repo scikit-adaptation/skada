@@ -10,7 +10,6 @@ from typing import Optional, Sequence, Set
 import numpy as np
 from scipy.optimize import LinearConstraint, minimize
 from sklearn.utils import check_array, check_consistent_length
-from sklearn.utils.multiclass import type_of_target
 
 from skada._utils import (
     _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
@@ -20,6 +19,7 @@ from skada._utils import (
     _DEFAULT_TARGET_DOMAIN_ONLY_LABEL,
     _check_y_masking,
     Y_Type,
+    _find_y_type
 )
 
 
@@ -491,10 +491,10 @@ def source_target_merge(
 
             pair_index = i+1 if index_is_empty == i else i
 
-            y_type = type_of_target(arrays[pair_index])
+            y_type = _find_y_type(arrays[pair_index])
             if y_type == Y_Type.DISCRETE:
                 default_masked_label = _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
-            else:
+            elif y_type == Y_Type.CONTINUOUS:
                 default_masked_label = _DEFAULT_MASKED_TARGET_REGRESSION_LABEL
 
             arrays[index_is_empty] = (
