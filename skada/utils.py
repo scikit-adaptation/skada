@@ -409,12 +409,7 @@ def source_target_merge(
            [ 7,  8],
            [ 9, 10]])
     >>> y
-    np.array([0,
-        1,
-        1,
-    {_DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL},
-    {_DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL}
-    ])
+    np.array([0, 1, 1, {_DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL}, {_DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL}])
     """
 
     arrays = list(arrays)   # Convert to list to be able to modify it
