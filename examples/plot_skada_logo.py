@@ -53,7 +53,7 @@ def draw_S(
     rng = np.random.RandomState(random_state)
 
     # Create a figure and axis
-    plt.figure(1, figsize)
+    fig = plt.figure(1, figsize)
     if figsize == (2, 2):
         plt.xlim(-1, 11)
     else:
