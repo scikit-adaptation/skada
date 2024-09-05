@@ -387,26 +387,27 @@ def source_target_merge(
     --------
     >>> X_source = np.array([[1, 2], [3, 4], [5, 6]])
     >>> X_target = np.array([[7, 8], [9, 10]])
-    >>> sample_domain = np.array([0, 0, 1, 1])
-    >>> X, _ = source_target_merge(X_source, X_target, sample_domain = sample_domain)
+    >>> X, sample_domain = source_target_merge(X_source, X_target)
     >>> X
-    np.array([[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]])
+    array([[ 1,  2],
+           [ 3,  4],
+           [ 5,  6],
+           [ 7,  8],
+           [ 9, 10]])
+    >>> sample_domain
+    array([ 1.,  1.,  1., -2., -2.])
 
     >>> X_source = np.array([[1, 2], [3, 4], [5, 6]])
     >>> X_target = np.array([[7, 8], [9, 10]])
     >>> y_source = np.array([0, 1, 1])
     >>> y_target = None
-    >>> sample_domain = np.array([0, 0, 1, 1])
-    >>> X, y, _ = source_target_merge(
-        X_source,
-        X_target,
-        y_source,
-        y_target,
-        sample_domain = sample_domain
-        )
+    >>> X, y, _ = source_target_merge(X_source, X_target, y_source, y_target)
     >>> X
-    np.array([[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]])
-
+    array([[ 1,  2],
+           [ 3,  4],
+           [ 5,  6],
+           [ 7,  8],
+           [ 9, 10]])
     >>> y
     np.array([0,
         1,
