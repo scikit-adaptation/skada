@@ -7,7 +7,7 @@
 
 import numpy as np
 import pytest
-from sklearn.dummy import DummyRegressor
+from sklearn.dummy import DummyClassifier, DummyRegressor
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import ShuffleSplit, cross_validate
@@ -23,6 +23,7 @@ from skada.metrics import (
     CircularValidation,
     DeepEmbeddedValidation,
     ImportanceWeightedScorer,
+    MixValScorer,
     PredictionEntropyScorer,
     SoftNeighborhoodDensity,
     SupervisedScorer,
@@ -244,5 +245,108 @@ def test_deep_embedding_validation_no_transform(da_dataset):
         params={"sample_domain": sample_domain},
         scoring=scorer,
     )["test_score"]
+    assert scores.shape[0] == 3, "evaluate 3 splits"
+    assert np.all(~np.isnan(scores)), "all scores are computed"
+
+
+def test_mixval_scorer(da_dataset):
+    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    estimator = make_da_pipeline(
+        DensityReweightAdapter(),
+        LogisticRegression()
+        .set_fit_request(sample_weight=True)
+        .set_score_request(sample_weight=True),
+    )
+    cv = ShuffleSplit(n_splits=3, test_size=0.3, random_state=0)
+
+    # Test with default parameters
+    scorer = MixValScorer(alpha=0.55, random_state=42)
+    scores = cross_validate(
+        estimator,
+        X,
+        y,
+        cv=cv,
+        params={"sample_domain": sample_domain},
+        scoring=scorer,
+    )["test_score"]
+
+    assert scores.shape[0] == 3, "evaluate 3 splits"
+    assert np.all(~np.isnan(scores)), "all scores are computed"
+    assert np.all(scores >= 0) and np.all(scores <= 1), "scores are between 0 and 1"
+
+    # Test different ice_type options
+    for ice_type in ["both", "intra", "inter"]:
+        scorer = MixValScorer(alpha=0.55, random_state=42, ice_type=ice_type)
+        scores = cross_validate(
+            estimator,
+            X,
+            y,
+            cv=cv,
+            params={"sample_domain": sample_domain},
+            scoring=scorer,
+        )["test_score"]
+
+        assert scores.shape[0] == 3, f"evaluate 3 splits for ice_type={ice_type}"
+        assert np.all(
+            ~np.isnan(scores)
+        ), f"all scores are computed for ice_type={ice_type}"
+        assert np.all(scores >= 0) and np.all(
+            scores <= 1
+        ), f"scores are between 0 and 1 for ice_type={ice_type}"
+
+    # Test invalid ice_type
+    with pytest.raises(ValueError):
+        MixValScorer(ice_type="invalid")
+
+
+def test_mixval_scorer_regression(da_reg_dataset):
+    X, y, sample_domain = da_reg_dataset
+
+    estimator = make_da_pipeline(DensityReweightAdapter(), LinearRegression())
+
+    scorer = MixValScorer(alpha=0.55, random_state=42)
+    with pytest.raises(ValueError):
+        scorer(estimator, X, y, sample_domain)
+
+
+@pytest.mark.parametrize(
+    "scorer",
+    [
+        SupervisedScorer(),
+        ImportanceWeightedScorer(),
+        PredictionEntropyScorer(),
+        SoftNeighborhoodDensity(),
+        CircularValidation(),
+        MixValScorer(alpha=0.55, random_state=42),
+    ],
+)
+def test_scorer_with_nd_input(scorer, da_dataset):
+    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+
+    # Repeat data to have a 3D input
+    X_3d = np.repeat(X[:, :, None], repeats=3, axis=2)
+
+    estimator = make_da_pipeline(
+        DummyClassifier(strategy="stratified", random_state=42)
+        .set_fit_request(sample_weight=True)
+        .set_score_request(sample_weight=True),
+    )
+    cv = ShuffleSplit(n_splits=3, test_size=0.3, random_state=0)
+    if isinstance(scorer, SupervisedScorer):
+        _, target_labels, _ = da_dataset.pack(
+            as_sources=["s"], as_targets=["t"], train=False
+        )
+        params = {"sample_domain": sample_domain, "target_labels": target_labels}
+    else:
+        params = {"sample_domain": sample_domain}
+    scores = cross_validate(
+        estimator,
+        X_3d,
+        y,
+        cv=cv,
+        params=params,
+        scoring=scorer,
+    )["test_score"]
+
     assert scores.shape[0] == 3, "evaluate 3 splits"
     assert np.all(~np.isnan(scores)), "all scores are computed"

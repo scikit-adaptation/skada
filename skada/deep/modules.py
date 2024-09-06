@@ -27,6 +27,7 @@ class ToyModule2D(torch.nn.Module):
     def forward(
         self,
         X,
+        sample_weight=None,
     ):
         """XXX add docstring here."""
         X = self.nonlin(self.dense0(X))
@@ -40,7 +41,9 @@ class ToyModule2D(torch.nn.Module):
 
 
 class ToyCNN(nn.Module):
-    """Toy CNN for examples and tests.
+    """Toy CNN for examples and tests on classification tasks.
+
+    Made for 2D data (e.g. time series) with shape (batch_size, n_channels, input_size).
 
     Parameters
     ----------
@@ -62,15 +65,31 @@ class ToyCNN(nn.Module):
         self.feature_extractor = nn.Sequential(
             nn.Conv1d(n_channels, out_channels, kernel_size),
             nn.ReLU(),
-            nn.AvgPool1d(kernel_size),
         )
         self.num_features = self._num_features(n_channels, input_size)
-        self.fc = nn.Linear(self.num_features, n_classes)
+        self.fc = nn.Sequential(
+            nn.AdaptiveAvgPool1d(1),
+            nn.Flatten(start_dim=1),
+            nn.Linear(out_channels, n_classes),
+        )
 
-    def forward(self, x):
-        """XXX add docstring here."""
+    def forward(self, x, sample_weight=None):
+        """Forward pass of the network.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor of shape (batch_size, n_channels, input_size).
+        sample_weight : torch.Tensor, optional
+            Sample weights for the loss computation of shape (batch_size,).
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor of shape (batch_size, n_classes).
+        """
         x = self.feature_extractor(x)
-        x = self.fc(x.flatten(start_dim=1))
+        x = self.fc(x)
         return x
 
     def _num_features(self, n_channels, input_size):
@@ -88,7 +107,7 @@ class GradientReversalLayer(Function):
     """
 
     @staticmethod
-    def forward(ctx, x, alpha):
+    def forward(ctx, x, alpha, sample_weight=None):
         """XXX add docstring here."""
         ctx.alpha = alpha
 
@@ -130,7 +149,7 @@ class DomainClassifier(nn.Module):
         )
         self.alpha = alpha
 
-    def forward(self, x):
+    def forward(self, x, sample_weight=None):
         """Forward pass.
 
         Parameters
@@ -160,7 +179,7 @@ class MNISTtoUSPSNet(nn.Module):
         self.fc2 = nn.Linear(128, 10)
         self.maxpool = nn.MaxPool2d(2)
 
-    def forward(self, x):
+    def forward(self, x, sample_weight=None):
         """XXX add docstring here."""
         x = self.conv1(x)
         x = self.relu1(x)

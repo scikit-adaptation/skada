@@ -1,7 +1,7 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #
 # License: BSD 3-Clause
-from torch import nn
+import torch
 
 from skada.deep.base import (
     BaseDALoss,
@@ -67,7 +67,15 @@ class DeepJDOTLoss(BaseDALoss):
         return loss
 
 
-def DeepJDOT(module, layer_name, reg=1, reg_cl=1, target_criterion=None, **kwargs):
+def DeepJDOT(
+    module,
+    layer_name,
+    reg=1,
+    reg_cl=1,
+    base_criterion=None,
+    target_criterion=None,
+    **kwargs,
+):
     """DeepJDOT.
 
        See [13]_.
@@ -83,6 +91,9 @@ def DeepJDOT(module, layer_name, reg=1, reg_cl=1, target_criterion=None, **kwarg
         Regularization parameter.
     reg_cl : float, default=1
         Class distance term regularization parameter.
+    base_criterion : torch criterion (class)
+        The base criterion used to compute the loss with source
+        labels. If None, the default is `torch.nn.CrossEntropyLoss`.
     target_criterion : torch criterion (class)
         The uninitialized criterion (loss) used to compute the
         DeepJDOT loss. The criterion should support reduction='none'.
@@ -96,13 +107,16 @@ def DeepJDOT(module, layer_name, reg=1, reg_cl=1, target_criterion=None, **kwarg
             15th European Conference on Computer Vision,
             September 2018. Springer.
     """
+    if base_criterion is None:
+        base_criterion = torch.nn.CrossEntropyLoss()
+
     net = DomainAwareNet(
         module=DomainAwareModule,
         module__base_module=module,
         module__layer_name=layer_name,
         iterator_train=DomainBalancedDataLoader,
         criterion=DomainAwareCriterion,
-        criterion__criterion=nn.CrossEntropyLoss(),
+        criterion__base_criterion=base_criterion,
         criterion__adapt_criterion=DeepJDOTLoss(reg_cl, target_criterion),
         criterion__reg=reg,
         **kwargs,

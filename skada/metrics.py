@@ -72,7 +72,7 @@ class SupervisedScorer(_BaseDomainAwareScorer):
     ):
         scorer = check_scoring(estimator, self.scoring)
 
-        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        X, y, sample_domain = check_X_y_domain(X, y, sample_domain, allow_nd=True)
         source_idx = extract_source_indices(sample_domain)
 
         return self._sign * scorer(
@@ -136,9 +136,11 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
 
         Parameters
         ----------
-        X : array-like, shape (n_samples, n_features)
+        X : array-like, shape (n_samples, *), where * is any number
+            of dimensions of at least 1
             The source data.
-        X_target : array-like, shape (n_samples, n_features)
+        X_target : array-like, shape (n_samples, *), where * is any number
+            of dimensions of at least 1
             The target data.
 
         Returns
@@ -151,6 +153,8 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
             weight_estimator = KernelDensity()
         self.weight_estimator_source_ = clone(weight_estimator)
         self.weight_estimator_target_ = clone(weight_estimator)
+        X_source = X_source.reshape(X_source.shape[0], -1)
+        X_target = X_target.reshape(X_target.shape[0], -1)
         self.weight_estimator_source_.fit(X_source)
         self.weight_estimator_target_.fit(X_target)
         return self
@@ -165,10 +169,12 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
                 f"The estimator {estimator!r} does not."
             )
 
-        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        X, y, sample_domain = check_X_y_domain(X, y, sample_domain, allow_nd=True)
         X_source, X_target, y_source, _ = source_target_split(
             X, y, sample_domain=sample_domain
         )
+        X_source = X_source.reshape(X_source.shape[0], -1)
+        X_target = X_target.reshape(X_target.shape[0], -1)
         self._fit(X_source, X_target)
         ws = self.weight_estimator_source_.score_samples(X_source)
         wt = self.weight_estimator_target_.score_samples(X_source)
@@ -239,7 +245,7 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
                 "The estimator passed should have a 'predict_proba' method. "
                 f"The estimator {estimator!r} does not."
             )
-        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        X, y, sample_domain = check_X_y_domain(X, y, sample_domain, allow_nd=True)
         source_idx = extract_source_indices(sample_domain)
         proba = estimator.predict_proba(
             X[~source_idx], sample_domain=sample_domain[~source_idx], **params
@@ -250,7 +256,9 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
             )
         else:
             log_proba = np.log(proba + 1e-7)
+        infty_mask = np.isneginf(log_proba)
         entropy_per_sample = -proba * log_proba
+        entropy_per_sample[infty_mask] = 0  # x*log(x) -> 0 as x -> 0
         if self.reduction == "none":
             return self._sign * entropy_per_sample
         elif self.reduction == "sum":
@@ -298,7 +306,7 @@ class SoftNeighborhoodDensity(_BaseDomainAwareScorer):
                 f"The estimator {estimator!r} does not."
             )
 
-        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        X, y, sample_domain = check_X_y_domain(X, y, sample_domain, allow_nd=True)
         source_idx = extract_source_indices(sample_domain)
         proba = estimator.predict_proba(
             X[~source_idx], sample_domain=sample_domain[~source_idx], **params
@@ -403,7 +411,7 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
             # We use the input data as features
             transformer = identity
 
-        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        X, y, sample_domain = check_X_y_domain(X, y, sample_domain, allow_nd=True)
         source_idx = extract_source_indices(sample_domain)
         rng = check_random_state(self.random_state)
         X_train, X_val, _, y_val, _, sample_domain_val = train_test_split(
@@ -550,7 +558,7 @@ class CircularValidation(_BaseDomainAwareScorer):
         float
             The computed score.
         """
-        X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
+        X, y, sample_domain = check_X_y_domain(X, y, sample_domain, allow_nd=True)
 
         try:
             _check_y_masking(y)
@@ -619,3 +627,144 @@ class CircularValidation(_BaseDomainAwareScorer):
             score = self.source_scorer(y[source_idx], y_pred_source)
 
         return self._sign * score
+
+
+class MixValScorer(_BaseDomainAwareScorer):
+    """
+    MixVal scorer for unsupervised domain adaptation.
+
+    This scorer uses mixup to create mixed samples from the target domain,
+    and evaluates the model's consistency on these mixed samples.
+
+    See [32]_ for details.
+
+    Parameters
+    ----------
+    alpha : float, default=0.55
+        Mixing parameter for mixup.
+    ice_type : {'both', 'intra', 'inter'}, default='both'
+        Type of ICE score to compute:
+        - 'both': Compute both intra-cluster and inter-cluster ICE scores (average).
+        - 'intra': Compute only intra-cluster ICE score.
+        - 'inter': Compute only inter-cluster ICE score.
+    scoring : str or callable, default=None
+        A string (see model evaluation documentation) or
+        a scorer callable object / function with signature
+        ``scorer(estimator, X, y)``.
+        If None, the provided estimator object's `score` method is used.
+    greater_is_better : bool, default=True
+        Whether higher scores are better.
+    random_state : int, RandomState instance or None, default=None
+        Controls the randomness of the mixing process.
+
+    Attributes
+    ----------
+    alpha : float
+        Mixing parameter.
+    random_state : RandomState
+        Random number generator.
+    _sign : int
+        1 if greater_is_better is True, -1 otherwise.
+    ice_type : str
+        Type of ICE score to compute.
+
+    References
+    ----------
+    .. [32] Dapeng Hu et al. Mixed Samples as Probes for Unsupervised Model
+            Selection in Domain Adaptation.
+            NeurIPS, 2023.
+    """
+
+    def __init__(
+        self,
+        alpha=0.55,
+        ice_type="both",
+        scoring=None,
+        greater_is_better=True,
+        random_state=None,
+    ):
+        super().__init__()
+        self.alpha = alpha
+        self.ice_type = ice_type
+        self.scoring = scoring
+        self._sign = 1 if greater_is_better else -1
+        self.random_state = random_state
+
+        if self.ice_type not in ["both", "intra", "inter"]:
+            raise ValueError("ice_type must be 'both', 'intra', or 'inter'")
+
+    def _score(self, estimator, X, y=None, sample_domain=None, **params):
+        """
+        Compute the Interpolation Consistency Evaluation (ICE) score.
+
+        Parameters
+        ----------
+        estimator : object
+            The fitted estimator to evaluate.
+        X : array-like of shape (n_samples, n_features)
+            The input samples.
+        y : Ignored
+            Not used, present for API consistency by convention.
+        sample_domain : array-like, default=None
+            Domain labels for each sample.
+
+        Returns
+        -------
+        score : float
+            The ICE score.
+        """
+        scorer = check_scoring(estimator, self.scoring)
+
+        X, _, sample_domain = check_X_y_domain(X, y, sample_domain, allow_nd=True)
+        source_idx = extract_source_indices(sample_domain)
+        X_target = X[~source_idx]
+
+        # Check from y values if it is a classification problem
+        y_type = _find_y_type(y)
+        if y_type != Y_Type.DISCRETE:
+            raise ValueError("MixVal scorer only supports classification problems.")
+
+        rng = check_random_state(self.random_state)
+        rand_idx = rng.permutation(X_target.shape[0])
+
+        # Get predictions for target samples
+        labels_a = estimator.predict(X_target, sample_domain=sample_domain[~source_idx])
+        labels_b = labels_a[rand_idx]
+
+        # Intra-cluster and inter-cluster mixup
+        same_idx = (labels_a == labels_b).nonzero()[0]
+        diff_idx = (labels_a != labels_b).nonzero()[0]
+
+        # Mixup with X_target and hard pseudo labels
+        mix_inputs = self.alpha * X_target + (1 - self.alpha) * X_target[rand_idx]
+        if self.alpha >= 0.5:
+            mix_labels = labels_a
+        else:
+            mix_labels = labels_b
+
+        # Calculate ICE scores based on ice_type
+        # TODO: handle multiple target domains
+        if self.ice_type in ["both", "intra"]:
+            ice_same = scorer(
+                estimator,
+                mix_inputs[same_idx],
+                mix_labels[same_idx],
+                sample_domain=np.full(same_idx.shape[0], -1),
+            )
+
+        if self.ice_type in ["both", "inter"]:
+            ice_diff = scorer(
+                estimator,
+                mix_inputs[diff_idx],
+                mix_labels[diff_idx],
+                sample_domain=np.full(diff_idx.shape[0], -1),
+            )
+
+        if self.ice_type == "both":
+            ice_score = (ice_same + ice_diff) / 2
+        elif self.ice_type == "intra":
+            ice_score = ice_same
+        else:  # self.ice_type == 'inter'
+            ice_score = ice_diff
+
+        return self._sign * ice_score

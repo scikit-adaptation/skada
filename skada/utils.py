@@ -10,7 +10,6 @@ from typing import Optional, Sequence, Set
 import numpy as np
 from scipy.optimize import LinearConstraint, minimize
 from sklearn.utils import check_array, check_consistent_length
-from sklearn.utils.multiclass import type_of_target
 
 from skada._utils import (
     _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
@@ -20,6 +19,7 @@ from skada._utils import (
     _DEFAULT_TARGET_DOMAIN_ONLY_LABEL,
     _check_y_masking,
     Y_Type,
+    _find_y_type
 )
 
 
@@ -302,12 +302,60 @@ def source_target_split(
         for a in arrays
     ))
 
+def per_domain_split(
+    *arrays,
+    sample_domain):
+    r"""Split data into multiple source and target domains
+
+    Parameters
+    ----------
+    *arrays : sequence of array-like of identical shape (n_samples, n_features)
+        Input features and target variable(s), and or sample_weights to be
+        split. All arrays should have the same length except if None is given
+        then a couple of None variables are returned to allow for optional
+        sample_weight.
+    sample_domain : array-like of shape (n_samples,)
+        Array specifying the domain labels for each sample.
+    split_source_target : bool, optional (default=False)
+        Whether to split the source and target domains.
+
+    Returns
+    -------
+    source_dict : dict
+        dict of source domains (contain tuple of subset of arrays).
+    target_dict : dict
+        dict of target domains (contain tuple of subset of arrays).
+    """
+    if len(arrays) == 0:
+        raise ValueError("At least one array required as input")
+
+    check_consistent_length(arrays)
+
+    domain_idx = extract_domains_indices(sample_domain, False)
+
+    source_dict = {}
+    target_dict = {}
+
+    for domain, idx in domain_idx.items():
+        if domain >= 0:
+            source_dict[domain] = list(chain.from_iterable(
+                (a[idx],) if a is not None else (None,)
+                for a in arrays
+            ))
+        else:
+            target_dict[domain] = list(chain.from_iterable(
+                (a[idx],) if a is not None else (None,)
+                for a in arrays
+            ))
+
+    return source_dict, target_dict
+
 
 def source_target_merge(
     *arrays,
     sample_domain: Optional[np.ndarray] = None
 ) -> Sequence[np.ndarray]:
-    f""" Merge source and target domain data based on sample domain labels.
+    """Merge source and target domain data based on sample domain labels.
 
     Parameters
     ----------
@@ -339,33 +387,29 @@ def source_target_merge(
     --------
     >>> X_source = np.array([[1, 2], [3, 4], [5, 6]])
     >>> X_target = np.array([[7, 8], [9, 10]])
-    >>> sample_domain = np.array([0, 0, 1, 1])
-    >>> X, _ = source_target_merge(X_source, X_target, sample_domain = sample_domain)
+    >>> X, sample_domain = source_target_merge(X_source, X_target)
     >>> X
-    np.array([[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]])
+    array([[ 1,  2],
+           [ 3,  4],
+           [ 5,  6],
+           [ 7,  8],
+           [ 9, 10]])
+    >>> sample_domain
+    array([ 1.,  1.,  1., -2., -2.])
 
     >>> X_source = np.array([[1, 2], [3, 4], [5, 6]])
     >>> X_target = np.array([[7, 8], [9, 10]])
     >>> y_source = np.array([0, 1, 1])
     >>> y_target = None
-    >>> sample_domain = np.array([0, 0, 1, 1])
-    >>> X, y, _ = source_target_merge(
-        X_source,
-        X_target,
-        y_source,
-        y_target,
-        sample_domain = sample_domain
-        )
+    >>> X, y, _ = source_target_merge(X_source, X_target, y_source, y_target)
     >>> X
-    np.array([[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]])
-
+    array([[ 1,  2],
+           [ 3,  4],
+           [ 5,  6],
+           [ 7,  8],
+           [ 9, 10]])
     >>> y
-    np.array([0,
-        1,
-        1,
-    {_DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL},
-    {_DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL}
-    ])
+    array([ 0,  1,  1, {_DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL}, {_DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL}])
     """
 
     arrays = list(arrays)   # Convert to list to be able to modify it
@@ -442,10 +486,10 @@ def source_target_merge(
 
             pair_index = i+1 if index_is_empty == i else i
 
-            y_type = type_of_target(arrays[pair_index])
+            y_type = _find_y_type(arrays[pair_index])
             if y_type == Y_Type.DISCRETE:
                 default_masked_label = _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
-            else:
+            elif y_type == Y_Type.CONTINUOUS:
                 default_masked_label = _DEFAULT_MASKED_TARGET_REGRESSION_LABEL
 
             arrays[index_is_empty] = (
@@ -473,6 +517,15 @@ def source_target_merge(
         )
 
     return (*merges, sample_domain)
+
+
+# Update the docstring to replace placeholders with actual values
+source_target_merge.__doc__ = source_target_merge.__doc__.format(
+    _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL=_DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
+    _DEFAULT_MASKED_TARGET_REGRESSION_LABEL=_DEFAULT_MASKED_TARGET_REGRESSION_LABEL,
+    _DEFAULT_SOURCE_DOMAIN_LABEL=_DEFAULT_SOURCE_DOMAIN_LABEL,
+    _DEFAULT_TARGET_DOMAIN_LABEL=_DEFAULT_TARGET_DOMAIN_LABEL
+)
 
 
 def _merge_arrays(
