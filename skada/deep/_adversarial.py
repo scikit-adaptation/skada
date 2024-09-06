@@ -38,7 +38,7 @@ class DANNLoss(BaseDALoss):
     ----------
     .. [15] Yaroslav Ganin et. al. Domain-Adversarial Training
             of Neural Networks  In Journal of Machine Learning
-            Research, 2016.
+            Research, 2016
     """
 
     def __init__(self, domain_criterion=None):
@@ -100,7 +100,7 @@ def DANN(
         The name of the module's layer whose outputs are
         collected during the training.
     reg : float, default=1
-        Regularization parameter.
+        Regularization parameter for DA loss.
     domain_classifier : torch module, default=None
         A PyTorch :class:`~torch.nn.Module` used to classify the
         domain. If None, a domain classifier is created following [1]_.
@@ -344,7 +344,7 @@ def CDAN(
         The name of the module's layer whose outputs are
         collected during the training.
     reg : float, default=1
-        Regularization parameter.
+        Regularization parameter for DA loss.
     max_features : int, default=4096
         Maximum size of the input for the domain classifier.
         4096 is the largest number of units in typical deep network
