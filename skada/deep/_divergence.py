@@ -63,7 +63,7 @@ def DeepCoral(module, layer_name, reg=1, base_criterion=None, **kwargs):
         The name of the module's layer whose outputs are
         collected during the training for the adaptation.
     reg : float, optional (default=1)
-        The regularization parameter of the covariance estimator.
+        Regularization parameter for the DA loss.
     base_criterion : torch criterion (class)
         The base criterion used to compute the loss with source
         labels. If None, the default is `torch.nn.CrossEntropyLoss`.
@@ -142,7 +142,7 @@ def DAN(module, layer_name, reg=1, sigmas=None, base_criterion=None, **kwargs):
         The name of the module's layer whose outputs are
         collected during the training for the adaptation.
     reg : float, optional (default=1)
-        The regularization parameter of the covariance estimator.
+        Regularization parameter for the DA loss.
     sigmas : array-like, optional (default=None)
         The sigmas for the Gaussian kernel.
     base_criterion : torch criterion (class)

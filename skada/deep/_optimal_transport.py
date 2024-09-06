@@ -88,7 +88,7 @@ def DeepJDOT(
         The name of the module's layer whose outputs are
         collected during the training for the adaptation.
     reg : float, default=1
-        Regularization parameter.
+        Regularization parameter for the DA loss.
     reg_cl : float, default=1
         Class distance term regularization parameter.
     base_criterion : torch criterion (class)
