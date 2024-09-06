@@ -38,7 +38,7 @@ class DANNLoss(BaseDALoss):
     ----------
     .. [15] Yaroslav Ganin et. al. Domain-Adversarial Training
             of Neural Networks  In Journal of Machine Learning
-            Research, 2016
+            Research, 2016.
     """
 
     def __init__(self, domain_criterion=None):
