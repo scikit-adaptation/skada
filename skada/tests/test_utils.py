@@ -7,7 +7,11 @@ import numpy as np
 import pytest
 from sklearn.utils import check_random_state
 
-from skada._utils import _check_y_masking, _merge_domain_outputs
+from skada._utils import (
+    _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
+    _check_y_masking,
+    _merge_domain_outputs,
+)
 from skada.datasets import make_dataset_from_moons_distribution
 from skada.utils import (
     check_X_domain,
@@ -337,6 +341,34 @@ def test_check_X_allow_exceptions():
         )
 
 
+def test_check_X_domain_multi_nd():
+    # Create a 3D array (10 samples, 2 features, 3 channels)
+    X = np.random.rand(10, 2, 3)
+    sample_domain = np.array([1] * 5 + [-1] * 5)
+
+    # Test with allow_nd=True
+    check_X_domain(X, sample_domain=sample_domain, allow_nd=True)
+
+    # Test with allow_nd=False (should raise an error)
+    with pytest.raises(ValueError, match="Found array with dim 3. None expected <= 2."):
+        check_X_domain(X, sample_domain=sample_domain, allow_nd=False)
+
+
+def test_check_X_y_domain_multi_nd():
+    # Create a 3D array for X (10 samples, 2 features, 3 channels)
+    X = np.random.rand(10, 2, 3)
+    # Create a 2D array for y (10 samples, 2 outputs)
+    y = np.random.rand(10, 2)
+    sample_domain = np.array([1] * 5 + [-1] * 5)
+
+    # Test with allow_nd=True
+    check_X_y_domain(X, y, sample_domain=sample_domain, allow_nd=True)
+
+    # Test with allow_nd=False (should raise an error for X)
+    with pytest.raises(ValueError, match="Found array with dim 3. None expected <= 2."):
+        check_X_y_domain(X, y, sample_domain=sample_domain, allow_nd=False)
+
+
 def test_extract_source_indices():
     n_samples_source = 50
     n_samples_target = 20
@@ -388,6 +420,34 @@ def test_extract_domains_indices():
 
 
 def test_source_target_merge():
+    # Test simple source-target merge with 2 domains
+    X_source = np.array([[1, 2], [3, 4], [5, 6]])
+    X_target = np.array([[7, 8], [9, 10]])
+    y_source = np.array([0, 1, 1])
+    y_target = None
+    sample_domain = np.array([1, 1, 1, -2, -2])
+
+    X, y, _ = source_target_merge(
+        X_source, X_target, y_source, y_target, sample_domain=sample_domain
+    )
+
+    np.testing.assert_array_equal(
+        X, np.array([[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]])
+    )
+    np.testing.assert_array_equal(
+        y,
+        np.array(
+            [
+                0,
+                1,
+                1,
+                _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
+                _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
+            ]
+        ),
+    )
+
+    # Test moons dataset with 2 domains
     n_samples_source = 50
     n_samples_target = 20
     X, y, sample_domain = make_dataset_from_moons_distribution(

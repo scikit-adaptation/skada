@@ -121,9 +121,9 @@ def _find_y_type(y):
     # Check if the target is a classification or regression target.
     y_type = type_of_target(y)
 
-    if y_type == "continuous":
+    if y_type in ["continuous", "continuous-multioutput"]:
         return Y_Type.CONTINUOUS
-    elif y_type == "binary" or y_type == "multiclass":
+    elif y_type in ["binary", "multiclass"]:
         return Y_Type.DISCRETE
     else:
         # Here y_type is 'multilabel-indicator', 'continuous-multioutput',
