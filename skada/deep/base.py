@@ -24,6 +24,7 @@ from skorch.utils import to_tensor
 from skorch.dataset import unpack_data
 from collections.abc import Mapping
 
+
 class DomainAwareCriterion(torch.nn.Module):
     """Criterion for domain aware loss
 
@@ -275,7 +276,6 @@ class DomainAwareModule(torch.nn.Module):
         estimator = _clone_parametrized(self, safe=True)
         estimator._setup_hooks()
         return estimator
-    
 
     def forward(self, X, sample_domain=None, sample_weight=None, is_fit=False, return_features=False):
         if is_fit:
@@ -305,7 +305,7 @@ class DomainAwareModule(torch.nn.Module):
                 domain_pred_s = self.domain_classifier_(features_s)
                 domain_pred_t = self.domain_classifier_(features_t)
                 domain_pred = torch.empty(
-                    (len(sample_domain)), 
+                    (len(sample_domain)),
                     device=domain_pred_s.device
                 )
                 domain_pred[source_idx] = domain_pred_s
