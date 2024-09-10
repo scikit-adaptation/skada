@@ -102,7 +102,7 @@ def test_generic_scorer(scorer, da_dataset):
         ImportanceWeightedScorer(),
     ],
 )
-def test_dev_cnn_features_nd(scorer, da_dataset):
+def test_scorer_with_nd_features(scorer, da_dataset):
     X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
     X = np.repeat(X[..., np.newaxis], repeats=5, axis=-1)  # Make it batched 2D data
     X = X.astype(np.float32)

@@ -187,17 +187,7 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
             warnings.warn("All weights are zero. Using uniform weights.")
             weights = np.ones_like(weights) / len(weights)
 
-        if not isinstance(estimator, BaseEstimator):
-            # Deep estimators dont accept allow_source parameter
-            score = scorer(
-                estimator,
-                X_source,
-                y_source,
-                sample_domain=sample_domain[sample_domain >= 0],
-                sample_weight=weights,
-                **params,
-            )
-        else:
+        if isinstance(estimator, BaseEstimator):
             score = scorer(
                 estimator,
                 X_source,
@@ -207,6 +197,27 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
                 allow_source=True,
                 **params,
             )
+        else:
+            try:
+                from skorch import NeuralNet
+
+                if isinstance(estimator, NeuralNet):
+                    # Deep estimators dont accept allow_source parameter
+                    score = scorer(
+                        estimator,
+                        X_source,
+                        y_source,
+                        sample_domain=sample_domain[sample_domain >= 0],
+                        sample_weight=weights,
+                        **params,
+                    )
+                else:
+                    raise ValueError("Estimator is not a NeuralNet instance")
+            except ImportError:
+                raise ValueError(
+                    "Importance Weighted Scorer does not support estimator"
+                    f"of type {type(estimator).__name__}"
+                )
 
         return self._sign * score
 
