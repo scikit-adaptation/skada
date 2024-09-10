@@ -153,8 +153,6 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
             weight_estimator = KernelDensity()
         self.weight_estimator_source_ = clone(weight_estimator)
         self.weight_estimator_target_ = clone(weight_estimator)
-        X_source = X_source.reshape(X_source.shape[0], -1)
-        X_target = X_target.reshape(X_target.shape[0], -1)
         self.weight_estimator_source_.fit(X_source)
         self.weight_estimator_target_.fit(X_target)
         return self
@@ -173,11 +171,14 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
         X_source, X_target, y_source, _ = source_target_split(
             X, y, sample_domain=sample_domain
         )
-        X_source = X_source.reshape(X_source.shape[0], -1)
-        X_target = X_target.reshape(X_target.shape[0], -1)
-        self._fit(X_source, X_target)
-        ws = self.weight_estimator_source_.score_samples(X_source)
-        wt = self.weight_estimator_target_.score_samples(X_source)
+
+        # Reshape to 2D vectors
+        X_source_reshaped = X_source.reshape(X_source.shape[0], -1)
+        X_target_reshaped = X_target.reshape(X_target.shape[0], -1)
+
+        self._fit(X_source_reshaped, X_target_reshaped)
+        ws = self.weight_estimator_source_.score_samples(X_source_reshaped)
+        wt = self.weight_estimator_target_.score_samples(X_source_reshaped)
         weights = np.exp(wt - ws)
 
         if weights.sum() != 0:
@@ -186,15 +187,28 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
             warnings.warn("All weights are zero. Using uniform weights.")
             weights = np.ones_like(weights) / len(weights)
 
-        return self._sign * scorer(
-            estimator,
-            X_source,
-            y_source,
-            sample_domain=sample_domain[sample_domain >= 0],
-            sample_weight=weights,
-            allow_source=True,
-            **params,
-        )
+        if not isinstance(estimator, BaseEstimator):
+            # Deep estimators dont accept allow_source parameter
+            score = scorer(
+                estimator,
+                X_source,
+                y_source,
+                sample_domain=sample_domain[sample_domain >= 0],
+                sample_weight=weights,
+                **params,
+            )
+        else:
+            score = scorer(
+                estimator,
+                X_source,
+                y_source,
+                sample_domain=sample_domain[sample_domain >= 0],
+                sample_weight=weights,
+                allow_source=True,
+                **params,
+            )
+
+        return self._sign * score
 
 
 class PredictionEntropyScorer(_BaseDomainAwareScorer):
