@@ -45,7 +45,14 @@ class DomainAwareCriterion(torch.nn.Module):
         'sum': the output will be summed.
     """
 
-    def __init__(self, base_criterion, adapt_criterion, reg=1, reduction="mean", is_multi_source=False):
+    def __init__(
+        self,
+        base_criterion,
+        adapt_criterion,
+        reg=1,
+        reduction="mean",
+        is_multi_source=False,
+    ):
         super(DomainAwareCriterion, self).__init__()
         self.base_criterion = base_criterion
         self.adapt_criterion = adapt_criterion
@@ -95,7 +102,7 @@ class DomainAwareCriterion(torch.nn.Module):
             base_loss = 0
             for n_domain in sample_domain[source_idx].unique():
                 idx = sample_domain[source_idx] == n_domain
-                base_loss += self.base_criterion(y_pred_s[idx], y_true[idx])
+                base_loss += self.base_criterion(y_pred_s[idx], y_true[source_idx][idx])
         else:
             base_loss = self.base_criterion(y_pred_s, y_true[source_idx])
         return base_loss + self.reg * self.adapt_criterion(
@@ -312,6 +319,7 @@ class DomainAwareModule(torch.nn.Module):
                 args_t["sample_weight"] = sample_weight[~source_idx]
             if self.is_multi_source:
                 args_t["sample_domain"] = sample_domain[~source_idx]
+                args_t["is_source"] = False
             y_pred_t = self.base_module_(**args_t)
             features_t = self.intermediate_layers[self.layer_name]
 

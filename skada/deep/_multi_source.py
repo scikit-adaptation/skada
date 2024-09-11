@@ -22,7 +22,7 @@ class SelectDomainModule(torch.nn.Module):
 
     def forward(self, X, sample_domain=None, is_source=True):
         if is_source:
-            X = X[sample_domain, torch.arange(X.size(1))]
+            X = X[sample_domain - 1, torch.arange(X.size(1))]
         return X
 
 
@@ -99,11 +99,13 @@ class MFSANLoss(BaseDALoss):
     ):
         """Compute the domain adaptation loss"""
         n_domains = len(features_t)
+        source_idx = sample_domain > 0
         mmd = 0
         disc = 0
         for i in range(n_domains):
+            print(features_s[torch.where(sample_domain[source_idx] == i + 1)[0]].shape)
             mmd += mmd_loss(
-                features_s[torch.where(sample_domain == i)[0]],
+                features_s[torch.where(sample_domain[source_idx] == i + 1)[0]],
                 features_t[i],
                 sigmas=self.sigmas,
             )

@@ -83,7 +83,7 @@ def test_mfsan(sigmas):
     )
 
     X, y, sample_domain = dataset.pack_train(as_sources=["s1", "s0"], as_targets=["t"])
-    method.fit(X.astype(np.float32), y, sample_domain)
+    method.fit(X.astype(np.float32), y.astype(np.int64), sample_domain)
 
     X_test, y_test, sample_domain_test = dataset.pack_test(as_targets=["t"])
 
