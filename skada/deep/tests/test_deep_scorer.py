@@ -14,6 +14,7 @@ from skada.deep.modules import ToyCNN, ToyModule2D
 from skada.metrics import (
     CircularValidation,
     DeepEmbeddedValidation,
+    ImportanceWeightedScorer,
     MixValScorer,
     PredictionEntropyScorer,
     SoftNeighborhoodDensity,
@@ -28,6 +29,7 @@ from skada.metrics import (
         SoftNeighborhoodDensity(),
         CircularValidation(),
         MixValScorer(),
+        ImportanceWeightedScorer(),
     ],
 )
 def test_generic_scorer_on_deepmodel(scorer, da_dataset):
@@ -93,12 +95,18 @@ def test_generic_scorer(scorer, da_dataset):
     assert np.all(~np.isnan(scores)), "all scores are computed"
 
 
-def test_dev_cnn_features_nd(da_dataset):
+@pytest.mark.parametrize(
+    "scorer",
+    [
+        DeepEmbeddedValidation(),
+        ImportanceWeightedScorer(),
+    ],
+)
+def test_scorer_with_nd_features(scorer, da_dataset):
     X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
     X = np.repeat(X[..., np.newaxis], repeats=5, axis=-1)  # Make it batched 2D data
     X = X.astype(np.float32)
 
-    scorer = DeepEmbeddedValidation()
     _, n_channels, input_size = X.shape
     y_source, _ = source_target_split(y, sample_domain=sample_domain)
     n_classes = len(np.unique(y_source))
