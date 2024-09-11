@@ -59,7 +59,7 @@ class DomainAwareCriterion(torch.nn.Module):
         self.base_criterion = base_criterion
         self.adapt_criterion = adapt_criterion
         self.reg = reg
-        self.train_on_target = False
+        self.train_on_target = train_on_target
 
         # Update the reduce parameter for both criteria if specified
         if hasattr(self.base_criterion, "reduction"):
