@@ -42,17 +42,18 @@ class DomainAwareCriterion(torch.nn.Module):
         Specifies the reduction to apply to the output: 'none' | 'mean' | 'sum'.
         'none': no reduction will be applied,
         'mean': the sum of the output will be divided by the number of elements in the output,
-        'sum': the output will be summed. 
+        'sum': the output will be summed.
     """
 
-    def __init__(self, base_criterion, adapt_criterion, reg=1, reduction='mean'):
+    def __init__(self, base_criterion, adapt_criterion, reg=1, reduction="mean", is_multi_source=False):
         super(DomainAwareCriterion, self).__init__()
         self.base_criterion = base_criterion
         self.adapt_criterion = adapt_criterion
         self.reg = reg
+        self.is_multi_source = is_multi_source
 
         # Update the reduce parameter for both criteria if specified
-        if hasattr(self.base_criterion, 'reduction'):
+        if hasattr(self.base_criterion, "reduction"):
             self.base_criterion.reduction = reduction
 
         # TODO: implement losses between source and target
@@ -79,25 +80,25 @@ class DomainAwareCriterion(torch.nn.Module):
         y_true :
             The true labels. Available for source, masked for target.
         """
-        y_pred, domain_pred, features, sample_domain = y_pred  # unpack
-        source_idx = (sample_domain >= 0)
-        y_pred_s = y_pred[source_idx]
-        y_pred_t = y_pred[~source_idx]
 
-        if domain_pred is not None:
-            domain_pred_s = domain_pred[source_idx]
-            domain_pred_t = domain_pred[~source_idx]
-        else:
-            domain_pred_s = None
-            domain_pred_t = None
+        (
+            (y_pred_s, y_pred_t),
+            (domain_pred_s, domain_pred_t),
+            (features_s, features_t),
+            sample_domain,
+        ) = y_pred
 
-        features_s = features[source_idx]
-        features_t = features[~source_idx]
+        source_idx = sample_domain >= 0
 
         # predict
-        return self.base_criterion(
-            y_pred_s, y_true[source_idx],
-        ) + self.reg * self.adapt_criterion(
+        if self.is_multi_source:
+            base_loss = 0
+            for n_domain in sample_domain[source_idx].unique():
+                idx = sample_domain[source_idx] == n_domain
+                base_loss += self.base_criterion(y_pred_s[idx], y_true[idx])
+        else:
+            base_loss = self.base_criterion(y_pred_s, y_true[source_idx])
+        return base_loss + self.reg * self.adapt_criterion(
             y_true[source_idx],
             y_pred_s,
             y_pred_t,
@@ -105,6 +106,7 @@ class DomainAwareCriterion(torch.nn.Module):
             domain_pred_t,
             features_s,
             features_t,
+            sample_domain,
         )
 
 
@@ -124,6 +126,7 @@ class BaseDALoss(torch.nn.Module):
         domain_pred_t,
         features_s,
         features_t,
+        sample_domain,
     ):
         """Compute the domain adaptation loss
 
@@ -143,6 +146,8 @@ class BaseDALoss(torch.nn.Module):
             Features of the chosen layer of source domain.
         features_t :
             Features of the chosen layer of target domain.
+        sample_domain :
+            The domain of each sample.
         """
         pass
 
@@ -252,10 +257,13 @@ class DomainAwareModule(torch.nn.Module):
         domain. Could be None.
     """
 
-    def __init__(self, base_module, layer_name, domain_classifier=None):
+    def __init__(
+        self, base_module, layer_name, domain_classifier=None, is_multi_source=False
+    ):
         super(DomainAwareModule, self).__init__()
         self.base_module_ = base_module
         self.domain_classifier_ = domain_classifier
+        self.is_multi_source = is_multi_source
         self.layer_name = layer_name
         self.intermediate_layers = {}
         self._setup_hooks()
@@ -267,9 +275,9 @@ class DomainAwareModule(torch.nn.Module):
 
     def get_params(self, deep=True) -> Dict[str, Any]:
         return {
-            'base_module': self.base_module_,
-            'layer_name': self.layer_name,
-            'domain_classifier': self.domain_classifier_,
+            "base_module": self.base_module_,
+            "layer_name": self.layer_name,
+            "domain_classifier": self.domain_classifier_,
         }
 
     def __sklearn_clone__(self) -> torch.nn.Module:
@@ -277,65 +285,55 @@ class DomainAwareModule(torch.nn.Module):
         estimator._setup_hooks()
         return estimator
 
-    def forward(self, X, sample_domain=None, sample_weight=None, is_fit=False, return_features=False):
+    def forward(
+        self,
+        X,
+        sample_domain=None,
+        sample_weight=None,
+        is_fit=False,
+        return_features=False,
+    ):
         if is_fit:
-            source_idx = (sample_domain >= 0)
+            source_idx = sample_domain >= 0
 
             X_s = X[source_idx]
             X_t = X[~source_idx]
 
-            # Pass sample_weight to base_module_
+            args_s = {"X": X_s}
             if sample_weight is not None:
-                sample_weight_s = sample_weight[source_idx]
-                sample_weight_t = sample_weight[~source_idx]
+                args_s["sample_weight"] = sample_weight[source_idx]
+            if self.is_multi_source:
+                args_s["sample_domain"] = sample_domain[source_idx]
+            y_pred_s = self.base_module_(**args_s)
+            features_s = self.intermediate_layers[self.layer_name]
 
-                y_pred_s = self.base_module_(X_s, sample_weight=sample_weight_s)
-                features_s = self.intermediate_layers[self.layer_name]
-
-                y_pred_t = self.base_module_(X_t, sample_weight=sample_weight_t)
-                features_t = self.intermediate_layers[self.layer_name]
-            else:
-                y_pred_s = self.base_module_(X_s)
-                features_s = self.intermediate_layers[self.layer_name]
-
-                y_pred_t = self.base_module_(X_t)
-                features_t = self.intermediate_layers[self.layer_name]
+            args_t = {"X": X_t}
+            if sample_weight is not None:
+                args_t["sample_weight"] = sample_weight[~source_idx]
+            if self.is_multi_source:
+                args_t["sample_domain"] = sample_domain[~source_idx]
+            y_pred_t = self.base_module_(**args_t)
+            features_t = self.intermediate_layers[self.layer_name]
 
             if self.domain_classifier_ is not None:
                 domain_pred_s = self.domain_classifier_(features_s)
                 domain_pred_t = self.domain_classifier_(features_t)
-                domain_pred = torch.empty(
-                    (len(sample_domain)),
-                    device=domain_pred_s.device
-                )
-                domain_pred[source_idx] = domain_pred_s
-                domain_pred[~source_idx] = domain_pred_t
             else:
-                domain_pred = None
-
-            y_pred = torch.empty(
-                (len(sample_domain), y_pred_s.shape[1]),
-                device=y_pred_s.device
-            )
-            y_pred[source_idx] = y_pred_s
-            y_pred[~source_idx] = y_pred_t
-
-            features = torch.empty(
-                (len(sample_domain), features_s.shape[1]),
-                device=features_s.device
-            )
-            features[source_idx] = features_s
-            features[~source_idx] = features_t
+                domain_pred_s = None
+                domain_pred_t = None
 
             return (
-                y_pred,
-                domain_pred,
-                features,
+                (y_pred_s, y_pred_t),
+                (domain_pred_s, domain_pred_t),
+                (features_s, features_t),
                 sample_domain,
             )
         else:
             if return_features:
-                return self.base_module_(X, sample_weight=sample_weight), self.intermediate_layers[self.layer_name]
+                return (
+                    self.base_module_(X, sample_weight=sample_weight),
+                    self.intermediate_layers[self.layer_name],
+                )
             else:
                 return self.base_module_(X, sample_weight=sample_weight)
 
@@ -347,8 +345,8 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
     A domain-aware neural network classifier with sample weight support.
 
     This class extends NeuralNetClassifier to handle domain-specific input data
-    and sample weights. It supports various input formats and provides methods 
-    for training, prediction, and feature extraction while considering domain 
+    and sample weights. It supports various input formats and provides methods
+    for training, prediction, and feature extraction while considering domain
     information and sample weights.
 
     Parameters:
@@ -374,10 +372,14 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         )
         super().__init__(module, iterator_train=iterator_train, **kwargs)
 
-    def fit(self, X: Union[Dict, torch.Tensor, np.ndarray, Dataset],
-            y: Union[torch.Tensor, np.ndarray], 
-            sample_domain: Union[torch.Tensor, np.ndarray] = None,
-            sample_weight: Union[torch.Tensor, np.ndarray] = None, **fit_params):
+    def fit(
+        self,
+        X: Union[Dict, torch.Tensor, np.ndarray, Dataset],
+        y: Union[torch.Tensor, np.ndarray],
+        sample_domain: Union[torch.Tensor, np.ndarray] = None,
+        sample_weight: Union[torch.Tensor, np.ndarray] = None,
+        **fit_params
+    ):
         """
         Fit the model to the provided data.
 
@@ -408,9 +410,13 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
 
         return super().fit(X, y, is_fit=True, **fit_params)
 
-    def predict(self, X: Union[Dict, torch.Tensor, np.ndarray, Dataset], 
-                sample_domain: Union[torch.Tensor, np.ndarray] = None, 
-                sample_weight: Union[torch.Tensor, np.ndarray] = None, **predict_params):
+    def predict(
+        self,
+        X: Union[Dict, torch.Tensor, np.ndarray, Dataset],
+        sample_domain: Union[torch.Tensor, np.ndarray] = None,
+        sample_weight: Union[torch.Tensor, np.ndarray] = None,
+        **predict_params
+    ):
         """
         Make predictions on the provided data.
 
@@ -433,9 +439,13 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         X, _ = self._prepare_input(X, sample_domain, sample_weight)
         return super().predict(X, **predict_params)
 
-    def predict_proba(self, X: Union[Dict, torch.Tensor, np.ndarray, Dataset], 
-                      sample_domain: Union[torch.Tensor, np.ndarray] = None, 
-                      sample_weight: Union[torch.Tensor, np.ndarray] = None, **predict_params):
+    def predict_proba(
+        self,
+        X: Union[Dict, torch.Tensor, np.ndarray, Dataset],
+        sample_domain: Union[torch.Tensor, np.ndarray] = None,
+        sample_weight: Union[torch.Tensor, np.ndarray] = None,
+        **predict_params
+    ):
         """
         Predict class probabilities for the provided data.
 
@@ -457,7 +467,7 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         """
         X, _ = self._prepare_input(X, sample_domain, sample_weight)
         return super().predict_proba(X, **predict_params)
-    
+
     def predict_features(self, X: Union[Dict, torch.Tensor, np.ndarray, Dataset]):
         """
         Extract features from the input data using the trained model.
@@ -476,7 +486,7 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
             self.initialize()
 
         X, _ = self._prepare_input(X, None)
-        X, sample_domain = X['X'], X['sample_domain']
+        X, sample_domain = X["X"], X["sample_domain"]
         X = torch.tensor(X) if not torch.is_tensor(X) else X
 
         features_list = []
@@ -485,9 +495,14 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
             features_list.append(to_numpy(features))
         return np.concatenate(features_list, 0)
 
-    def score(self, X: Union[Dict, torch.Tensor, np.ndarray], y: Union[torch.Tensor, np.ndarray], 
-              sample_domain: Union[torch.Tensor, np.ndarray] = None, 
-              sample_weight: Union[torch.Tensor, np.ndarray] = None, **score_params):
+    def score(
+        self,
+        X: Union[Dict, torch.Tensor, np.ndarray],
+        y: Union[torch.Tensor, np.ndarray],
+        sample_domain: Union[torch.Tensor, np.ndarray] = None,
+        sample_weight: Union[torch.Tensor, np.ndarray] = None,
+        **score_params
+    ):
         """
         Compute the mean accuracy on the provided data and labels.
 
@@ -511,8 +526,10 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         """
         X, _ = self._prepare_input(X, sample_domain, sample_weight)
         return super().score(X, y, **score_params)
-    
-    def feature_iter(self, X: torch.Tensor, training: bool = False, device: str = 'cpu'):
+
+    def feature_iter(
+        self, X: torch.Tensor, training: bool = False, device: str = "cpu"
+    ):
         """
         Iterate over the input data and yield features.
 
@@ -557,7 +574,7 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         with torch.set_grad_enabled(training):
             self._set_training(training)
             return self.feature_infer(Xi)
-        
+
     def feature_infer(self, x: Union[torch.Tensor, Dict[str, Any]], **fit_params):
         """
         Perform inference to extract features.
@@ -581,9 +598,12 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
             return self.module_(return_features=True, **x_dict)
         return self.module_(x, return_features=True, **fit_params)
 
-    def _prepare_input(self, X: Union[Dict, torch.Tensor, np.ndarray, Dataset], 
-                       sample_domain: Union[torch.Tensor, np.ndarray] = None,
-                       sample_weight: Union[torch.Tensor, np.ndarray] = None) -> Union[Dict[str, Any], np.ndarray]:
+    def _prepare_input(
+        self,
+        X: Union[Dict, torch.Tensor, np.ndarray, Dataset],
+        sample_domain: Union[torch.Tensor, np.ndarray] = None,
+        sample_weight: Union[torch.Tensor, np.ndarray] = None,
+    ) -> Union[Dict[str, Any], np.ndarray]:
         """
         Prepare the input data for processing, including sample weights if provided.
 
@@ -617,10 +637,12 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         else:
             result = {"X": X, "sample_domain": sample_domain}
             if sample_weight is not None:
-                result['sample_weight'] = sample_weight
+                result["sample_weight"] = sample_weight
             return result, None
 
-    def _process_dataset(self, dataset: Dataset) -> Union[Dict[str, np.ndarray], np.ndarray]:
+    def _process_dataset(
+        self, dataset: Dataset
+    ) -> Union[Dict[str, np.ndarray], np.ndarray]:
         """
         Process a PyTorch Dataset into a dictionary format.
 
@@ -646,20 +668,22 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         for sample in dataset:
             # Sample is a tuple (X, y) from skorch.dataset.Dataset
             x, y_ = sample
-            if isinstance(x, dict) and 'X' in x and 'sample_domain' in x:
-                X.append(x['X'])
-                sample_domain.append(x['sample_domain'])
+            if isinstance(x, dict) and "X" in x and "sample_domain" in x:
+                X.append(x["X"])
+                sample_domain.append(x["sample_domain"])
                 y.append(y_)
-                if 'sample_weight' in x and x['sample_weight'] is not None:
-                    sample_weight.append(x['sample_weight'])
+                if "sample_weight" in x and x["sample_weight"] is not None:
+                    sample_weight.append(x["sample_weight"])
                     has_sample_weight = True
             else:
-                raise ValueError("For tuple samples, X should be a dictionary with 'X' and 'sample_domain' keys.")
+                raise ValueError(
+                    "For tuple samples, X should be a dictionary with 'X' and 'sample_domain' keys."
+                )
 
         result = {"X": np.array(X), "sample_domain": np.array(sample_domain)}
         y = np.array(y)
         if has_sample_weight:
-            result['sample_weight'] = np.array(sample_weight)
+            result["sample_weight"] = np.array(sample_weight)
         return result, y
 
     def get_loss(self, y_pred, y_true, X, *args, **kwargs):
@@ -686,9 +710,9 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         """
         loss = super().get_loss(y_pred, y_true, X, *args, **kwargs)
 
-        if 'sample_weight' in X and X['sample_weight'] is not None:
-            sample_weight = to_tensor(X['sample_weight'], device=self.device)
-            sample_weight = sample_weight[X['sample_domain'] > 0]
+        if "sample_weight" in X and X["sample_weight"] is not None:
+            sample_weight = to_tensor(X["sample_weight"], device=self.device)
+            sample_weight = sample_weight[X["sample_domain"] > 0]
             if loss.dim() == 0 and len(sample_weight) > 1:
                 raise ValueError(
                     "You are using a criterion function that returns a scalar loss value, but sample weights are provided."

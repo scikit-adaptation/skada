@@ -136,7 +136,7 @@ def _maximum_mean_discrepancy(x, y, kernel):
     return cost
 
 
-def dan_loss(features_s, features_t, sigmas=None):
+def mmd_loss(features_s, features_t, sigmas=None):
     """Define the mmd loss based on multi-kernel defined in [14]_.
 
     Parameters
@@ -195,6 +195,7 @@ class TestLoss(BaseDALoss):
         domain_pred_t,
         features_s,
         features_t,
+        sample_domain,
     ):
         """Compute the domain adaptation loss"""
         return 0

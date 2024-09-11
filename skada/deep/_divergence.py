@@ -12,7 +12,7 @@ from skada.deep.base import (
     DomainBalancedDataLoader,
 )
 
-from .losses import dan_loss, deepcoral_loss
+from .losses import deepcoral_loss, mmd_loss
 
 
 class DeepCoralLoss(BaseDALoss):
@@ -44,6 +44,7 @@ class DeepCoralLoss(BaseDALoss):
         domain_pred_t,
         features_s,
         features_t,
+        sample_domain,
     ):
         """Compute the domain adaptation loss"""
         loss = deepcoral_loss(features_s, features_t)
@@ -123,9 +124,10 @@ class DANLoss(BaseDALoss):
         domain_pred_t,
         features_s,
         features_t,
+        sample_domain,
     ):
         """Compute the domain adaptation loss"""
-        loss = dan_loss(features_s, features_t, sigmas=self.sigmas)
+        loss = mmd_loss(features_s, features_t, sigmas=self.sigmas)
         return loss
 
 

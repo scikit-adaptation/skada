@@ -57,6 +57,7 @@ class DANNLoss(BaseDALoss):
         domain_pred_t,
         features_s,
         features_t,
+        sample_domain,
     ):
         """Compute the domain adaptation loss"""
         domain_label = torch.zeros(
@@ -189,6 +190,7 @@ class CDANLoss(BaseDALoss):
         domain_pred_t,
         features_s,
         features_t,
+        sample_domain,
     ):
         """Compute the domain adaptation loss"""
         dtype = torch.float32
@@ -289,26 +291,11 @@ class CDANModule(DomainAwareModule):
 
             domain_pred_s = self.domain_classifier_(multilinear_map)
             domain_pred_t = self.domain_classifier_(multilinear_map_target)
-            domain_pred = torch.empty(len(sample_domain), device=domain_pred_s.device)
-            domain_pred[source_idx] = domain_pred_s
-            domain_pred[~source_idx] = domain_pred_t
-
-            y_pred = torch.empty(
-                (len(sample_domain), y_pred_s.shape[1]), device=y_pred_s.device
-            )
-            y_pred[source_idx] = y_pred_s
-            y_pred[~source_idx] = y_pred_t
-
-            features = torch.empty(
-                (len(sample_domain), features_s.shape[1]), device=features_s.device
-            )
-            features[source_idx] = features_s
-            features[~source_idx] = features_t
 
             return (
-                y_pred,
-                domain_pred,
-                features,
+                (y_pred_s, y_pred_t),
+                (domain_pred_s, domain_pred_t),
+                (features_s, features_t),
                 sample_domain,
             )
         else:

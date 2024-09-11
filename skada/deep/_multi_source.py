@@ -4,6 +4,15 @@
 import torch
 import torch.nn as nn
 
+from skada.deep.base import (
+    BaseDALoss,
+    DomainAwareCriterion,
+    DomainAwareModule,
+    DomainAwareNet,
+    DomainBalancedDataLoader,
+)
+from skada.deep.losses import mmd_loss
+
 
 class SelectDomainModule(torch.nn.Module):
     """Select domain module"""
@@ -13,7 +22,7 @@ class SelectDomainModule(torch.nn.Module):
 
     def forward(self, X, sample_domain=None, is_source=True):
         if is_source:
-            X = X[sample_domain]
+            X = X[sample_domain, torch.arange(X.size(1))]
         return X
 
 
@@ -47,19 +56,19 @@ class MultiSourceModule(torch.nn.Module):
         self.n_domains = n_domains
 
     def forward(self, X, sample_domain=None, sample_weight=None, is_source=True):
-        if is_source:
-            domain_present = torch.unique(sample_domain)
-            dict_idx = {int(domain): idx for idx, domain in enumerate(domain_present)}
-            sample_domain_ = torch.tensor(
-                [dict_idx[int(domain)] for domain in sample_domain]
-            )
+        # if is_source:
+        #     domain_present = torch.unique(sample_domain)
+        #     dict_idx = {int(domain): idx for idx, domain in enumerate(domain_present)}
+        #     sample_domain_ = torch.tensor(
+        #         [dict_idx[int(domain)] for domain in sample_domain]
+        #     )
         for i, layer in enumerate(self.children()):
             if isinstance(layer, nn.ModuleList):
-                X = [layer[j](X) for j in domain_present]
+                X = [layer[j](X) for j in range(self.n_domains)]
                 X = torch.stack(X, dim=0)
             elif isinstance(layer, SelectDomainModule):
                 if is_source:
-                    X = layer(X, sample_domain_)
+                    X = layer(X, sample_domain)
                 else:
                     X = layer(X, is_source=is_source)
             else:
@@ -67,13 +76,88 @@ class MultiSourceModule(torch.nn.Module):
         return X
 
 
-class MFSANLoss(torch.nn.Module):
-    """Multiple feature spaces adaptation network"""
+class MFSANLoss(BaseDALoss):
+    """Loss MFSAN"""
 
-    def __init__(self, base_module, domain_classifier):
+    def __init__(
+        self,
+        sigmas=None,
+    ):
         super().__init__()
-        self.base_module_ = base_module
+        self.sigmas = sigmas
 
-    def forward(self, X, sample_domain, sample_weight=None, is_fit=False):
-        X = self.base_module_(X, sample_domain)
-        return X
+    def forward(
+        self,
+        y_s,
+        y_pred_s,
+        y_pred_t,
+        domain_pred_s,
+        domain_pred_t,
+        features_s,
+        features_t,
+        sample_domain,
+    ):
+        """Compute the domain adaptation loss"""
+        n_domains = len(features_t)
+        mmd = 0
+        disc = 0
+        for i in range(n_domains):
+            mmd += mmd_loss(
+                features_s[torch.where(sample_domain == i)[0]],
+                features_t[i],
+                sigmas=self.sigmas,
+            )
+            for j in range(i + 1, n_domains):
+                disc += torch.mean(
+                    y_pred_t[i] - y_pred_t[j],
+                )
+        mmd /= n_domains
+        disc /= n_domains * (n_domains - 1) / 2
+
+        loss = mmd + disc
+        return loss
+
+
+def MFSAN(module, layer_name, reg=1, sigmas=None, base_criterion=None, **kwargs):
+    """DAN domain adaptation method.
+
+    See [14]_.
+
+    Parameters
+    ----------
+    module : torch module (class or instance)
+        A PyTorch :class:`~torch.nn.Module`.
+    layer_name : str
+        The name of the module's layer whose outputs are
+        collected during the training for the adaptation.
+    reg : float, optional (default=1)
+        The regularization parameter of the covariance estimator.
+    sigmas : array-like, optional (default=None)
+        The sigmas for the Gaussian kernel.
+    base_criterion : torch criterion (class)
+        The base criterion used to compute the loss with source
+        labels. If None, the default is `torch.nn.CrossEntropyLoss`.
+
+    References
+    ----------
+    .. [14]  Mingsheng Long et. al. Learning Transferable
+            Features with Deep Adaptation Networks.
+            In ICML, 2015.
+    """
+    if base_criterion is None:
+        base_criterion = torch.nn.CrossEntropyLoss()
+
+    net = DomainAwareNet(
+        module=DomainAwareModule,
+        module__base_module=module,
+        module__layer_name=layer_name,
+        module__is_multi_source=True,
+        iterator_train=DomainBalancedDataLoader,
+        criterion=DomainAwareCriterion,
+        criterion__base_criterion=base_criterion,
+        criterion__reg=reg,
+        criterion__adapt_criterion=MFSANLoss(sigmas=sigmas),
+        criterion__is_multi_source=True,
+        **kwargs,
+    )
+    return net

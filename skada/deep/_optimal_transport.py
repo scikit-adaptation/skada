@@ -54,6 +54,7 @@ class DeepJDOTLoss(BaseDALoss):
         domain_pred_t,
         features_s,
         features_t,
+        sample_domain,
     ):
         """Compute the domain adaptation loss"""
         loss = deepjdot_loss(
