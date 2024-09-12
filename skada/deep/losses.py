@@ -121,7 +121,6 @@ def _gaussian_kernel(x, y, sigmas):
     dist = torch.cdist(x, y)
     dist_ = dist.view(1, -1)
     s = torch.matmul(beta, dist_)
-
     return torch.sum(torch.exp(-s), 0).view_as(dist)
 
 
@@ -172,7 +171,6 @@ def mmd_loss(features_s, features_t, sigmas=None):
         sigmas = torch.tensor(sigmas).to(features_s.device)
 
     gaussian_kernel = partial(_gaussian_kernel, sigmas=sigmas)
-
     loss = _maximum_mean_discrepancy(features_s, features_t, kernel=gaussian_kernel)
 
     return loss

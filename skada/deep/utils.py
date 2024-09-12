@@ -9,7 +9,7 @@ import torch
 
 def _get_intermediate_layers(intermediate_layers, layer_name):
     def hook(model, input, output):
-        intermediate_layers[layer_name] = output.flatten(start_dim=1)
+        intermediate_layers[layer_name] = output  # .flatten(start_dim=1)
 
     return hook
 

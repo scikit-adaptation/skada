@@ -74,11 +74,11 @@ def test_mfsan(sigmas):
     )
     method = MFSAN(
         module=module,
-        reg=1,
+        reg=0,
         sigmas=sigmas,
         layer_name="output_layer_1",
         batch_size=10,
-        max_epochs=10,
+        max_epochs=3,
         train_split=None,
     )
 

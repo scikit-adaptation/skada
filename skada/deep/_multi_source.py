@@ -3,6 +3,7 @@
 # License: BSD 3-Clause
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from skada.deep.base import (
     BaseDALoss,
@@ -64,7 +65,10 @@ class MultiSourceModule(torch.nn.Module):
         #     )
         for i, layer in enumerate(self.children()):
             if isinstance(layer, nn.ModuleList):
-                X = [layer[j](X) for j in range(self.n_domains)]
+                if X.size(0) != self.n_domains:
+                    X = [layer[j](X) for j in range(self.n_domains)]
+                else:
+                    X = [layer[j](X[j]) for j in range(self.n_domains)]
                 X = torch.stack(X, dim=0)
             elif isinstance(layer, SelectDomainModule):
                 if is_source:
@@ -103,7 +107,6 @@ class MFSANLoss(BaseDALoss):
         mmd = 0
         disc = 0
         for i in range(n_domains):
-            print(features_s[torch.where(sample_domain[source_idx] == i + 1)[0]].shape)
             mmd += mmd_loss(
                 features_s[torch.where(sample_domain[source_idx] == i + 1)[0]],
                 features_t[i],
@@ -111,17 +114,16 @@ class MFSANLoss(BaseDALoss):
             )
             for j in range(i + 1, n_domains):
                 disc += torch.mean(
-                    y_pred_t[i] - y_pred_t[j],
+                    torch.abs(F.softmax(y_pred_t[i]) - F.softmax(y_pred_t[j])),
                 )
         mmd /= n_domains
         disc /= n_domains * (n_domains - 1) / 2
-
         loss = mmd + disc
         return loss
 
 
 def MFSAN(module, layer_name, reg=1, sigmas=None, base_criterion=None, **kwargs):
-    """DAN domain adaptation method.
+    """MFSAN domain adaptation method.
 
     See [14]_.
 
