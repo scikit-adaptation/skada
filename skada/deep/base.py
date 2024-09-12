@@ -16,6 +16,7 @@ from skorch import NeuralNetClassifier
 from .utils import _register_forwards_hook
 
 from skada.base import _DAMetadataRequesterMixin
+from skada.deep.dataloaders import DomainBalancedDataLoader
 
 import numpy as np
 from skorch.utils import to_device
@@ -51,13 +52,11 @@ class DomainAwareCriterion(torch.nn.Module):
         adapt_criterion,
         reg=1,
         reduction="mean",
-        is_multi_source=False,
     ):
         super(DomainAwareCriterion, self).__init__()
         self.base_criterion = base_criterion
         self.adapt_criterion = adapt_criterion
         self.reg = reg
-        self.is_multi_source = is_multi_source
 
         # Update the reduce parameter for both criteria if specified
         if hasattr(self.base_criterion, "reduction"):
@@ -97,14 +96,7 @@ class DomainAwareCriterion(torch.nn.Module):
 
         source_idx = sample_domain >= 0
 
-        # predict
-        if self.is_multi_source:
-            base_loss = 0
-            for n_domain in sample_domain[source_idx].unique():
-                idx = sample_domain[source_idx] == n_domain
-                base_loss += self.base_criterion(y_pred_s[idx], y_true[source_idx][idx])
-        else:
-            base_loss = self.base_criterion(y_pred_s, y_true[source_idx])
+        base_loss = self.base_criterion(y_pred_s, y_true[source_idx])
         return base_loss + self.reg * self.adapt_criterion(
             y_true[source_idx],
             y_pred_s,
@@ -157,93 +149,6 @@ class BaseDALoss(torch.nn.Module):
             The domain of each sample.
         """
         pass
-
-
-class DomainBalancedSampler(Sampler):
-    """Domain balanced sampler
-
-    A sampler to have as much as source and target in the batch.
-
-    Parameters
-    ----------
-    dataset : torch dataset
-        The dataset to sample from.
-    """
-
-    def __init__(self, dataset, batch_size):
-        self.dataset = dataset
-        self.positive_indices = [
-            idx for idx, sample in enumerate(dataset) if sample[0]["sample_domain"] >= 0
-        ]
-        self.negative_indices = [
-            idx for idx, sample in enumerate(dataset) if sample[0]["sample_domain"] < 0
-        ]
-        self.num_samples = (
-            len(self.positive_indices) - len(self.positive_indices) % batch_size
-        )
-
-    def __iter__(self):
-        positive_sampler = torch.utils.data.sampler.RandomSampler(self.positive_indices)
-        negative_sampler = torch.utils.data.sampler.RandomSampler(self.negative_indices)
-
-        positive_iter = iter(positive_sampler)
-        negative_iter = iter(negative_sampler)
-
-        for _ in range(self.num_samples):
-            pos_idx = self.positive_indices[next(positive_iter)]
-            try:
-                neg_idx = self.negative_indices[next(negative_iter)]
-            except StopIteration:
-                negative_iter = iter(negative_sampler)
-                neg_idx = self.negative_indices[next(negative_iter)]
-            yield pos_idx
-            yield neg_idx
-
-    def __len__(self):
-        return 2 * self.num_samples
-
-
-class DomainBalancedDataLoader(DataLoader):
-    """Domain balanced data loader
-
-    A data loader to have as much as source and target in the batch.
-
-    Parameters
-    ----------
-    dataset : torch dataset
-        The dataset to sample from.
-    """
-
-    def __init__(
-        self,
-        dataset,
-        batch_size,
-        shuffle=False,
-        sampler=None,
-        batch_sampler=None,
-        num_workers=0,
-        collate_fn=None,
-        pin_memory=False,
-        drop_last=False,
-        timeout=0,
-        worker_init_fn=None,
-        multiprocessing_context=None,
-    ):
-        sampler = DomainBalancedSampler(dataset, batch_size)
-        super().__init__(
-            dataset,
-            2 * batch_size,
-            shuffle,
-            sampler,
-            batch_sampler,
-            num_workers,
-            collate_fn,
-            pin_memory,
-            drop_last,
-            timeout,
-            worker_init_fn,
-            multiprocessing_context,
-        )
 
 
 class DomainAwareModule(torch.nn.Module):

@@ -17,9 +17,9 @@ from skada.deep.base import (
     DomainAwareCriterion,
     DomainAwareModule,
     DomainAwareNet,
-    DomainBalancedDataLoader,
     DomainBalancedSampler,
 )
+from skada.deep.dataloaders import DomainBalancedDataLoader
 from skada.deep.losses import TestLoss
 from skada.deep.modules import ToyModule2D
 

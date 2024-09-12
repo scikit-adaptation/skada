@@ -10,8 +10,8 @@ from skada.deep.base import (
     DomainAwareCriterion,
     DomainAwareModule,
     DomainAwareNet,
-    DomainBalancedDataLoader,
 )
+from skada.deep.dataloaders import DomainBalancedDataLoader
 from skada.deep.losses import mmd_loss
 
 

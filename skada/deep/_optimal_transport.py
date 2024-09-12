@@ -8,8 +8,8 @@ from skada.deep.base import (
     DomainAwareCriterion,
     DomainAwareModule,
     DomainAwareNet,
-    DomainBalancedDataLoader,
 )
+from skada.deep.dataloaders import DomainBalancedDataLoader
 
 from .losses import deepjdot_loss
 

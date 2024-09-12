@@ -12,8 +12,8 @@ from skada.deep.base import (
     DomainAwareCriterion,
     DomainAwareModule,
     DomainAwareNet,
-    DomainBalancedDataLoader,
 )
+from skada.deep.dataloaders import DomainBalancedDataLoader
 
 from .modules import DomainClassifier
 from .utils import check_generator

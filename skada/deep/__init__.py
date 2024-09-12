@@ -21,10 +21,12 @@ from ._multi_source import MFSAN, MFSANLoss, MultiSourceModule
 
 from . import losses
 from . import modules
+from . import dataloaders
 
 __all__ = [
     'losses',
     'modules',
+    'dataloaders',
     'DeepCoralLoss',
     'DeepCoral',
     'DANLoss',
