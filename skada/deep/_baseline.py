@@ -74,16 +74,15 @@ def SourceOnly(module, layer_name=None, base_criterion=None, **kwargs):
     return net
 
 
-def TargetOnly(module, layer_name, base_criterion=None, **kwargs):
+def TargetOnly(module, layer_name=None, base_criterion=None, **kwargs):
     """Target only method.
 
     Parameters
     ----------
     module : torch module (class or instance)
         A PyTorch :class:`~torch.nn.Module`.
-    layer_name : str
-        The name of the module's layer whose outputs are
-        collected during the training for the adaptation.
+    layer_name : Ignored
+        Not used, present here for API consistency by convention.
     base_criterion : torch criterion (class)
         The base criterion used to compute the loss with source
         labels. If None, the default is `torch.nn.CrossEntropyLoss`.
@@ -100,7 +99,7 @@ def TargetOnly(module, layer_name, base_criterion=None, **kwargs):
     net = DomainAwareNet(
         module=DomainAwareModule,
         module__base_module=module,
-        module__layer_name=layer_name,
+        module__layer_name=None,
         iterator_train=DomainBalancedDataLoader,
         criterion=DomainAwareCriterion,
         criterion__base_criterion=base_criterion,
