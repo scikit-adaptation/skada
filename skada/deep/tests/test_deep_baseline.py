@@ -38,7 +38,7 @@ def test_sourceonly():
         train_split=None,
     )
 
-    # Get full dataset wihout masking target
+    # Get full dataset without masking target
     X, y, sample_domain = dataset.pack(as_sources=["s"], as_targets=["t"])
 
     # Fit and predict
