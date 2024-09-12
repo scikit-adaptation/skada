@@ -1,6 +1,7 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Oleksii Kachaiev <kachayev@gmail.com>
 #         Yanis Lalou <yanis.lalou@polytechnique.edu>
+#         Antoine Collas <contact@antoinecollas.fr>
 #
 # License: BSD 3-Clause
 import pytest
