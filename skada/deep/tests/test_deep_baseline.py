@@ -8,6 +8,7 @@ import pytest
 pytest.importorskip("torch")
 
 import numpy as np
+from sklearn.metrics import accuracy_score
 
 from skada.datasets import make_shifted_datasets
 from skada.deep import SourceOnly, TargetOnly
@@ -18,68 +19,94 @@ def test_sourceonly():
     module = ToyModule2D()
     module.eval()
 
+def test_sourceonly():
     n_samples = 20
     dataset = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=n_samples,
         shift="concept_drift",
         noise=0.1,
+        mean=5,
+        sigma=1,
         random_state=42,
+        standardize=True,
         return_dataset=True,
     )
 
     method = SourceOnly(
-        ToyModule2D(),
+        ToyModule2D(num_features=100),
         batch_size=10,
-        max_epochs=10,
+        max_epochs=100,
         train_split=None,
     )
 
-    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    # Get full dataset wihout masking target
+    X, y, sample_domain = dataset.pack(as_sources=["s"], as_targets=["t"])
+
+    # Fit and predict
     method.fit(X.astype(np.float32), y, sample_domain)
+    y_pred = method.predict(X.astype(np.float32), sample_domain)
 
-    X_test, y_test, sample_domain_test = dataset.pack_test(as_targets=["t"])
-
-    y_pred = method.predict(X_test.astype(np.float32), sample_domain_test)
-
-    assert y_pred.shape[0] == X_test.shape[0]
+    assert y.shape[0] == X.shape[0]
 
     history = method.history_
 
     assert history[0]["train_loss"] > history[-1]["train_loss"]
 
+    # Check accuracy is better on source domain than on target domain
+    X_source, y_source, sample_domain_source = dataset.pack(as_sources=["s"])
+    X_target, y_target, sample_domain_target = dataset.pack(as_targets=["t"])
+    y_pred_source = method.predict(X_source.astype(np.float32), sample_domain_source)
+    y_pred_target = method.predict(X_target.astype(np.float32), sample_domain_target)
+
+    acc_source = accuracy_score(y_source, y_pred_source)
+    acc_target = accuracy_score(y_target, y_pred_target)
+
+    assert acc_source > 0.95
+    assert acc_target < 0.55
 
 def test_targetonly():
-    module = ToyModule2D()
-    module.eval()
-
     n_samples = 20
     dataset = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=n_samples,
         shift="concept_drift",
         noise=0.1,
+        mean=5,
+        sigma=1,
         random_state=42,
+        standardize=True,
         return_dataset=True,
     )
 
     method = TargetOnly(
-        ToyModule2D(),
-        layer_name="dropout",
+        ToyModule2D(num_features=100),
         batch_size=10,
-        max_epochs=10,
+        max_epochs=100,
         train_split=None,
     )
 
-    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    # Get full dataset wihout masking target
+    X, y, sample_domain = dataset.pack(as_sources=["s"], as_targets=["t"])
+
+    # Fit and predict
     method.fit(X.astype(np.float32), y, sample_domain)
+    y_pred = method.predict(X.astype(np.float32), sample_domain)
 
-    X_test, y_test, sample_domain_test = dataset.pack_test(as_targets=["t"])
-
-    y_pred = method.predict(X_test.astype(np.float32), sample_domain_test)
-
-    assert y_pred.shape[0] == X_test.shape[0]
+    assert y.shape[0] == X.shape[0]
 
     history = method.history_
 
     assert history[0]["train_loss"] > history[-1]["train_loss"]
+
+    # Check accuracy is better on target domain than on source domain
+    X_source, y_source, sample_domain_source = dataset.pack(as_sources=["s"])
+    X_target, y_target, sample_domain_target = dataset.pack(as_targets=["t"])
+    y_pred_source = method.predict(X_source.astype(np.float32), sample_domain_source)
+    y_pred_target = method.predict(X_target.astype(np.float32), sample_domain_target)
+
+    acc_source = accuracy_score(y_source, y_pred_source)
+    acc_target = accuracy_score(y_target, y_pred_target)
+
+    assert acc_source < 0.55
+    assert acc_target > 0.95
