@@ -73,12 +73,12 @@ class ToyCNN(nn.Module):
             nn.Linear(out_channels, n_classes),
         )
 
-    def forward(self, x, sample_weight=None):
+    def forward(self, X, sample_weight=None):
         """Forward pass of the network.
 
         Parameters
         ----------
-        x : torch.Tensor
+        X : torch.Tensor
             Input tensor of shape (batch_size, n_channels, input_size).
         sample_weight : torch.Tensor, optional
             Sample weights for the loss computation of shape (batch_size,).
@@ -88,9 +88,9 @@ class ToyCNN(nn.Module):
         torch.Tensor
             Output tensor of shape (batch_size, n_classes).
         """
-        x = self.feature_extractor(x)
-        x = self.fc(x)
-        return x
+        X = self.feature_extractor(X)
+        X = self.fc(X)
+        return X
 
     def _num_features(self, n_channels, input_size):
         self.feature_extractor.eval()
