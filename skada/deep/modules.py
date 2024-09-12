@@ -25,8 +25,10 @@ class ToyModule2D(torch.nn.Module):
     nonlin : torch.nn.Module, default=torch.nn.ReLU()
         The non-linear activation function used after the first dense layer.
     proba : bool, default=False
-        If True, the output will be probabilities (using softmax). Otherwise, raw logits will be returned.
+        If True, the output will be probabilities (using softmax).
+        Otherwise, raw logits will be returned.
     """
+
     def __init__(
         self, n_classes=2, num_features=10, nonlin=torch.nn.ReLU(), proba=False
     ):
@@ -57,7 +59,8 @@ class ToyModule2D(torch.nn.Module):
         Returns
         -------
         torch.Tensor
-            Output tensor of shape (batch_size, n_classes), either raw logits or probabilities based on the `proba` parameter.
+            Output tensor of shape (batch_size, n_classes),
+            either raw logits or probabilities based on the `proba` parameter.
         """
         X = self.nonlin(self.dense0(X))
         X = self.dropout(X)
