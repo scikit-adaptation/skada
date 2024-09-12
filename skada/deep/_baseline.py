@@ -38,13 +38,15 @@ class DummyLoss(BaseDALoss):
         return 0
 
 
-def SourceOnly(module, base_criterion=None, **kwargs):
+def SourceOnly(module, layer_name=None, base_criterion=None, **kwargs):
     """Source only method.
 
     Parameters
     ----------
     module : torch module (class or instance)
         A PyTorch :class:`~torch.nn.Module`.
+    layer_name : Ignored
+        Not used, present here for API consistency by convention.
     base_criterion : torch criterion (class)
         The base criterion used to compute the loss with source
         labels. If None, the default is `torch.nn.CrossEntropyLoss`.
