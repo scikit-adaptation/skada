@@ -100,9 +100,13 @@ class DomainAwareCriterion(torch.nn.Module):
         else:
             domain_pred_s = None
             domain_pred_t = None
-
-        features_s = features[source_idx]
-        features_t = features[~source_idx]
+        
+        if features is not None:
+            features_s = features[source_idx]
+            features_t = features[~source_idx]
+        else:
+            features_s = None
+            features_t = None
 
         if self.train_on_target:
             base_loss = self.base_criterion(y_pred_t, y_true[~source_idx])
@@ -310,16 +314,19 @@ class DomainAwareModule(torch.nn.Module):
                 sample_weight_t = sample_weight[~source_idx]
 
                 y_pred_s = self.base_module_(X_s, sample_weight=sample_weight_s)
-                features_s = self.intermediate_layers[self.layer_name]
 
                 y_pred_t = self.base_module_(X_t, sample_weight=sample_weight_t)
-                features_t = self.intermediate_layers[self.layer_name]
             else:
                 y_pred_s = self.base_module_(X_s)
-                features_s = self.intermediate_layers[self.layer_name]
 
                 y_pred_t = self.base_module_(X_t)
+
+            if self.layer_name is not None:
+                features_s = self.intermediate_layers[self.layer_name]
                 features_t = self.intermediate_layers[self.layer_name]
+            else:
+                features_s = None
+                features_t = None
 
             if self.domain_classifier_ is not None:
                 domain_pred_s = self.domain_classifier_(features_s)
@@ -338,18 +345,26 @@ class DomainAwareModule(torch.nn.Module):
             y_pred[source_idx] = y_pred_s
             y_pred[~source_idx] = y_pred_t
 
-            features = torch.empty(
-                (len(sample_domain), features_s.shape[1]), device=features_s.device
-            )
-            features[source_idx] = features_s
-            features[~source_idx] = features_t
+            if self.layer_name is not None:
+                features = torch.empty(
+                    (len(sample_domain), features_s.shape[1]), device=features_s.device
+                )
+                features[source_idx] = features_s
+                features[~source_idx] = features_t
 
-            return (
-                y_pred,
-                domain_pred,
-                features,
-                sample_domain,
-            )
+                return (
+                    y_pred,
+                    domain_pred,
+                    features,
+                    sample_domain,
+                )
+            else:
+                return (
+                    y_pred,
+                    domain_pred,
+                    None,
+                    sample_domain,
+                )
         else:
             if return_features:
                 return (

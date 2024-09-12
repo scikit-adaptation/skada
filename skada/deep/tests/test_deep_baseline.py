@@ -30,7 +30,6 @@ def test_sourceonly():
 
     method = SourceOnly(
         ToyModule2D(),
-        layer_name="dropout",
         batch_size=10,
         max_epochs=10,
         train_split=None,
