@@ -29,7 +29,7 @@ def test_deepjdot():
 
     method = DeepJDOT(
         ToyModule2D(),
-        reg=1,
+        reg_dist=1,
         reg_cl=1,
         layer_name="dropout",
         batch_size=10,
