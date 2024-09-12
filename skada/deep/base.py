@@ -109,6 +109,7 @@ class DomainAwareCriterion(torch.nn.Module):
             features_t = None
 
         if self.train_on_target:
+            # import ipdb; ipdb.set_trace()
             base_loss = self.base_criterion(y_pred_t, y_true[~source_idx])
         else:
             base_loss = self.base_criterion(y_pred_s, y_true[source_idx])
