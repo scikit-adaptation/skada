@@ -167,7 +167,6 @@ def test_multi_soure_domain_balanced_dataloader():
             == np.unique(sample_domain[sample_domain > 0]).shape[0]
         )
         for domain in source_domains[1:]:
-            print(torch.sum(sample_domain_batch == domain))
             assert torch.sum(sample_domain_batch == domain) == torch.sum(
                 sample_domain_batch == source_domains[0]
             )
@@ -203,7 +202,6 @@ def test_multi_soure_domain_balanced_dataloader():
             == np.unique(sample_domain[sample_domain > 0]).shape[0]
         )
         for domain in source_domains[1:]:
-            print(torch.sum(sample_domain_batch == domain))
             assert torch.sum(sample_domain_batch == domain) == torch.sum(
                 sample_domain_batch == source_domains[0]
             )
@@ -239,7 +237,6 @@ def test_multi_soure_domain_balanced_dataloader():
             == np.unique(sample_domain[sample_domain > 0]).shape[0]
         )
         for domain in source_domains[1:]:
-            print(torch.sum(sample_domain_batch == domain))
             assert torch.sum(sample_domain_batch == domain) == torch.sum(
                 sample_domain_batch == source_domains[0]
             )
