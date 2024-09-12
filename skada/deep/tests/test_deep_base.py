@@ -17,7 +17,6 @@ from skada.deep.base import (
     DomainAwareCriterion,
     DomainAwareModule,
     DomainAwareNet,
-    DomainBalancedSampler,
 )
 from skada.deep.dataloaders import DomainBalancedDataLoader
 from skada.deep.losses import TestLoss
@@ -224,90 +223,6 @@ def test_return_features():
     X_test_dict = {"X": X_test, "sample_domain": np.zeros(len(X_test))}
     _, features = method.feature_infer(X_test_dict)
     assert features.shape == (X_test.shape[0], num_features)
-
-
-def test_domain_balanced_sampler():
-    n_samples = 20
-    dataset = make_shifted_datasets(
-        n_samples_source=n_samples,
-        n_samples_target=n_samples,
-        shift="concept_drift",
-        noise=0.1,
-        random_state=42,
-        return_dataset=True,
-    )
-    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
-    X_dict = {"X": X.astype(np.float32), "sample_domain": sample_domain}
-
-    dataset = Dataset(X_dict, y)
-
-    sampler = DomainBalancedSampler(dataset, 10)
-    assert len(sampler) == 2 * np.sum(sample_domain > 0)
-
-
-def test_domain_balanced_dataloader():
-    n_samples = 20
-    dataset = make_shifted_datasets(
-        n_samples_source=n_samples,
-        n_samples_target=n_samples,
-        shift="concept_drift",
-        noise=0.1,
-        random_state=42,
-        return_dataset=True,
-    )
-    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
-    X_dict = {"X": X.astype(np.float32), "sample_domain": sample_domain}
-
-    dataset = Dataset(X_dict, y)
-
-    dataloader = DomainBalancedDataLoader(dataset, batch_size=10)
-
-    for batch in dataloader:
-        X, y = batch
-        sample_domain = X["sample_domain"]
-        assert len(sample_domain > 0) == len(sample_domain < 0)
-
-    # with more source than target
-    dataset = make_shifted_datasets(
-        n_samples_source=2 * n_samples,
-        n_samples_target=n_samples,
-        shift="concept_drift",
-        noise=0.1,
-        random_state=42,
-        return_dataset=True,
-    )
-    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
-    X_dict = {"X": X.astype(np.float32), "sample_domain": sample_domain}
-
-    dataset = Dataset(X_dict, y)
-
-    dataloader = DomainBalancedDataLoader(dataset, batch_size=10)
-
-    for batch in dataloader:
-        X, y = batch
-        sample_domain = X["sample_domain"]
-        assert len(sample_domain > 0) == len(sample_domain < 0)
-
-    # with more target than source
-    dataset = make_shifted_datasets(
-        n_samples_source=n_samples,
-        n_samples_target=2 * n_samples,
-        shift="concept_drift",
-        noise=0.1,
-        random_state=42,
-        return_dataset=True,
-    )
-    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
-    X_dict = {"X": X.astype(np.float32), "sample_domain": sample_domain}
-
-    dataset = Dataset(X_dict, y)
-
-    dataloader = DomainBalancedDataLoader(dataset, batch_size=10)
-
-    for batch in dataloader:
-        X, y = batch
-        sample_domain = X["sample_domain"]
-        assert len(sample_domain > 0) == len(sample_domain < 0)
 
 
 def test_sample_weight():
