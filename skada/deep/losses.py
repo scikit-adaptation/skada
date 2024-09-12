@@ -47,6 +47,7 @@ def deepjdot_loss(
     y_pred_t,
     features_s,
     features_t,
+    reg_dist,
     reg_cl,
     sample_weights=None,
     target_sample_weights=None,
@@ -64,6 +65,8 @@ def deepjdot_loss(
         features of the source data used to perform the distance matrix.
     features_t : tensor
         features of the target data used to perform the distance matrix.
+    reg_dist : float
+        Divergence term regularization parameter.
     reg_cl : float, default=1
         Class distance term regularization parameter.
     sample_weights : tensor
@@ -98,7 +101,7 @@ def deepjdot_loss(
         criterion = torch.nn.CrossEntropyLoss(reduction="none")
 
     loss_target = criterion(y_target_matrix, y_s.repeat(len(y_s), 1)).T
-    M = dist + reg_cl * loss_target
+    M = reg_dist * dist + reg_cl * loss_target
 
     # Compute the loss
     if sample_weights is None:
