@@ -52,11 +52,13 @@ class DomainAwareCriterion(torch.nn.Module):
         adapt_criterion,
         reg=1,
         reduction="mean",
+        is_multi_source=False,
     ):
         super(DomainAwareCriterion, self).__init__()
         self.base_criterion = base_criterion
         self.adapt_criterion = adapt_criterion
         self.reg = reg
+        self.is_multi_source = is_multi_source
 
         # Update the reduce parameter for both criteria if specified
         if hasattr(self.base_criterion, "reduction"):
@@ -96,7 +98,14 @@ class DomainAwareCriterion(torch.nn.Module):
 
         source_idx = sample_domain >= 0
 
-        base_loss = self.base_criterion(y_pred_s, y_true[source_idx])
+        # predict
+        if self.is_multi_source:
+            base_loss = 0
+            for n_domain in sample_domain[source_idx].unique():
+                idx = sample_domain[source_idx] == n_domain
+                base_loss += self.base_criterion(y_pred_s[idx], y_true[source_idx][idx])
+        else:
+            base_loss = self.base_criterion(y_pred_s, y_true[source_idx])
         return base_loss + self.reg * self.adapt_criterion(
             y_true[source_idx],
             y_pred_s,

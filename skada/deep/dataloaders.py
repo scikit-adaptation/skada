@@ -18,6 +18,8 @@ class DomainBalancedSampler(Sampler):
     ----------
     dataset : torch dataset
         The dataset to sample from.
+    batch_size : int
+        The batch size.
     """
 
     def __init__(self, dataset, batch_size):
@@ -62,6 +64,9 @@ class DomainBalancedDataLoader(DataLoader):
     ----------
     dataset : torch dataset
         The dataset to sample from.
+    batch_size : int
+        The batch size.
+        The final batch size will be 2 * batch_size.
     """
 
     def __init__(
@@ -105,6 +110,10 @@ class MultiSourceDomainBalancedSampler(Sampler):
     ----------
     dataset : torch dataset
         The dataset to sample from.
+    batch_size : int
+        The batch size. It should be a multiple of the number of source domains.
+    source_domains : list of int
+        The list of source domains.
     """
 
     def __init__(self, dataset, batch_size, source_domains):
@@ -139,9 +148,11 @@ class MultiSourceDomainBalancedSampler(Sampler):
             iter(positive_samplers[i]) for i in range(len(self.source_domains))
         ]
         negative_iter = iter(negative_sampler)
-        for _ in range(self.num_samples // self.batch_size):
+        for _ in range(
+            self.num_samples // (self.batch_size // len(self.source_domains))
+        ):
             for i in range(len(self.source_domains)):
-                for _ in range(self.batch_size):
+                for _ in range(self.batch_size // len(self.source_domains)):
                     try:
                         pos_idx = self.positive_indices[i][next(positive_iters[i])]
                     except StopIteration:
@@ -152,7 +163,6 @@ class MultiSourceDomainBalancedSampler(Sampler):
                     except StopIteration:
                         negative_iter = iter(negative_sampler)
                         neg_idx = self.negative_indices[next(negative_iter)]
-                    print(pos_idx, neg_idx)
                     yield pos_idx
                     yield neg_idx
 
@@ -169,6 +179,11 @@ class MultiSourceDomainBalancedDataLoader(DataLoader):
     ----------
     dataset : torch dataset
         The dataset to sample from.
+    batch_size : int
+        The batch size. It should be a multiple of the number of source domains.
+        The final batch size will be 2 * len(source_domains) * batch_size.
+    source_domains : list of int
+        The list of source domains.
     """
 
     def __init__(

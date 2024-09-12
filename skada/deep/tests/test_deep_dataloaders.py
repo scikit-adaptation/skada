@@ -136,7 +136,7 @@ def test_multi_source_domain_balanced_sampler():
 
 
 def test_multi_soure_domain_balanced_dataloader():
-    n_samples = 20
+    n_samples = 30
     dataset = make_dataset_from_moons_distribution(
         n_samples_source=n_samples,
         n_samples_target=n_samples,
@@ -151,65 +151,95 @@ def test_multi_soure_domain_balanced_dataloader():
     X_dict = {"X": X.astype(np.float32), "sample_domain": sample_domain}
 
     dataset = Dataset(X_dict, y)
+    source_domains = np.unique(sample_domain[sample_domain > 0])
     dataloader = MultiSourceDomainBalancedDataLoader(
         dataset,
-        batch_size=10,
-        source_domains=np.unique(sample_domain[sample_domain > 0]),
+        batch_size=9,
+        source_domains=source_domains,
     )
 
     for batch in dataloader:
         X, y = batch
         sample_domain_batch = X["sample_domain"]
-        print(len(y))
         assert len(sample_domain_batch > 0) == len(sample_domain_batch < 0)
-        assert np.unique(sample_domain_batch[sample_domain_batch > 0]).shape[0] == 1
+        assert (
+            np.unique(sample_domain_batch[sample_domain_batch > 0]).shape[0]
+            == np.unique(sample_domain[sample_domain > 0]).shape[0]
+        )
+        for domain in source_domains[1:]:
+            print(torch.sum(sample_domain_batch == domain))
+            assert torch.sum(sample_domain_batch == domain) == torch.sum(
+                sample_domain_batch == source_domains[0]
+            )
 
     # with more source than target
-    dataset = make_shifted_datasets(
+    dataset = make_dataset_from_moons_distribution(
         n_samples_source=2 * n_samples,
         n_samples_target=n_samples,
-        shift="concept_drift",
+        pos_source=[0.1, 0.2, 0.3],
         noise=0.1,
         random_state=42,
         return_dataset=True,
     )
-    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = dataset.pack_train(
+        as_sources=["s0", "s1", "s2"], as_targets=["t"]
+    )
     X_dict = {"X": X.astype(np.float32), "sample_domain": sample_domain}
 
     dataset = Dataset(X_dict, y)
-
+    source_domains = np.unique(sample_domain[sample_domain > 0])
     dataloader = MultiSourceDomainBalancedDataLoader(
         dataset,
-        batch_size=10,
-        source_domains=np.unique(sample_domain[sample_domain > 0]),
+        batch_size=9,
+        source_domains=source_domains,
     )
+
     for batch in dataloader:
         X, y = batch
-        sample_domain = X["sample_domain"]
-        assert len(sample_domain > 0) == len(sample_domain < 0)
-        assert np.unique(sample_domain[sample_domain > 0]).shape[0] == 1
+        sample_domain_batch = X["sample_domain"]
+        assert len(sample_domain_batch > 0) == len(sample_domain_batch < 0)
+        assert (
+            np.unique(sample_domain_batch[sample_domain_batch > 0]).shape[0]
+            == np.unique(sample_domain[sample_domain > 0]).shape[0]
+        )
+        for domain in source_domains[1:]:
+            print(torch.sum(sample_domain_batch == domain))
+            assert torch.sum(sample_domain_batch == domain) == torch.sum(
+                sample_domain_batch == source_domains[0]
+            )
 
     # with more target than source
-    dataset = make_shifted_datasets(
+    dataset = make_dataset_from_moons_distribution(
         n_samples_source=n_samples,
         n_samples_target=2 * n_samples,
-        shift="concept_drift",
+        pos_source=[0.1, 0.2, 0.3],
         noise=0.1,
         random_state=42,
         return_dataset=True,
     )
-    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = dataset.pack_train(
+        as_sources=["s0", "s1", "s2"], as_targets=["t"]
+    )
     X_dict = {"X": X.astype(np.float32), "sample_domain": sample_domain}
 
     dataset = Dataset(X_dict, y)
-
+    source_domains = np.unique(sample_domain[sample_domain > 0])
     dataloader = MultiSourceDomainBalancedDataLoader(
         dataset,
-        batch_size=10,
-        source_domains=np.unique(sample_domain[sample_domain > 0]),
+        batch_size=9,
+        source_domains=source_domains,
     )
+
     for batch in dataloader:
         X, y = batch
-        sample_domain = X["sample_domain"]
-        assert len(sample_domain > 0) == len(sample_domain < 0)
-        assert np.unique(sample_domain[sample_domain > 0]).shape[0] == 1
+        sample_domain_batch = X["sample_domain"]
+        assert len(sample_domain_batch > 0) == len(sample_domain_batch < 0)
+        assert (
+            np.unique(sample_domain_batch[sample_domain_batch > 0]).shape[0]
+            == np.unique(sample_domain[sample_domain > 0]).shape[0]
+        )
+        for domain in source_domains[1:]:
+            print(torch.sum(sample_domain_batch == domain))
+            assert torch.sum(sample_domain_batch == domain) == torch.sum(
+                sample_domain_batch == source_domains[0]
+            )
