@@ -11,7 +11,7 @@ from skada.deep.base import (
     DomainAwareModule,
     DomainAwareNet,
 )
-from skada.deep.dataloaders import DomainBalancedDataLoader
+from skada.deep.dataloaders import MultiSourceDomainBalancedDataLoader
 from skada.deep.losses import mmd_loss
 
 
@@ -46,8 +46,6 @@ class MultiSourceModule(torch.nn.Module):
         super().__init__()
         for i, layer in enumerate(layers):
             if domain_specific_layers[i]:
-                # Doing that means that the initialization is
-                # the same for aller the specific layers
                 self.add_module(
                     f"layer_{i}", nn.ModuleList(layer for _ in range(n_domains))
                 )
@@ -57,12 +55,6 @@ class MultiSourceModule(torch.nn.Module):
         self.n_domains = n_domains
 
     def forward(self, X, sample_domain=None, sample_weight=None, is_source=True):
-        # if is_source:
-        #     domain_present = torch.unique(sample_domain)
-        #     dict_idx = {int(domain): idx for idx, domain in enumerate(domain_present)}
-        #     sample_domain_ = torch.tensor(
-        #         [dict_idx[int(domain)] for domain in sample_domain]
-        #     )
         for i, layer in enumerate(self.children()):
             if isinstance(layer, nn.ModuleList):
                 if X.size(0) != self.n_domains:
@@ -81,13 +73,38 @@ class MultiSourceModule(torch.nn.Module):
 
 
 class MFSANLoss(BaseDALoss):
-    """Loss MFSAN"""
+    """Loss MFSAN
+
+    The loss for the MFSAN method proposed in [33].
+
+
+    Parameters
+    ----------
+    reg_mmd : float, optional (default=1)
+        The regularization parameter of the MMD loss.
+    reg_cl : float, optional (default=1)
+        The regularization parameter of the target discrepancy
+        classification loss.
+    sigmas : array-like, optional (default=None)
+        The sigmas for the Gaussian kernel.
+
+    References
+    ----------
+    .. [33] Zhu, Y., Zhuang, F., and Wang, D., (2022).
+            Aligning Domain-specific Distribution and Classifier
+            for Cross-domain Classification from Multiple Sources.
+            Association for the Advancement of Artificial Intelligence.
+    """
 
     def __init__(
         self,
+        reg_mmd=1,
+        reg_cl=1,
         sigmas=None,
     ):
         super().__init__()
+        self.reg_mmd = reg_mmd
+        self.reg_cl = reg_cl
         self.sigmas = sigmas
 
     def forward(
@@ -118,14 +135,23 @@ class MFSANLoss(BaseDALoss):
                 )
         mmd /= n_domains
         disc /= n_domains * (n_domains - 1) / 2
-        loss = mmd + disc
+        loss = self.reg_mmd * mmd + self.reg_cl * disc
         return loss
 
 
-def MFSAN(module, layer_name, reg=1, sigmas=None, base_criterion=None, **kwargs):
+def MFSAN(
+    module,
+    layer_name,
+    source_domains,
+    reg_mmd=1,
+    reg_cl=1,
+    sigmas=None,
+    base_criterion=None,
+    **kwargs,
+):
     """MFSAN domain adaptation method.
 
-    See [14]_.
+    See [33]_.
 
     Parameters
     ----------
@@ -134,8 +160,13 @@ def MFSAN(module, layer_name, reg=1, sigmas=None, base_criterion=None, **kwargs)
     layer_name : str
         The name of the module's layer whose outputs are
         collected during the training for the adaptation.
-    reg : float, optional (default=1)
-        The regularization parameter of the covariance estimator.
+    source_domains : list of int
+        The list of source domains.
+    reg_mmd : float, optional (default=1)
+        The regularization parameter of the MMD loss.
+    reg_cl : float, optional (default=1)
+        The regularization parameter of the target discrepancy
+        classification loss.
     sigmas : array-like, optional (default=None)
         The sigmas for the Gaussian kernel.
     base_criterion : torch criterion (class)
@@ -144,9 +175,10 @@ def MFSAN(module, layer_name, reg=1, sigmas=None, base_criterion=None, **kwargs)
 
     References
     ----------
-    .. [14]  Mingsheng Long et. al. Learning Transferable
-            Features with Deep Adaptation Networks.
-            In ICML, 2015.
+    .. [33] Zhu, Y., Zhuang, F., and Wang, D., (2022).
+            Aligning Domain-specific Distribution and Classifier
+            for Cross-domain Classification from Multiple Sources.
+            Association for the Advancement of Artificial Intelligence.
     """
     if base_criterion is None:
         base_criterion = torch.nn.CrossEntropyLoss()
@@ -156,11 +188,14 @@ def MFSAN(module, layer_name, reg=1, sigmas=None, base_criterion=None, **kwargs)
         module__base_module=module,
         module__layer_name=layer_name,
         module__is_multi_source=True,
-        iterator_train=DomainBalancedDataLoader,
+        iterator_train=MultiSourceDomainBalancedDataLoader,
+        iterator_train__source_domains=source_domains,
         criterion=DomainAwareCriterion,
         criterion__base_criterion=base_criterion,
-        criterion__reg=reg,
-        criterion__adapt_criterion=MFSANLoss(sigmas=sigmas),
+        criterion__reg=1,
+        criterion__adapt_criterion=MFSANLoss(
+            reg_mmd=reg_mmd, reg_cl=reg_cl, sigmas=sigmas
+        ),
         criterion__is_multi_source=True,
         **kwargs,
     )

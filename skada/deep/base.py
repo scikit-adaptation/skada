@@ -232,7 +232,6 @@ class DomainAwareModule(torch.nn.Module):
             if sample_weight is not None:
                 args_t["sample_weight"] = sample_weight[~source_idx]
             if self.is_multi_source:
-                args_t["sample_domain"] = sample_domain[~source_idx]
                 args_t["is_source"] = False
             y_pred_t = self.base_module_(**args_t)
             features_t = self.intermediate_layers[self.layer_name]
@@ -252,12 +251,28 @@ class DomainAwareModule(torch.nn.Module):
             )
         else:
             if return_features:
+                args = {"X": X}
+                args["sample_weight"] = sample_weight
+                if self.is_multi_source:
+                    args["is_source"] = False
+                y_pred = self.base_module_(**args)
+                if self.is_multi_source:
+                    y_pred = torch.mean(y_pred, axis=0)
+                features = self.intermediate_layers[self.layer_name]
+
                 return (
-                    self.base_module_(X, sample_weight=sample_weight),
-                    self.intermediate_layers[self.layer_name],
+                    y_pred,
+                    features,
                 )
             else:
-                return self.base_module_(X, sample_weight=sample_weight)
+                args = {"X": X}
+                args["sample_weight"] = sample_weight
+                if self.is_multi_source:
+                    args["is_source"] = False
+                y_pred = self.base_module_(**args)
+                if self.is_multi_source:
+                    y_pred = torch.mean(y_pred, axis=0)
+                return y_pred
 
 
 class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):

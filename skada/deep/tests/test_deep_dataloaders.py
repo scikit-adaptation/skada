@@ -134,6 +134,14 @@ def test_multi_source_domain_balanced_sampler():
     max_length = np.max(lenght_sources)
     assert len(sampler) == max_length * len(source_domains) * 2
 
+    # assert error if domain not in dataset
+    with pytest.raises(AssertionError):
+        sampler = MultiSourceDomainBalancedSampler(
+            dataset,
+            10,
+            source_domains=[0, 1000],
+        )
+
 
 def test_multi_soure_domain_balanced_dataloader():
     n_samples = 30

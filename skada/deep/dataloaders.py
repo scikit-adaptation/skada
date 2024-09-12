@@ -123,7 +123,6 @@ class MultiSourceDomainBalancedSampler(Sampler):
         self.positive_indices = []
         for domain in source_domains:
             assert domain >= 0
-
             self.positive_indices.append(
                 [
                     idx
@@ -131,6 +130,9 @@ class MultiSourceDomainBalancedSampler(Sampler):
                     if sample[0]["sample_domain"] == domain
                 ]
             )
+        assert all(
+            [len(self.positive_indices[i]) > 0 for i in range(len(self.source_domains))]
+        ), "Some source domains are not in the dataset."
         self.negative_indices = [
             idx for idx, sample in enumerate(dataset) if sample[0]["sample_domain"] < 0
         ]

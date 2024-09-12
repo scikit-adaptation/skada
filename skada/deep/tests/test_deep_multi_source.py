@@ -72,17 +72,20 @@ def test_mfsan(sigmas):
         random_state=42,
         return_dataset=True,
     )
+
+    X, y, sample_domain = dataset.pack_train(as_sources=["s1", "s0"], as_targets=["t"])
+
     method = MFSAN(
         module=module,
-        reg=0,
+        source_domains=np.unique(sample_domain[sample_domain > 0]),
         sigmas=sigmas,
         layer_name="output_layer_1",
         batch_size=10,
-        max_epochs=3,
+        max_epochs=5,
+        reg_mmd=0.1,
+        reg_cl=0.1,
         train_split=None,
     )
-
-    X, y, sample_domain = dataset.pack_train(as_sources=["s1", "s0"], as_targets=["t"])
     method.fit(X.astype(np.float32), y.astype(np.int64), sample_domain)
 
     X_test, y_test, sample_domain_test = dataset.pack_test(as_targets=["t"])
