@@ -16,7 +16,6 @@ from skada.deep import SourceOnly, TargetOnly
 from skada.deep.modules import ToyModule2D
 
 
-
 def test_sourceonly():
     n_samples = 20
     dataset = make_shifted_datasets(
