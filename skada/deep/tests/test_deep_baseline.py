@@ -16,9 +16,6 @@ from skada.deep import SourceOnly, TargetOnly
 from skada.deep.modules import ToyModule2D
 
 
-def test_sourceonly():
-    module = ToyModule2D()
-    module.eval()
 
 def test_sourceonly():
     n_samples = 20
