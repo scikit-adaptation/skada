@@ -1,6 +1,7 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Remi Flamary <remi.flamary@polytechnique.edu>
 #         Yanis Lalou <yanis.lalou@polytechnique.edu>
+#         Antoine Collas <contact@antoinecollas.fr>
 #
 # License: BSD 3-Clause
 import torch
@@ -9,8 +10,23 @@ from torch.autograd import Function
 
 
 class ToyModule2D(torch.nn.Module):
-    """XXX add docstring here."""
+    """A simple fully connected module for data with 2 features, i.e. (n_samples, 2).
 
+    This module contains two dense layers with a non-linearity and dropout.
+    It can output either logits or probabilities, depending on the
+    `proba` parameter.
+
+    Parameters
+    ----------
+    n_classes : int, default=2
+        The number of output classes.
+    num_features : int, default=10
+        The number of features in the hidden layer.
+    nonlin : torch.nn.Module, default=torch.nn.ReLU()
+        The non-linear activation function used after the first dense layer.
+    proba : bool, default=False
+        If True, the output will be probabilities (using softmax). Otherwise, raw logits will be returned.
+    """
     def __init__(
         self, n_classes=2, num_features=10, nonlin=torch.nn.ReLU(), proba=False
     ):
@@ -29,7 +45,20 @@ class ToyModule2D(torch.nn.Module):
         X,
         sample_weight=None,
     ):
-        """XXX add docstring here."""
+        """Forward pass of the ToyModule2D.
+
+        Parameters
+        ----------
+        X : torch.Tensor
+            Input tensor of shape (batch_size, 2).
+        sample_weight : torch.Tensor, optional
+            Unused in this module.
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor of shape (batch_size, n_classes), either raw logits or probabilities based on the `proba` parameter.
+        """
         X = self.nonlin(self.dense0(X))
         X = self.dropout(X)
         X = self.dense1(X)
