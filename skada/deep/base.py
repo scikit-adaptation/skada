@@ -37,7 +37,7 @@ class DomainAwareCriterion(torch.nn.Module):
         The initialized criterion (loss) used to compute the
         loss to reduce the divergence between domains.
     reg: float, default=1
-        Regularization parameter.
+        Regularization parameter for DA loss.
     reduction: str, default='mean'
         Specifies the reduction to apply to the output: 'none' | 'mean' | 'sum'.
         'none': no reduction will be applied,
