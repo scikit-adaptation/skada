@@ -49,7 +49,7 @@ model = DeepJDOT(
     batch_size=128,
     max_epochs=5,
     train_split=False,
-    reg=0.1,
+    reg_dist=0.1,
     reg_cl=0.01,
     lr=1e-2,
 )

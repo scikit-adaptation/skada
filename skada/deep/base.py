@@ -38,12 +38,14 @@ class DomainAwareCriterion(torch.nn.Module):
         The initialized criterion (loss) used to compute the
         loss to reduce the divergence between domains.
     reg: float, default=1
-        Regularization parameter.
+        Regularization parameter for DA loss.
     reduction: str, default='mean'
         Specifies the reduction to apply to the output: 'none' | 'mean' | 'sum'.
         'none': no reduction will be applied,
         'mean': the sum of the output will be divided by the number of elements in the output,
         'sum': the output will be summed.
+    train_on_target: bool, default=False
+        If True, the loss is computed on target domain.
     """
 
     def __init__(
@@ -53,12 +55,14 @@ class DomainAwareCriterion(torch.nn.Module):
         reg=1,
         reduction="mean",
         is_multi_source=False,
+        train_on_target=False,
     ):
         super(DomainAwareCriterion, self).__init__()
         self.base_criterion = base_criterion
         self.adapt_criterion = adapt_criterion
         self.reg = reg
         self.is_multi_source = is_multi_source
+        self.train_on_target = train_on_target
 
         # Update the reduce parameter for both criteria if specified
         if hasattr(self.base_criterion, "reduction"):
@@ -105,7 +109,13 @@ class DomainAwareCriterion(torch.nn.Module):
                 idx = sample_domain[source_idx] == n_domain
                 base_loss += self.base_criterion(y_pred_s[idx], y_true[source_idx][idx])
         else:
-            base_loss = self.base_criterion(y_pred_s, y_true[source_idx])
+            if self.train_on_target:
+                # import ipdb; ipdb.set_trace()
+                base_loss = self.base_criterion(y_pred_t, y_true[~source_idx])
+            else:
+                base_loss = self.base_criterion(y_pred_s, y_true[source_idx])
+
+        # predict
         return base_loss + self.reg * self.adapt_criterion(
             y_true[source_idx],
             y_pred_s,

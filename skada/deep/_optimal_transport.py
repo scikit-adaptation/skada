@@ -24,6 +24,8 @@ class DeepJDOTLoss(BaseDALoss):
 
     Parameters
     ----------
+    reg_dist : float, default=1
+        Divergence regularization parameter.
     reg_cl : float, default=1
         Class distance term regularization parameter.
     target_criterion : torch criterion (class)
@@ -40,8 +42,9 @@ class DeepJDOTLoss(BaseDALoss):
             September 2018. Springer.
     """
 
-    def __init__(self, reg_cl=1, target_criterion=None):
+    def __init__(self, reg_dist=1, reg_cl=1, target_criterion=None):
         super().__init__()
+        self.reg_dist = reg_dist
         self.reg_cl = reg_cl
         self.criterion_ = target_criterion
 
@@ -62,6 +65,7 @@ class DeepJDOTLoss(BaseDALoss):
             y_pred_t,
             features_s,
             features_t,
+            self.reg_dist,
             self.reg_cl,
             criterion=self.criterion_,
         )
@@ -71,7 +75,7 @@ class DeepJDOTLoss(BaseDALoss):
 def DeepJDOT(
     module,
     layer_name,
-    reg=1,
+    reg_dist=1,
     reg_cl=1,
     base_criterion=None,
     target_criterion=None,
@@ -89,7 +93,7 @@ def DeepJDOT(
         The name of the module's layer whose outputs are
         collected during the training for the adaptation.
     reg : float, default=1
-        Regularization parameter.
+        Regularization parameter for DA loss.
     reg_cl : float, default=1
         Class distance term regularization parameter.
     base_criterion : torch criterion (class)
@@ -118,8 +122,8 @@ def DeepJDOT(
         iterator_train=DomainBalancedDataLoader,
         criterion=DomainAwareCriterion,
         criterion__base_criterion=base_criterion,
-        criterion__adapt_criterion=DeepJDOTLoss(reg_cl, target_criterion),
-        criterion__reg=reg,
+        criterion__adapt_criterion=DeepJDOTLoss(reg_dist, reg_cl, target_criterion),
+        criterion__reg=1,
         **kwargs,
     )
     return net
