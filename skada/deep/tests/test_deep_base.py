@@ -81,7 +81,9 @@ def test_domainawaremodule_features_differ_between_domains():
     difference = torch.abs(mean_features_s - mean_features_t)
     max_difference = difference.max().item()
 
-    assert max_difference > 0.1, "Features of source and target domains are too similar."
+    assert (
+        max_difference > 0.1
+    ), "Features of source and target domains are too similar."
 
 
 def test_domainawaretraining():
