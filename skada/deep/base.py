@@ -100,7 +100,7 @@ class DomainAwareCriterion(torch.nn.Module):
         else:
             domain_pred_s = None
             domain_pred_t = None
-        
+
         if features is not None:
             features_s = features[source_idx]
             features_t = features[~source_idx]
@@ -312,21 +312,24 @@ class DomainAwareModule(torch.nn.Module):
             # Pass sample_weight to base_module_
             if sample_weight is not None:
                 sample_weight_s = sample_weight[source_idx]
-                sample_weight_t = sample_weight[~source_idx]
-
                 y_pred_s = self.base_module_(X_s, sample_weight=sample_weight_s)
-
-                y_pred_t = self.base_module_(X_t, sample_weight=sample_weight_t)
             else:
                 y_pred_s = self.base_module_(X_s)
 
+            if self.layer_name is not None:
+                features_s = self.intermediate_layers[self.layer_name]
+            else:
+                features_s = None
+
+            if sample_weight is not None:
+                sample_weight_t = sample_weight[~source_idx]
+                y_pred_t = self.base_module_(X_t, sample_weight=sample_weight_t)
+            else:
                 y_pred_t = self.base_module_(X_t)
 
             if self.layer_name is not None:
-                features_s = self.intermediate_layers[self.layer_name]
                 features_t = self.intermediate_layers[self.layer_name]
             else:
-                features_s = None
                 features_t = None
 
             if self.domain_classifier_ is not None:
