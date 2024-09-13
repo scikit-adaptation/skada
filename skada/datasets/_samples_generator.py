@@ -386,6 +386,7 @@ def make_shifted_datasets(
     regression_scaling_constant=27,
     center=((0, 2)),
     center_cov_shift=((0, 2)),
+    standardize=False,
     random_state=None,
     return_X_y=True,
     return_dataset=False,
@@ -439,6 +440,11 @@ def make_shifted_datasets(
         Center of the distribution.
     center_cov_shift : array-like of shape (1, 2), default=((0, 2))
         Center of the covariate-shift.
+    standardize : bool, default=False
+        If True, the data is standardized.
+        The standard score of a sample x is calculated as:
+        z = (x - u) / s
+        where u is the mean and s is the standard deviation of the data.
     random_state : int, RandomState instance or None, default=None
         Determines random number generation for dataset creation. Pass an int
         for reproducible output across multiple function calls.
@@ -578,6 +584,13 @@ def make_shifted_datasets(
     elif noise is not None:
         X_source += rng.normal(scale=noise[0], size=X_source.shape)
         X_target += rng.normal(scale=noise[1], size=X_target.shape)
+
+    if standardize:
+        X = np.vstack((X_source, X_target))
+        mean = X.mean(axis=0)
+        std = X.std(axis=0)
+        X_source = (X_source - mean) / std
+        X_target = (X_target - mean) / std
 
     dataset = DomainAwareDataset(
         domains=[
