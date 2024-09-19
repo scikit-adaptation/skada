@@ -479,14 +479,7 @@ def test_sample_weight_error_with_reduction_none():
         method.fit(X, y, sample_domain=sample_domain, sample_weight=sample_weight)
 
 
-@pytest.mark.parametrize(
-    "epochs_pretrain",
-    [
-        None,
-        5,
-    ],
-)
-def test_pretrain(epochs_pretrain):
+def test_pretrain():
     n_samples = 10
     num_features = 5
     module = ToyModule2D(num_features=num_features)
@@ -513,8 +506,7 @@ def test_pretrain(epochs_pretrain):
         batch_size=5,
         max_epochs=1,
         train_split=None,
-        pretrain=True,
-        epochs_pretrain=epochs_pretrain,
+        epochs_pretrain_on_source=3,
     )
 
     # Prepare the training data

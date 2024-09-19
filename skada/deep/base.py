@@ -413,8 +413,7 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         iterator_train = (
             DomainBalancedDataLoader if iterator_train is None else iterator_train
         )
-        self.pretrain = pretrain
-        self.epochs_pretrain = epochs_pretrain
+        self.epochs_pretrain_on_source = epochs_pretrain_on_source
         super().__init__(module, iterator_train=iterator_train, **kwargs)
 
     def fit(
