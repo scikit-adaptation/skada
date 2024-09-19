@@ -477,3 +477,69 @@ def test_sample_weight_error_with_reduction_none():
     # Expect an error when fitting with reduction='none' and sample weights provided
     with pytest.raises(ValueError):
         method.fit(X, y, sample_domain=sample_domain, sample_weight=sample_weight)
+
+
+@pytest.mark.parametrize(
+    "epochs_pretrain",
+    [
+        None,
+        5,
+    ],
+)
+def test_pretrain(epochs_pretrain):
+    n_samples = 10
+    num_features = 5
+    module = ToyModule2D(num_features=num_features)
+    module.eval()
+
+    # Create a simple dataset
+    dataset = make_shifted_datasets(
+        n_samples_source=n_samples,
+        n_samples_target=n_samples,
+        shift="concept_drift",
+        noise=0.1,
+        random_state=42,
+        return_dataset=True,
+    )
+
+    # Initialize the domain aware network with reduction set to 'mean'
+    method = DomainAwareNet(
+        DomainAwareModule(module, "dropout"),
+        iterator_train=DomainBalancedDataLoader,
+        criterion=DomainAwareCriterion(
+            torch.nn.CrossEntropyLoss(),
+            TestLoss(),
+        ),
+        batch_size=5,
+        max_epochs=1,
+        train_split=None,
+        pretrain=True,
+        epochs_pretrain=epochs_pretrain,
+    )
+
+    # Prepare the training data
+    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X = X.astype(np.float32)
+
+    method.fit(
+        X,
+        y,
+        sample_domain=sample_domain,
+    )
+
+    # method_without_pretrain = DomainAwareNet(
+    #     DomainAwareModule(module, "dropout"),
+    #     iterator_train=DomainBalancedDataLoader,
+    #     criterion=DomainAwareCriterion(
+    #         torch.nn.CrossEntropyLoss(), TestLoss(),
+    #     ),
+    #     batch_size=5,
+    #     max_epochs=1,
+    #     train_split=None,
+    #     pretrain=False,
+    # )
+
+    # method_without_pretrain.fit(X, y, sample_domain=sample_domain,)
+
+    # assert method.history[-1]["train_loss"]
+    #  < method_without_pretrain.history[-1]["train_loss"]
