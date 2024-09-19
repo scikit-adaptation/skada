@@ -24,9 +24,8 @@ class DeepCoralLoss(BaseDALoss):
 
     Parameters
     ----------
-    centered : bool, optional (default=True)
-        If False, the feature are centered before computing the
-        loss
+    assume_centered: bool, default=False
+        If True, data are not centered before computation.
 
     References
     ----------
@@ -37,10 +36,10 @@ class DeepCoralLoss(BaseDALoss):
 
     def __init__(
         self,
-        centered=True,
+        assume_centered=False,
     ):
         super().__init__()
-        self.centered = centered
+        self.assume_centered = assume_centered
 
     def forward(
         self,
@@ -53,11 +52,11 @@ class DeepCoralLoss(BaseDALoss):
         features_t,
     ):
         """Compute the domain adaptation loss"""
-        loss = deepcoral_loss(features_s, features_t, self.centered)
+        loss = deepcoral_loss(features_s, features_t, self.assume_centered)
         return loss
 
 
-def DeepCoral(module, layer_name, reg=1, centered=True, base_criterion=None, **kwargs):
+def DeepCoral(module, layer_name, reg=1, assume_centered=False, base_criterion=None, **kwargs):
     """DeepCORAL domain adaptation method.
 
     From [12]_.
@@ -71,8 +70,8 @@ def DeepCoral(module, layer_name, reg=1, centered=True, base_criterion=None, **k
         collected during the training for the adaptation.
     reg : float, optional (default=1)
         Regularization parameter for DA loss.
-    centered : bool, optional (default=True)
-        If False, the feature are centered before computing the loss.
+    assume_centered: bool, default=False
+        If True, data are not centered before computation.
     base_criterion : torch criterion (class)
         The base criterion used to compute the loss with source
         labels. If None, the default is `torch.nn.CrossEntropyLoss`.
@@ -94,7 +93,7 @@ def DeepCoral(module, layer_name, reg=1, centered=True, base_criterion=None, **k
         criterion=DomainAwareCriterion,
         criterion__base_criterion=base_criterion,
         criterion__reg=reg,
-        criterion__adapt_criterion=DeepCoralLoss(centered),
+        criterion__adapt_criterion=DeepCoralLoss(assume_centered=assume_centered),
         **kwargs,
     )
     return net
