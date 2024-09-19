@@ -165,6 +165,7 @@ class BaseDALoss(torch.nn.Module):
         pass
 
 
+
 class DomainBalancedSampler(Sampler):
     """Domain balanced sampler
 
@@ -184,9 +185,13 @@ class DomainBalancedSampler(Sampler):
         self.negative_indices = [
             idx for idx, sample in enumerate(dataset) if sample[0]["sample_domain"] < 0
         ]
-        self.num_samples = (
+        self.num_samples_source = (
             len(self.positive_indices) - len(self.positive_indices) % batch_size
         )
+        self.num_samples_target = (
+            len(self.negative_indices) - len(self.negative_indices) % batch_size
+        )
+        self.num_samples = max(self.num_samples_source, self.num_samples_target)
 
     def __iter__(self):
         positive_sampler = torch.utils.data.sampler.RandomSampler(self.positive_indices)
@@ -196,7 +201,11 @@ class DomainBalancedSampler(Sampler):
         negative_iter = iter(negative_sampler)
 
         for _ in range(self.num_samples):
-            pos_idx = self.positive_indices[next(positive_iter)]
+            try:
+                pos_idx = self.positive_indices[next(positive_iter)]
+            except StopIteration:
+                positive_iter = iter(positive_sampler)
+                pos_idx = self.positive_indices[next(positive_iter)]
             try:
                 neg_idx = self.negative_indices[next(negative_iter)]
             except StopIteration:
@@ -207,6 +216,7 @@ class DomainBalancedSampler(Sampler):
 
     def __len__(self):
         return 2 * self.num_samples
+
 
 
 class DomainBalancedDataLoader(DataLoader):
