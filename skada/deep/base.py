@@ -254,7 +254,7 @@ class DomainBalancedDataLoader(DataLoader):
 class DomainOnlySampler(Sampler):
     """Domain balanced sampler
 
-    A sampler to have as much as source and target in the batch.
+    A sampler to have only source or target domain in the batch.
 
     Parameters
     ----------
@@ -294,7 +294,7 @@ class DomainOnlySampler(Sampler):
 class DomainOnlyDataLoader(DataLoader):
     """Domain balanced data loader
 
-    A data loader to have as much as source and target in the batch.
+    A data loader to have either source or target domain in the batch.
 
     Parameters
     ----------
