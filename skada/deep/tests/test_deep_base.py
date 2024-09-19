@@ -19,6 +19,8 @@ from skada.deep.base import (
     DomainAwareNet,
     DomainBalancedDataLoader,
     DomainBalancedSampler,
+    DomainOnlyDataLoader,
+    DomainOnlySampler,
 )
 from skada.deep.losses import TestLoss
 from skada.deep.modules import ToyModule2D
@@ -370,6 +372,70 @@ def test_domain_balanced_dataloader():
         X, y = batch
         sample_domain = X["sample_domain"]
         assert len(sample_domain > 0) == len(sample_domain < 0)
+
+
+@pytest.mark.parametrize(
+    "domain_used",
+    [
+        "source",
+        "target",
+    ],
+)
+def test_domain_only_sampler(domain_used):
+    n_samples = 20
+    dataset = make_shifted_datasets(
+        n_samples_source=n_samples,
+        n_samples_target=n_samples,
+        shift="concept_drift",
+        noise=0.1,
+        random_state=42,
+        return_dataset=True,
+    )
+    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X_dict = {"X": X.astype(np.float32), "sample_domain": sample_domain}
+
+    dataset = Dataset(X_dict, y)
+
+    sampler = DomainOnlySampler(dataset, 10, domain_used=domain_used)
+    assert (
+        len(sampler) == np.sum(sample_domain > 0)
+        if domain_used == "source"
+        else np.sum(sample_domain < 0)
+    )
+
+
+@pytest.mark.parametrize(
+    "domain_used",
+    [
+        "source",
+        "target",
+    ],
+)
+def test_domain_only_dataloader(domain_used):
+    n_samples = 20
+    dataset = make_shifted_datasets(
+        n_samples_source=n_samples,
+        n_samples_target=n_samples,
+        shift="concept_drift",
+        noise=0.1,
+        random_state=42,
+        return_dataset=True,
+    )
+    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X_dict = {"X": X.astype(np.float32), "sample_domain": sample_domain}
+
+    dataset = Dataset(X_dict, y)
+
+    dataloader = DomainOnlyDataLoader(dataset, batch_size=10, domain_used=domain_used)
+
+    for batch in dataloader:
+        X, y = batch
+        sample_domain = X["sample_domain"]
+        assert (
+            (sample_domain > 0).all()
+            if domain_used == "source"
+            else (sample_domain < 0).all()
+        )
 
 
 def test_sample_weight():
