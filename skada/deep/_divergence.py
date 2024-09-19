@@ -22,6 +22,11 @@ class DeepCoralLoss(BaseDALoss):
     of the source features and the target features.
     See [12]_.
 
+    Parameters
+    ----------
+    centered : bool, optional (default=True)
+        If False, the feature are centered before computing the
+        loss
 
     References
     ----------
@@ -32,8 +37,10 @@ class DeepCoralLoss(BaseDALoss):
 
     def __init__(
         self,
+        centered=True,
     ):
         super().__init__()
+        self.centered = centered
 
     def forward(
         self,
@@ -46,11 +53,11 @@ class DeepCoralLoss(BaseDALoss):
         features_t,
     ):
         """Compute the domain adaptation loss"""
-        loss = deepcoral_loss(features_s, features_t)
+        loss = deepcoral_loss(features_s, features_t, self.centered)
         return loss
 
 
-def DeepCoral(module, layer_name, reg=1, base_criterion=None, **kwargs):
+def DeepCoral(module, layer_name, reg=1, centered=True, base_criterion=None, **kwargs):
     """DeepCORAL domain adaptation method.
 
     From [12]_.
@@ -64,6 +71,8 @@ def DeepCoral(module, layer_name, reg=1, base_criterion=None, **kwargs):
         collected during the training for the adaptation.
     reg : float, optional (default=1)
         Regularization parameter for DA loss.
+    centered : bool, optional (default=True)
+        If False, the feature are centered before computing the loss.
     base_criterion : torch criterion (class)
         The base criterion used to compute the loss with source
         labels. If None, the default is `torch.nn.CrossEntropyLoss`.
@@ -85,7 +94,7 @@ def DeepCoral(module, layer_name, reg=1, base_criterion=None, **kwargs):
         criterion=DomainAwareCriterion,
         criterion__base_criterion=base_criterion,
         criterion__reg=reg,
-        criterion__adapt_criterion=DeepCoralLoss(),
+        criterion__adapt_criterion=DeepCoralLoss(centered),
         **kwargs,
     )
     return net

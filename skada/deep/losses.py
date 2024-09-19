@@ -13,7 +13,7 @@ import torch  # noqa: F401
 from skada.deep.base import BaseDALoss
 
 
-def deepcoral_loss(features, features_target):
+def deepcoral_loss(features, features_target, centered=True):
     """Estimate the Frobenius norm divide by 4*n**2
        for DeepCORAL method [12]_.
 
@@ -23,6 +23,8 @@ def deepcoral_loss(features, features_target):
         Source features.
     features_target : tensor
         Target features.
+    centered : bool, default=True
+        If False, the feature are centered before computing the loss.
 
     Returns
     -------
@@ -35,6 +37,9 @@ def deepcoral_loss(features, features_target):
             Correlation alignment for deep domain
             adaptation. In ECCV Workshops, 2016.
     """
+    if not centered:
+        features = features - features.mean(0)
+        features_target = features_target - features_target.mean(0)
     cov = torch.cov(features)
     cov_target = torch.cov(features_target)
     diff = cov - cov_target
