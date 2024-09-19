@@ -56,7 +56,9 @@ class DeepCoralLoss(BaseDALoss):
         return loss
 
 
-def DeepCoral(module, layer_name, reg=1, assume_centered=False, base_criterion=None, **kwargs):
+def DeepCoral(
+    module, layer_name, reg=1, assume_centered=False, base_criterion=None, **kwargs
+):
     """DeepCORAL domain adaptation method.
 
     From [12]_.
