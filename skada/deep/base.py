@@ -109,7 +109,6 @@ class DomainAwareCriterion(torch.nn.Module):
             features_t = None
 
         if self.train_on_target:
-            # import ipdb; ipdb.set_trace()
             base_loss = self.base_criterion(y_pred_t, y_true[~source_idx])
         else:
             base_loss = self.base_criterion(y_pred_s, y_true[source_idx])
@@ -266,6 +265,94 @@ class DomainBalancedDataLoader(DataLoader):
         super().__init__(
             dataset,
             2 * batch_size,
+            shuffle,
+            sampler,
+            batch_sampler,
+            num_workers,
+            collate_fn,
+            pin_memory,
+            drop_last,
+            timeout,
+            worker_init_fn,
+            multiprocessing_context,
+        )
+
+
+class DomainOnlySampler(Sampler):
+    """Domain balanced sampler
+
+    A sampler to have only source or target domain in the batch.
+
+    Parameters
+    ----------
+    dataset : torch dataset
+        The dataset to sample from.
+    """
+
+    def __init__(self, dataset, batch_size, domain_used="source"):
+        self.dataset = dataset
+        if domain_used == "source":
+            self.indices = [
+                idx for idx, sample in enumerate(dataset) if sample[0]["sample_domain"] >= 0
+            ]
+        elif domain_used == "target":
+            self.indices = [
+                idx for idx, sample in enumerate(dataset) if sample[0]["sample_domain"] < 0
+            ]
+        else:
+            raise ValueError(f"Unknown domain_used: {domain_used}")
+        self.num_samples = (
+            len(self.indices) - len(self.indices) % batch_size
+        )
+
+    def __iter__(self):
+        sampler = torch.utils.data.sampler.RandomSampler(self.indices)
+
+        iterator = iter(sampler)
+
+        for _ in range(self.num_samples):
+            idx = self.indices[next(iterator)]
+            yield idx
+
+    def __len__(self):
+        return self.num_samples
+
+
+class DomainOnlyDataLoader(DataLoader):
+    """Domain balanced data loader
+
+    A data loader to have either source or target domain in the batch.
+
+    Parameters
+    ----------
+    dataset : torch dataset
+        The dataset to sample from.
+    batch_size : int
+        The batch size.
+    domain_used : str, default='source'
+        The domain to use for the batch.
+    """
+
+    def __init__(
+        self,
+        dataset,
+        batch_size,
+        domain_used="source",
+        shuffle=False,
+        sampler=None,
+        batch_sampler=None,
+        num_workers=0,
+        collate_fn=None,
+        pin_memory=False,
+        drop_last=False,
+        timeout=0,
+        worker_init_fn=None,
+        multiprocessing_context=None,
+    ):
+        sampler = DomainOnlySampler(dataset, batch_size, domain_used=domain_used)
+        super().__init__(
+            dataset,
+            batch_size,
             shuffle,
             sampler,
             batch_sampler,
