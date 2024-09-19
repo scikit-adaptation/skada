@@ -184,9 +184,13 @@ class DomainBalancedSampler(Sampler):
         self.negative_indices = [
             idx for idx, sample in enumerate(dataset) if sample[0]["sample_domain"] < 0
         ]
-        self.num_samples = (
+        self.num_samples_source = (
             len(self.positive_indices) - len(self.positive_indices) % batch_size
         )
+        self.num_samples_target = (
+            len(self.negative_indices) - len(self.negative_indices) % batch_size
+        )
+        self.num_samples = max(self.num_samples_source, self.num_samples_target)
 
     def __iter__(self):
         positive_sampler = torch.utils.data.sampler.RandomSampler(self.positive_indices)
@@ -396,11 +400,15 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         The PyTorch module to be used as the core of the classifier.
     iterator_train : torch.utils.data.DataLoader, optional
         Custom data loader for training. If None, DomainBalancedDataLoader is used.
+    pretrain: bool, default=False
+        If True, the model is pre-trained on source domain.
+    epochs_pretrain: int, default=10
+        Number of epochs for pre-training.
     **kwargs : dict
         Additional keyword arguments passed to the skorch NeuralNetClassifier.
     """
 
-    def __init__(self, module, iterator_train=None, **kwargs):
+    def __init__(self, module, pretrain=False, epochs_pretrain=None, iterator_train=None, **kwargs):
         # TODO val is not working
         # if train_split is None:
         #     iterator_valid = None
@@ -411,6 +419,8 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         iterator_train = (
             DomainBalancedDataLoader if iterator_train is None else iterator_train
         )
+        self.pretrain = pretrain
+        self.epochs_pretrain = epochs_pretrain
         super().__init__(module, iterator_train=iterator_train, **kwargs)
 
     def fit(
@@ -448,6 +458,26 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         # TODO: check X and y
         # but it requires to adapt skada.utils.check_X_y_domain
         # to handle dict, Dataset, torch.Tensor, ...
+
+        if self.pretrain:
+            # Pretrain on source domain
+            if self.epochs_pretrain is None:
+                self.epochs_pretrain = 10
+
+            net = NeuralNetClassifier(
+                self.module.base_module_,
+                max_epochs=self.epochs_pretrain,
+                lr=self.lr,
+                optimizer=self.optimizer,
+                criterion=self.criterion.base_criterion,
+                device=self.device,
+                train_split=None,
+            )
+            X_s = X["X"][X["sample_domain"] >= 0]
+            y_s = y[X["sample_domain"] >= 0]
+            net.fit(X_s, y_s, sample_weight=sample_weight)
+            self.module.base_module_ = net.module_
+            self.warm_start = True
 
         return super().fit(X, y, is_fit=True, **fit_params)
 
