@@ -175,9 +175,13 @@ class DomainBalancedSampler(Sampler):
     ----------
     dataset : torch dataset
         The dataset to sample from.
+    batch_size : int
+        The batch size.
+    max_samples : str, default='max'
+        The maximum number of samples to use. It can be 'max', 'min', 'source', or 'target'.
     """
 
-    def __init__(self, dataset, batch_size):
+    def __init__(self, dataset, batch_size, max_samples="max"):
         self.dataset = dataset
         self.positive_indices = [
             idx for idx, sample in enumerate(dataset) if sample[0]["sample_domain"] >= 0
@@ -191,7 +195,15 @@ class DomainBalancedSampler(Sampler):
         self.num_samples_target = (
             len(self.negative_indices) - len(self.negative_indices) % batch_size
         )
-        self.num_samples = max(self.num_samples_source, self.num_samples_target)
+        if max_samples == "max":
+            self.num_samples = max(self.num_samples_source, self.num_samples_target)
+        elif max_samples == "min":
+            self.num_samples = min(self.num_samples_source, self.num_samples_target)
+        elif max_samples == "source":
+            self.num_samples = self.num_samples_source
+        elif max_samples == "target":
+            self.num_samples = self.num_samples_target
+
 
     def __iter__(self):
         positive_sampler = torch.utils.data.sampler.RandomSampler(self.positive_indices)
@@ -228,12 +240,17 @@ class DomainBalancedDataLoader(DataLoader):
     ----------
     dataset : torch dataset
         The dataset to sample from.
+    batch_size : int
+        The batch size.
+    max_samples : str, default='max'
+        The maximum number of samples to use. It can be 'max', 'min', 'source', or 'target'.
     """
 
     def __init__(
         self,
         dataset,
         batch_size,
+        max_samples="max",
         shuffle=False,
         sampler=None,
         batch_sampler=None,
@@ -245,7 +262,7 @@ class DomainBalancedDataLoader(DataLoader):
         worker_init_fn=None,
         multiprocessing_context=None,
     ):
-        sampler = DomainBalancedSampler(dataset, batch_size)
+        sampler = DomainBalancedSampler(dataset, batch_size, max_samples=max_samples)
         super().__init__(
             dataset,
             2 * batch_size,
