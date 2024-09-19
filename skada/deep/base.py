@@ -164,6 +164,7 @@ class BaseDALoss(torch.nn.Module):
         pass
 
 
+
 class DomainBalancedSampler(Sampler):
     """Domain balanced sampler
 
@@ -173,9 +174,13 @@ class DomainBalancedSampler(Sampler):
     ----------
     dataset : torch dataset
         The dataset to sample from.
+    batch_size : int
+        The batch size.
+    max_samples : str, default='max'
+        The maximum number of samples to use. It can be 'max', 'min', 'source', or 'target'.
     """
 
-    def __init__(self, dataset, batch_size):
+    def __init__(self, dataset, batch_size, max_samples="max"):
         self.dataset = dataset
         self.positive_indices = [
             idx for idx, sample in enumerate(dataset) if sample[0]["sample_domain"] >= 0
@@ -183,9 +188,21 @@ class DomainBalancedSampler(Sampler):
         self.negative_indices = [
             idx for idx, sample in enumerate(dataset) if sample[0]["sample_domain"] < 0
         ]
-        self.num_samples = (
+        self.num_samples_source = (
             len(self.positive_indices) - len(self.positive_indices) % batch_size
         )
+        self.num_samples_target = (
+            len(self.negative_indices) - len(self.negative_indices) % batch_size
+        )
+        if max_samples == "max":
+            self.num_samples = max(self.num_samples_source, self.num_samples_target)
+        elif max_samples == "min":
+            self.num_samples = min(self.num_samples_source, self.num_samples_target)
+        elif max_samples == "source":
+            self.num_samples = self.num_samples_source
+        elif max_samples == "target":
+            self.num_samples = self.num_samples_target
+
 
     def __iter__(self):
         positive_sampler = torch.utils.data.sampler.RandomSampler(self.positive_indices)
@@ -195,7 +212,11 @@ class DomainBalancedSampler(Sampler):
         negative_iter = iter(negative_sampler)
 
         for _ in range(self.num_samples):
-            pos_idx = self.positive_indices[next(positive_iter)]
+            try:
+                pos_idx = self.positive_indices[next(positive_iter)]
+            except StopIteration:
+                positive_iter = iter(positive_sampler)
+                pos_idx = self.positive_indices[next(positive_iter)]
             try:
                 neg_idx = self.negative_indices[next(negative_iter)]
             except StopIteration:
@@ -208,6 +229,7 @@ class DomainBalancedSampler(Sampler):
         return 2 * self.num_samples
 
 
+
 class DomainBalancedDataLoader(DataLoader):
     """Domain balanced data loader
 
@@ -217,12 +239,17 @@ class DomainBalancedDataLoader(DataLoader):
     ----------
     dataset : torch dataset
         The dataset to sample from.
+    batch_size : int
+        The batch size.
+    max_samples : str, default='max'
+        The maximum number of samples to use. It can be 'max', 'min', 'source', or 'target'.
     """
 
     def __init__(
         self,
         dataset,
         batch_size,
+        max_samples="max",
         shuffle=False,
         sampler=None,
         batch_sampler=None,
@@ -234,7 +261,7 @@ class DomainBalancedDataLoader(DataLoader):
         worker_init_fn=None,
         multiprocessing_context=None,
     ):
-        sampler = DomainBalancedSampler(dataset, batch_size)
+        sampler = DomainBalancedSampler(dataset, batch_size, max_samples=max_samples)
         super().__init__(
             dataset,
             2 * batch_size,
