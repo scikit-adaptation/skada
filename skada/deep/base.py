@@ -396,15 +396,13 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         The PyTorch module to be used as the core of the classifier.
     iterator_train : torch.utils.data.DataLoader, optional
         Custom data loader for training. If None, DomainBalancedDataLoader is used.
-    pretrain: bool, default=False
-        If True, the model is pre-trained on source domain.
-    epochs_pretrain: int, default=10
-        Number of epochs for pre-training.
+    epochs_pretrain_on_source: int, default=None
+        Number of epochs for pre-training on source. If None, no pre-training is done.
     **kwargs : dict
         Additional keyword arguments passed to the skorch NeuralNetClassifier.
     """
 
-    def __init__(self, module, pretrain=False, epochs_pretrain=None, iterator_train=None, **kwargs):
+    def __init__(self, module, epochs_pretrain_on_source=None, iterator_train=None, **kwargs):
         # TODO val is not working
         # if train_split is None:
         #     iterator_valid = None
@@ -455,14 +453,12 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         # but it requires to adapt skada.utils.check_X_y_domain
         # to handle dict, Dataset, torch.Tensor, ...
 
-        if self.pretrain:
+        if self.epochs_pretrain_on_source:
             # Pretrain on source domain
-            if self.epochs_pretrain is None:
-                self.epochs_pretrain = 10
 
             net = NeuralNetClassifier(
                 self.module.base_module_,
-                max_epochs=self.epochs_pretrain,
+                max_epochs=self.epochs_pretrain_on_source,
                 lr=self.lr,
                 optimizer=self.optimizer,
                 criterion=self.criterion.base_criterion,
