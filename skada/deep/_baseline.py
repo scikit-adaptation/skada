@@ -63,7 +63,7 @@ def SourceOnly(module, layer_name=None, base_criterion=None, **kwargs):
     net = DomainAwareNet(
         module=DomainAwareModule,
         module__base_module=module,
-        module__layer_name=None,
+        module__layer_name=layer_name,
         iterator_train=DomainOnlyDataLoader,
         iterator_train__domain_used="source",
         criterion=DomainAwareCriterion,
@@ -100,7 +100,7 @@ def TargetOnly(module, layer_name=None, base_criterion=None, **kwargs):
     net = DomainAwareNet(
         module=DomainAwareModule,
         module__base_module=module,
-        module__layer_name=None,
+        module__layer_name=layer_name,
         iterator_train=DomainOnlyDataLoader,
         iterator_train__domain_used="target",
         criterion=DomainAwareCriterion,
