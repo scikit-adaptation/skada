@@ -417,6 +417,9 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
 
         if not isinstance(estimator, BaseEstimator):
             # The estimator is a deep model
+            if estimator.module_.layer_name is None:
+                raise ValueError("The layer_name of the estimator is not set.")
+
             transformer = estimator.predict_features
             has_transform_method = True
         else:
