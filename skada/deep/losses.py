@@ -44,7 +44,7 @@ def deepcoral_loss(features, features_target, assume_centered=False):
         features_target = features_target - features_target.mean(0)
     cov = torch.cov(features.T)
     cov_target = torch.cov(features_target.T)
-    divergence = mse_loss(cov, cov_target)
+    divergence = mse_loss(cov, cov_target, reduction="sum")
     dim = features.shape[1]
     loss = (1 / (4 * (dim**2))) * divergence
     return loss
