@@ -40,10 +40,11 @@ def deepcoral_loss(features, features_target, assume_centered=False):
     if not assume_centered:
         features = features - features.mean(0)
         features_target = features_target - features_target.mean(0)
-    cov = torch.cov(features)
-    cov_target = torch.cov(features_target)
-    diff = cov - cov_target
-    loss = (diff * diff).sum() / (4 * len(cov) ** 2)
+    cov = torch.cov(features.T)
+    cov_target = torch.cov(features_target.T)
+    divergence = torch.norm(cov - cov_target, p="fro") ** 2
+    dim = features.shape[1]
+    loss = (1 / (4 * (dim ** 2))) * divergence
     return loss
 
 
