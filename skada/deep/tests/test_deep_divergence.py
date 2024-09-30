@@ -39,7 +39,7 @@ def test_deepcoral(assume_centered):
         ToyModule2D(),
         reg=1,
         layer_name="dropout",
-        batch_size=10,
+        batch_size=15,
         max_epochs=10,
         train_split=None,
         assume_centered=assume_centered,
