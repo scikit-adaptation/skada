@@ -564,8 +564,17 @@ def test_sample_weight_error_with_reduction_none():
         method.fit(X, y, sample_domain=sample_domain, sample_weight=sample_weight)
 
 
-def test_predict_proba(da_dataset):
-    module = ToyModule2D()
+@pytest.mark.parametrize(
+    "base_criterion",
+    [
+        torch.nn.CrossEntropyLoss(),
+        torch.nn.BCEWithLogitsLoss(),
+        torch.nn.BCELoss(),
+    ],
+)
+def test_predict_proba(da_dataset, base_criterion):
+    n_outputs = 2 if isinstance(base_criterion, torch.nn.CrossEntropyLoss) else 1
+    module = ToyModule2D(n_classes=n_outputs)
 
     X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
     X = X.astype(np.float32)
@@ -574,9 +583,7 @@ def test_predict_proba(da_dataset):
     method = DomainAwareNet(
         DomainAwareModule(module, "dropout"),
         iterator_train=DomainBalancedDataLoader,
-        criterion=DomainAwareCriterion(
-            torch.nn.CrossEntropyLoss(), TestLoss(), reduction="mean"
-        ),
+        criterion=DomainAwareCriterion(base_criterion, TestLoss(), reduction="mean"),
         batch_size=5,
         max_epochs=1,
         train_split=None,
@@ -589,5 +596,12 @@ def test_predict_proba(da_dataset):
     X_test, y_test, sample_domain_test = da_dataset.pack_test(as_targets=["t"])
     X_test = X_test.astype(np.float32)
     y_proba = method.predict_proba(X_test, sample_domain=sample_domain_test)
-    assert y_proba.shape == (len(y_test), 2)
-    assert np.allclose(y_proba.sum(axis=1), 1)
+
+    if isinstance(base_criterion, torch.nn.BCELoss):
+        assert y_proba.shape == (len(y_test), 1)
+        assert np.all(y_proba >= 0)
+        assert np.all(y_proba <= 1)
+    else:
+        assert y_proba.shape == (len(y_test), 2)
+        assert np.allclose(y_proba.sum(axis=1), 1)
+        assert np.all(y_proba >= 0)
