@@ -7,13 +7,14 @@
 
 from abc import abstractmethod
 from typing import Dict, Any, Union
+from functools import partial
 
 import torch
 from torch.utils.data import DataLoader, Sampler, Dataset
 from sklearn.base import _clone_parametrized
 from skorch import NeuralNetClassifier
 
-from .utils import _register_forwards_hook
+from .utils import _register_forwards_hook, _infer_predict_nonlinearity
 
 from skada.base import _DAMetadataRequesterMixin
 
@@ -621,6 +622,7 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
             The predicted class probabilities.
         """
         X, _ = self._prepare_input(X, sample_domain, sample_weight)
+        self.predict_nonlinearity = _infer_predict_nonlinearity(self)
         return super().predict_proba(X, **predict_params)
 
     def predict_features(self, X: Union[Dict, torch.Tensor, np.ndarray, Dataset]):
