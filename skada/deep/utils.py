@@ -5,7 +5,7 @@
 import numbers
 from functools import partial
 
-from skorch.utils import _identity, _sigmoid_then_2d, _make_2d_probs
+from skorch.utils import _identity
 import torch
 from torch.nn import BCELoss, BCEWithLogitsLoss, CrossEntropyLoss
 
@@ -78,10 +78,17 @@ def _infer_predict_nonlinearity(net):
     if isinstance(criterion, CrossEntropyLoss):
         return partial(torch.softmax, dim=-1)
 
-    if isinstance(criterion, BCEWithLogitsLoss):
-        return _sigmoid_then_2d
+    # TODO: handle more cases
+    # - BCEWithLogitsLoss
+    # - BCELoss
+    # - MSELoss
+    # But first, see: https://github.com/scikit-adaptation/skada/issues/249
 
-    if isinstance(criterion, BCELoss):
-        return _make_2d_probs
+    # from skorch.utils import _sigmoid_then_2d, _make_2d_probs
+    # if isinstance(criterion, BCEWithLogitsLoss):
+    #     return _sigmoid_then_2d
+
+    # if isinstance(criterion, BCELoss):
+    #     return _make_2d_probs
 
     return _identity

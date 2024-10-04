@@ -568,16 +568,16 @@ def test_sample_weight_error_with_reduction_none():
     "base_criterion",
     [
         torch.nn.CrossEntropyLoss(),
-        torch.nn.BCEWithLogitsLoss(),
-        torch.nn.BCELoss(),
     ],
 )
 def test_predict_proba(da_dataset, base_criterion):
-    n_outputs = 2 if isinstance(base_criterion, torch.nn.CrossEntropyLoss) else 1
-    module = ToyModule2D(n_classes=n_outputs)
+    X_train, y_train, sample_domain_train = da_dataset.pack_train(
+        as_sources=["s"], as_targets=["t"]
+    )
+    X_train = X_train.astype(np.float32)
+    n_classes = len(np.unique(y_train))
 
-    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
-    X = X.astype(np.float32)
+    module = ToyModule2D(n_classes=n_classes)
 
     # Initialize the domain aware network
     method = DomainAwareNet(
@@ -590,18 +590,13 @@ def test_predict_proba(da_dataset, base_criterion):
     )
 
     # Fit the model
-    method.fit(X, y, sample_domain=sample_domain)
+    method.fit(X_train, y_train, sample_domain=sample_domain_train)
 
     # Predict probabilities
     X_test, y_test, sample_domain_test = da_dataset.pack_test(as_targets=["t"])
     X_test = X_test.astype(np.float32)
     y_proba = method.predict_proba(X_test, sample_domain=sample_domain_test)
 
-    if isinstance(base_criterion, torch.nn.BCELoss):
-        assert y_proba.shape == (len(y_test), 1)
-        assert np.all(y_proba >= 0)
-        assert np.all(y_proba <= 1)
-    else:
-        assert y_proba.shape == (len(y_test), 2)
-        assert np.allclose(y_proba.sum(axis=1), 1)
-        assert np.all(y_proba >= 0)
+    assert y_proba.shape == (len(y_test), n_classes)
+    assert np.allclose(y_proba.sum(axis=1), 1)
+    assert np.all(y_proba >= 0)
