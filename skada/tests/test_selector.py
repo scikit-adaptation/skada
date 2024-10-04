@@ -196,7 +196,7 @@ def test_selector_rejects_incompatible_adaptation_output():
     ],
 )
 def test_source_selector_with_estimator(da_multiclass_dataset, selector_cls, side):
-    X, y, sample_domain = da_multiclass_dataset
+    X, y, sample_domain = da_multiclass_dataset.pack(as_sources=["s"], as_targets=["t"])
     X_source, X_target = source_target_split(X, sample_domain=sample_domain)
     output = {}
 
@@ -240,7 +240,7 @@ def test_source_selector_with_estimator(da_multiclass_dataset, selector_cls, sid
 def test_source_selector_with_transformer(
     da_multiclass_dataset, selector_cls, side, _fit_transform
 ):
-    X, y, sample_domain = da_multiclass_dataset
+    X, y, sample_domain = da_multiclass_dataset.pack(as_sources=["s"], as_targets=["t"])
     X_source, X_target = source_target_split(X, sample_domain=sample_domain)
     output = {}
 
@@ -282,7 +282,7 @@ def test_source_selector_with_transformer(
     ],
 )
 def test_source_selector_with_weights(da_multiclass_dataset, selector_cls, side):
-    X, y, sample_domain = da_multiclass_dataset
+    X, y, sample_domain = da_multiclass_dataset.pack(as_sources=["s"], as_targets=["t"])
     sample_weight = np.ones(X.shape[0])
     X_source, X_target = source_target_split(X, sample_domain=sample_domain)
     output = {}
@@ -318,7 +318,7 @@ def test_source_selector_with_weights(da_multiclass_dataset, selector_cls, side)
 def test_source_target_selector(
     da_multiclass_dataset, source_estimator, target_estimator
 ):
-    X, y, sample_domain = da_multiclass_dataset
+    X, y, sample_domain = da_multiclass_dataset.pack(as_sources=["s"], as_targets=["t"])
     source_masks = extract_source_indices(sample_domain)
     # make sure sources and targets have significantly different mean
     X[source_masks] += 100 * np.ones((source_masks.sum(), X.shape[1]))
@@ -354,7 +354,7 @@ def test_source_target_selector(
 
 
 def test_source_target_selector_fails_on_missing_domain(da_multiclass_dataset):
-    X, y, sample_domain = da_multiclass_dataset
+    X, y, sample_domain = da_multiclass_dataset.pack(as_sources=["s"], as_targets=["t"])
     source_masks = extract_source_indices(sample_domain)
     pipe = make_da_pipeline(SelectSourceTarget(StandardScaler()), SVC())
 
