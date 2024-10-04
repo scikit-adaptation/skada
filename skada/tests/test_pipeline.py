@@ -212,7 +212,7 @@ def test_allow_nd_x(_fit_transform):
 
 
 def test_adaptation_output_propagate_labels(da_reg_dataset):
-    X, y, sample_domain = da_reg_dataset
+    X, y, sample_domain = da_reg_dataset.pack(as_sources=["s"], as_targets=["t"])
     _, X_target, _, target_domain = source_target_split(
         X, sample_domain, sample_domain=sample_domain
     )
