@@ -74,6 +74,19 @@ def da_multiclass_dataset():
 
 
 @pytest.fixture(scope='session')
+def da_binary_dataset():
+    return make_shifted_datasets(
+        n_samples_source=20,
+        n_samples_target=21,
+        shift="concept_drift",
+        noise=0.1,
+        label="binary",
+        random_state=42,
+        return_dataset=True,
+    )
+
+
+@pytest.fixture(scope='session')
 def da_blobs_dataset():
     centers = np.array([[0, 0], [1, 1]])
     _, n_features = centers.shape
