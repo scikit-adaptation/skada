@@ -75,7 +75,7 @@ from skada.datasets import DomainAwareDataset, make_shifted_datasets
     ],
 )
 def test_mapping_estimator(estimator, da_blobs_dataset):
-    X, y, sample_domain = da_blobs_dataset
+    X, y, sample_domain = da_blobs_dataset.pack(as_sources=["s"], as_targets=["t"])
     X_source, X_target, y_source, y_target = source_target_split(
         X, y, sample_domain=sample_domain
     )
@@ -257,7 +257,7 @@ def test_reg_new_X_adapt(estimator):
     ],
 )
 def test_mapping_source_samples(estimator, da_blobs_dataset):
-    X, y, sample_domain = da_blobs_dataset
+    X, y, sample_domain = da_blobs_dataset.pack(as_sources=["s"], as_targets=["t"])
     X_source, X_target, y_source, y_target = source_target_split(
         X, y, sample_domain=sample_domain
     )
