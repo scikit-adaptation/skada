@@ -562,3 +562,32 @@ def test_sample_weight_error_with_reduction_none():
     # Expect an error when fitting with reduction='none' and sample weights provided
     with pytest.raises(ValueError):
         method.fit(X, y, sample_domain=sample_domain, sample_weight=sample_weight)
+
+
+def test_predict_proba(da_dataset):
+    module = ToyModule2D()
+
+    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X = X.astype(np.float32)
+
+    # Initialize the domain aware network
+    method = DomainAwareNet(
+        DomainAwareModule(module, "dropout"),
+        iterator_train=DomainBalancedDataLoader,
+        criterion=DomainAwareCriterion(
+            torch.nn.CrossEntropyLoss(), TestLoss(), reduction="mean"
+        ),
+        batch_size=5,
+        max_epochs=1,
+        train_split=None,
+    )
+
+    # Fit the model
+    method.fit(X, y, sample_domain=sample_domain)
+
+    # Predict probabilities
+    X_test, y_test, sample_domain_test = da_dataset.pack_test(as_targets=["t"])
+    X_test = X_test.astype(np.float32)
+    y_proba = method.predict_proba(X_test, sample_domain=sample_domain_test)
+    assert y_proba.shape == (len(y_test), 2)
+    assert np.allclose(y_proba.sum(axis=1), 1)
