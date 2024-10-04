@@ -32,7 +32,7 @@ from skada.datasets import DomainAwareDataset
     ],
 )
 def test_label_prop_estimator(estimator, da_blobs_dataset):
-    X, y, sample_domain = da_blobs_dataset
+    X, y, sample_domain = da_blobs_dataset.pack(as_sources=["s"], as_targets=["t"])
     X_source, X_target, y_source, y_target = source_target_split(
         X, y, sample_domain=sample_domain
     )
@@ -69,7 +69,7 @@ def test_label_prop_estimator(estimator, da_blobs_dataset):
     ],
 )
 def test_label_prop_estimator_reg(estimator, da_reg_dataset):
-    X, y, sample_domain = da_reg_dataset
+    X, y, sample_domain = da_reg_dataset.pack(as_sources=["s"], as_targets=["t"])
     X_source, X_target, y_source, y_target = source_target_split(
         X, y, sample_domain=sample_domain
     )
