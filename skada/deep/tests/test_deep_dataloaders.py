@@ -15,12 +15,23 @@ from skada.datasets import make_dataset_from_moons_distribution, make_shifted_da
 from skada.deep.dataloaders import (
     DomainBalancedDataLoader,
     DomainBalancedSampler,
+    DomainOnlyDataLoader,
+    DomainOnlySampler,
     MultiSourceDomainBalancedDataLoader,
     MultiSourceDomainBalancedSampler,
 )
 
 
-def test_domain_balanced_sampler():
+@pytest.mark.parametrize(
+    "max_samples",
+    [
+        "max",
+        "source",
+        "target",
+        "min",
+    ],
+)
+def test_domain_balanced_sampler(max_samples):
     n_samples = 20
     dataset = make_shifted_datasets(
         n_samples_source=n_samples,
@@ -32,9 +43,21 @@ def test_domain_balanced_sampler():
     )
     X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
     X_dict = {"X": X.astype(np.float32), "sample_domain": sample_domain}
+
+    n_samples_source = np.sum(sample_domain > 0)
+    n_samples_target = np.sum(sample_domain < 0)
+
     dataset = Dataset(X_dict, y)
-    sampler = DomainBalancedSampler(dataset, 10)
-    assert len(sampler) == len(dataset)
+
+    sampler = DomainBalancedSampler(dataset, 10, max_samples=max_samples)
+    if max_samples == "max":
+        assert len(sampler) == 2 * max(n_samples_source, n_samples_target)
+    elif max_samples == "source":
+        assert len(sampler) == 2 * n_samples_source
+    elif max_samples == "target":
+        assert len(sampler) == 2 * n_samples_target
+    elif max_samples == "min":
+        assert len(sampler) == 2 * min(n_samples_source, n_samples_target)
 
 
 def test_domain_balanced_dataloader():
@@ -100,6 +123,70 @@ def test_domain_balanced_dataloader():
         X, y = batch
         sample_domain = X["sample_domain"]
         assert len(sample_domain > 0) == len(sample_domain < 0)
+
+
+@pytest.mark.parametrize(
+    "domain_used",
+    [
+        "source",
+        "target",
+    ],
+)
+def test_domain_only_sampler(domain_used):
+    n_samples = 20
+    dataset = make_shifted_datasets(
+        n_samples_source=n_samples,
+        n_samples_target=n_samples,
+        shift="concept_drift",
+        noise=0.1,
+        random_state=42,
+        return_dataset=True,
+    )
+    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X_dict = {"X": X.astype(np.float32), "sample_domain": sample_domain}
+
+    dataset = Dataset(X_dict, y)
+
+    sampler = DomainOnlySampler(dataset, 10, domain_used=domain_used)
+    assert (
+        len(sampler) == np.sum(sample_domain > 0)
+        if domain_used == "source"
+        else np.sum(sample_domain < 0)
+    )
+
+
+@pytest.mark.parametrize(
+    "domain_used",
+    [
+        "source",
+        "target",
+    ],
+)
+def test_domain_only_dataloader(domain_used):
+    n_samples = 20
+    dataset = make_shifted_datasets(
+        n_samples_source=n_samples,
+        n_samples_target=n_samples,
+        shift="concept_drift",
+        noise=0.1,
+        random_state=42,
+        return_dataset=True,
+    )
+    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X_dict = {"X": X.astype(np.float32), "sample_domain": sample_domain}
+
+    dataset = Dataset(X_dict, y)
+
+    dataloader = DomainOnlyDataLoader(dataset, batch_size=10, domain_used=domain_used)
+
+    for batch in dataloader:
+        X, y = batch
+        sample_domain = X["sample_domain"]
+        assert (
+            (sample_domain > 0).all()
+            if domain_used == "source"
+            else (sample_domain < 0).all()
+        )
 
 
 def test_multi_source_domain_balanced_sampler():

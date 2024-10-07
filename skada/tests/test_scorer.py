@@ -300,7 +300,7 @@ def test_mixval_scorer(da_dataset):
 
 
 def test_mixval_scorer_regression(da_reg_dataset):
-    X, y, sample_domain = da_reg_dataset
+    X, y, sample_domain = da_reg_dataset.pack(as_sources=["s"], as_targets=["t"])
 
     estimator = make_da_pipeline(DensityReweightAdapter(), LinearRegression())
 

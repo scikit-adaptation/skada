@@ -14,7 +14,14 @@ from skada.deep import DAN, DeepCoral
 from skada.deep.modules import ToyModule2D
 
 
-def test_deepcoral():
+@pytest.mark.parametrize(
+    "assume_centered",
+    [
+        True,
+        False,
+    ],
+)
+def test_deepcoral(assume_centered):
     module = ToyModule2D()
     module.eval()
 
@@ -32,9 +39,10 @@ def test_deepcoral():
         ToyModule2D(),
         reg=1,
         layer_name="dropout",
-        batch_size=10,
+        batch_size=15,
         max_epochs=10,
         train_split=None,
+        assume_centered=assume_centered,
     )
 
     X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])

@@ -23,6 +23,68 @@ from skada.deep.losses import TestLoss
 from skada.deep.modules import ToyModule2D
 
 
+def test_domainawaremodule_features_differ_between_domains():
+    num_features = 10
+    module = ToyModule2D(num_features=num_features)
+    module.eval()
+
+    n_samples = 20
+    dataset = make_shifted_datasets(
+        n_samples_source=n_samples,
+        n_samples_target=n_samples,
+        shift="concept_drift",
+        noise=0.1,
+        random_state=42,
+        return_dataset=True,
+    )
+
+    # Prepare data
+    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X = X.astype(np.float32)
+    sample_domain = np.array(sample_domain)
+
+    # Convert to torch tensors
+    X_tensor = torch.tensor(X)
+    sample_domain_tensor = torch.tensor(sample_domain)
+
+    # Create an instance of DomainAwareModule
+    domain_module = DomainAwareModule(module, layer_name="dropout")
+
+    # Run forward pass
+    with torch.no_grad():
+        output = domain_module(
+            X_tensor,
+            sample_domain=sample_domain_tensor,
+            is_fit=True,
+            return_features=True,
+        )
+
+    # Unpack output
+    y_pred, domain_pred, features, sample_domain_output = output
+
+    # Separate features for source and target domains
+    source_mask = sample_domain_tensor >= 0
+    target_mask = sample_domain_tensor < 0
+    features_s = features[source_mask]
+    features_t = features[target_mask]
+
+    # Ensure we have features from both domains
+    assert features_s.size(0) > 0, "No source domain features extracted."
+    assert features_t.size(0) > 0, "No target domain features extracted."
+
+    # Compute mean features for source and target
+    mean_features_s = features_s.mean(dim=0)
+    mean_features_t = features_t.mean(dim=0)
+
+    # Check that the mean features are different
+    difference = torch.abs(mean_features_s - mean_features_t)
+    max_difference = difference.max().item()
+
+    assert (
+        max_difference > 0.1
+    ), "Features of source and target domains are too similar."
+
+
 def test_domainawaretraining():
     module = ToyModule2D()
     module.eval()

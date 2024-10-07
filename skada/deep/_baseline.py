@@ -9,7 +9,7 @@ from skada.deep.base import (
     DomainAwareCriterion,
     DomainAwareModule,
     DomainAwareNet,
-    DomainBalancedDataLoader,
+    DomainOnlyDataLoader,
 )
 
 
@@ -63,8 +63,9 @@ def SourceOnly(module, layer_name=None, base_criterion=None, **kwargs):
     net = DomainAwareNet(
         module=DomainAwareModule,
         module__base_module=module,
-        module__layer_name=None,
-        iterator_train=DomainBalancedDataLoader,
+        module__layer_name=layer_name,
+        iterator_train=DomainOnlyDataLoader,
+        iterator_train__domain_used="source",
         criterion=DomainAwareCriterion,
         criterion__base_criterion=base_criterion,
         criterion__reg=0,
@@ -99,8 +100,9 @@ def TargetOnly(module, layer_name=None, base_criterion=None, **kwargs):
     net = DomainAwareNet(
         module=DomainAwareModule,
         module__base_module=module,
-        module__layer_name=None,
-        iterator_train=DomainBalancedDataLoader,
+        module__layer_name=layer_name,
+        iterator_train=DomainOnlyDataLoader,
+        iterator_train__domain_used="target",
         criterion=DomainAwareCriterion,
         criterion__base_criterion=base_criterion,
         criterion__train_on_target=True,
