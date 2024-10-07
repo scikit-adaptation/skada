@@ -209,3 +209,63 @@ class TestLoss(BaseDALoss):
     ):
         """Compute the domain adaptation loss"""
         return 0
+
+
+def probability_scaling(logits, temperature=1):
+    """Probability scaling.
+
+    Parameters
+    ----------
+    logits : torch.Tensor
+        The logits.
+    temperature : float, default=1
+        The temperature.
+
+    Returns
+    -------
+    torch.Tensor
+        The scaled probabilities.
+    """
+    return torch.nn.functional.softmax(logits / temperature, dim=1)
+
+
+def mcc_loss(y, T=1):
+    """Estimate the Frobenius norm divide by 4*n**2
+       for DeepCORAL method [33]_.
+
+    Parameters
+    ----------
+    y : tensor
+        The output of target domain of the model.
+
+    T : float, default=1
+        The temperature for the scaling.
+
+    Returns
+    -------
+    loss : ndarray
+        The loss of the method.
+
+    References
+    ----------
+    .. [33] Ying Jin, Ximei Wang, Mingsheng Long, Jianmin Wang.
+            Minimum Class Confusion for Versatile Domain Adaptation.
+            In ECCV, 2020.
+    """
+    # Probability Rescaling
+    y_scaled = probability_scaling(y, temperature=T)
+
+    # Uncertainty Reweighting & class correlation matrix
+    H = -torch.sum(y_scaled * torch.log(y_scaled), axis=1)
+    W = (1 + torch.exp(H)) / torch.mean(1 + torch.exp(H))
+    y_weighted = torch.matmul(torch.diag(W), y_scaled)
+    C = torch.einsum("ij,ik->jk", y_scaled, y_weighted)
+
+    # Category Normalization
+    C_tilde = C / torch.sum(C, axis=1, keepdim=True)
+
+    # MCC Loss
+    C_ = C_tilde - torch.diag(torch.diag(C_tilde))
+    loss = torch.mean(torch.sum(torch.abs(C_), axis=1))
+
+    return loss
