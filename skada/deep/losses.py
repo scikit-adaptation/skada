@@ -132,7 +132,6 @@ def _gaussian_kernel(x, y, sigmas):
     dist = torch.cdist(x, y)
     dist_ = dist.view(1, -1)
     s = torch.matmul(beta, dist_)
-
     return torch.sum(torch.exp(-s), 0).view_as(dist)
 
 
@@ -147,7 +146,7 @@ def _maximum_mean_discrepancy(x, y, kernel):
     return cost
 
 
-def dan_loss(features_s, features_t, sigmas=None):
+def mmd_loss(features_s, features_t, sigmas=None):
     """Define the mmd loss based on multi-kernel defined in [14]_.
 
     Parameters
@@ -183,7 +182,6 @@ def dan_loss(features_s, features_t, sigmas=None):
         sigmas = torch.tensor(sigmas).to(features_s.device)
 
     gaussian_kernel = partial(_gaussian_kernel, sigmas=sigmas)
-
     loss = _maximum_mean_discrepancy(features_s, features_t, kernel=gaussian_kernel)
 
     return loss
@@ -206,6 +204,7 @@ class TestLoss(BaseDALoss):
         domain_pred_t,
         features_s,
         features_t,
+        sample_domain,
     ):
         """Compute the domain adaptation loss"""
         return 0

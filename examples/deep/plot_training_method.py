@@ -19,8 +19,8 @@ from skada.deep import DeepCoral, DeepCoralLoss
 from skada.deep.base import (
     DomainAwareCriterion,
     DomainAwareModule,
-    DomainBalancedDataLoader,
 )
+from skada.deep.dataloaders import DomainBalancedDataLoader
 from skada.deep.modules import MNISTtoUSPSNet
 
 # %%

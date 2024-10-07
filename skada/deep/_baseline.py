@@ -9,8 +9,8 @@ from skada.deep.base import (
     DomainAwareCriterion,
     DomainAwareModule,
     DomainAwareNet,
-    DomainOnlyDataLoader,
 )
+from skada.deep.dataloaders import DomainOnlyDataLoader
 
 
 class DummyLoss(BaseDALoss):
@@ -33,6 +33,7 @@ class DummyLoss(BaseDALoss):
         domain_pred_t,
         features_s,
         features_t,
+        sample_domain,
     ):
         """Compute the domain adaptation loss"""
         return 0
