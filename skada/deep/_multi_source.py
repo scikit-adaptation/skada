@@ -188,6 +188,7 @@ def MFSAN(
         module__base_module=module,
         module__layer_name=layer_name,
         module__is_multi_source=True,
+        module__flatten_features=False,
         iterator_train=MultiSourceDomainBalancedDataLoader,
         iterator_train__source_domains=source_domains,
         criterion=DomainAwareCriterion,

@@ -189,7 +189,7 @@ class DomainAwareModule(torch.nn.Module):
     """
 
     def __init__(
-        self, base_module, layer_name, domain_classifier=None, is_multi_source=False
+        self, base_module, layer_name, domain_classifier=None, is_multi_source=False, flatten_features=True
     ):
         super(DomainAwareModule, self).__init__()
         self.base_module_ = base_module
@@ -197,11 +197,11 @@ class DomainAwareModule(torch.nn.Module):
         self.is_multi_source = is_multi_source
         self.layer_name = layer_name
         self.intermediate_layers = {}
-        self._setup_hooks()
+        self._setup_hooks(flatten=flatten_features)
 
-    def _setup_hooks(self):
+    def _setup_hooks(self, flatten=True):
         _register_forwards_hook(
-            self.base_module_, self.intermediate_layers, [self.layer_name]
+            self.base_module_, self.intermediate_layers, [self.layer_name], flatten
         )
 
     def get_params(self, deep=True) -> Dict[str, Any]:
@@ -236,7 +236,10 @@ class DomainAwareModule(torch.nn.Module):
             if self.is_multi_source:
                 args_s["sample_domain"] = sample_domain[source_idx]
             y_pred_s = self.base_module_(**args_s)
-            features_s = self.intermediate_layers[self.layer_name]
+            if self.layer_name:
+                features_s = self.intermediate_layers[self.layer_name]
+            else:
+                features_s = None
 
             args_t = {"X": X_t}
             if sample_weight is not None:
@@ -244,7 +247,10 @@ class DomainAwareModule(torch.nn.Module):
             if self.is_multi_source:
                 args_t["is_source"] = False
             y_pred_t = self.base_module_(**args_t)
-            features_t = self.intermediate_layers[self.layer_name]
+            if self.layer_name:
+                features_t = self.intermediate_layers[self.layer_name]
+            else:
+                features_t = None
 
             if self.domain_classifier_ is not None:
                 domain_pred_s = self.domain_classifier_(features_s)

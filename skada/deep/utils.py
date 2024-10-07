@@ -7,14 +7,17 @@ import numbers
 import torch
 
 
-def _get_intermediate_layers(intermediate_layers, layer_name):
+def _get_intermediate_layers(intermediate_layers, layer_name, flatten):
     def hook(model, input, output):
-        intermediate_layers[layer_name] = output  # .flatten(start_dim=1)
-
+        if flatten:
+            intermediate_layers[layer_name] = output.flatten(start_dim=1)
+        else:
+            intermediate_layers[layer_name] = output
+        
     return hook
 
 
-def _register_forwards_hook(module, intermediate_layers, layer_names):
+def _register_forwards_hook(module, intermediate_layers, layer_names, flatten):
     """Add hook to chosen layers.
 
     The hook returns the output of intermediate layers
@@ -23,7 +26,7 @@ def _register_forwards_hook(module, intermediate_layers, layer_names):
     for layer_name, layer_module in module.named_modules():
         if layer_name in layer_names:
             layer_module.register_forward_hook(
-                _get_intermediate_layers(intermediate_layers, layer_name)
+                _get_intermediate_layers(intermediate_layers, layer_name, flatten)
             )
 
 
