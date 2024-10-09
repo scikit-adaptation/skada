@@ -10,9 +10,11 @@ from functools import partial
 import ot
 import skorch  # noqa: F401
 import torch  # noqa: F401
+import torch.nn.functional as F
 from torch.nn.functional import mse_loss
 
 from skada.deep.base import BaseDALoss
+from skada.deep.utils import SphericalKMeans
 
 
 def deepcoral_loss(features, features_target, assume_centered=False):
@@ -187,6 +189,132 @@ def dan_loss(features_s, features_t, sigmas=None):
     loss = _maximum_mean_discrepancy(features_s, features_t, kernel=gaussian_kernel)
 
     return loss
+
+
+def cdd_loss(
+    y_s,
+    features_s,
+    features_t,
+    sigmas=None,
+    distance_threshold=0.5,
+    class_threshold=3,
+):
+    """Define the contrastive domain discrepancy loss based on [X]_.
+
+    Parameters
+    ----------
+    y_s : tensor
+        labels of the source data used to compute the loss.
+    features_s : tensor
+        features of the source data used to compute the loss.
+    features_t : tensor
+        features of the target data used to compute the loss.
+    sigmas : array like, default=None,
+        If array, sigmas used for the multi gaussian kernel.
+        If None, uses sigmas proposed  in [1]_.
+    distance_threshold : float, optional (default=0.5)
+        Distance threshold for discarding the samples that are
+        to far from the centroids.
+    class_threshold : int, optional (default=3)
+        Minimum number of samples in a class to be considered for the loss.
+
+    Returns
+    -------
+    loss : float
+        The loss of the method.
+
+    References
+    ----------
+    .. [X]  Y. Cao, Y. Yang, C. Tu, W. Wang, and D. Tao.
+            Contrastive Domain Adaptation. In NeurIPS, 2022.
+    """
+    n_classes = len(y_s.unique())
+
+    # Calculate source centroids
+    source_centroids = []
+    for c in range(n_classes):
+        mask = y_s == c
+        if mask.sum() > 0:
+            class_features = features_s[mask]
+            normalized_features = F.normalize(class_features, p=2, dim=1)
+            centroid = normalized_features.mean(dim=0)
+            source_centroids.append(centroid)
+
+    source_centroids = torch.stack(source_centroids)
+
+    # Use source centroids to initialize target clustering
+    target_kmeans = SphericalKMeans(
+        n_clusters=n_classes,
+        random_state=0,
+        centroids=source_centroids,
+        device=features_t.device,
+    )
+    target_kmeans.fit(features_t)
+
+    # Predict clusters for target samples
+    cluster_labels_t = target_kmeans.predict(features_t)
+
+    # Discard ambiguous target samples
+    similarities = F.cosine_similarity(
+        features_t.unsqueeze(1), target_kmeans.cluster_centers_.unsqueeze(0)
+    )
+    mask_t = 0.5 * (1 - similarities.max(dim=1)[0]) < distance_threshold
+    features_t = features_t[mask_t]
+    cluster_labels_t = cluster_labels_t[mask_t]
+
+    # Discard ambiguous classes
+    class_counts = torch.bincount(cluster_labels_t, minlength=n_classes)
+    valid_classes = class_counts >= class_threshold
+    mask_t = valid_classes[cluster_labels_t]
+    features_t = features_t[mask_t]
+    cluster_labels_t = cluster_labels_t[mask_t]
+
+    # Define sigmas
+    if sigmas is None:
+        median_pairwise_distance = torch.median(torch.cdist(features_s, features_s))
+        sigmas = (
+            torch.tensor([2 ** (-8) * 2 ** (i * 1 / 2) for i in range(33)]).to(
+                features_s.device
+            )
+            * median_pairwise_distance
+        )
+    else:
+        sigmas = torch.tensor(sigmas).to(features_s.device)
+
+    # Compute CDD
+    intraclass = 0
+    interclass = 0
+
+    for c1 in range(n_classes):
+        for c2 in range(c1, n_classes):
+            if valid_classes[c1] and valid_classes[c2]:
+                # Compute e1
+                kernel_ss = _gaussian_kernel(features_s, features_s, sigmas)
+                mask_c1_c1 = (y_s == c1).float()
+                e1 = (kernel_ss * mask_c1_c1).sum() / (mask_c1_c1.sum() ** 2)
+
+                # Compute e2
+                kernel_tt = _gaussian_kernel(features_t, features_t, sigmas)
+                mask_c2_c2 = (cluster_labels_t == c2).float()
+                e2 = (kernel_tt * mask_c2_c2).sum() / (mask_c2_c2.sum() ** 2)
+
+                # Compute e3
+                kernel_st = _gaussian_kernel(features_s, features_t, sigmas)
+                mask_c1 = (y_s == c1).float().unsqueeze(1)
+                mask_c2 = (cluster_labels_t == c2).float().unsqueeze(0)
+                mask_c1_c2 = mask_c1 * mask_c2
+                e3 = (kernel_st * mask_c1_c2).sum() / (mask_c1_c2.sum() ** 2)
+
+                if c1 == c2:
+                    intraclass += e1 + e2 - 2 * e3
+                else:
+                    interclass += e1 + e2 - 2 * e3
+
+    cdd = (intraclass / len(valid_classes)) - (
+        interclass / (len(valid_classes) ** 2 - len(valid_classes))
+    )
+
+    return cdd
 
 
 class TestLoss(BaseDALoss):
