@@ -187,7 +187,7 @@ class CANLoss(BaseDALoss):
     """Loss for Contrastive Adaptation Network (CAN)
 
     This loss implements the contrastive domain discrepancy (CDD)
-    as described in [X].
+    as described in [33].
 
     Parameters
     ----------
@@ -202,7 +202,7 @@ class CANLoss(BaseDALoss):
 
     References
     ----------
-    .. [X] Kang, G., Jiang, L., Yang, Y., & Hauptmann, A. G. (2019).
+    .. [33] Kang, G., Jiang, L., Yang, Y., & Hauptmann, A. G. (2019).
            Contrastive adaptation network for unsupervised domain adaptation.
            In Proceedings of the IEEE/CVF Conference on Computer Vision
            and Pattern Recognition (pp. 4893-4902).
@@ -253,7 +253,7 @@ def CAN(
 ):
     """Contrastive Adaptation Network (CAN) domain adaptation method.
 
-    From [X].
+    From [33].
 
     Parameters
     ----------
@@ -278,7 +278,7 @@ def CAN(
 
     References
     ----------
-    .. [X] Kang, G., Jiang, L., Yang, Y., & Hauptmann, A. G. (2019).
+    .. [33] Kang, G., Jiang, L., Yang, Y., & Hauptmann, A. G. (2019).
            Contrastive adaptation network for unsupervised domain adaptation.
            In Proceedings of the IEEE/CVF Conference on Computer Vision
            and Pattern Recognition (pp. 4893-4902).

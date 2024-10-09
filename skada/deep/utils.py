@@ -103,6 +103,11 @@ class SphericalKMeans:
 
     n_iter_ : int
         Number of iterations run.
+
+    References
+    ----------
+    Hornik, K., Feinerer, I., Kober, M., & Buchta, C. (2012). Spherical k-Means Clustering. 
+    Journal of Statistical Software, 50(10), 1–22. https://doi.org/10.18637/jss.v050.i10
     """
 
     def __init__(self, n_clusters=8, n_init=10, max_iter=300, tol=1e-4, 

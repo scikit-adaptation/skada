@@ -199,7 +199,7 @@ def cdd_loss(
     distance_threshold=0.5,
     class_threshold=3,
 ):
-    """Define the contrastive domain discrepancy loss based on [X]_.
+    """Define the contrastive domain discrepancy loss based on [33]_.
 
     Parameters
     ----------
@@ -225,8 +225,10 @@ def cdd_loss(
 
     References
     ----------
-    .. [X]  Y. Cao, Y. Yang, C. Tu, W. Wang, and D. Tao.
-            Contrastive Domain Adaptation. In NeurIPS, 2022.
+    .. [33] Kang, G., Jiang, L., Yang, Y., & Hauptmann, A. G. (2019).
+           Contrastive adaptation network for unsupervised domain adaptation.
+           In Proceedings of the IEEE/CVF Conference on Computer Vision
+           and Pattern Recognition (pp. 4893-4902).
     """
     n_classes = len(y_s.unique())
 
