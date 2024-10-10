@@ -13,6 +13,7 @@ from skada.deep.base import (
     DomainBalancedDataLoader,
 )
 
+from .callbacks import ComputeSourceCentroids
 from .losses import cdd_loss, dan_loss, deepcoral_loss
 
 
@@ -213,11 +214,13 @@ class CANLoss(BaseDALoss):
         distance_threshold=0.5,
         class_threshold=3,
         sigmas=None,
+        source_centroids=None,
     ):
         super().__init__()
         self.distance_threshold = distance_threshold
         self.class_threshold = class_threshold
         self.sigmas = sigmas
+        self.source_centroids = source_centroids
 
     def forward(
         self,
@@ -234,6 +237,7 @@ class CANLoss(BaseDALoss):
             features_s,
             features_t,
             sigmas=self.sigmas,
+            source_centroids=self.source_centroids,
             distance_threshold=self.distance_threshold,
             class_threshold=self.class_threshold,
         )
@@ -299,6 +303,7 @@ def CAN(
             class_threshold=class_threshold,
             sigmas=sigmas,
         ),
+        callbacks=[ComputeSourceCentroids()],
         **kwargs,
     )
     return net

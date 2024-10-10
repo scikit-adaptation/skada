@@ -5,6 +5,7 @@
 #
 # License: BSD 3-Clause
 
+import warnings
 from functools import partial
 
 import ot
@@ -195,6 +196,7 @@ def cdd_loss(
     y_s,
     features_s,
     features_t,
+    source_centroids=None,
     sigmas=None,
     distance_threshold=0.5,
     class_threshold=3,
@@ -209,6 +211,8 @@ def cdd_loss(
         features of the source data used to compute the loss.
     features_t : tensor
         features of the target data used to compute the loss.
+    source_centroids : tensor
+        Pre-computed source centroids.
     sigmas : array like, default=None,
         If array, sigmas used for the multi gaussian kernel.
         If None, uses sigmas proposed  in [1]_.
@@ -232,17 +236,22 @@ def cdd_loss(
     """
     n_classes = len(y_s.unique())
 
-    # Calculate source centroids
-    source_centroids = []
-    for c in range(n_classes):
-        mask = y_s == c
-        if mask.sum() > 0:
-            class_features = features_s[mask]
-            normalized_features = F.normalize(class_features, p=2, dim=1)
-            centroid = normalized_features.mean(dim=0)
-            source_centroids.append(centroid)
+    # Use pre-computed source centroids
+    if source_centroids is None:
+        warnings.warn(
+            "Source centroids are not computed for the whole training set, "
+            "computing them on the current batch set."
+        )
 
-    source_centroids = torch.stack(source_centroids)
+        source_centroids = []
+
+        for c in range(n_classes):
+            mask = y_s == c
+            if mask.sum() > 0:
+                class_features = features_s[mask]
+                normalized_features = F.normalize(class_features, p=2, dim=1)
+                centroid = normalized_features.mean(dim=0)
+                source_centroids.append(centroid)
 
     # Use source centroids to initialize target clustering
     target_kmeans = SphericalKMeans(
