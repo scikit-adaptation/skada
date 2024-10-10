@@ -160,9 +160,8 @@ class SphericalKMeans:
 
             for n_iter in range(self.max_iter):
                 # Assign samples to closest centroids
-                similarities = self._compute_similarities(X, centroids)
-                distances = 0.5 * (1 - similarities)
-                labels = torch.argmin(distances, dim=1)
+                dissimilarities = self._compute_dissimilarities(X, centroids)
+                labels = torch.argmin(dissimilarities, dim=1)
 
                 # Update centroids
                 new_centroids = torch.zeros_like(centroids)
@@ -178,7 +177,8 @@ class SphericalKMeans:
                 centroids = new_centroids
 
             # Compute inertia
-            inertia = 0.5 * (1 - self._compute_similarities(X, centroids[labels])).sum().item()
+            dissimilarities = self._compute_dissimilarities(X, centroids[labels])
+            inertia = dissimilarities.sum().item()
 
             if best_inertia is None or inertia < best_inertia:
                 best_inertia = inertia
@@ -210,14 +210,14 @@ class SphericalKMeans:
         else:
             X = X.to(self.device)
 
-        similarities = self._compute_similarities(X, self.cluster_centers_)
-        distances = 0.5 * (1 - similarities)
-        return torch.argmin(distances, dim=1)
+        dissimilarities = self._compute_dissimilarities(X, self.cluster_centers_)
+        return torch.argmin(dissimilarities, dim=1)
 
-    def _compute_similarities(self, X, centroids):
+    def _compute_dissimilarities(self, X, centroids):
         # Normalize input vectors
         X_normalized = X / torch.norm(X, dim=1, keepdim=True)
         centroids_normalized = centroids / torch.norm(centroids, dim=1, keepdim=True)
         
         # Compute cosine similarity
-        return torch.mm(X_normalized, centroids_normalized.t())
+        similarities = torch.mm(X_normalized, centroids_normalized.t())
+        return 0.5 * (1 - similarities)
