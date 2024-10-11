@@ -214,10 +214,5 @@ class SphericalKMeans:
         return torch.argmin(dissimilarities, dim=1)
 
     def _compute_dissimilarities(self, X, centroids):
-        # Normalize input vectors
-        X_normalized = X / torch.norm(X, dim=1, keepdim=True)
-        centroids_normalized = centroids / torch.norm(centroids, dim=1, keepdim=True)
-        
-        # Compute cosine similarity
-        similarities = torch.mm(X_normalized, centroids_normalized.t())
+        similarities = cosine_similarity(X.unsqueeze(1), centroids.unsqueeze(0), dim=2)
         return 0.5 * (1 - similarities)
