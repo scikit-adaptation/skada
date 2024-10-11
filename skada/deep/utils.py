@@ -148,6 +148,9 @@ class SphericalKMeans:
         else:
             X = X.to(self.device)
 
+        # Normalize X
+        X = X / torch.norm(X, dim=1, keepdim=True)
+
         best_inertia = None
         best_centroids = None
         best_n_iter = None
@@ -168,7 +171,6 @@ class SphericalKMeans:
                 for k in range(self.n_clusters):
                     if torch.any(labels == k):
                         new_centroids[k] = X[labels == k].mean(dim=0)
-                new_centroids /= torch.norm(new_centroids, dim=1, keepdim=True)
 
                 # Check for convergence
                 if torch.allclose(centroids, new_centroids, atol=self.tol):
@@ -209,6 +211,9 @@ class SphericalKMeans:
             X = torch.tensor(X, dtype=torch.float32, device=self.device)
         else:
             X = X.to(self.device)
+
+        # No need to normalize X as it is going
+        # to be normalized in cosine_similarity
 
         dissimilarities = self._compute_dissimilarities(X, self.cluster_centers_)
         return torch.argmin(dissimilarities, dim=1)
