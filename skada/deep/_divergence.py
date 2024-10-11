@@ -200,6 +200,8 @@ class CANLoss(BaseDALoss):
     sigmas : array like, default=None,
         If array, sigmas used for the multi gaussian kernel.
         If None, uses sigmas proposed  in [1]_.
+    target_kmeans : sklearn KMeans instance, default=None,
+        Pre-computed target KMeans clustering model.
 
     References
     ----------
@@ -214,13 +216,13 @@ class CANLoss(BaseDALoss):
         distance_threshold=0.5,
         class_threshold=3,
         sigmas=None,
-        source_centroids=None,
+        target_kmeans=None,
     ):
         super().__init__()
         self.distance_threshold = distance_threshold
         self.class_threshold = class_threshold
         self.sigmas = sigmas
-        self.source_centroids = source_centroids
+        self.target_kmeans = target_kmeans
 
     def forward(
         self,
@@ -237,7 +239,7 @@ class CANLoss(BaseDALoss):
             features_s,
             features_t,
             sigmas=self.sigmas,
-            source_centroids=self.source_centroids,
+            target_kmeans=self.target_kmeans,
             distance_threshold=self.distance_threshold,
             class_threshold=self.class_threshold,
         )

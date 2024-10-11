@@ -196,7 +196,7 @@ def cdd_loss(
     y_s,
     features_s,
     features_t,
-    source_centroids=None,
+    target_kmeans=None,
     sigmas=None,
     distance_threshold=0.5,
     class_threshold=3,
@@ -211,8 +211,8 @@ def cdd_loss(
         features of the source data used to compute the loss.
     features_t : tensor
         features of the target data used to compute the loss.
-    source_centroids : tensor
-        Pre-computed source centroids.
+    target_kmeans : SphericalKMeans
+        Pre-computed target KMeans clustering model.
     sigmas : array like, default=None,
         If array, sigmas used for the multi gaussian kernel.
         If None, uses sigmas proposed  in [1]_.
@@ -236,8 +236,8 @@ def cdd_loss(
     """
     n_classes = len(y_s.unique())
 
-    # Use pre-computed source centroids
-    if source_centroids is None:
+    # Use pre-computed cluster_labels_t
+    if target_kmeans is None:
         warnings.warn(
             "Source centroids are not computed for the whole training set, "
             "computing them on the current batch set."
@@ -253,14 +253,14 @@ def cdd_loss(
                 centroid = normalized_features.mean(dim=0)
                 source_centroids.append(centroid)
 
-    # Use source centroids to initialize target clustering
-    target_kmeans = SphericalKMeans(
-        n_clusters=n_classes,
-        random_state=0,
-        centroids=source_centroids,
-        device=features_t.device,
-    )
-    target_kmeans.fit(features_t)
+        # Use source centroids to initialize target clustering
+        target_kmeans = SphericalKMeans(
+            n_clusters=n_classes,
+            random_state=0,
+            centroids=source_centroids,
+            device=features_t.device,
+        )
+        target_kmeans.fit(features_t)
 
     # Predict clusters for target samples
     cluster_labels_t = target_kmeans.predict(features_t)

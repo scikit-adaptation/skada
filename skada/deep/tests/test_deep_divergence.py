@@ -134,7 +134,7 @@ def test_can(sigmas, distance_threshold, class_threshold):
         class_threshold=class_threshold,
         layer_name="dropout",
         batch_size=10,
-        max_epochs=5,
+        max_epochs=10,
         train_split=None,
     )
 

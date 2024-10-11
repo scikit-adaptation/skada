@@ -6,6 +6,8 @@ import torch
 import torch.nn.functional as F
 from skorch.callbacks import Callback
 
+from skada.deep.utils import SphericalKMeans
+
 
 class ComputeSourceCentroids(Callback):
     """Callback to compute centroids of source domain features for each class.
@@ -36,10 +38,15 @@ class ComputeSourceCentroids(Callback):
         X_s = X["X"][X["sample_domain"] >= 0]
         y_s = y[X["sample_domain"] >= 0]
 
+        X_t = X["X"][X["sample_domain"] < 0]
+
         features_s = net.predict_features(X_s)
+        features_t = net.predict_features(X_t)
 
         features_s = torch.tensor(features_s, device=net.device)
         y_s = torch.tensor(y_s, device=net.device)
+
+        features_t = torch.tensor(features_t, device=net.device)
 
         n_classes = len(y_s.unique())
         source_centroids = []
@@ -52,4 +59,15 @@ class ComputeSourceCentroids(Callback):
                 centroid = normalized_features.mean(dim=0)
                 source_centroids.append(centroid)
 
-        net.criterion__adapt_criterion.source_centroids = torch.stack(source_centroids)
+        source_centroids = torch.stack(source_centroids)
+
+        # Use source centroids to initialize target clustering
+        target_kmeans = SphericalKMeans(
+            n_clusters=n_classes,
+            random_state=0,
+            centroids=source_centroids,
+            device=features_t.device,
+        )
+        target_kmeans.fit(features_t)
+
+        net.criterion__adapt_criterion.target_kmeans = target_kmeans
