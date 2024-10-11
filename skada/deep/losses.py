@@ -257,7 +257,7 @@ def mcc_loss(y, T=1):
 
     # Uncertainty Reweighting & class correlation matrix
     H = -torch.sum(y_scaled * torch.log(y_scaled), axis=1)
-    W = (1 + torch.exp(H)) / torch.mean(1 + torch.exp(H))
+    W = (1 + torch.exp(-H)) / torch.mean(1 + torch.exp(-H))
     y_weighted = torch.matmul(torch.diag(W), y_scaled)
     C = torch.einsum("ij,ik->jk", y_scaled, y_weighted)
 
