@@ -298,6 +298,48 @@ def test_mixval_scorer(da_dataset):
     with pytest.raises(ValueError):
         MixValScorer(ice_type="invalid")
 
+    # Test for ice_diff or ice_same = NaN
+    class DummyEstimator:
+        def __init__(self, ice_type):
+            self.ice_type = ice_type
+
+        def predict(self, X, sample_domain=None):
+            if self.ice_type == "intra":
+                return np.arange(X.shape[0])  # All predictions are different
+            elif self.ice_type == "inter":
+                return np.zeros(X.shape[0])  # All predictions are the same
+
+        def fit(self, X, y, sample_domain=None):
+            return self
+
+        def score(self, X, y, sample_domain=None):
+            return 1.0  # Always return a perfect score
+
+    dummy_estimator = DummyEstimator(ice_type="intra")
+
+    # Test intra-cluster case (ice_same should be NaN)
+    scorer_intra = MixValScorer(alpha=0.55, random_state=42, ice_type="intra")
+    score_intra = scorer_intra._score(dummy_estimator, X, y, sample_domain)
+    assert np.isnan(
+        score_intra
+    ), "intra-cluster score should be NaN when all predictions are the same"
+
+    dummy_estimator = DummyEstimator(ice_type="inter")
+
+    # Test inter-cluster case (ice_diff should be NaN)
+    scorer_inter = MixValScorer(alpha=0.55, random_state=42, ice_type="inter")
+    score_inter = scorer_inter._score(dummy_estimator, X, y, sample_domain)
+    assert np.isnan(
+        score_inter
+    ), "inter-cluster score should be NaN when all predictions are the same"
+
+    # Test both case with score_inter == Nan (result should be a number)
+    scorer_both = MixValScorer(alpha=0.55, random_state=42, ice_type="both")
+    score_both = scorer_both._score(dummy_estimator, X, y, sample_domain)
+    assert not np.isnan(
+        score_both
+    ), "combined score should not be NaN when both intra and inter scores are NaN"
+
 
 def test_mixval_scorer_regression(da_reg_dataset):
     X, y, sample_domain = da_reg_dataset.pack(as_sources=["s"], as_targets=["t"])
