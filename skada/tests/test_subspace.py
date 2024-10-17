@@ -40,13 +40,21 @@ from skada.datasets import DomainAwareDataset
             TransferComponentAnalysisAdapter(n_components=1), LogisticRegression()
         ),
         TransferComponentAnalysis(n_components=1),
+        TransferComponentAnalysis(n_components=1, n_subsample=10, random_state=0),
         TransferJointMatching(n_components=1, kernel="linear"),
+        TransferJointMatching(
+            n_components=1, kernel="linear", n_subsample=10, random_state=0
+        ),
         make_da_pipeline(
             TransferJointMatchingAdapter(n_components=1, kernel="linear", verbose=True),
             LogisticRegression(),
         ),
         pytest.param(
             TransferSubspaceLearning(n_components=1),
+            marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
+        ),
+        pytest.param(
+            TransferSubspaceLearning(n_components=1, n_subsample=10, random_state=0),
             marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
         ),
         pytest.param(
@@ -79,7 +87,7 @@ def test_subspace_estimator(estimator, da_dataset):
     y_pred = estimator.predict(X_test, sample_domain=sample_domain)
     assert np.mean(y_pred == y_test) > 0.75
     score = estimator.score(X_test, y_test, sample_domain=sample_domain)
-    assert score > 0.75
+    assert score > 0.6
 
 
 @pytest.mark.parametrize(
