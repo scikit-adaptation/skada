@@ -119,7 +119,7 @@ def test_domainawaretraining():
     method.fit(X, y, sample_domain=sample_domain)
 
     y_pred = method.predict(X_test, sample_domain_test)
-    _ = method.predict_proba(X, sample_domain)
+    _ = method.predict_proba(X, sample_domain, allow_source=True)
     method.score(X_test, y_test, sample_domain_test)
 
     assert y_pred.shape[0] == X_test.shape[0]
@@ -134,7 +134,7 @@ def test_domainawaretraining():
     X_dict_test = {"X": X_test, "sample_domain": sample_domain_test}
 
     y_pred = method.predict(X_dict_test)
-    _ = method.predict_proba(X_dict)
+    _ = method.predict_proba(X_dict, allow_source=True)
     method.score(X_dict_test, y_test)
 
     assert y_pred.shape[0] == X_test.shape[0]
@@ -142,7 +142,7 @@ def test_domainawaretraining():
     # numpy input
     method.fit(X, y, sample_domain)
     y_pred = method.predict(X_test, sample_domain_test)
-    _ = method.predict_proba(X, sample_domain)
+    _ = method.predict_proba(X, sample_domain, allow_source=True)
     method.score(X_test, y_test, sample_domain_test)
 
     assert y_pred.shape[0] == X_test.shape[0]
@@ -150,7 +150,9 @@ def test_domainawaretraining():
     # tensor input
     method.fit(torch.tensor(X), torch.tensor(y), torch.tensor(sample_domain))
     y_pred = method.predict(torch.tensor(X_test), torch.tensor(sample_domain_test))
-    _ = method.predict_proba(torch.tensor(X), torch.tensor(sample_domain))
+    _ = method.predict_proba(
+        torch.tensor(X), torch.tensor(sample_domain), allow_source=True
+    )
     method.score(
         torch.tensor(X_test), torch.tensor(y_test), torch.tensor(sample_domain_test)
     )
