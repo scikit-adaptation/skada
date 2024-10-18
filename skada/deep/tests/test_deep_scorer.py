@@ -52,8 +52,8 @@ def test_generic_scorer_on_deepmodel(scorer, da_dataset):
     # without dict
     estimator.fit(X, y, sample_domain=sample_domain)
 
-    estimator.predict(X_test, sample_domain=sample_domain_test)
-    estimator.predict_proba(X, sample_domain=sample_domain)
+    estimator.predict(X_test, sample_domain=sample_domain_test, allow_source=True)
+    estimator.predict_proba(X, sample_domain=sample_domain, allow_source=True)
 
     scores = scorer(estimator, X, y, sample_domain)
 
@@ -65,7 +65,7 @@ def test_generic_scorer_on_deepmodel(scorer, da_dataset):
     [
         PredictionEntropyScorer(),
         SoftNeighborhoodDensity(),
-        # DeepEmbeddedValidation(),
+        DeepEmbeddedValidation(),
     ],
 )
 def test_generic_scorer(scorer, da_dataset):
