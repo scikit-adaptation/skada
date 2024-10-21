@@ -128,7 +128,7 @@ def test_can(sigmas, distance_threshold, class_threshold):
 
     method = CAN(
         ToyModule2D(),
-        reg=1,
+        reg=0.01,
         sigmas=sigmas,
         distance_threshold=distance_threshold,
         class_threshold=class_threshold,
@@ -148,5 +148,4 @@ def test_can(sigmas, distance_threshold, class_threshold):
     assert y_pred.shape[0] == X_test.shape[0]
 
     history = method.history_
-
     assert history[0]["train_loss"] > history[-1]["train_loss"]
