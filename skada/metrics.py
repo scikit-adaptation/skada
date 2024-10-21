@@ -751,25 +751,29 @@ class MixValScorer(_BaseDomainAwareScorer):
         # Calculate ICE scores based on ice_type
         # TODO: handle multiple target domains
         if self.ice_type in ["both", "intra"]:
-            ice_same = scorer(
-                estimator,
-                mix_inputs[same_idx],
-                mix_labels[same_idx],
-                sample_domain=np.full(same_idx.shape[0], -1),
-                **params,
-            )
+            if len(same_idx) == 0:
+                ice_same = np.nan
+            else:
+                ice_same = scorer(
+                    estimator,
+                    mix_inputs[same_idx],
+                    mix_labels[same_idx],
+                    sample_domain=np.full(same_idx.shape[0], -1),
+                )
 
         if self.ice_type in ["both", "inter"]:
-            ice_diff = scorer(
-                estimator,
-                mix_inputs[diff_idx],
-                mix_labels[diff_idx],
-                sample_domain=np.full(diff_idx.shape[0], -1),
-                **params,
-            )
+            if len(diff_idx) == 0:
+                ice_diff = np.nan
+            else:
+                ice_diff = scorer(
+                    estimator,
+                    mix_inputs[diff_idx],
+                    mix_labels[diff_idx],
+                    sample_domain=np.full(diff_idx.shape[0], -1),
+                )
 
         if self.ice_type == "both":
-            ice_score = (ice_same + ice_diff) / 2
+            ice_score = np.nanmean([ice_same, ice_diff])
         elif self.ice_type == "intra":
             ice_score = ice_same
         else:  # self.ice_type == 'inter'
