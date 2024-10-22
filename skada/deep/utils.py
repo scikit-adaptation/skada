@@ -170,7 +170,7 @@ class SphericalKMeans:
                 new_centroids = torch.zeros_like(centroids)
                 for k in range(self.n_clusters):
                     if torch.any(labels == k):
-                        new_centroids[k] = X[labels == k].mean(dim=0)
+                        new_centroids[k] = X[labels == k].sum(dim=0)
 
                 # Check for convergence
                 if torch.allclose(centroids, new_centroids, atol=self.tol):

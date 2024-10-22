@@ -250,7 +250,7 @@ def cdd_loss(
             if mask.sum() > 0:
                 class_features = features_s[mask]
                 normalized_features = F.normalize(class_features, p=2, dim=1)
-                centroid = normalized_features.mean(dim=0)
+                centroid = normalized_features.sum(dim=0)
                 source_centroids.append(centroid)
 
         # Use source centroids to initialize target clustering
