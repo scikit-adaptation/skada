@@ -23,41 +23,42 @@ class SubsampleTransformer(BaseAdapter):
         self.n_subsample = n_subsample
         self.random_state = random_state
 
+    def _pack_params(self, idx, **params):
+        return {
+            k: (v[idx] if idx is not None else v)
+            for k, v in params.items()
+            if v is not None
+        }
+
     def fit_transform(self, X, y=None, *, sample_domain=None, sample_weight=None):
         """Fit and transform the data."""
         X, y, sample_domain2 = check_X_y_domain(X, y, sample_domain)
 
         if self.n_subsample >= X.shape[0]:
-            return X
+            return (
+                X,
+                y,
+                self._pack_params(
+                    None, sample_domain=sample_domain, sample_weight=sample_weight
+                ),
+            )
 
         rng = check_random_state(self.random_state)
         idx = rng.choice(X.shape[0], self.n_subsample, replace=False)
 
         X_subsampled = X[idx]
-
-        if y is not None:
-            y_subsampled = y[idx]
-
-        dic = {}
-
-        if sample_domain is not None:
-            sample_domain2_subsampled = sample_domain2[idx]
-            dic["sample_domain"] = sample_domain2_subsampled
-
-        if sample_weight is not None:
-            sample_weight_subsampled = sample_weight[idx]
-            dic["sample_weight"] = sample_weight_subsampled
-
-        return X_subsampled, y if y is None else y_subsampled, dic
+        y_subsampled = y[idx] if y is not None else None
+        params = self._pack_params(
+            idx, sample_domain=sample_domain2, sample_weight=sample_weight
+        )
+        return X_subsampled, y_subsampled, params
 
     def transform(self, X, y=None, *, sample_domain=None, sample_weight=None):
         """Transform the data."""
-        dic = {}
-
-        if sample_domain is not None:
-            dic["sample_domain"] = sample_domain
-
-        if sample_weight is not None:
-            dic["sample_weight"] = sample_weight
-
-        return X, y, dic
+        return (
+            X,
+            y,
+            self._pack_params(
+                None, sample_domain=sample_domain, sample_weight=sample_weight
+            ),
+        )

@@ -14,18 +14,18 @@ def test_SubsampleTransformer(da_dataset):
 
     transformer = SubsampleTransformer(n_subsample=n_subsample)
 
-    X_subsampled, y_subsampled, dic = transformer.fit_transform(
+    X_subsampled, y_subsampled, params = transformer.fit_transform(
         X, y, sample_domain=sample_domain
     )
 
     assert X_subsampled.shape[0] == n_subsample
     assert y_subsampled.shape[0] == n_subsample
-    assert "sample_domain" in dic
+    assert "sample_domain" in params
 
-    X_target, y_target, sample_domain = da_dataset.pack_test(as_targets=["t"])
+    X_target, y_target, sample_domain_target = da_dataset.pack_test(as_targets=["t"])
 
-    X_target_subsampled, y_target_subsampled, dic = transformer.transform(
-        X_target, y_target, sample_domain=sample_domain
+    X_target_subsampled, y_target_subsampled, params = transformer.transform(
+        X_target, y_target, sample_domain=sample_domain_target
     )
 
     assert X_target_subsampled.shape[0] == X_target.shape[0]
@@ -35,10 +35,10 @@ def test_SubsampleTransformer(da_dataset):
     transformer = SubsampleTransformer(n_subsample=n_subsample)
     pipeline = make_da_pipeline(transformer)
 
-    X_subsampled, y_subsampled, dic = pipeline.fit_transform(
+    X_subsampled, y_subsampled, params = pipeline.fit_transform(
         X, y, sample_domain=sample_domain
     )
 
     assert X_subsampled.shape[0] == n_subsample
     assert y_subsampled.shape[0] == n_subsample
-    assert "sample_domain" in dic
+    assert "sample_domain" in params
