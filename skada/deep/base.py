@@ -510,11 +510,13 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         The PyTorch module to be used as the core of the classifier.
     iterator_train : torch.utils.data.DataLoader, optional
         Custom data loader for training. If None, DomainBalancedDataLoader is used.
+    epochs_pretrain_on_source: int, default=None
+        Number of epochs for pre-training on source. If None, no pre-training is done.
     **kwargs : dict
         Additional keyword arguments passed to the skorch NeuralNetClassifier.
     """
 
-    def __init__(self, module, iterator_train=None, **kwargs):
+    def __init__(self, module, epochs_pretrain_on_source=None, iterator_train=None, **kwargs):
         # TODO val is not working
         # if train_split is None:
         #     iterator_valid = None
@@ -525,6 +527,7 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         iterator_train = (
             DomainBalancedDataLoader if iterator_train is None else iterator_train
         )
+        self.epochs_pretrain_on_source = epochs_pretrain_on_source
         super().__init__(module, iterator_train=iterator_train, **kwargs)
 
     def fit(
@@ -562,6 +565,24 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         # TODO: check X and y
         # but it requires to adapt skada.utils.check_X_y_domain
         # to handle dict, Dataset, torch.Tensor, ...
+
+        if self.epochs_pretrain_on_source:
+            # Pretrain on source domain
+
+            net = NeuralNetClassifier(
+                self.module.base_module_,
+                max_epochs=self.epochs_pretrain_on_source,
+                lr=self.lr,
+                optimizer=self.optimizer,
+                criterion=self.criterion.base_criterion,
+                device=self.device,
+                train_split=None,
+            )
+            X_s = X["X"][X["sample_domain"] >= 0]
+            y_s = y[X["sample_domain"] >= 0]
+            net.fit(X_s, y_s, sample_weight=sample_weight)
+            self.module.base_module_ = net.module_
+            self.warm_start = True
 
         return super().fit(X, y, is_fit=True, **fit_params)
 
