@@ -34,6 +34,8 @@ class SubsampleTransformer(BaseAdapter):
         """Fit and transform the data."""
         X, y, sample_domain2 = check_X_y_domain(X, y, sample_domain)
 
+        self.rng_ = check_random_state(self.random_state)
+
         if self.n_subsample >= X.shape[0]:
             return (
                 X,
@@ -43,9 +45,7 @@ class SubsampleTransformer(BaseAdapter):
                 ),
             )
 
-        rng = check_random_state(self.random_state)
-        idx = rng.choice(X.shape[0], self.n_subsample, replace=False)
-
+        idx = self.rng_.choice(X.shape[0], self.n_subsample, replace=False)
         X_subsampled = X[idx]
         y_subsampled = y[idx] if y is not None else None
         params = self._pack_params(
