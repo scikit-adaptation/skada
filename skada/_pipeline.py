@@ -108,7 +108,7 @@ def _wrap_with_selector(
     estimator: BaseEstimator,
     selector: Union[str, Callable[[BaseEstimator], BaseSelector]],
 ) -> BaseSelector:
-    if not isinstance(estimator, BaseSelector):
+    if (estimator is not None) and not isinstance(estimator, BaseSelector):
         if callable(selector):
             estimator = selector(estimator)
             if not isinstance(estimator, BaseSelector):

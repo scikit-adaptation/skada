@@ -10,6 +10,7 @@ from sklearn.preprocessing import StandardScaler
 
 from skada import make_da_pipeline, source_target_split
 from skada.deep import DeepCoral
+from skada.deep._baseline import SourceOnly, TargetOnly
 from skada.deep.modules import ToyCNN, ToyModule2D
 from skada.metrics import (
     CircularValidation,
@@ -140,3 +141,72 @@ def test_scorer_with_nd_features(scorer, da_dataset):
     )["test_score"]
     assert scores.shape[0] == 3, "evaluate 3 splits"
     assert np.all(~np.isnan(scores)), "all scores are computed"
+
+
+def test_dev_scorer_on_target_only(da_dataset):
+    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X_test, y_test, sample_domain_test = da_dataset.pack_test(as_targets=["t"])
+    unmasked_y = np.copy(y)
+    unmasked_y[sample_domain < 0] = y_test
+
+    estimator = TargetOnly(
+        ToyModule2D(proba=True),
+        layer_name="dropout",
+        batch_size=10,
+        max_epochs=10,
+        train_split=None,
+    )
+
+    X = X.astype(np.float32)
+    X_test = X_test.astype(np.float32)
+
+    # without dict
+    estimator.fit(X, unmasked_y, sample_domain=sample_domain)
+
+    scores = DeepEmbeddedValidation()(estimator, X, unmasked_y, sample_domain)
+
+    assert ~np.isnan(scores), "The score is computed"
+
+
+def test_dev_scorer_on_source_only(da_dataset):
+    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X_test, y_test, sample_domain_test = da_dataset.pack_test(as_targets=["t"])
+
+    estimator = SourceOnly(
+        ToyModule2D(proba=True),
+        layer_name="dropout",
+        batch_size=10,
+        max_epochs=10,
+        train_split=None,
+    )
+
+    X = X.astype(np.float32)
+    X_test = X_test.astype(np.float32)
+
+    # without dict
+    estimator.fit(X, y, sample_domain=sample_domain)
+
+    scores = DeepEmbeddedValidation()(estimator, X, y, sample_domain)
+
+    assert ~np.isnan(scores), "The score is computed"
+
+
+def test_dev_exception_layer_name(da_dataset):
+    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X_test, y_test, sample_domain_test = da_dataset.pack_test(as_targets=["t"])
+
+    estimator = SourceOnly(
+        ToyModule2D(proba=True),
+        batch_size=10,
+        max_epochs=10,
+        train_split=None,
+    )
+
+    X = X.astype(np.float32)
+    X_test = X_test.astype(np.float32)
+
+    # without dict
+    estimator.fit(X, y, sample_domain=sample_domain)
+
+    with pytest.raises(ValueError, match="The layer_name of the estimator is not set."):
+        DeepEmbeddedValidation()(estimator, X, y, sample_domain)

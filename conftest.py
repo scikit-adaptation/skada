@@ -23,7 +23,7 @@ def set_seed():
 
 @pytest.fixture(scope='session')
 def da_reg_dataset():
-    X, y, sample_domain = make_shifted_datasets(
+    return make_shifted_datasets(
         n_samples_source=20,
         n_samples_target=21,
         shift="concept_drift",
@@ -31,8 +31,8 @@ def da_reg_dataset():
         noise=0.3,
         label="regression",
         random_state=43,
+        return_dataset=True,
     )
-    return X, y, sample_domain
 
 
 @pytest.fixture(scope='session')
@@ -45,6 +45,7 @@ def da_reg_datasets():
         noise=0.3,
         label="regression",
         random_state=42,
+        return_dataset=True,
     )
 
     da_reg_dataset_2 = make_shifted_datasets(
@@ -55,33 +56,34 @@ def da_reg_datasets():
         noise=0.3,
         label="regression",
         random_state=42,
+        return_dataset=True,
     )
     return da_reg_dataset_1, da_reg_dataset_2
 
 @pytest.fixture(scope='session')
 def da_multiclass_dataset():
-    X, y, sample_domain = make_shifted_datasets(
+    return make_shifted_datasets(
         n_samples_source=20,
         n_samples_target=21,
         shift="concept_drift",
         noise=0.1,
         label="multiclass",
         random_state=42,
+        return_dataset=True,
     )
-    return X, y, sample_domain
 
 
 @pytest.fixture(scope='session')
 def da_binary_dataset():
-    X, y, sample_domain = make_shifted_datasets(
+    return make_shifted_datasets(
         n_samples_source=20,
         n_samples_target=21,
         shift="concept_drift",
         noise=0.1,
         label="binary",
         random_state=42,
+        return_dataset=True,
     )
-    return X, y, sample_domain
 
 
 @pytest.fixture(scope='session')
@@ -95,7 +97,7 @@ def da_blobs_dataset():
         shift=0.13,
         random_state=42,
         cluster_std=0.05,
-        return_X_y=True,
+        return_dataset=True,
     )
 
 

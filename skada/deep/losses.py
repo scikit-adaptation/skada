@@ -1,6 +1,7 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Remi Flamary <remi.flamary@polytechnique.edu>
 #         Yanis Lalou <yanis.lalou@polytechnique.edu>
+#         Antoine Collas <contact@antoinecollas.fr>
 #
 # License: BSD 3-Clause
 
@@ -9,6 +10,7 @@ from functools import partial
 import ot
 import skorch  # noqa: F401
 import torch  # noqa: F401
+from torch.nn.functional import mse_loss
 
 from skada.deep.base import BaseDALoss
 
@@ -40,10 +42,11 @@ def deepcoral_loss(features, features_target, assume_centered=False):
     if not assume_centered:
         features = features - features.mean(0)
         features_target = features_target - features_target.mean(0)
-    cov = torch.cov(features)
-    cov_target = torch.cov(features_target)
-    diff = cov - cov_target
-    loss = (diff * diff).sum() / (4 * len(cov) ** 2)
+    cov = torch.cov(features.T)
+    cov_target = torch.cov(features_target.T)
+    divergence = mse_loss(cov, cov_target, reduction="sum")
+    dim = features.shape[1]
+    loss = (1 / (4 * (dim**2))) * divergence
     return loss
 
 

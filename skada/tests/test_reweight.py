@@ -161,7 +161,9 @@ def test_reg_reweight_estimator(estimator):
 
 
 def _base_test_new_X_adapt(estimator, da_dataset):
-    X_train, y_train, sample_domain = da_dataset
+    X_train, y_train, sample_domain = da_dataset.pack_train(
+        as_sources=["s"], as_targets=["t"]
+    )
 
     # fit works with no errors
     estimator.fit(X_train, y_train, sample_domain=sample_domain)
@@ -281,7 +283,7 @@ def test_KMMReweight_new_X_adapt(da_dataset):
     ],
 )
 def test_adaptation_output_propagation_multiple_steps(da_reg_dataset, mediator):
-    X, y, sample_domain = da_reg_dataset
+    X, y, sample_domain = da_reg_dataset.pack(as_sources=["s"], as_targets=["t"])
     _, X_target, _, target_domain = source_target_split(
         X, sample_domain, sample_domain=sample_domain
     )
@@ -307,7 +309,7 @@ def test_adaptation_output_propagation_multiple_steps(da_reg_dataset, mediator):
 
 
 def test_select_source_target_output_merge(da_reg_dataset):
-    X, y, sample_domain = da_reg_dataset
+    X, y, sample_domain = da_reg_dataset.pack(as_sources=["s"], as_targets=["t"])
     _, X_target, _, target_domain = source_target_split(
         X, sample_domain, sample_domain=sample_domain
     )
