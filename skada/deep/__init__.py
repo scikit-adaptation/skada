@@ -17,14 +17,17 @@ except (ImportError, ModuleNotFoundError) as e:
 from ._divergence import DeepCoral, DeepCoralLoss, DANLoss, DAN
 from ._optimal_transport import DeepJDOT, DeepJDOTLoss
 from ._adversarial import DANN, CDAN, DANNLoss, CDANLoss
+from ._multi_source import MFSAN, MFSANLoss, MultiSourceModule
 from ._baseline import SourceOnly, TargetOnly
 
 from . import losses
 from . import modules
+from . import dataloaders
 
 __all__ = [
     'losses',
     'modules',
+    'dataloaders',
     'DeepCoralLoss',
     'DeepCoral',
     'DANLoss',
@@ -35,6 +38,9 @@ __all__ = [
     'DANN',
     'CDANLoss',
     'CDAN',
+    'MFSANLoss',
+    'MFSAN',
+    'MultiSourceModule',
     'SourceOnly',
     'TargetOnly',
 ]

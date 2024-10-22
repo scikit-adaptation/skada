@@ -16,6 +16,7 @@ from skorch import NeuralNetClassifier
 from .utils import _register_forwards_hook
 
 from skada.base import _DAMetadataRequesterMixin
+from skada.deep.dataloaders import DomainBalancedDataLoader
 
 import numpy as np
 from skorch.utils import to_device
@@ -53,12 +54,14 @@ class DomainAwareCriterion(torch.nn.Module):
         adapt_criterion,
         reg=1,
         reduction="mean",
+        is_multi_source=False,
         train_on_target=False,
     ):
         super(DomainAwareCriterion, self).__init__()
         self.base_criterion = base_criterion
         self.adapt_criterion = adapt_criterion
         self.reg = reg
+        self.is_multi_source = is_multi_source
         self.train_on_target = train_on_target
 
         # Update the reduce parameter for both criteria if specified
@@ -89,29 +92,28 @@ class DomainAwareCriterion(torch.nn.Module):
         y_true :
             The true labels. Available for source, masked for target.
         """
-        y_pred, domain_pred, features, sample_domain = y_pred  # unpack
+
+        (
+            (y_pred_s, y_pred_t),
+            (domain_pred_s, domain_pred_t),
+            (features_s, features_t),
+            sample_domain,
+        ) = y_pred
+
         source_idx = sample_domain >= 0
-        y_pred_s = y_pred[source_idx]
-        y_pred_t = y_pred[~source_idx]
 
-        if domain_pred is not None:
-            domain_pred_s = domain_pred[source_idx]
-            domain_pred_t = domain_pred[~source_idx]
+        # predict
+        if self.is_multi_source:
+            base_loss = 0
+            for n_domain in sample_domain[source_idx].unique():
+                idx = sample_domain[source_idx] == n_domain
+                base_loss += self.base_criterion(y_pred_s[idx], y_true[source_idx][idx])
         else:
-            domain_pred_s = None
-            domain_pred_t = None
-
-        if features is not None:
-            features_s = features[source_idx]
-            features_t = features[~source_idx]
-        else:
-            features_s = None
-            features_t = None
-
-        if self.train_on_target:
-            base_loss = self.base_criterion(y_pred_t, y_true[~source_idx])
-        else:
-            base_loss = self.base_criterion(y_pred_s, y_true[source_idx])
+            if self.train_on_target:
+                # import ipdb; ipdb.set_trace()
+                base_loss = self.base_criterion(y_pred_t, y_true[~source_idx])
+            else:
+                base_loss = self.base_criterion(y_pred_s, y_true[source_idx])
 
         # predict
         return base_loss + self.reg * self.adapt_criterion(
@@ -122,6 +124,7 @@ class DomainAwareCriterion(torch.nn.Module):
             domain_pred_t,
             features_s,
             features_t,
+            sample_domain,
         )
 
 
@@ -141,6 +144,7 @@ class BaseDALoss(torch.nn.Module):
         domain_pred_t,
         features_s,
         features_t,
+        sample_domain,
     ):
         """Compute the domain adaptation loss
 
@@ -160,210 +164,10 @@ class BaseDALoss(torch.nn.Module):
             Features of the chosen layer of source domain.
         features_t :
             Features of the chosen layer of target domain.
+        sample_domain :
+            The domain of each sample.
         """
         pass
-
-
-
-class DomainBalancedSampler(Sampler):
-    """Domain balanced sampler
-
-    A sampler to have as much as source and target in the batch.
-
-    Parameters
-    ----------
-    dataset : torch dataset
-        The dataset to sample from.
-    batch_size : int
-        The batch size.
-    max_samples : str, default='max'
-        The maximum number of samples to use. It can be 'max', 'min', 'source', or 'target'.
-    """
-
-    def __init__(self, dataset, batch_size, max_samples="max"):
-        self.dataset = dataset
-        self.positive_indices = [
-            idx for idx, sample in enumerate(dataset) if sample[0]["sample_domain"] >= 0
-        ]
-        self.negative_indices = [
-            idx for idx, sample in enumerate(dataset) if sample[0]["sample_domain"] < 0
-        ]
-        self.num_samples_source = (
-            len(self.positive_indices) - len(self.positive_indices) % batch_size
-        )
-        self.num_samples_target = (
-            len(self.negative_indices) - len(self.negative_indices) % batch_size
-        )
-        if max_samples == "max":
-            self.num_samples = max(self.num_samples_source, self.num_samples_target)
-        elif max_samples == "min":
-            self.num_samples = min(self.num_samples_source, self.num_samples_target)
-        elif max_samples == "source":
-            self.num_samples = self.num_samples_source
-        elif max_samples == "target":
-            self.num_samples = self.num_samples_target
-
-
-    def __iter__(self):
-        positive_sampler = torch.utils.data.sampler.RandomSampler(self.positive_indices)
-        negative_sampler = torch.utils.data.sampler.RandomSampler(self.negative_indices)
-
-        positive_iter = iter(positive_sampler)
-        negative_iter = iter(negative_sampler)
-
-        for _ in range(self.num_samples):
-            try:
-                pos_idx = self.positive_indices[next(positive_iter)]
-            except StopIteration:
-                positive_iter = iter(positive_sampler)
-                pos_idx = self.positive_indices[next(positive_iter)]
-            try:
-                neg_idx = self.negative_indices[next(negative_iter)]
-            except StopIteration:
-                negative_iter = iter(negative_sampler)
-                neg_idx = self.negative_indices[next(negative_iter)]
-            yield pos_idx
-            yield neg_idx
-
-    def __len__(self):
-        return 2 * self.num_samples
-
-
-
-class DomainBalancedDataLoader(DataLoader):
-    """Domain balanced data loader
-
-    A data loader to have as much as source and target in the batch.
-
-    Parameters
-    ----------
-    dataset : torch dataset
-        The dataset to sample from.
-    batch_size : int
-        The batch size.
-    max_samples : str, default='max'
-        The maximum number of samples to use. It can be 'max', 'min', 'source', or 'target'.
-    """
-
-    def __init__(
-        self,
-        dataset,
-        batch_size,
-        max_samples="max",
-        shuffle=False,
-        sampler=None,
-        batch_sampler=None,
-        num_workers=0,
-        collate_fn=None,
-        pin_memory=False,
-        drop_last=False,
-        timeout=0,
-        worker_init_fn=None,
-        multiprocessing_context=None,
-    ):
-        sampler = DomainBalancedSampler(dataset, batch_size, max_samples=max_samples)
-        super().__init__(
-            dataset,
-            2 * batch_size,
-            shuffle,
-            sampler,
-            batch_sampler,
-            num_workers,
-            collate_fn,
-            pin_memory,
-            drop_last,
-            timeout,
-            worker_init_fn,
-            multiprocessing_context,
-        )
-
-
-class DomainOnlySampler(Sampler):
-    """Domain balanced sampler
-
-    A sampler to have only source or target domain in the batch.
-
-    Parameters
-    ----------
-    dataset : torch dataset
-        The dataset to sample from.
-    """
-
-    def __init__(self, dataset, batch_size, domain_used="source"):
-        self.dataset = dataset
-        if domain_used == "source":
-            self.indices = [
-                idx for idx, sample in enumerate(dataset) if sample[0]["sample_domain"] >= 0
-            ]
-        elif domain_used == "target":
-            self.indices = [
-                idx for idx, sample in enumerate(dataset) if sample[0]["sample_domain"] < 0
-            ]
-        else:
-            raise ValueError(f"Unknown domain_used: {domain_used}")
-        self.num_samples = (
-            len(self.indices) - len(self.indices) % batch_size
-        )
-
-    def __iter__(self):
-        sampler = torch.utils.data.sampler.RandomSampler(self.indices)
-
-        iterator = iter(sampler)
-
-        for _ in range(self.num_samples):
-            idx = self.indices[next(iterator)]
-            yield idx
-
-    def __len__(self):
-        return self.num_samples
-
-
-class DomainOnlyDataLoader(DataLoader):
-    """Domain balanced data loader
-
-    A data loader to have either source or target domain in the batch.
-
-    Parameters
-    ----------
-    dataset : torch dataset
-        The dataset to sample from.
-    batch_size : int
-        The batch size.
-    domain_used : str, default='source'
-        The domain to use for the batch.
-    """
-
-    def __init__(
-        self,
-        dataset,
-        batch_size,
-        domain_used="source",
-        shuffle=False,
-        sampler=None,
-        batch_sampler=None,
-        num_workers=0,
-        collate_fn=None,
-        pin_memory=False,
-        drop_last=False,
-        timeout=0,
-        worker_init_fn=None,
-        multiprocessing_context=None,
-    ):
-        sampler = DomainOnlySampler(dataset, batch_size, domain_used=domain_used)
-        super().__init__(
-            dataset,
-            batch_size,
-            shuffle,
-            sampler,
-            batch_sampler,
-            num_workers,
-            collate_fn,
-            pin_memory,
-            drop_last,
-            timeout,
-            worker_init_fn,
-            multiprocessing_context,
-        )
 
 
 class DomainAwareModule(torch.nn.Module):
@@ -384,17 +188,20 @@ class DomainAwareModule(torch.nn.Module):
         domain. Could be None.
     """
 
-    def __init__(self, base_module, layer_name, domain_classifier=None):
+    def __init__(
+        self, base_module, layer_name, domain_classifier=None, is_multi_source=False, flatten_features=True
+    ):
         super(DomainAwareModule, self).__init__()
         self.base_module_ = base_module
         self.domain_classifier_ = domain_classifier
+        self.is_multi_source = is_multi_source
         self.layer_name = layer_name
         self.intermediate_layers = {}
-        self._setup_hooks()
+        self._setup_hooks(flatten=flatten_features)
 
-    def _setup_hooks(self):
+    def _setup_hooks(self, flatten=True):
         _register_forwards_hook(
-            self.base_module_, self.intermediate_layers, [self.layer_name]
+            self.base_module_, self.intermediate_layers, [self.layer_name], flatten
         )
 
     def get_params(self, deep=True) -> Dict[str, Any]:
@@ -423,25 +230,24 @@ class DomainAwareModule(torch.nn.Module):
             X_s = X[source_idx]
             X_t = X[~source_idx]
 
-            # Pass sample_weight to base_module_
+            args_s = {"X": X_s}
             if sample_weight is not None:
-                sample_weight_s = sample_weight[source_idx]
-                y_pred_s = self.base_module_(X_s, sample_weight=sample_weight_s)
-            else:
-                y_pred_s = self.base_module_(X_s)
-
-            if self.layer_name is not None:
+                args_s["sample_weight"] = sample_weight[source_idx]
+            if self.is_multi_source:
+                args_s["sample_domain"] = sample_domain[source_idx]
+            y_pred_s = self.base_module_(**args_s)
+            if self.layer_name:
                 features_s = self.intermediate_layers[self.layer_name]
             else:
                 features_s = None
 
+            args_t = {"X": X_t}
             if sample_weight is not None:
-                sample_weight_t = sample_weight[~source_idx]
-                y_pred_t = self.base_module_(X_t, sample_weight=sample_weight_t)
-            else:
-                y_pred_t = self.base_module_(X_t)
-
-            if self.layer_name is not None:
+                args_t["sample_weight"] = sample_weight[~source_idx]
+            if self.is_multi_source:
+                args_t["is_source"] = False
+            y_pred_t = self.base_module_(**args_t)
+            if self.layer_name:
                 features_t = self.intermediate_layers[self.layer_name]
             else:
                 features_t = None
@@ -449,48 +255,40 @@ class DomainAwareModule(torch.nn.Module):
             if self.domain_classifier_ is not None:
                 domain_pred_s = self.domain_classifier_(features_s)
                 domain_pred_t = self.domain_classifier_(features_t)
-                domain_pred = torch.empty(
-                    (len(sample_domain)), device=domain_pred_s.device
-                )
-                domain_pred[source_idx] = domain_pred_s
-                domain_pred[~source_idx] = domain_pred_t
             else:
-                domain_pred = None
+                domain_pred_s = None
+                domain_pred_t = None
 
-            y_pred = torch.empty(
-                (len(sample_domain), y_pred_s.shape[1]), device=y_pred_s.device
+            return (
+                (y_pred_s, y_pred_t),
+                (domain_pred_s, domain_pred_t),
+                (features_s, features_t),
+                sample_domain,
             )
-            y_pred[source_idx] = y_pred_s
-            y_pred[~source_idx] = y_pred_t
-
-            if self.layer_name is not None:
-                features = torch.empty(
-                    (len(sample_domain), features_s.shape[1]), device=features_s.device
-                )
-                features[source_idx] = features_s
-                features[~source_idx] = features_t
-
-                return (
-                    y_pred,
-                    domain_pred,
-                    features,
-                    sample_domain,
-                )
-            else:
-                return (
-                    y_pred,
-                    domain_pred,
-                    None,
-                    sample_domain,
-                )
         else:
             if return_features:
+                args = {"X": X}
+                args["sample_weight"] = sample_weight
+                if self.is_multi_source:
+                    args["is_source"] = False
+                y_pred = self.base_module_(**args)
+                if self.is_multi_source:
+                    y_pred = torch.mean(y_pred, axis=0)
+                features = self.intermediate_layers[self.layer_name]
+
                 return (
-                    self.base_module_(X, sample_weight=sample_weight),
-                    self.intermediate_layers[self.layer_name],
+                    y_pred,
+                    features,
                 )
             else:
-                return self.base_module_(X, sample_weight=sample_weight)
+                args = {"X": X}
+                args["sample_weight"] = sample_weight
+                if self.is_multi_source:
+                    args["is_source"] = False
+                y_pred = self.base_module_(**args)
+                if self.is_multi_source:
+                    y_pred = torch.mean(y_pred, axis=0)
+                return y_pred
 
 
 class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
