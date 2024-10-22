@@ -32,6 +32,7 @@ def test_SubsampleTransformer(da_dataset):
     assert y_target_subsampled.shape[0] == X_target.shape[0]
 
     # now with a pipeline
+    transformer = SubsampleTransformer(n_subsample=n_subsample)
     pipeline = make_da_pipeline(transformer)
 
     X_subsampled, y_subsampled, dic = pipeline.fit_transform(
