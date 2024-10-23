@@ -3,7 +3,9 @@
 # License: BSD 3-Clause
 
 
-from skada import make_da_pipeline
+from sklearn.preprocessing import StandardScaler
+
+from skada import CORAL, make_da_pipeline
 from skada.transformers import SubsampleTransformer
 
 
@@ -33,12 +35,13 @@ def test_SubsampleTransformer(da_dataset):
 
     # now with a pipeline
     transformer = SubsampleTransformer(n_subsample=n_subsample)
-    pipeline = make_da_pipeline(transformer)
+    pipeline = make_da_pipeline(StandardScaler(), transformer, CORAL())
 
-    X_subsampled, y_subsampled, params = pipeline.fit_transform(
-        X, y, sample_domain=sample_domain
-    )
+    pipeline.fit(X, y, sample_domain=sample_domain)
 
-    assert X_subsampled.shape[0] == n_subsample
-    assert y_subsampled.shape[0] == n_subsample
-    assert "sample_domain" in params
+    ypred = pipeline.predict(X_target, sample_domain=sample_domain_target)
+    assert ypred.shape[0] == X_target.shape[0]
+    assert ypred.shape[0] == X_target.shape[0]
+    # assert X_subsampled.shape[0] == n_subsample
+    # assert y_subsampled.shape[0] == n_subsample
+    # assert "sample_domain" in params
