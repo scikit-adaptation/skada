@@ -55,10 +55,4 @@ class SubsampleTransformer(BaseAdapter):
 
     def transform(self, X, y=None, *, sample_domain=None, sample_weight=None):
         """Transform the data."""
-        return (
-            X,
-            y,
-            self._pack_params(
-                None, sample_domain=sample_domain, sample_weight=sample_weight
-            ),
-        )
+        return X

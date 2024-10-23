@@ -26,14 +26,13 @@ def test_SubsampleTransformer(da_dataset):
 
     X_target, y_target, sample_domain_target = da_dataset.pack_test(as_targets=["t"])
 
-    X_target_subsampled, y_target_subsampled, params = transformer.transform(
+    X_target_subsampled = transformer.transform(
         X_target, y_target, sample_domain=sample_domain_target
     )
 
     assert X_target_subsampled.shape[0] == X_target.shape[0]
-    assert y_target_subsampled.shape[0] == X_target.shape[0]
 
-    # now with a pipeline
+    # now with a pipeline with end task
     transformer = SubsampleTransformer(n_subsample=n_subsample)
     pipeline = make_da_pipeline(StandardScaler(), transformer, CORAL())
 
