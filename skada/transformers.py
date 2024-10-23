@@ -11,6 +11,14 @@ from .utils import check_X_y_domain
 class SubsampleTransformer(BaseAdapter):
     """Transformer that subsamples the data.
 
+    This transformer is useful to speed up computations when the data is too
+    large. It randomly selects a subset of the data to work with during training
+    but does not change the data during testing.
+
+    .. note::
+        This transformer should not be used as the last step of a pipeline
+        because it returns non standard output.
+
     Parameters
     ----------
     n_subsample : int
