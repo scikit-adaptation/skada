@@ -1,4 +1,5 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
+#         Ambroise Odonnat <ambroiseodonnattechnologie@gmail.com>
 #
 # License: BSD 3-Clause
 import math
@@ -30,7 +31,7 @@ class DANNLoss(BaseDALoss):
 
     Parameters
     ----------
-    target_criterion : torch criterion (class), default=None
+    domain_criterion : torch criterion (class), default=None
         The initialized criterion (loss) used to compute the
         DANN loss. If None, a BCELoss is used.
 
@@ -161,9 +162,7 @@ class CDANLoss(BaseDALoss):
 
     Parameters
     ----------
-    reg : float, default=1
-        Regularization parameter.
-    target_criterion : torch criterion (class), default=None
+    domain_criterion : torch criterion (class), default=None
         The initialized criterion (loss) used to compute the
         CDAN loss. If None, a BCELoss is used.
 
