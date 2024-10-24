@@ -250,16 +250,12 @@ class CDANModule(DomainAwareModule):
         if is_fit:
             source_idx = sample_domain >= 0
 
-            X_t = X[~source_idx]
-            X_s = X[source_idx]
             # predict
-            y_pred_s = self.base_module_(X_s)
-            features_s = self.intermediate_layers[self.layer_name]
-            y_pred_t = self.base_module_(X_t)
-            features_t = self.intermediate_layers[self.layer_name]
+            y_pred = self.base_module_(X)
+            features = self.intermediate_layers[self.layer_name]
 
-            n_classes = y_pred_s.shape[1]
-            n_features = features_s.shape[1]
+            n_classes = y_pred.shape[1]
+            n_features = features.shape[1]
             if n_features * n_classes > self.max_features:
                 random_layer = _RandomLayer(
                     self.random_state,
@@ -271,39 +267,13 @@ class CDANModule(DomainAwareModule):
 
             # Compute the input for the domain classifier
             if random_layer is None:
-                multilinear_map = torch.bmm(
-                    y_pred_s.unsqueeze(2), features_s.unsqueeze(1)
-                )
-                multilinear_map_target = torch.bmm(
-                    y_pred_t.unsqueeze(2), features_t.unsqueeze(1)
-                )
-
+                multilinear_map = torch.bmm(y_pred.unsqueeze(2), features.unsqueeze(1))
                 multilinear_map = multilinear_map.view(-1, n_features * n_classes)
-                multilinear_map_target = multilinear_map_target.view(
-                    -1, n_features * n_classes
-                )
 
             else:
-                multilinear_map = random_layer.forward([features_s, y_pred_s])
-                multilinear_map_target = random_layer.forward([features_t, y_pred_t])
+                multilinear_map = random_layer.forward([features, y_pred])
 
-            domain_pred_s = self.domain_classifier_(multilinear_map)
-            domain_pred_t = self.domain_classifier_(multilinear_map_target)
-            domain_pred = torch.empty(len(sample_domain), device=domain_pred_s.device)
-            domain_pred[source_idx] = domain_pred_s
-            domain_pred[~source_idx] = domain_pred_t
-
-            y_pred = torch.empty(
-                (len(sample_domain), y_pred_s.shape[1]), device=y_pred_s.device
-            )
-            y_pred[source_idx] = y_pred_s
-            y_pred[~source_idx] = y_pred_t
-
-            features = torch.empty(
-                (len(sample_domain), features_s.shape[1]), device=features_s.device
-            )
-            features[source_idx] = features_s
-            features[~source_idx] = features_t
+            domain_pred = self.domain_classifier_(multilinear_map)
 
             return (
                 y_pred,
