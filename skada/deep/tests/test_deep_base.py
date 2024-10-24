@@ -566,6 +566,44 @@ def test_sample_weight_error_with_reduction_none():
         method.fit(X, y, sample_domain=sample_domain, sample_weight=sample_weight)
 
 
+@pytest.mark.parametrize(
+    "base_criterion",
+    [
+        torch.nn.CrossEntropyLoss(),
+    ],
+)
+def test_predict_proba(da_dataset, base_criterion):
+    X_train, y_train, sample_domain_train = da_dataset.pack_train(
+        as_sources=["s"], as_targets=["t"]
+    )
+    X_train = X_train.astype(np.float32)
+    n_classes = len(np.unique(y_train))
+
+    module = ToyModule2D(n_classes=n_classes)
+
+    # Initialize the domain aware network
+    method = DomainAwareNet(
+        DomainAwareModule(module, "dropout"),
+        iterator_train=DomainBalancedDataLoader,
+        criterion=DomainAwareCriterion(base_criterion, TestLoss(), reduction="mean"),
+        batch_size=5,
+        max_epochs=1,
+        train_split=None,
+    )
+
+    # Fit the model
+    method.fit(X_train, y_train, sample_domain=sample_domain_train)
+
+    # Predict probabilities
+    X_test, y_test, sample_domain_test = da_dataset.pack_test(as_targets=["t"])
+    X_test = X_test.astype(np.float32)
+    y_proba = method.predict_proba(X_test, sample_domain=sample_domain_test)
+
+    assert y_proba.shape == (len(y_test), n_classes)
+    assert np.allclose(y_proba.sum(axis=1), 1)
+    assert np.all(y_proba >= 0)
+
+
 def test_allow_source():
     module = ToyModule2D()
     module.eval()
