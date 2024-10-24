@@ -4,6 +4,7 @@
 #
 # License: BSD 3-Clause
 import pytest
+from skorch.callbacks import EpochScoring
 
 pytest.importorskip("torch")
 
@@ -149,3 +150,48 @@ def test_can(sigmas, distance_threshold, class_threshold):
 
     history = method.history_
     assert history[0]["train_loss"] > history[-1]["train_loss"]
+
+
+def test_can_with_custom_callbacks():
+    module = ToyModule2D()
+    module.eval()
+
+    n_samples = 10
+    dataset = make_shifted_datasets(
+        n_samples_source=n_samples,
+        n_samples_target=n_samples,
+        shift="concept_drift",
+        noise=0.1,
+        random_state=42,
+        return_dataset=True,
+    )
+
+    # Create a custom callback
+    custom_callback = EpochScoring(scoring="accuracy", lower_is_better=False)
+
+    method = CAN(
+        ToyModule2D(),
+        reg=0.01,
+        layer_name="dropout",
+        batch_size=10,
+        max_epochs=10,
+        train_split=None,
+        callbacks=[custom_callback],  # Pass the custom callback
+    )
+
+    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    method.fit(X.astype(np.float32), y, sample_domain)
+
+    X_test, y_test, sample_domain_test = dataset.pack_test(as_targets=["t"])
+
+    y_pred = method.predict(X_test.astype(np.float32), sample_domain_test)
+
+    assert y_pred.shape[0] == X_test.shape[0]
+
+    history = method.history_
+    assert history[0]["train_loss"] > history[-1]["train_loss"]
+
+    # Check if both custom callback and ComputeSourceCentroids are present
+    callback_classes = [cb.__class__.__name__ for cb in method.callbacks]
+    assert "EpochScoring" in callback_classes
+    assert "ComputeSourceCentroids" in callback_classes
