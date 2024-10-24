@@ -12,16 +12,16 @@ from skada.transformers import SubsampleTransformer
 def test_SubsampleTransformer(da_dataset):
     X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
 
-    n_subsample = 10
+    train_size = 10
 
-    transformer = SubsampleTransformer(n_subsample=n_subsample)
+    transformer = SubsampleTransformer(train_size=train_size)
 
     X_subsampled, y_subsampled, params = transformer.fit_transform(
         X, y, sample_domain=sample_domain
     )
 
-    assert X_subsampled.shape[0] == n_subsample
-    assert y_subsampled.shape[0] == n_subsample
+    assert X_subsampled.shape[0] == train_size
+    assert y_subsampled.shape[0] == train_size
     assert "sample_domain" in params
 
     X_target, y_target, sample_domain_target = da_dataset.pack_test(as_targets=["t"])
@@ -34,7 +34,7 @@ def test_SubsampleTransformer(da_dataset):
 
     # within a pipeline
 
-    transformer = SubsampleTransformer(n_subsample=n_subsample)
+    transformer = SubsampleTransformer(train_size=train_size)
     pipeline = make_da_pipeline(StandardScaler(), transformer)
 
     temp = pipeline.fit_transform(X, y, sample_domain=sample_domain)
@@ -42,7 +42,7 @@ def test_SubsampleTransformer(da_dataset):
     assert temp is not None
 
     # now with a pipeline with end task
-    transformer = SubsampleTransformer(n_subsample=n_subsample)
+    transformer = SubsampleTransformer(train_size=train_size)
     pipeline = make_da_pipeline(StandardScaler(), transformer, CORAL())
 
     pipeline.fit(X, y, sample_domain=sample_domain)

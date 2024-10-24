@@ -2,6 +2,7 @@
 #
 # License: BSD 3-Clause
 
+from sklearn.model_selection import ShuffleSplit
 from sklearn.utils import check_random_state
 
 from .base import BaseAdapter
@@ -21,14 +22,15 @@ class SubsampleTransformer(BaseAdapter):
 
     Parameters
     ----------
-    n_subsample : int
-        Number of samples to keep (keep all if data smaller).
+    train_size : int, float
+        Number of samples to keep (keep all if data smaller) if integer, or
+        proportion of train sample if float 0<= train_size <= 1.
     random_state : int, RandomState instance or None, default=None
         Controls the random resampling of the data.
     """
 
-    def __init__(self, n_subsample, random_state=None):
-        self.n_subsample = n_subsample
+    def __init__(self, train_size, random_state=None):
+        self.train_size = train_size
         self.random_state = random_state
 
     def _pack_params(self, idx, **params):
@@ -44,7 +46,7 @@ class SubsampleTransformer(BaseAdapter):
 
         self.rng_ = check_random_state(self.random_state)
 
-        if self.n_subsample >= X.shape[0]:
+        if self.train_size >= X.shape[0]:
             return (
                 X,
                 y,
@@ -53,7 +55,11 @@ class SubsampleTransformer(BaseAdapter):
                 ),
             )
 
-        idx = self.rng_.choice(X.shape[0], self.n_subsample, replace=False)
+        splitter = ShuffleSplit(
+            n_splits=1, train_size=self.train_size, random_state=self.rng_
+        )
+
+        idx = next(splitter.split(X))[0]
         X_subsampled = X[idx]
         y_subsampled = y[idx] if y is not None else None
         params = self._pack_params(
