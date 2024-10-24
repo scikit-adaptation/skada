@@ -11,11 +11,13 @@ from typing import Dict, Any, Union
 import torch
 from torch.utils.data import DataLoader, Sampler, Dataset
 from sklearn.base import _clone_parametrized
+from sklearn.metrics import accuracy_score
 from skorch import NeuralNetClassifier
 
 from .utils import _register_forwards_hook
 
 from skada.base import _DAMetadataRequesterMixin
+from skada.utils import check_X_domain
 
 import numpy as np
 from skorch.utils import to_device
@@ -495,7 +497,7 @@ class DomainAwareModule(torch.nn.Module):
 
 class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
     __metadata_request__fit = {"sample_weight": True}
-    __metadata_request__score = {"sample_weight": True}
+    __metadata_request__score = {'sample_weight': True, 'sample_domain': True, 'allow_source': True}
     """
     A domain-aware neural network classifier with sample weight support.
 
@@ -570,6 +572,7 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         X: Union[Dict, torch.Tensor, np.ndarray, Dataset],
         sample_domain: Union[torch.Tensor, np.ndarray] = None,
         sample_weight: Union[torch.Tensor, np.ndarray] = None,
+        allow_source: bool = False,
         **predict_params
     ):
         """
@@ -583,6 +586,8 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
             The domain of each sample (if not provided in X).
         sample_weight : torch.Tensor or np.ndarray, optional
             The weight of each sample (not used in prediction, but included for consistency).
+        allow_source: bool = False,
+            Allow the presence of source domains.
         **predict_params : dict
             Additional parameters passed to the predict method of the base class.
 
@@ -591,14 +596,14 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         np.ndarray
             The predicted classes.
         """
-        X, _ = self._prepare_input(X, sample_domain, sample_weight)
-        return super().predict(X, **predict_params)
+        return self.predict_proba(X, sample_domain, sample_weight, allow_source, **predict_params).argmax(axis=1)
 
     def predict_proba(
         self,
         X: Union[Dict, torch.Tensor, np.ndarray, Dataset],
         sample_domain: Union[torch.Tensor, np.ndarray] = None,
         sample_weight: Union[torch.Tensor, np.ndarray] = None,
+        allow_source: bool = False,
         **predict_params
     ):
         """
@@ -612,6 +617,8 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
             The domain of each sample (if not provided in X).
         sample_weight : torch.Tensor or np.ndarray, optional
             The weight of each sample (not used in prediction, but included for consistency).
+        allow_source: bool = False,
+            Allow the presence of source domains.
         **predict_params : dict
             Additional parameters passed to the predict_proba method of the base class.
 
@@ -621,6 +628,8 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
             The predicted class probabilities.
         """
         X, _ = self._prepare_input(X, sample_domain, sample_weight)
+        X['X'], X['sample_domain'] = check_X_domain(X['X'], sample_domain=X['sample_domain'], allow_nd=True, allow_source=allow_source)
+
         return super().predict_proba(X, **predict_params)
 
     def predict_features(self, X: Union[Dict, torch.Tensor, np.ndarray, Dataset]):
@@ -656,6 +665,7 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         y: Union[torch.Tensor, np.ndarray],
         sample_domain: Union[torch.Tensor, np.ndarray] = None,
         sample_weight: Union[torch.Tensor, np.ndarray] = None,
+        allow_source: bool = False,
         **score_params
     ):
         """
@@ -671,6 +681,8 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
             The domain of each sample (if not provided in X).
         sample_weight : torch.Tensor or np.ndarray, optional
             The weight of each sample (not used in scoring, but included for consistency).
+        allow_source: bool = False,
+            Allow the presence of source domains.
         **score_params : dict
             Additional parameters passed to the score method of the base class.
 
@@ -680,7 +692,9 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
             The mean accuracy score.
         """
         X, _ = self._prepare_input(X, sample_domain, sample_weight)
-        return super().score(X, y, **score_params)
+        X['X'], X['sample_domain'] = check_X_domain(X['X'], sample_domain=X['sample_domain'], allow_nd=True, allow_source=allow_source)
+
+        return accuracy_score(y, self.predict(X, sample_domain, allow_source=allow_source), sample_weight=sample_weight)
 
     def feature_iter(
         self, X: torch.Tensor, training: bool = False, device: str = "cpu"
