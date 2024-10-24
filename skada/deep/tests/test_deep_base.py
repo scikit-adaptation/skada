@@ -119,7 +119,7 @@ def test_domainawaretraining():
     method.fit(X, y, sample_domain=sample_domain)
 
     y_pred = method.predict(X_test, sample_domain_test)
-    _ = method.predict_proba(X, sample_domain)
+    _ = method.predict_proba(X, sample_domain, allow_source=True)
     method.score(X_test, y_test, sample_domain_test)
 
     assert y_pred.shape[0] == X_test.shape[0]
@@ -134,7 +134,7 @@ def test_domainawaretraining():
     X_dict_test = {"X": X_test, "sample_domain": sample_domain_test}
 
     y_pred = method.predict(X_dict_test)
-    _ = method.predict_proba(X_dict)
+    _ = method.predict_proba(X_dict, allow_source=True)
     method.score(X_dict_test, y_test)
 
     assert y_pred.shape[0] == X_test.shape[0]
@@ -142,7 +142,7 @@ def test_domainawaretraining():
     # numpy input
     method.fit(X, y, sample_domain)
     y_pred = method.predict(X_test, sample_domain_test)
-    _ = method.predict_proba(X, sample_domain)
+    _ = method.predict_proba(X, sample_domain, allow_source=True)
     method.score(X_test, y_test, sample_domain_test)
 
     assert y_pred.shape[0] == X_test.shape[0]
@@ -150,7 +150,9 @@ def test_domainawaretraining():
     # tensor input
     method.fit(torch.tensor(X), torch.tensor(y), torch.tensor(sample_domain))
     y_pred = method.predict(torch.tensor(X_test), torch.tensor(sample_domain_test))
-    _ = method.predict_proba(torch.tensor(X), torch.tensor(sample_domain))
+    _ = method.predict_proba(
+        torch.tensor(X), torch.tensor(sample_domain), allow_source=True
+    )
     method.score(
         torch.tensor(X_test), torch.tensor(y_test), torch.tensor(sample_domain_test)
     )
@@ -600,3 +602,37 @@ def test_predict_proba(da_dataset, base_criterion):
     assert y_proba.shape == (len(y_test), n_classes)
     assert np.allclose(y_proba.sum(axis=1), 1)
     assert np.all(y_proba >= 0)
+
+
+def test_allow_source():
+    module = ToyModule2D()
+    module.eval()
+
+    n_samples = 20
+    dataset = make_shifted_datasets(
+        n_samples_source=n_samples,
+        n_samples_target=n_samples,
+        shift="concept_drift",
+        noise=0.1,
+        random_state=42,
+        return_dataset=True,
+    )
+    method = DomainAwareNet(
+        DomainAwareModule(module, "dropout"),
+        iterator_train=DomainBalancedDataLoader,
+        criterion=DomainAwareCriterion(torch.nn.CrossEntropyLoss(), TestLoss()),
+        batch_size=10,
+        max_epochs=2,
+        train_split=None,
+    )
+
+    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X_test, y_test, sample_domain_test = dataset.pack_test(as_targets=["t"])
+    X = X.astype(np.float32)
+    X_test = X_test.astype(np.float32)
+
+    # without dict
+    method.fit(X, y, sample_domain=sample_domain)
+
+    with pytest.raises(ValueError):
+        _ = method.predict_proba(X, sample_domain, allow_source=False)
