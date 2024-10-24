@@ -188,11 +188,13 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
         else:
             warnings.warn("All weights are zero. Using uniform weights.")
             weights = np.ones_like(weights) / len(weights)
+
+        source_idx = extract_source_indices(sample_domain)
         score = scorer(
             estimator,
             X_source,
             y_source,
-            sample_domain=sample_domain[sample_domain >= 0],
+            sample_domain=sample_domain[source_idx],
             sample_weight=weights,
             allow_source=True,
             **params,
