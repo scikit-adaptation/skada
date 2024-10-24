@@ -198,6 +198,12 @@ def check_X_domain(
     if not allow_multi_target and n_sources > 1:
         raise ValueError(f"Number of targets provided is {n_targets} "
                          "and 'allow_multi_target' is set to False")
+    
+    # Check for unique domain idx
+    unique_domain_idx = np.unique(sample_domain)
+    unique_domain_idx_abs = np.abs(unique_domain_idx)
+    if len(unique_domain_idx) != len(np.unique(unique_domain_idx_abs)):
+        raise ValueError("Domain labels should be unique")
 
     return X, sample_domain
 
