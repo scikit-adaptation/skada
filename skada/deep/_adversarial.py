@@ -248,8 +248,6 @@ class CDANModule(DomainAwareModule):
 
     def forward(self, X, sample_domain=None, is_fit=False, return_features=False):
         if is_fit:
-            source_idx = sample_domain >= 0
-
             # predict
             y_pred = self.base_module_(X)
             features = self.intermediate_layers[self.layer_name]
