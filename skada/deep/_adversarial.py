@@ -413,7 +413,7 @@ class MDDLoss(BaseDALoss):
 
     Parameters
     ----------
-    gamma : float (default=4.)
+    gamma : float (default=4.0)
         Margin parameter.
     domain_criterion : torch criterion (class), default=None
         The initialized criterion (loss) used to compute the
@@ -426,7 +426,7 @@ class MDDLoss(BaseDALoss):
             Machine Learning, 2019.
     """
 
-    def __init__(self, gamma=4, domain_criterion=None):
+    def __init__(self, gamma=4.0, domain_criterion=None):
         super().__init__()
         self.gamma = gamma
         if domain_criterion is None:
@@ -446,16 +446,14 @@ class MDDLoss(BaseDALoss):
     ):
         """Compute the domain adaptation loss"""
         if isinstance(self.domain_criterion_, torch.nn.BCEWithLogitsLoss):
-            pseudo_label_s = y_pred_s < 0
-            pseudo_label_t = y_pred_t < 0
+            pseudo_label_s = y_pred_s > 0
+            pseudo_label_t = y_pred_t > 0
 
         elif isinstance(self.domain_criterion_, torch.nn.BCELoss):
-            pseudo_label_s = y_pred_s < 0.5
-            pseudo_label_t = y_pred_t < 0.5
+            pseudo_label_s = y_pred_s > 0.5
+            pseudo_label_t = y_pred_t > 0.5
 
-        elif isinstance(self.domain_criterion_, torch.nn.BCELoss) or isinstance(
-            self.domain_criterion_, torch.nn.CrossEntropyLoss
-        ):
+        elif isinstance(self.domain_criterion_, torch.nn.CrossEntropyLoss):
             pseudo_label_s = torch.argmax(y_pred_s, axis=-1)
             pseudo_label_t = torch.argmax(y_pred_t, axis=-1)
         else:
@@ -477,6 +475,7 @@ def MDD(
     module,
     layer_name,
     reg=1,
+    gamma=4.0,
     domain_classifier=None,
     num_features=None,
     base_criterion=None,
@@ -498,6 +497,8 @@ def MDD(
         collected during the training.
     reg : float, default=1
         Regularization parameter for DA loss.
+    gamma : float (default=4.0)
+        Margin parameter.
     domain_classifier : torch module, default=None
         A PyTorch :class:`~torch.nn.Module` used to classify the
         domain. If None, a domain classifier is created following [1]_.
@@ -540,6 +541,7 @@ def MDD(
         criterion=DomainAwareCriterion,
         criterion__base_criterion=base_criterion,
         criterion__reg=reg,
+        criterion__gamma=gamma,
         criterion__adapt_criterion=MDDLoss(domain_criterion=domain_criterion),
         **kwargs,
     )
