@@ -351,8 +351,8 @@ def test_check_X_allow_exceptions():
     ):
         check_X_domain(
             X,
-            sample_domain=random_sample_domain,
-            allow_common_domain_idx=False,
+            sample_domain=common_idx_sample_domain,
+            allow_common_domain_idx=allow_common_domain_idx,
         )
 
 
