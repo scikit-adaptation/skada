@@ -255,6 +255,7 @@ def CAN(
     class_threshold=3,
     sigmas=None,
     base_criterion=None,
+    callbacks=None,
     **kwargs,
 ):
     """Contrastive Adaptation Network (CAN) domain adaptation method.
@@ -281,6 +282,8 @@ def CAN(
     base_criterion : torch criterion (class)
         The base criterion used to compute the loss with source
         labels. If None, the default is `torch.nn.CrossEntropyLoss`.
+    callbacks : list, optional
+        List of callbacks to be used during training.
 
     References
     ----------
@@ -291,6 +294,14 @@ def CAN(
     """
     if base_criterion is None:
         base_criterion = torch.nn.CrossEntropyLoss()
+
+    if callbacks is None:
+        callbacks = [ComputeSourceCentroids()]
+    else:
+        if isinstance(callbacks, list):
+            callbacks.append(ComputeSourceCentroids())
+        else:
+            callbacks = [callbacks, ComputeSourceCentroids()]
 
     net = DomainAwareNet(
         module=DomainAwareModule,
@@ -305,7 +316,7 @@ def CAN(
             class_threshold=class_threshold,
             sigmas=sigmas,
         ),
-        callbacks=[ComputeSourceCentroids()],
+        callbacks=callbacks,
         **kwargs,
     )
     return net
