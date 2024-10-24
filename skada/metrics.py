@@ -167,7 +167,9 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
                 f"The estimator {estimator!r} does not."
             )
 
-        X, y, sample_domain = check_X_y_domain(X, y, sample_domain, allow_nd=True)
+        X, y, sample_domain = check_X_y_domain(
+            X, y, sample_domain, allow_nd=True, allow_source=True
+        )
         X_source, X_target, y_source, _ = source_target_split(
             X, y, sample_domain=sample_domain
         )
@@ -187,37 +189,16 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
             warnings.warn("All weights are zero. Using uniform weights.")
             weights = np.ones_like(weights) / len(weights)
 
-        if isinstance(estimator, BaseEstimator):
-            score = scorer(
-                estimator,
-                X_source,
-                y_source,
-                sample_domain=sample_domain[sample_domain >= 0],
-                sample_weight=weights,
-                allow_source=True,
-                **params,
-            )
-        else:
-            try:
-                from skorch import NeuralNet
-
-                if isinstance(estimator, NeuralNet):
-                    # Deep estimators dont accept allow_source parameter
-                    score = scorer(
-                        estimator,
-                        X_source,
-                        y_source,
-                        sample_domain=sample_domain[sample_domain >= 0],
-                        sample_weight=weights,
-                        **params,
-                    )
-                else:
-                    raise ValueError("Estimator is not a NeuralNet instance")
-            except ImportError:
-                raise ValueError(
-                    "Importance Weighted Scorer does not support estimator"
-                    f"of type {type(estimator).__name__}"
-                )
+        source_idx = extract_source_indices(sample_domain)
+        score = scorer(
+            estimator,
+            X_source,
+            y_source,
+            sample_domain=sample_domain[source_idx],
+            sample_weight=weights,
+            allow_source=True,
+            **params,
+        )
 
         return self._sign * score
 
@@ -439,7 +420,9 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
             # We use the input data as features
             transformer = identity
 
-        X, y, sample_domain = check_X_y_domain(X, y, sample_domain, allow_nd=True)
+        X, y, sample_domain = check_X_y_domain(
+            X, y, sample_domain, allow_nd=True, allow_source=True
+        )
         source_idx = extract_source_indices(sample_domain)
         rng = check_random_state(self.random_state)
         X_train, X_val, _, y_val, _, sample_domain_val = train_test_split(
@@ -468,13 +451,9 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         N_train, N_target = len(features_train), len(features_target)
         domain_pred = self.domain_classifier_.predict_proba(features_val)
         weights = (N_train / N_target) * domain_pred[:, :1] / domain_pred[:, 1:]
-        if not isinstance(estimator, BaseEstimator):
-            # Deep estimators dont accept allow_source parameter
-            y_pred = estimator.predict_proba(X_val, sample_domain_val)
-        else:
-            y_pred = estimator.predict_proba(
-                X_val, sample_domain=sample_domain_val, allow_source=True
-            )
+        y_pred = estimator.predict_proba(
+            X_val, sample_domain=sample_domain_val, allow_source=True
+        )
 
         error = self._loss_func(y_val, y_pred)
         assert weights.shape[0] == error.shape[0]
@@ -566,7 +545,7 @@ class CircularValidation(_BaseDomainAwareScorer):
         self.source_scorer = source_scorer
         self._sign = 1 if greater_is_better else -1
 
-    def _score(self, estimator, X, y, sample_domain=None):
+    def _score(self, estimator, X, y, sample_domain=None, **params):
         """
         Compute the score based on a circular validation strategy.
 
@@ -618,7 +597,8 @@ class CircularValidation(_BaseDomainAwareScorer):
             # the target domain will predict the same label for all
             # the source domain samples
             score = self.source_scorer(
-                y[source_idx], np.ones_like(y[source_idx]) * y_pred_target[0]
+                y[source_idx],
+                np.ones_like(y[source_idx]) * y_pred_target[0],
             )
         else:
             y_type = _find_y_type(y[source_idx])
