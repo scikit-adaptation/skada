@@ -124,6 +124,7 @@ def check_X_domain(
     allow_multi_source: bool = True,
     allow_target: bool = True,
     allow_multi_target: bool = True,
+    allow_common_domain_idx: bool = True,
     allow_auto_sample_domain: bool = True,
     allow_nd: bool = False,
 ):
@@ -148,6 +149,8 @@ def check_X_domain(
         Allow the presence of target domains.
     allow_multi_target : bool, optional (default=True)
         Allow multiple target domains.
+    allow_common_domain_idx : bool, optional (default=True)
+        Allow the same domain index to be used for source and target domains.
     allow_auto_sample_domain : bool, optional (default=True)
         Allow automatic generation of sample_domain if not provided.
     allow_nd : bool, optional (default=False)
@@ -200,10 +203,12 @@ def check_X_domain(
                          "and 'allow_multi_target' is set to False")
     
     # Check for unique domain idx
-    unique_domain_idx = np.unique(sample_domain)
-    unique_domain_idx_abs = np.abs(unique_domain_idx)
-    if len(unique_domain_idx) != len(np.unique(unique_domain_idx_abs)):
-        raise ValueError("Domain labels should be unique")
+    if not allow_common_domain_idx:
+        unique_domain_idx = np.unique(sample_domain)
+        unique_domain_idx_abs = np.abs(unique_domain_idx)
+        if len(unique_domain_idx) != len(np.unique(unique_domain_idx_abs)):
+            raise ValueError("Domain labels should be unique: the same domain "
+                            "index should not be used both for source and target")
 
     return X, sample_domain
 
