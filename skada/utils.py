@@ -208,7 +208,7 @@ def check_X_domain(
         unique_domain_idx_abs = np.abs(unique_domain_idx)
         if len(unique_domain_idx) != len(np.unique(unique_domain_idx_abs)):
             raise ValueError("Domain labels should be unique: the same domain "
-                            "index should not be used both for source and target")
+                             "index should not be used both for source and target")
 
     return X, sample_domain
 
