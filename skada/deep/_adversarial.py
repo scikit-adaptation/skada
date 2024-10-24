@@ -409,7 +409,7 @@ class MDDLoss(BaseDALoss):
     through adversarial training of three networks: an encoder,
     a task network and a discriminator.
 
-    See [34]_ for details.
+    See [35]_ for details.
 
     Parameters
     ----------
@@ -421,7 +421,7 @@ class MDDLoss(BaseDALoss):
 
     References
     ----------
-    .. [34] Yuchen Zhang et. al. Bridging Theory and Algorithm
+    .. [35] Yuchen Zhang et. al. Bridging Theory and Algorithm
             for Domain Adaptation. In International Conference on
             Machine Learning, 2019.
     """
@@ -485,7 +485,7 @@ def MDD(
 ):
     """Margin Disparity Discrepancy (MDD).
 
-    From [34]_.
+    From [35]_.
 
     Parameters
     ----------
@@ -516,7 +516,7 @@ def MDD(
 
     References
     ----------
-    .. [34] Yuchen Zhang et. al. Bridging Theory and Algorithm
+    .. [35] Yuchen Zhang et. al. Bridging Theory and Algorithm
             for Domain Adaptation. In International Conference on
             Machine Learning, 2019.
     """
