@@ -103,6 +103,48 @@ def test_check_X_domain_exceptions():
         check_X_domain(X, sample_domain=None, allow_auto_sample_domain=False)
 
 
+def test_check_X_domain_scalar():
+    X, _, sample_domain = make_dataset_from_moons_distribution(
+        pos_source=0.1,
+        pos_target=0.9,
+        n_samples_source=50,
+        n_samples_target=20,
+        random_state=0,
+        return_X_y=True,
+    )
+
+    # Test scalar sample_domain
+    X_target = X[sample_domain == -2]
+    returned_X_target, sample_domain_target = check_X_domain(X_target, sample_domain=-2)
+
+    assert sample_domain_target.shape[0] == X_target.shape[0]
+    assert np.array_equal(returned_X_target, X_target)
+    assert np.array_equal(sample_domain_target, -2 * np.ones(X_target.shape[0]))
+
+
+def test_check_X_y_domain_scalar():
+    X, y, sample_domain = make_dataset_from_moons_distribution(
+        pos_source=0.1,
+        pos_target=0.9,
+        n_samples_source=50,
+        n_samples_target=20,
+        random_state=0,
+        return_X_y=True,
+    )
+
+    # Test scalar sample_domain
+    X_target = X[sample_domain == -2]
+    y_target = y[sample_domain == -2]
+    returned_X_target, returned_y_target, sample_domain_target = check_X_y_domain(
+        X_target, y_target, sample_domain=-2
+    )
+
+    assert sample_domain_target.shape[0] == X_target.shape[0]
+    assert np.array_equal(returned_X_target, X_target)
+    assert np.array_equal(returned_y_target, y_target)
+    assert np.array_equal(sample_domain_target, -2 * np.ones(X_target.shape[0]))
+
+
 def test_source_target_split():
     n_samples_source = 50
     n_samples_target = 20

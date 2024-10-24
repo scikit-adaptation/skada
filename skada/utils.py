@@ -46,8 +46,9 @@ def check_X_y_domain(
         Input features
     y : array-like of shape (n_samples,)
         Target variable
-    sample_domain : array-like or None, optional (default=None)
-        Array specifying the domain labels for each sample.
+    sample_domain : array-like, scalar, or None, optional (default=None)
+        Array specifying the domain labels for each sample. A scalar value
+        can be provided to assign all samples to the same domain.
     allow_source : bool, optional (default=True)
         Allow the presence of source domains.
     allow_multi_source : bool, optional (default=True)
@@ -90,6 +91,9 @@ def check_X_y_domain(
         else:
             mask = (np.isnan(y))
         sample_domain[mask] = _DEFAULT_TARGET_DOMAIN_LABEL
+
+    if np.isscalar(sample_domain):
+        sample_domain = sample_domain*np.ones_like(y)
 
     source_idx = extract_source_indices(sample_domain)
 
@@ -136,8 +140,9 @@ def check_X_domain(
     ----------
     X : array-like of shape (n_samples, n_features)
         Input features.
-    sample_domain : array-like of shape (n_samples,)
-        Domain labels for each sample.
+    sample_domain : array-like, scalar, or None, optional (default=None)
+        Array specifying the domain labels for each sample. A scalar value
+        can be provided to assign all samples to the same domain.
     allow_domains : set of int, optional (default=None)
         Set of allowed domain labels. If provided, only these domain labels are allowed.
     allow_source : bool, optional (default=True)
@@ -172,6 +177,9 @@ def check_X_domain(
         sample_domain = (
             _DEFAULT_TARGET_DOMAIN_ONLY_LABEL * np.ones(X.shape[0], dtype=np.int32)
         )
+
+    if np.isscalar(sample_domain):
+        sample_domain = sample_domain * np.ones(X.shape[0], dtype=np.int32)
 
     source_idx = extract_source_indices(sample_domain)
     check_consistent_length(X, sample_domain)
