@@ -434,6 +434,7 @@ class DomainAwareModule(torch.nn.Module):
                 domain_pred = self.domain_classifier_(features)
             else:
                 domain_pred = None
+
             return (
                 y_pred,
                 domain_pred,
