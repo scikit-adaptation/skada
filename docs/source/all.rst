@@ -148,6 +148,7 @@ Deep learning DA :py:mod:`skada.deep`:
    DANLoss
    CDANLoss
    MCCLoss
+   CANLoss
 
 .. autosummary::
    :toctree: gen_modules/
@@ -157,11 +158,13 @@ Deep learning DA :py:mod:`skada.deep`:
    deepcoral_loss
    deepjdot_loss
    mcc_loss
+   cdd_loss
    DeepCoral
    DeepJDOT
    DANN
    CDAN
    MCC
+   CAN
 
 
 

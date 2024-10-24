@@ -1,5 +1,6 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Remi Flamary <remi.flamary@polytechnique.edu>
+#         Yanis Lalou <yanis.lalou@polytechnique.edu>
 #
 # License: BSD 3-Clause
 
@@ -14,7 +15,7 @@ except (ImportError, ModuleNotFoundError) as e:
         "torch and skorch are required for importing skada.deep.* modules."
     ) from e
 
-from ._divergence import DeepCoral, DeepCoralLoss, DANLoss, DAN
+from ._divergence import DeepCoral, DeepCoralLoss, DANLoss, DAN, CAN, CANLoss
 from ._optimal_transport import DeepJDOT, DeepJDOTLoss
 from ._adversarial import DANN, CDAN, DANNLoss, CDANLoss
 from ._class_confusion import MCC, MCCLoss
@@ -38,6 +39,8 @@ __all__ = [
     'CDAN',
     'MCCLoss',
     'MCC',
+    'CANLoss',
+    'CAN',
     'SourceOnly',
     'TargetOnly',
 ]
