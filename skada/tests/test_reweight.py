@@ -231,7 +231,7 @@ def test_new_X_adapt(estimator, da_reg_datasets):
         DiscriminatorReweightAdapter(),
         KLIEPReweightAdapter(gamma=[0.1, 1, "auto", "scale"], random_state=42),
         KMMReweightAdapter(gamma=0.1, smooth_weights=True),
-        # MMDTarSReweightAdapter(gamma=1.0),
+        MMDTarSReweightAdapter(gamma=1.0),
     ],
 )
 def test_reg_new_X_adapt(estimator, da_reg_dataset):
