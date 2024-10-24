@@ -603,7 +603,7 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         """Return the nonlinearity to be applied to the prediction
 
         This can be useful, e.g., when
-        :func:`~skorch.classifier.NeuralNetClassifier.predict_proba`
+        :func:`~skada.DomainAwareNet.predict_proba`
         should return probabilities but a criterion is used that does
         not expect probabilities. In that case, the module can return
         whatever is required by the criterion and the
@@ -611,8 +611,8 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         probabilities.
 
         The nonlinearity is applied only when calling
-        :func:`~skorch.classifier.NeuralNetClassifier.predict` or
-        :func:`~skorch.classifier.NeuralNetClassifier.predict_proba`
+        :func:`~skada.DomainAwareNet.predict` or
+        :func:`~skada.DomainAwareNet.predict_proba`
         but not anywhere else -- notably, the loss is unaffected by
         this nonlinearity.
 
