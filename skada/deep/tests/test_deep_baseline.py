@@ -42,7 +42,7 @@ def test_sourceonly():
 
     # Fit and predict
     method.fit(X.astype(np.float32), y, sample_domain)
-    y_pred = method.predict(X.astype(np.float32), sample_domain)
+    y_pred = method.predict(X.astype(np.float32), sample_domain, allow_source=True)
 
     assert y_pred.shape[0] == X.shape[0]
 
@@ -53,7 +53,9 @@ def test_sourceonly():
     # Check accuracy is better on source domain than on target domain
     X_source, y_source, sample_domain_source = dataset.pack(as_sources=["s"])
     X_target, y_target, sample_domain_target = dataset.pack(as_targets=["t"])
-    y_pred_source = method.predict(X_source.astype(np.float32), sample_domain_source)
+    y_pred_source = method.predict(
+        X_source.astype(np.float32), sample_domain_source, allow_source=True
+    )
     y_pred_target = method.predict(X_target.astype(np.float32), sample_domain_target)
 
     acc_source = accuracy_score(y_source, y_pred_source)
@@ -89,7 +91,7 @@ def test_targetonly():
 
     # Fit and predict
     method.fit(X.astype(np.float32), y, sample_domain)
-    y_pred = method.predict(X.astype(np.float32), sample_domain)
+    y_pred = method.predict(X.astype(np.float32), sample_domain, allow_source=True)
 
     assert y_pred.shape[0] == X.shape[0]
 
@@ -100,7 +102,9 @@ def test_targetonly():
     # Check accuracy is better on target domain than on source domain
     X_source, y_source, sample_domain_source = dataset.pack(as_sources=["s"])
     X_target, y_target, sample_domain_target = dataset.pack(as_targets=["t"])
-    y_pred_source = method.predict(X_source.astype(np.float32), sample_domain_source)
+    y_pred_source = method.predict(
+        X_source.astype(np.float32), sample_domain_source, allow_source=True
+    )
     y_pred_target = method.predict(X_target.astype(np.float32), sample_domain_target)
 
     acc_source = accuracy_score(y_source, y_pred_source)
