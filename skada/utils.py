@@ -58,7 +58,7 @@ def check_X_y_domain(
     allow_multi_target : bool, optional (default=True)
         Allow multiple target domains.
     allow_common_domain_idx : bool, optional (default=True)
-        Allow the same domain index to be used for source and target domains.
+        Allow the same domain index to be used for source and target domains, e.g 1 for a source domain and -1 for a target domain.
     allow_auto_sample_domain : bool, optional (default=True)
         Allow automatic generation of sample_domain if not provided.
     allow_nd : bool, optional (default=False)
@@ -161,7 +161,7 @@ def check_X_domain(
     allow_multi_target : bool, optional (default=True)
         Allow multiple target domains.
     allow_common_domain_idx : bool, optional (default=True)
-        Allow the same domain index to be used for source and target domains.
+        Allow the same domain index to be used for source and target domains, e.g 1 for a source domain and -1 for a target domain.
     allow_auto_sample_domain : bool, optional (default=True)
         Allow automatic generation of sample_domain if not provided.
     allow_nd : bool, optional (default=False)
