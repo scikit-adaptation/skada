@@ -1,7 +1,7 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Remi Flamary <remi.flamary@polytechnique.edu>
 #         Yanis Lalou <yanis.lalou@polytechnique.edu>
-#
+#         Ambroise Odonnat <ambroiseodonnattechnologie@gmail.com>
 # License: BSD 3-Clause
 
 """
@@ -24,20 +24,22 @@ from . import losses
 from . import modules
 
 __all__ = [
-    'losses',
-    'modules',
-    'DeepCoralLoss',
-    'DeepCoral',
-    'DANLoss',
-    'DAN',
-    'DeepJDOTLoss',
-    'DeepJDOT',
-    'DANNLoss',
-    'DANN',
-    'CDANLoss',
-    'CDAN',
-    'CANLoss',
-    'CAN',
-    'SourceOnly',
-    'TargetOnly',
+    "losses",
+    "modules",
+    "DeepCoralLoss",
+    "DeepCoral",
+    "DANLoss",
+    "DAN",
+    "DeepJDOTLoss",
+    "DeepJDOT",
+    "DANNLoss",
+    "DANN",
+    "CDANLoss",
+    "CDAN",
+    "CANLoss",
+    "CAN",
+    "MDDLoss",
+    "MDD",
+    "SourceOnly",
+    "TargetOnly",
 ]
