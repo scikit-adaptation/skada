@@ -401,6 +401,76 @@ def CDAN(
     return net
 
 
+class MDDLoss(BaseDALoss):
+    """Loss MDD.
+
+    This loss tries to minimize the disparity discrepancy between
+    the source and target domains. The discrepancy is estimated
+    through adversarial training of three networks: an encoder,
+    a task network and a discriminator.
+
+    See [34]_ for details.
+
+    Parameters
+    ----------
+    gamma : float (default=4.)
+        Margin parameter.
+    domain_criterion : torch criterion (class), default=None
+        The initialized criterion (loss) used to compute the
+        MDD loss. If None, a BCELoss is used.
+
+    References
+    ----------
+    .. [34] Yuchen Zhang et. al. Bridging Theory and Algorithm
+            for Domain Adaptation. In International Conference on
+            Machine Learning, 2019.
+    """
+
+    def __init__(self, gamma=4, domain_criterion=None):
+        super().__init__()
+        self.gamma = gamma
+        if domain_criterion is None:
+            self.domain_criterion_ = torch.nn.BCELoss()
+        else:
+            self.domain_criterion_ = domain_criterion
+
+    def forward(
+        self,
+        y_s,
+        y_pred_s,
+        y_pred_t,
+        domain_pred_s,
+        domain_pred_t,
+        features_s,
+        features_t,
+    ):
+        """Compute the domain adaptation loss"""
+        if isinstance(self.domain_criterion_, torch.nn.BCEWithLogitsLoss):
+            pseudo_label_s = y_pred_s < 0
+            pseudo_label_t = y_pred_t < 0
+
+        elif isinstance(self.domain_criterion_, torch.nn.BCELoss):
+            pseudo_label_s = y_pred_s < 0.5
+            pseudo_label_t = y_pred_t < 0.5
+
+        elif isinstance(self.domain_criterion_, torch.nn.BCELoss) or isinstance(
+            self.domain_criterion_, torch.nn.CrossEntropyLoss
+        ):
+            pseudo_label_s = torch.argmax(y_pred_s, axis=-1)
+            pseudo_label_t = torch.argmax(y_pred_t, axis=-1)
+        else:
+            pseudo_label_s = y_pred_s
+            pseudo_label_t = y_pred_t
+
+        disc_loss_src = self.domain_criterion_(pseudo_label_s, domain_pred_s)
+        disc_loss_tgt = self.domain_criterion_(pseudo_label_t, domain_pred_t)
+
+        # Compute the loss value
+        disc_loss = self.gamma * disc_loss_src - disc_loss_tgt
+
+        return disc_loss
+
+
 class _RandomLayer(nn.Module):
     """Randomized multilinear map layer.
 
