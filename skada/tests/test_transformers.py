@@ -19,7 +19,7 @@ def test_SubsampleTransformer(da_dataset):
     train_size = 10
 
     # test size of output on fit_transform
-    transformer = SubsampleTransformer(train_size=train_size)
+    transformer = SubsampleTransformer(train_size=train_size, random_state=42)
 
     X_subsampled, y_subsampled, params = transformer.fit_transform(
         X, y, sample_domain=sample_domain, sample_weight=sample_weight
@@ -57,7 +57,9 @@ def test_DomainStratifiedSubsampleTransformer(da_dataset):
     train_size = 10
 
     # test size of output on fit_transform
-    transformer = DomainStratifiedSubsampleTransformer(train_size=train_size)
+    transformer = DomainStratifiedSubsampleTransformer(
+        train_size=train_size, random_state=42
+    )
 
     X_subsampled, y_subsampled, params = transformer.fit_transform(
         X, y, sample_domain=sample_domain, sample_weight=sample_weight
