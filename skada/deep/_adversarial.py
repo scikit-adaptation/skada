@@ -1,4 +1,5 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
+#         Ambroise Odonnat <ambroiseodonnattechnologie@gmail.com>
 #
 # License: BSD 3-Clause
 import math
@@ -30,7 +31,7 @@ class DANNLoss(BaseDALoss):
 
     Parameters
     ----------
-    target_criterion : torch criterion (class), default=None
+    domain_criterion : torch criterion (class), default=None
         The initialized criterion (loss) used to compute the
         DANN loss. If None, a BCELoss is used.
 
@@ -161,9 +162,7 @@ class CDANLoss(BaseDALoss):
 
     Parameters
     ----------
-    reg : float, default=1
-        Regularization parameter.
-    target_criterion : torch criterion (class), default=None
+    domain_criterion : torch criterion (class), default=None
         The initialized criterion (loss) used to compute the
         CDAN loss. If None, a BCELoss is used.
 
@@ -365,6 +364,154 @@ def CDAN(
         criterion__base_criterion=base_criterion,
         criterion__reg=reg,
         criterion__adapt_criterion=CDANLoss(domain_criterion=domain_criterion),
+        **kwargs,
+    )
+    return net
+
+
+class MDDLoss(BaseDALoss):
+    """Loss MDD.
+
+    This loss tries to minimize the disparity discrepancy between
+    the source and target domains. The discrepancy is estimated
+    through adversarial training of three networks: an encoder,
+    a task network and a discriminator.
+
+    See [35]_ for details.
+
+    Parameters
+    ----------
+    gamma : float (default=4.0)
+        Margin parameter.
+    domain_criterion : torch criterion (class), default=None
+        The initialized criterion (loss) used to compute the
+        MDD loss. If None, a BCELoss is used.
+
+    References
+    ----------
+    .. [35] Yuchen Zhang et. al. Bridging Theory and Algorithm
+            for Domain Adaptation. In International Conference on
+            Machine Learning, 2019.
+    """
+
+    def __init__(self, gamma=4.0, domain_criterion=None):
+        super().__init__()
+        self.gamma = gamma
+        if domain_criterion is None:
+            self.domain_criterion_ = torch.nn.BCELoss()
+        else:
+            self.domain_criterion_ = domain_criterion
+
+    def forward(
+        self,
+        y_s,
+        y_pred_s,
+        y_pred_t,
+        domain_pred_s,
+        domain_pred_t,
+        features_s,
+        features_t,
+    ):
+        """Compute the domain adaptation loss"""
+        # TODO: handle binary classification
+        # if isinstance(self.domain_criterion_, torch.nn.BCEWithLogitsLoss):
+        #    pseudo_label_s = y_pred_s > 0
+        #    pseudo_label_t = y_pred_t > 0
+
+        # elif isinstance(self.domain_criterion_, torch.nn.BCELoss):
+        #     pseudo_label_s = y_pred_s > 0.5
+        #     pseudo_label_t = y_pred_t > 0.5
+
+        if isinstance(self.domain_criterion_, torch.nn.CrossEntropyLoss):
+            pseudo_label_s = torch.argmax(y_pred_s, axis=-1)
+            pseudo_label_t = torch.argmax(y_pred_t, axis=-1)
+        else:
+            pseudo_label_s = y_pred_s
+            pseudo_label_t = y_pred_t
+
+        pseudo_label_s = pseudo_label_s.to(domain_pred_s.device)
+        pseudo_label_t = pseudo_label_t.to(domain_pred_t.device)
+        disc_loss_src = self.domain_criterion_(pseudo_label_s, domain_pred_s)
+        disc_loss_tgt = self.domain_criterion_(pseudo_label_t, domain_pred_t)
+
+        # Compute the loss value
+        disc_loss = self.gamma * disc_loss_src - disc_loss_tgt
+
+        return disc_loss
+
+
+def MDD(
+    module,
+    layer_name,
+    reg=1,
+    gamma=4.0,
+    domain_classifier=None,
+    num_features=None,
+    base_criterion=None,
+    domain_criterion=None,
+    **kwargs,
+):
+    """Margin Disparity Discrepancy (MDD).
+
+    From [35]_.
+
+    Parameters
+    ----------
+    module : torch module (class or instance)
+        A PyTorch :class:`~torch.nn.Module`. In general, the
+        uninstantiated class should be passed, although instantiated
+        modules will also work.
+    layer_name : str
+        The name of the module's layer whose outputs are
+        collected during the training.
+    reg : float, default=1
+        Regularization parameter for DA loss.
+    gamma : float (default=4.0)
+        Margin parameter.
+    domain_classifier : torch module, default=None
+        A PyTorch :class:`~torch.nn.Module` used to classify the
+        domain. If None, a domain classifier is created following [1]_.
+    num_features : int, default=None
+        Size of the input of domain classifier,
+        e.g size of the last layer of
+        the feature extractor.
+        If domain_classifier is None, num_features has to be
+        provided.
+    base_criterion : torch criterion (class)
+        The base criterion used to compute the loss with source
+        labels. If None, the default is `torch.nn.CrossEntropyLoss`.
+    domain_criterion : torch criterion (class)
+        The criterion (loss) used to compute the
+        MDD loss. If None, a BCELoss is used.
+
+    References
+    ----------
+    .. [35] Yuchen Zhang et. al. Bridging Theory and Algorithm
+            for Domain Adaptation. In International Conference on
+            Machine Learning, 2019.
+    """
+    if domain_classifier is None:
+        # raise error if num_feature is None
+        if num_features is None:
+            raise ValueError(
+                "If domain_classifier is None, num_features has to be provided"
+            )
+        domain_classifier = DomainClassifier(num_features=num_features)
+
+    if base_criterion is None:
+        base_criterion = torch.nn.CrossEntropyLoss()
+
+    net = DomainAwareNet(
+        module=DomainAwareModule,
+        module__base_module=module,
+        module__layer_name=layer_name,
+        module__domain_classifier=domain_classifier,
+        iterator_train=DomainBalancedDataLoader,
+        criterion=DomainAwareCriterion,
+        criterion__base_criterion=base_criterion,
+        criterion__reg=reg,
+        criterion__gamma=gamma,
+        criterion__adapt_criterion=MDDLoss(domain_criterion=domain_criterion),
         **kwargs,
     )
     return net
