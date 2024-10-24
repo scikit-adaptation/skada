@@ -462,6 +462,8 @@ class MDDLoss(BaseDALoss):
             pseudo_label_s = y_pred_s
             pseudo_label_t = y_pred_t
 
+        pseudo_label_s = pseudo_label_s.to(domain_pred_s.device)
+        pseudo_label_t = pseudo_label_t.to(domain_pred_t.device)
         disc_loss_src = self.domain_criterion_(pseudo_label_s, domain_pred_s)
         disc_loss_tgt = self.domain_criterion_(pseudo_label_t, domain_pred_t)
 
@@ -469,6 +471,79 @@ class MDDLoss(BaseDALoss):
         disc_loss = self.gamma * disc_loss_src - disc_loss_tgt
 
         return disc_loss
+
+
+def MDD(
+    module,
+    layer_name,
+    reg=1,
+    domain_classifier=None,
+    num_features=None,
+    base_criterion=None,
+    domain_criterion=None,
+    **kwargs,
+):
+    """Margin Disparity Discrepancy (MDD).
+
+    From [34]_.
+
+    Parameters
+    ----------
+    module : torch module (class or instance)
+        A PyTorch :class:`~torch.nn.Module`. In general, the
+        uninstantiated class should be passed, although instantiated
+        modules will also work.
+    layer_name : str
+        The name of the module's layer whose outputs are
+        collected during the training.
+    reg : float, default=1
+        Regularization parameter for DA loss.
+    domain_classifier : torch module, default=None
+        A PyTorch :class:`~torch.nn.Module` used to classify the
+        domain. If None, a domain classifier is created following [1]_.
+    num_features : int, default=None
+        Size of the input of domain classifier,
+        e.g size of the last layer of
+        the feature extractor.
+        If domain_classifier is None, num_features has to be
+        provided.
+    base_criterion : torch criterion (class)
+        The base criterion used to compute the loss with source
+        labels. If None, the default is `torch.nn.CrossEntropyLoss`.
+    domain_criterion : torch criterion (class)
+        The criterion (loss) used to compute the
+        MDD loss. If None, a BCELoss is used.
+
+    References
+    ----------
+    .. [34] Yuchen Zhang et. al. Bridging Theory and Algorithm
+            for Domain Adaptation. In International Conference on
+            Machine Learning, 2019.
+    """
+    if domain_classifier is None:
+        # raise error if num_feature is None
+        if num_features is None:
+            raise ValueError(
+                "If domain_classifier is None, num_features has to be provided"
+            )
+        domain_classifier = DomainClassifier(num_features=num_features)
+
+    if base_criterion is None:
+        base_criterion = torch.nn.CrossEntropyLoss()
+
+    net = DomainAwareNet(
+        module=DomainAwareModule,
+        module__base_module=module,
+        module__layer_name=layer_name,
+        module__domain_classifier=domain_classifier,
+        iterator_train=DomainBalancedDataLoader,
+        criterion=DomainAwareCriterion,
+        criterion__base_criterion=base_criterion,
+        criterion__reg=reg,
+        criterion__adapt_criterion=MDDLoss(domain_criterion=domain_criterion),
+        **kwargs,
+    )
+    return net
 
 
 class _RandomLayer(nn.Module):
