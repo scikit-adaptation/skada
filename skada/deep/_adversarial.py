@@ -445,15 +445,16 @@ class MDDLoss(BaseDALoss):
         features_t,
     ):
         """Compute the domain adaptation loss"""
-        if isinstance(self.domain_criterion_, torch.nn.BCEWithLogitsLoss):
-            pseudo_label_s = y_pred_s > 0
-            pseudo_label_t = y_pred_t > 0
+        # TODO: handle binary classification
+        # if isinstance(self.domain_criterion_, torch.nn.BCEWithLogitsLoss):
+        #    pseudo_label_s = y_pred_s > 0
+        #    pseudo_label_t = y_pred_t > 0
 
-        elif isinstance(self.domain_criterion_, torch.nn.BCELoss):
-            pseudo_label_s = y_pred_s > 0.5
-            pseudo_label_t = y_pred_t > 0.5
+        # elif isinstance(self.domain_criterion_, torch.nn.BCELoss):
+        #     pseudo_label_s = y_pred_s > 0.5
+        #     pseudo_label_t = y_pred_t > 0.5
 
-        elif isinstance(self.domain_criterion_, torch.nn.CrossEntropyLoss):
+        if isinstance(self.domain_criterion_, torch.nn.CrossEntropyLoss):
             pseudo_label_s = torch.argmax(y_pred_s, axis=-1)
             pseudo_label_t = torch.argmax(y_pred_t, axis=-1)
         else:
