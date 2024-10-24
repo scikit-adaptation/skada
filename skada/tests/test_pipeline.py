@@ -33,6 +33,7 @@ def test_pipeline(da_dataset):
     # by default, each estimator in the pipeline is wrapped into `Shared` selector
     pipe = make_da_pipeline(
         StandardScaler(),
+        None,
         PCA(),
         SubspaceAlignmentAdapter(n_components=2),
         LogisticRegression(),
