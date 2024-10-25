@@ -1,6 +1,6 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Oleksii Kachaiev <kachayev@gmail.com>
-#
+#         Ambroise Odonnat <ambroiseodonnattechnologie@gmail.com>
 # License: BSD 3-Clause
 import pytest
 
@@ -115,14 +115,14 @@ def test_cdan(domain_classifier, domain_criterion, num_feature, max_feature, n_c
 
 
 @pytest.mark.parametrize(
-    "domain_classifier, domain_criterion, num_features",
+    "domain_classifier, criterion, num_features",
     [
         (DomainClassifier(num_features=10), CrossEntropyLoss(), None),
         (DomainClassifier(num_features=10), None, None),
         (None, None, 10),
     ],
 )
-def test_mdd(domain_classifier, domain_criterion, num_features):
+def test_mdd(domain_classifier, criterion, num_features):
     module = ToyModule2D()
     module.eval()
 
@@ -142,7 +142,7 @@ def test_mdd(domain_classifier, domain_criterion, num_features):
         gamma=4.0,
         domain_classifier=domain_classifier,
         num_features=num_features,
-        domain_criterion=domain_criterion,
+        criterion=criterion,
         layer_name="dropout",
         batch_size=10,
         max_epochs=10,
