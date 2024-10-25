@@ -461,10 +461,10 @@ class MDDLoss(BaseDALoss):
             pseudo_label_s = y_pred_s
             pseudo_label_t = y_pred_t
 
-        pseudo_label_s = pseudo_label_s.to(domain_pred_s.device)
-        pseudo_label_t = pseudo_label_t.to(domain_pred_t.device)
-        disc_loss_src = self.criterion(pseudo_label_s, domain_pred_s)
-        disc_loss_tgt = self.criterion(pseudo_label_t, domain_pred_t)
+        pseudo_label_s = torch.LongTensor(pseudo_label_s.to(domain_pred_s.device))
+        pseudo_label_t = torch.LongTensor(pseudo_label_t.to(domain_pred_t.device))
+        disc_loss_src = self.criterion(domain_pred_s, pseudo_label_s)
+        disc_loss_tgt = self.criterion(domain_pred_t, pseudo_label_t)
 
         # Compute the loss value
         disc_loss = self.gamma * disc_loss_src - disc_loss_tgt
