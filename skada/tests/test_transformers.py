@@ -2,6 +2,8 @@
 #
 # License: BSD 3-Clause
 
+from collections import Counter
+
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 
@@ -116,8 +118,17 @@ def test_DomainAndLabelStratifiedSubsampleTransformer(da_dataset):
     assert y_subsampled.shape[0] == train_size
     assert params["sample_domain"].shape[0] == train_size
     assert params["sample_weight"].shape[0] == train_size
-    # check stratification
-    assert sum(params["sample_domain"] == 1) == train_size // 2
+
+    # Check stratification proportions
+    original_freq = Counter(zip(sample_domain, y))
+    subsampled_freq = Counter(zip(params["sample_domain"], y_subsampled))
+
+    for key in original_freq:
+        original_ratio = original_freq[key] / len(y)
+        subsampled_ratio = subsampled_freq[key] / train_size
+        assert np.isclose(
+            original_ratio, subsampled_ratio, atol=0.1
+        ), f"Stratification not preserved for {key}"
 
     # test size of output on transform
     X_target, y_target, sample_domain_target = da_dataset.pack_test(as_targets=["t"])
