@@ -4,7 +4,11 @@
 #
 # License: BSD 3-Clause
 import numbers
+from functools import partial
+
+from skorch.utils import _identity
 import torch
+from torch.nn import CrossEntropyLoss
 from torch.nn.functional import cosine_similarity
 from sklearn.utils.validation import check_is_fitted
 
@@ -54,6 +58,43 @@ def check_generator(seed):
     raise ValueError(
         "%r cannot be used to seed a torch.Generator instance" % seed
     )
+
+
+def _infer_predict_nonlinearity(net):
+    """Infers the correct nonlinearity to apply for this net
+
+    The nonlinearity is applied only when calling
+    :func:`~skorch.classifier.NeuralNetClassifier.predict` or
+    :func:`~skorch.classifier.NeuralNetClassifier.predict_proba`.
+
+    """
+    # Implementation: At the moment, this function "dispatches" only
+    # based on the criterion, not the class of the net. We still pass
+    # the whole net as input in case we want to modify this at a
+    # future point in time.
+    if len(net._criteria) != 1:
+        # don't know which criterion to consider, don't try to guess
+        return _identity
+
+    criterion = getattr(net, net._criteria[0] + '_').base_criterion
+
+    if isinstance(criterion, CrossEntropyLoss):
+        return partial(torch.softmax, dim=-1)
+
+    # TODO: handle more cases
+    # - BCEWithLogitsLoss
+    # - BCELoss
+    # - MSELoss
+    # But first, see: https://github.com/scikit-adaptation/skada/issues/249
+
+    # from skorch.utils import _sigmoid_then_2d, _make_2d_probs
+    # if isinstance(criterion, BCEWithLogitsLoss):
+    #     return _sigmoid_then_2d
+
+    # if isinstance(criterion, BCELoss):
+    #     return _make_2d_probs
+
+    return _identity
 
 
 class SphericalKMeans:

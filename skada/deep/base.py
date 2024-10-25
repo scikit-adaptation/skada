@@ -7,6 +7,7 @@
 
 from abc import abstractmethod
 from typing import Dict, Any, Union
+from functools import partial
 
 import torch
 from torch.utils.data import DataLoader, Sampler, Dataset
@@ -14,7 +15,7 @@ from sklearn.base import _clone_parametrized
 from sklearn.metrics import accuracy_score
 from skorch import NeuralNetClassifier
 
-from .utils import _register_forwards_hook
+from .utils import _register_forwards_hook, _infer_predict_nonlinearity
 
 from skada.base import _DAMetadataRequesterMixin
 from skada.utils import check_X_domain
@@ -420,71 +421,27 @@ class DomainAwareModule(torch.nn.Module):
         return_features=False,
     ):
         if is_fit:
-            source_idx = sample_domain >= 0
-
-            X_s = X[source_idx]
-            X_t = X[~source_idx]
-
-            # Pass sample_weight to base_module_
             if sample_weight is not None:
-                sample_weight_s = sample_weight[source_idx]
-                y_pred_s = self.base_module_(X_s, sample_weight=sample_weight_s)
+                y_pred = self.base_module_(X, sample_weight=sample_weight)
             else:
-                y_pred_s = self.base_module_(X_s)
+                y_pred = self.base_module_(X)
 
             if self.layer_name is not None:
-                features_s = self.intermediate_layers[self.layer_name]
+                features = self.intermediate_layers[self.layer_name]
             else:
-                features_s = None
-
-            if sample_weight is not None:
-                sample_weight_t = sample_weight[~source_idx]
-                y_pred_t = self.base_module_(X_t, sample_weight=sample_weight_t)
-            else:
-                y_pred_t = self.base_module_(X_t)
-
-            if self.layer_name is not None:
-                features_t = self.intermediate_layers[self.layer_name]
-            else:
-                features_t = None
+                features = None
 
             if self.domain_classifier_ is not None:
-                domain_pred_s = self.domain_classifier_(features_s)
-                domain_pred_t = self.domain_classifier_(features_t)
-                domain_pred = torch.empty(
-                    (len(sample_domain)), device=domain_pred_s.device
-                )
-                domain_pred[source_idx] = domain_pred_s
-                domain_pred[~source_idx] = domain_pred_t
+                domain_pred = self.domain_classifier_(features)
             else:
                 domain_pred = None
 
-            y_pred = torch.empty(
-                (len(sample_domain), y_pred_s.shape[1]), device=y_pred_s.device
+            return (
+                y_pred,
+                domain_pred,
+                features,
+                sample_domain,
             )
-            y_pred[source_idx] = y_pred_s
-            y_pred[~source_idx] = y_pred_t
-
-            if self.layer_name is not None:
-                features = torch.empty(
-                    (len(sample_domain), features_s.shape[1]), device=features_s.device
-                )
-                features[source_idx] = features_s
-                features[~source_idx] = features_t
-
-                return (
-                    y_pred,
-                    domain_pred,
-                    features,
-                    sample_domain,
-                )
-            else:
-                return (
-                    y_pred,
-                    domain_pred,
-                    None,
-                    sample_domain,
-                )
         else:
             if return_features:
                 return (
@@ -597,6 +554,45 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
             The predicted classes.
         """
         return self.predict_proba(X, sample_domain, sample_weight, allow_source, **predict_params).argmax(axis=1)
+
+    def _get_predict_nonlinearity(self):
+        """Return the nonlinearity to be applied to the prediction
+
+        This can be useful, e.g., when
+        :func:`~skada.DomainAwareNet.predict_proba`
+        should return probabilities but a criterion is used that does
+        not expect probabilities. In that case, the module can return
+        whatever is required by the criterion and the
+        ``predict_nonlinearity`` transforms this output into
+        probabilities.
+
+        The nonlinearity is applied only when calling
+        :func:`~skada.DomainAwareNet.predict` or
+        :func:`~skada.DomainAwareNet.predict_proba`
+        but not anywhere else -- notably, the loss is unaffected by
+        this nonlinearity.
+
+        Raises
+        ------
+        TypeError
+          Raise a TypeError if the return value is not callable.
+
+        Returns
+        -------
+        nonlin : callable
+          A callable that takes a single argument, which is a PyTorch
+          tensor, and returns a PyTorch tensor.
+
+        """
+        self.check_is_fitted()
+        nonlin = self.predict_nonlinearity
+        if nonlin is None:
+            nonlin = _identity
+        elif nonlin == 'auto':
+            nonlin = _infer_predict_nonlinearity(self)
+        if not callable(nonlin):
+            raise TypeError("predict_nonlinearity has to be a callable, 'auto' or None")
+        return nonlin
 
     def predict_proba(
         self,
