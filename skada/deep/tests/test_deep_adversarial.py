@@ -134,7 +134,6 @@ def test_mdd(domain_classifier, criterion, num_features):
         noise=0.1,
         random_state=42,
         return_dataset=True,
-        label="multiclass",
     )
 
     method = MDD(

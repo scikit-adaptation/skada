@@ -429,8 +429,17 @@ class MDDLoss(BaseDALoss):
             pseudo_label_s = y_pred_s
             pseudo_label_t = y_pred_t
 
-        pseudo_label_s = torch.LongTensor(pseudo_label_s.to(domain_pred_s.device))
-        pseudo_label_t = torch.LongTensor(pseudo_label_t.to(domain_pred_t.device))
+        pseudo_label_s = pseudo_label_s.to(domain_pred_s.device)
+        pseudo_label_t = pseudo_label_t.to(domain_pred_t.device)
+
+        # Deal with CrossEntropyLoss convention in Pytorch
+        if domain_pred_s.shape == pseudo_label_s.shape:
+            domain_pred_s = domain_pred_s.float()
+            pseudo_label_s = pseudo_label_s.float()
+        else:
+            domain_pred_s = domain_pred_s.float()
+            pseudo_label_s = pseudo_label_s.long()
+
         disc_loss_src = self.criterion(domain_pred_s, pseudo_label_s)
         disc_loss_tgt = self.criterion(domain_pred_t, pseudo_label_t)
 
