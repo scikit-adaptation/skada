@@ -221,6 +221,7 @@ def test_return_features():
         noise=0.1,
         random_state=42,
         return_dataset=True,
+        label="multiclass",
     )
 
     method = CDAN(
