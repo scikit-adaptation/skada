@@ -9,20 +9,20 @@ from sklearn.preprocessing import StandardScaler
 
 from skada import CORAL, make_da_pipeline
 from skada.transformers import (
-    DomainAndLabelStratifiedSubsampleTransformer,
-    DomainStratifiedSubsampleTransformer,
-    SubsampleTransformer,
+    DomainSubsampler,
+    StratifiedDomainSubsampler,
+    Subsampler,
 )
 
 
-def test_SubsampleTransformer(da_dataset):
+def test_Subsampler(da_dataset):
     X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
     sample_weight = np.ones_like(y)
 
     train_size = 10
 
     # test size of output on fit_transform
-    transformer = SubsampleTransformer(train_size=train_size, random_state=42)
+    transformer = Subsampler(train_size=train_size, random_state=42)
 
     X_subsampled, y_subsampled, params = transformer.fit_transform(
         X, y, sample_domain=sample_domain, sample_weight=sample_weight
@@ -43,7 +43,7 @@ def test_SubsampleTransformer(da_dataset):
     assert X_target_subsampled.shape[0] == X_target.shape[0]
 
     # now with a pipeline with end task
-    transformer = SubsampleTransformer(train_size=train_size)
+    transformer = Subsampler(train_size=train_size)
     pipeline = make_da_pipeline(StandardScaler(), transformer, CORAL())
 
     pipeline.fit(X, y, sample_domain=sample_domain)
@@ -55,16 +55,14 @@ def test_SubsampleTransformer(da_dataset):
     assert ypred.shape[0] == X.shape[0]
 
 
-def test_DomainStratifiedSubsampleTransformer(da_dataset):
+def test_DomainSubsampler(da_dataset):
     X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
     sample_weight = np.ones_like(y)
 
     train_size = 10
 
     # test size of output on fit_transform
-    transformer = DomainStratifiedSubsampleTransformer(
-        train_size=train_size, random_state=42
-    )
+    transformer = DomainSubsampler(train_size=train_size, random_state=42)
 
     X_subsampled, y_subsampled, params = transformer.fit_transform(
         X, y, sample_domain=sample_domain, sample_weight=sample_weight
@@ -87,7 +85,7 @@ def test_DomainStratifiedSubsampleTransformer(da_dataset):
     assert X_target_subsampled.shape[0] == X_target.shape[0]
 
     # now with a pipeline with end task
-    transformer = DomainStratifiedSubsampleTransformer(train_size=train_size)
+    transformer = DomainSubsampler(train_size=train_size)
     pipeline = make_da_pipeline(StandardScaler(), transformer, CORAL())
 
     pipeline.fit(X, y, sample_domain=sample_domain)
@@ -99,16 +97,14 @@ def test_DomainStratifiedSubsampleTransformer(da_dataset):
     assert ypred.shape[0] == X.shape[0]
 
 
-def test_DomainAndLabelStratifiedSubsampleTransformer(da_dataset):
+def test_StratifiedDomainSubsampler(da_dataset):
     X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
     sample_weight = np.ones_like(y)
 
     train_size = 10
 
     # test size of output on fit_transform
-    transformer = DomainAndLabelStratifiedSubsampleTransformer(
-        train_size=train_size, random_state=42
-    )
+    transformer = StratifiedDomainSubsampler(train_size=train_size, random_state=42)
 
     X_subsampled, y_subsampled, params = transformer.fit_transform(
         X, y, sample_domain=sample_domain, sample_weight=sample_weight
@@ -140,7 +136,7 @@ def test_DomainAndLabelStratifiedSubsampleTransformer(da_dataset):
     assert X_target_subsampled.shape[0] == X_target.shape[0]
 
     # now with a pipeline with end task
-    transformer = DomainAndLabelStratifiedSubsampleTransformer(train_size=train_size)
+    transformer = StratifiedDomainSubsampler(train_size=train_size)
     pipeline = make_da_pipeline(StandardScaler(), transformer, CORAL())
 
     pipeline.fit(X, y, sample_domain=sample_domain)

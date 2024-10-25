@@ -10,7 +10,7 @@ from .model_selection import StratifiedDomainShuffleSplit
 from .utils import check_X_y_domain
 
 
-class SubsampleTransformer(BaseAdapter):
+class Subsampler(BaseAdapter):
     """Transformer that subsamples the data.
 
     This transformer is useful to speed up computations when the data is too
@@ -75,7 +75,7 @@ class SubsampleTransformer(BaseAdapter):
         return X
 
 
-class DomainStratifiedSubsampleTransformer(BaseAdapter):
+class DomainSubsampler(BaseAdapter):
     """Transformer that subsamples the data in a domain stratified way.
 
     This transformer is useful to speed up computations when the data is too
@@ -139,7 +139,7 @@ class DomainStratifiedSubsampleTransformer(BaseAdapter):
         return X
 
 
-class DomainAndLabelStratifiedSubsampleTransformer(BaseAdapter):
+class StratifiedDomainSubsampler(BaseAdapter):
     """Transformer that subsamples the data in a domain and label stratified way.
     This transformer is useful to speed up computations when the data is too
     large. It randomly selects a subset of the data to work with during training
