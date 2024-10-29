@@ -115,7 +115,7 @@ def test_cdan(domain_classifier, domain_criterion, num_feature, max_feature, n_c
 
 
 @pytest.mark.parametrize(
-    "domain_classifier, criterion, num_features",
+    "domain_classifier, domain_criterion, num_features",
     [
         (DomainClassifier(num_features=10), BCELoss(), None),
         (DomainClassifier(num_features=10), None, None),
