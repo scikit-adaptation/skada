@@ -9,9 +9,11 @@ from skorch.callbacks import EpochScoring
 pytest.importorskip("torch")
 
 import numpy as np
+import torch
 
 from skada.datasets import make_shifted_datasets
 from skada.deep import CAN, DAN, DeepCoral
+from skada.deep.losses import cdd_loss
 from skada.deep.modules import ToyModule2D
 
 
@@ -195,3 +197,14 @@ def test_can_with_custom_callbacks():
     callback_classes = [cb.__class__.__name__ for cb in method.callbacks]
     assert "EpochScoring" in callback_classes
     assert "ComputeSourceCentroids" in callback_classes
+
+
+def test_cdd_loss_edge_cases():
+    # Test when median pairwise distance is 0
+    features_s = torch.ones((4, 2))  # All features are identical
+    features_t = torch.randn((4, 2))
+    y_s = torch.tensor([0, 0, 1, 1])  # Two classes
+
+    # This should not raise any errors due to the eps we added
+    loss = cdd_loss(y_s, features_s, features_t)
+    assert not np.isnan(loss)

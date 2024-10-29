@@ -253,6 +253,8 @@ def cdd_loss(
                 centroid = normalized_features.sum(dim=0)
                 source_centroids.append(centroid)
 
+        source_centroids = torch.stack(source_centroids)
+
         # Use source centroids to initialize target clustering
         target_kmeans = SphericalKMeans(
             n_clusters=n_classes,
@@ -279,10 +281,12 @@ def cdd_loss(
     mask_t = valid_classes[cluster_labels_t]
     features_t = features_t[mask_t]
     cluster_labels_t = cluster_labels_t[mask_t]
-
     # Define sigmas
     if sigmas is None:
-        median_pairwise_distance = torch.median(torch.cdist(features_s, features_s))
+        eps = 1e-7
+        median_pairwise_distance = (
+            torch.median(torch.cdist(features_s, features_s)) + eps
+        )
         sigmas = (
             torch.tensor([2 ** (-8) * 2 ** (i * 1 / 2) for i in range(33)]).to(
                 features_s.device
@@ -295,26 +299,43 @@ def cdd_loss(
     # Compute CDD
     intraclass = 0
     interclass = 0
-
     for c1 in range(n_classes):
         for c2 in range(c1, n_classes):
             if valid_classes[c1] and valid_classes[c2]:
                 # Compute e1
                 kernel_ss = _gaussian_kernel(features_s, features_s, sigmas)
                 mask_c1_c1 = (y_s == c1).float()
-                e1 = (kernel_ss * mask_c1_c1).sum() / (mask_c1_c1.sum() ** 2)
+
+                # e1 measure the intra-class domain discrepancy
+                # Thus if mask_c1_c1.sum() = 0 --> e1 = 0
+                if mask_c1_c1.sum() > 0:
+                    e1 = (kernel_ss * mask_c1_c1).sum() / (mask_c1_c1.sum() ** 2)
+                else:
+                    e1 = 0
 
                 # Compute e2
                 kernel_tt = _gaussian_kernel(features_t, features_t, sigmas)
                 mask_c2_c2 = (cluster_labels_t == c2).float()
-                e2 = (kernel_tt * mask_c2_c2).sum() / (mask_c2_c2.sum() ** 2)
+
+                # e2 measure the intra-class domain discrepancy
+                # Thus if mask_c2_c2.sum() = 0 --> e2 = 0
+                if mask_c2_c2.sum() > 0:
+                    e2 = (kernel_tt * mask_c2_c2).sum() / (mask_c2_c2.sum() ** 2)
+                else:
+                    e2 = 0
 
                 # Compute e3
                 kernel_st = _gaussian_kernel(features_s, features_t, sigmas)
                 mask_c1 = (y_s == c1).float().unsqueeze(1)
                 mask_c2 = (cluster_labels_t == c2).float().unsqueeze(0)
                 mask_c1_c2 = mask_c1 * mask_c2
-                e3 = (kernel_st * mask_c1_c2).sum() / (mask_c1_c2.sum() ** 2)
+
+                # e3 measure the inter-class domain discrepancy
+                # Thus if mask_c1_c2.sum() = 0 --> e3 = 0
+                if mask_c1_c2.sum() > 0:
+                    e3 = (kernel_st * mask_c1_c2).sum() / (mask_c1_c2.sum() ** 2)
+                else:
+                    e3 = 0
 
                 if c1 == c2:
                     intraclass += e1 + e2 - 2 * e3
