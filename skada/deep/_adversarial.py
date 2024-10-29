@@ -38,7 +38,7 @@ class DANNLoss(BaseDALoss):
     References
     ----------
     .. [15] Yaroslav Ganin et. al. Domain-Adversarial Training
-            of Neural Networks  In Journal of Machine Learning
+            of Neural Networks. In Journal of Machine Learning
             Research, 2016.
     """
 
@@ -121,7 +121,7 @@ def DANN(
     References
     ----------
     .. [15] Yaroslav Ganin et. al. Domain-Adversarial Training
-            of Neural Networks  In Journal of Machine Learning
+            of Neural Networks. In Journal of Machine Learning
             Research, 2016.
     """
     if domain_classifier is None:
@@ -381,11 +381,11 @@ class MDDLoss(BaseDALoss):
 
     Parameters
     ----------
+    domain_criterion : torch criterion (class)
+        The criterion (loss) used to compute the
+        MDD loss. If None, a BCELoss is used.
     gamma : float (default=4.0)
         Margin parameter following [35]_
-    criterion : torch criterion (class), default=None
-        The initialized criterion (loss) used to compute the
-        MDD loss. If None, a CrossEntropyLoss is used.
 
     References
     ----------
@@ -394,13 +394,13 @@ class MDDLoss(BaseDALoss):
             Machine Learning, 2019.
     """
 
-    def __init__(self, gamma=4.0, criterion=None):
+    def __init__(self, domain_criterion, gamma=4.0):
         super().__init__()
-        self.gamma = gamma
-        if criterion is None:
-            self.criterion = torch.nn.CrossEntropyLoss()
+        if domain_criterion is None:
+            self.domain_criterion_ = torch.nn.BCELoss()
         else:
-            self.criterion = criterion
+            self.domain_criterion_ = domain_criterion
+        self.gamma = gamma
 
     def forward(
         self,
@@ -422,28 +422,14 @@ class MDDLoss(BaseDALoss):
         #     pseudo_label_s = y_pred_s > 0.5
         #     pseudo_label_t = y_pred_t > 0.5
 
-        if isinstance(self.criterion, torch.nn.CrossEntropyLoss):
-            pseudo_label_s = torch.argmax(y_pred_s, axis=-1)
-            pseudo_label_t = torch.argmax(y_pred_t, axis=-1)
-        else:
-            pseudo_label_s = y_pred_s
-            pseudo_label_t = y_pred_t
+        # Multiclass classification
+        pseudo_label_s = torch.argmax(y_pred_s, axis=-1).float()
+        pseudo_label_t = torch.argmax(y_pred_t, axis=-1).float()
 
-        pseudo_label_s = pseudo_label_s.to(domain_pred_s.device)
-        pseudo_label_t = pseudo_label_t.to(domain_pred_t.device)
+        disc_loss_src = self.domain_criterion_(domain_pred_s, pseudo_label_s)
+        disc_loss_tgt = self.domain_criterion_(domain_pred_t, pseudo_label_t)
 
-        # Deal with CrossEntropyLoss convention in Pytorch
-        if domain_pred_s.shape == pseudo_label_s.shape:
-            domain_pred_s = domain_pred_s.float()
-            pseudo_label_s = pseudo_label_s.float()
-        else:
-            domain_pred_s = domain_pred_s.float()
-            pseudo_label_s = pseudo_label_s.long()
-
-        disc_loss_src = self.criterion(domain_pred_s, pseudo_label_s)
-        disc_loss_tgt = self.criterion(domain_pred_t, pseudo_label_t)
-
-        # Compute the loss value
+        # Compute the MDD loss value
         disc_loss = self.gamma * disc_loss_src - disc_loss_tgt
 
         return disc_loss
@@ -457,7 +443,7 @@ def MDD(
     domain_classifier=None,
     num_features=None,
     base_criterion=None,
-    criterion=None,
+    domain_criterion=None,
     **kwargs,
 ):
     """Margin Disparity Discrepancy (MDD).
@@ -475,8 +461,6 @@ def MDD(
         collected during the training.
     reg : float, default=1
         Regularization parameter for DA loss.
-    gamma : float (default=4.0)
-        Margin parameter following [35]_.
     domain_classifier : torch module, default=None
         A PyTorch :class:`~torch.nn.Module` used to classify the
         domain. If None, a domain classifier is created following [1]_.
@@ -489,9 +473,11 @@ def MDD(
     base_criterion : torch criterion (class)
         The base criterion used to compute the loss with source
         labels. If None, the default is `torch.nn.CrossEntropyLoss`.
-    criterion : torch criterion (class)
+    domain_criterion : torch criterion (class)
         The criterion (loss) used to compute the
-        MDD loss. If None, a CrossEntropyLoss is used.
+        MDD loss. If None, a BCELoss is used.
+    gamma : float (default=4.0)
+        Margin parameter following [35]_.
 
     References
     ----------
@@ -519,7 +505,9 @@ def MDD(
         criterion=DomainAwareCriterion,
         criterion__base_criterion=base_criterion,
         criterion__reg=reg,
-        criterion__adapt_criterion=MDDLoss(gamma=gamma, criterion=criterion),
+        criterion__adapt_criterion=MDDLoss(
+            gamma=gamma, domain_criterion=domain_criterion
+        ),
         **kwargs,
     )
     return net
