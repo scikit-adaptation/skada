@@ -226,10 +226,12 @@ def test_check_X_y_allow_exceptions():
     random_sample_domain = rng.choice(
         np.concatenate((np.arange(-5, 0), np.arange(1, 6))), size=len(y)
     )
+    common_idx_sample_domain = rng.choice(np.array([1, -1]), size=len(y))
     allow_source = False
     allow_target = False
     allow_multi_source = False
     allow_multi_target = False
+    allow_common_domain_idx = False
 
     positive_numbers = random_sample_domain[random_sample_domain > 0]
     negative_numbers = random_sample_domain[random_sample_domain < 0]
@@ -295,6 +297,18 @@ def test_check_X_y_allow_exceptions():
             sample_domain=random_sample_domain,
             allow_auto_sample_domain=False,
             allow_multi_target=allow_multi_target,
+        )
+    with pytest.raises(
+        ValueError,
+        match=(
+            "Domain labels should be unique: the same domain "
+            "index should not be used both for source and target"
+        ),
+    ):
+        check_X_domain(
+            X,
+            sample_domain=common_idx_sample_domain,
+            allow_common_domain_idx=allow_common_domain_idx,
         )
 
 
@@ -314,10 +328,12 @@ def test_check_X_allow_exceptions():
     random_sample_domain = rng.choice(
         np.concatenate((np.arange(-5, 0), np.arange(1, 6))), size=len(y)
     )
+    common_idx_sample_domain = rng.choice(np.array([1, -1]), size=len(y))
     allow_source = False
     allow_target = False
     allow_multi_source = False
     allow_multi_target = False
+    allow_common_domain_idx = False
 
     positive_numbers = random_sample_domain[random_sample_domain > 0]
     negative_numbers = random_sample_domain[random_sample_domain < 0]
@@ -380,6 +396,19 @@ def test_check_X_allow_exceptions():
             sample_domain=random_sample_domain,
             allow_auto_sample_domain=False,
             allow_multi_target=allow_multi_target,
+        )
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            "Domain labels should be unique: the same domain "
+            "index should not be used both for source and target"
+        ),
+    ):
+        check_X_domain(
+            X,
+            sample_domain=common_idx_sample_domain,
+            allow_common_domain_idx=allow_common_domain_idx,
         )
 
 
