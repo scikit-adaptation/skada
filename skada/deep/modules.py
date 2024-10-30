@@ -192,7 +192,7 @@ class DomainClassifier(nn.Module):
             Parameter for the reverse layer.
         """
         reverse_x = GradientReversalLayer.apply(x, self.alpha)
-        return self.classifier(reverse_x).flatten()
+        return self.classifier(reverse_x).squeeze()
 
 
 class MNISTtoUSPSNet(nn.Module):
