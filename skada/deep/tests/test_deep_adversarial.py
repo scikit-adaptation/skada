@@ -7,7 +7,7 @@ import pytest
 torch = pytest.importorskip("torch")
 
 import numpy as np
-from torch.nn import BCELoss
+from torch.nn import BCELoss, CrossEntropyLoss
 
 from skada.datasets import make_shifted_datasets
 from skada.deep import CDAN, DANN, MDD
@@ -115,14 +115,25 @@ def test_cdan(domain_classifier, domain_criterion, num_feature, max_feature, n_c
 
 
 @pytest.mark.parametrize(
-    "domain_classifier, domain_criterion, num_features",
+    "domain_classifier, domain_criterion, num_features, n_classes",
     [
-        (DomainClassifier(num_features=10), BCELoss(), None),
-        (DomainClassifier(num_features=10), None, None),
-        (None, None, 10),
+        (
+            DomainClassifier(num_features=10, n_classes=5),
+            CrossEntropyLoss(),
+            10,
+            5,
+        ),
+        (
+            DomainClassifier(num_features=10, n_classes=5),
+            CrossEntropyLoss(),
+            None,
+            None,
+        ),
+        (DomainClassifier(num_features=10, n_classes=5), None, None, None),
+        (None, None, 10, 5),
     ],
 )
-def test_mdd(domain_classifier, domain_criterion, num_features):
+def test_mdd(domain_classifier, domain_criterion, num_features, n_classes):
     n_samples = 20
     dataset = make_shifted_datasets(
         n_samples_source=n_samples,
@@ -134,11 +145,12 @@ def test_mdd(domain_classifier, domain_criterion, num_features):
     )
 
     method = MDD(
-        ToyModule2D(),
+        ToyModule2D(n_classes=5),
         reg=1,
         gamma=4.0,
         domain_classifier=domain_classifier,
         num_features=num_features,
+        n_classes=n_classes,
         domain_criterion=domain_criterion,
         layer_name="dropout",
         batch_size=10,
