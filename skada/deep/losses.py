@@ -175,7 +175,10 @@ def dan_loss(features_s, features_t, sigmas=None):
             In ICML, 2015.
     """
     if sigmas is None:
-        median_pairwise_distance = torch.median(torch.cdist(features_s, features_s))
+        eps = 1e-7
+        median_pairwise_distance = (
+            torch.median(torch.cdist(features_s, features_s)) + eps
+        )
         sigmas = (
             torch.tensor([2 ** (-8) * 2 ** (i * 1 / 2) for i in range(33)]).to(
                 features_s.device
