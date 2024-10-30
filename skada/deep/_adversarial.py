@@ -381,9 +381,10 @@ class MDDLoss(BaseDALoss):
 
     Parameters
     ----------
-    domain_criterion : torch criterion (class)
+    disc_criterion : torch criterion (class)
         The criterion (loss) used to compute the
-        MDD loss. If None, a CrossEntropyLoss is used.
+        MDD loss for the discriminator.
+        If None, a CrossEntropyLoss is used.
     gamma : float (default=4.0)
         Margin parameter following [35]_
 
@@ -394,12 +395,12 @@ class MDDLoss(BaseDALoss):
             Machine Learning, 2019.
     """
 
-    def __init__(self, domain_criterion, gamma=4.0):
+    def __init__(self, disc_criterion, gamma=4.0):
         super().__init__()
-        if domain_criterion is None:
-            self.domain_criterion_ = torch.nn.CrossEntropyLoss()
+        if disc_criterion is None:
+            self.disc_criterion_ = torch.nn.CrossEntropyLoss()
         else:
-            self.domain_criterion_ = domain_criterion
+            self.disc_criterion_ = disc_criterion
         self.gamma = gamma
 
     def forward(
@@ -407,8 +408,8 @@ class MDDLoss(BaseDALoss):
         y_s,
         y_pred_s,
         y_pred_t,
-        domain_pred_s,
-        domain_pred_t,
+        disc_pred_s,
+        disc_pred_t,
         features_s,
         features_t,
     ):
@@ -418,8 +419,8 @@ class MDDLoss(BaseDALoss):
         pseudo_label_s = torch.argmax(y_pred_s, axis=-1)
         pseudo_label_t = torch.argmax(y_pred_t, axis=-1)
 
-        disc_loss_src = self.domain_criterion_(domain_pred_s, pseudo_label_s)
-        disc_loss_tgt = self.domain_criterion_(domain_pred_t, pseudo_label_t)
+        disc_loss_src = self.disc_criterion_(disc_pred_s, pseudo_label_s)
+        disc_loss_tgt = self.disc_criterion_(disc_pred_t, pseudo_label_t)
 
         # Compute the MDD loss value
         disc_loss = self.gamma * disc_loss_src - disc_loss_tgt
@@ -432,11 +433,11 @@ def MDD(
     layer_name,
     reg=1,
     gamma=4.0,
-    domain_classifier=None,
+    disc_classifier=None,
     num_features=None,
     n_classes=None,
     base_criterion=None,
-    domain_criterion=None,
+    disc_criterion=None,
     **kwargs,
 ):
     """Margin Disparity Discrepancy (MDD).
@@ -454,9 +455,11 @@ def MDD(
         collected during the training.
     reg : float, default=1
         Regularization parameter for DA loss.
-    domain_classifier : torch module, default=None
-        A PyTorch :class:`~torch.nn.Module` used to classify the
-        domain. If None, a domain classifier is created following [1]_.
+    disc_classifier : torch module, default=None
+        A PyTorch :class:`~torch.nn.Module` used as a discriminator.
+        It should have the same architecture than the classifier
+        used on the source. If None, a domain classifier is
+        created following [1]_.
     num_features : int, default=None
         Size of the input of domain classifier,
         e.g size of the last layer of
@@ -469,9 +472,10 @@ def MDD(
     base_criterion : torch criterion (class)
         The base criterion used to compute the loss with source
         labels. If None, the default is `torch.nn.CrossEntropyLoss`.
-    domain_criterion : torch criterion (class)
+    disc_criterion : torch criterion (class)
         The criterion (loss) used to compute the
-        MDD loss. If None, a CrossEntropyLoss is used.
+        MDD loss for the discriminator.
+        If None, a CrossEntropyLoss is used.
     gamma : float (default=4.0)
         Margin parameter following [35]_.
 
@@ -481,13 +485,13 @@ def MDD(
             for Domain Adaptation. In International Conference on
             Machine Learning, 2019.
     """
-    if domain_classifier is None:
+    if disc_classifier is None:
         # raise error if num_feature is None
         if num_features is None:
             raise ValueError(
-                "If domain_classifier is None, num_features has to be provided"
+                "If disc_classifier is None, num_features has to be provided"
             )
-        domain_classifier = DomainClassifier(
+        disc_classifier = DomainClassifier(
             num_features=num_features, n_classes=n_classes
         )
 
@@ -498,14 +502,12 @@ def MDD(
         module=DomainAwareModule,
         module__base_module=module,
         module__layer_name=layer_name,
-        module__domain_classifier=domain_classifier,
+        module__domain_classifier=disc_classifier,
         iterator_train=DomainBalancedDataLoader,
         criterion=DomainAwareCriterion,
         criterion__base_criterion=base_criterion,
         criterion__reg=reg,
-        criterion__adapt_criterion=MDDLoss(
-            gamma=gamma, domain_criterion=domain_criterion
-        ),
+        criterion__adapt_criterion=MDDLoss(gamma=gamma, disc_criterion=disc_criterion),
         **kwargs,
     )
     return net

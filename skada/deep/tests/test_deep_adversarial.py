@@ -116,7 +116,7 @@ def test_cdan(domain_classifier, domain_criterion, num_feature, max_feature, n_c
 
 
 @pytest.mark.parametrize(
-    "domain_classifier, domain_criterion, num_features, n_classes",
+    "disc_classifier, disc_criterion, num_features, n_classes",
     [
         (
             DomainClassifier(num_features=10, n_classes=5),
@@ -134,7 +134,7 @@ def test_cdan(domain_classifier, domain_criterion, num_feature, max_feature, n_c
         (None, None, 10, 5),
     ],
 )
-def test_mdd(domain_classifier, domain_criterion, num_features, n_classes):
+def test_mdd(disc_classifier, disc_criterion, num_features, n_classes):
     n_samples = 20
     dataset = make_shifted_datasets(
         n_samples_source=n_samples,
@@ -149,10 +149,10 @@ def test_mdd(domain_classifier, domain_criterion, num_features, n_classes):
         ToyModule2D(n_classes=5),
         reg=1,
         gamma=4.0,
-        domain_classifier=domain_classifier,
+        disc_classifier=disc_classifier,
         num_features=num_features,
         n_classes=n_classes,
-        domain_criterion=domain_criterion,
+        disc_criterion=disc_criterion,
         layer_name="dropout",
         batch_size=10,
         max_epochs=50,
