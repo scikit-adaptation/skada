@@ -2,6 +2,7 @@
 #         Remi Flamary <remi.flamary@polytechnique.edu>
 #         Yanis Lalou <yanis.lalou@polytechnique.edu>
 #         Ambroise Odonnat <ambroiseodonnattechnologie@gmail.com>
+#
 # License: BSD 3-Clause
 
 """
