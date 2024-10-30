@@ -8,9 +8,11 @@ import pytest
 pytest.importorskip("torch")
 
 import numpy as np
+import torch
 
 from skada.datasets import make_shifted_datasets
 from skada.deep import MCC
+from skada.deep.losses import mcc_loss
 from skada.deep.modules import ToyModule2D
 
 
@@ -54,3 +56,26 @@ def test_mcc(T):
     history = method.history_
 
     assert history[0]["train_loss"] > history[-1]["train_loss"]
+
+
+def test_mcc_with_zeros():
+    """Test that mcc_loss handles zero probabilities correctly."""
+    # Create logits with extreme values that will result in zeros
+    # after softmax operation due to numerical underflow
+    logits = torch.tensor(
+        [
+            [100.0, -100.0, -100.0],
+            [-100.0, 100.0, -100.0],
+            [-100.0, -100.0, 100.0],
+        ]
+    )
+
+    # Verify that we actually get zeros in y_scaled
+    y_scaled = torch.nn.functional.softmax(logits, dim=1)
+    assert torch.sum(y_scaled == 0.0) > 0, "Test setup failed: no zeros in y_scaled"
+
+    # This should not raise any errors due to the epsilon in log
+    loss = mcc_loss(logits, T=1.0)
+
+    assert torch.isfinite(loss)  # Check that the loss is not NaN or infinite
+    assert loss >= 0  # MCC loss should be non-negative
