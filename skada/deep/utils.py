@@ -162,11 +162,12 @@ class SphericalKMeans:
         self.device = device
 
     def _init_centroids(self, X):
-        # Randomly initialize centroids
-        n_samples = X.shape[0]
-        indices = torch.randperm(n_samples, device=self.device)[:self.n_clusters]
-        centroids = X[indices]
-        return centroids / torch.norm(centroids, dim=1, keepdim=True)
+        with torch.no_grad():
+            # Randomly initialize centroids
+            n_samples = X.shape[0]
+            indices = torch.randperm(n_samples, device=self.device)[:self.n_clusters]
+            centroids = X[indices]
+            return centroids / torch.norm(centroids, dim=1, keepdim=True)
 
     def fit(self, X, y=None):
         """Compute spherical k-means clustering.
@@ -184,55 +185,56 @@ class SphericalKMeans:
         self : object
             Fitted estimator.
         """
-        if not isinstance(X, torch.Tensor):
-            X = torch.tensor(X, dtype=torch.float32, device=self.device)
-        else:
-            X = X.to(self.device)
-
-        # Normalize X
-        X = X / torch.norm(X, dim=1, keepdim=True)
-
-        best_inertia = None
-        best_centroids = None
-        best_n_iter = None
-
-        for _ in range(self.n_init):
-            if self.centroids is None:
-                centroids = self._init_centroids(X)
+        with torch.no_grad():
+            if not isinstance(X, torch.Tensor):
+                X = torch.tensor(X, dtype=torch.float32, device=self.device)
             else:
-                centroids = self.centroids.to(self.device)
+                X = X.to(self.device)
 
-            for n_iter in range(self.max_iter):
-                # Assign samples to closest centroids
-                dissimilarities = self._compute_dissimilarities(X, centroids)
-                labels = torch.argmin(dissimilarities, dim=1)
+            # Normalize X
+            X = X / torch.norm(X, dim=1, keepdim=True)
 
-                # Update centroids
-                new_centroids = torch.zeros_like(centroids)
-                for k in range(self.n_clusters):
-                    if torch.any(labels == k):
-                        new_centroids[k] = X[labels == k].sum(dim=0)
+            best_inertia = None
+            best_centroids = None
+            best_n_iter = None
 
-                # Check for convergence
-                if torch.allclose(centroids, new_centroids, atol=self.tol):
-                    break
+            for _ in range(self.n_init):
+                if self.centroids is None:
+                    centroids = self._init_centroids(X)
+                else:
+                    centroids = self.centroids.to(self.device)
 
-                centroids = new_centroids
+                for n_iter in range(self.max_iter):
+                    # Assign samples to closest centroids
+                    dissimilarities = self._compute_dissimilarities(X, centroids)
+                    labels = torch.argmin(dissimilarities, dim=1)
 
-            # Compute inertia
-            dissimilarities = self._compute_dissimilarities(X, centroids[labels])
-            inertia = dissimilarities.sum().item()
+                    # Update centroids
+                    new_centroids = torch.zeros_like(centroids)
+                    for k in range(self.n_clusters):
+                        if torch.any(labels == k):
+                            new_centroids[k] = X[labels == k].sum(dim=0)
 
-            if best_inertia is None or inertia < best_inertia:
-                best_inertia = inertia
-                best_centroids = centroids
-                best_n_iter = n_iter
+                    # Check for convergence
+                    if torch.allclose(centroids, new_centroids, atol=self.tol):
+                        break
 
-        self.cluster_centers_ = best_centroids
-        self.inertia_ = best_inertia
-        self.n_iter_ = best_n_iter + 1
+                    centroids = new_centroids
 
-        return self
+                # Compute inertia
+                dissimilarities = self._compute_dissimilarities(X, centroids[labels])
+                inertia = dissimilarities.sum().item()
+
+                if best_inertia is None or inertia < best_inertia:
+                    best_inertia = inertia
+                    best_centroids = centroids
+                    best_n_iter = n_iter
+
+            self.cluster_centers_ = best_centroids
+            self.inertia_ = best_inertia
+            self.n_iter_ = best_n_iter + 1
+
+            return self
 
     def predict(self, X):
         """Predict the closest cluster each sample in X belongs to.
@@ -247,18 +249,48 @@ class SphericalKMeans:
         labels : torch.Tensor of shape (n_samples,)
             Index of the cluster each sample belongs to.
         """
-        check_is_fitted(self)
-        if not isinstance(X, torch.Tensor):
-            X = torch.tensor(X, dtype=torch.float32, device=self.device)
-        else:
-            X = X.to(self.device)
+        with torch.no_grad():
+            check_is_fitted(self)
+            if not isinstance(X, torch.Tensor):
+                X = torch.tensor(X, dtype=torch.float32, device=self.device)
+            else:
+                X = X.to(self.device)
 
-        # No need to normalize X as it is going
-        # to be normalized in cosine_similarity
+            # No need to normalize X as it is going
+            # to be normalized in cosine_similarity
 
-        dissimilarities = self._compute_dissimilarities(X, self.cluster_centers_)
-        return torch.argmin(dissimilarities, dim=1)
+            dissimilarities = self._compute_dissimilarities(X, self.cluster_centers_)
+            return torch.argmin(dissimilarities, dim=1)
 
-    def _compute_dissimilarities(self, X, centroids):
-        similarities = cosine_similarity(X.unsqueeze(1), centroids.unsqueeze(0), dim=2)
-        return 0.5 * (1 - similarities)
+    def _compute_dissimilarities(self, X, centroids, batch_size=1024):
+        """Compute dissimilarities between points and centroids in batches.
+
+        Parameters
+        ----------
+        X : torch.Tensor of shape (n_samples, n_features)
+            Input data points
+        centroids : torch.Tensor of shape (n_clusters, n_features)
+            Cluster centroids
+        batch_size : int, default=1024
+            Size of batches to use for computation
+
+        Returns
+        -------
+        dissimilarities : torch.Tensor of shape (n_samples, n_clusters)
+            Dissimilarity matrix between points and centroids
+        """
+        n_samples = X.shape[0]
+        n_clusters = centroids.shape[0]
+        dissimilarities = torch.zeros(n_samples, n_clusters, device=self.device)
+        
+        for i in range(0, n_samples, batch_size):
+            batch_end = min(i + batch_size, n_samples)
+            batch = X[i:batch_end]
+            similarities = cosine_similarity(
+                batch.unsqueeze(1),
+                centroids.unsqueeze(0),
+                dim=2
+            )
+            dissimilarities[i:batch_end] = 0.5 * (1 - similarities)
+            
+        return dissimilarities
