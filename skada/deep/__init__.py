@@ -41,7 +41,6 @@ __all__ = [
     "MCC",
     "CANLoss",
     "CAN",
-    "MDDLoss",
     "MDD",
     "SourceOnly",
     "TargetOnly",
