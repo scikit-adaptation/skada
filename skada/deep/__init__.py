@@ -39,10 +39,10 @@ __all__ = [
     "CDAN",
     "MCCLoss",
     "MCC",
-    "CANLoss",
-    "CAN",
     "MDDLoss",
     "MDD",
+    "CANLoss",
+    "CAN",
     "SourceOnly",
     "TargetOnly",
 ]
