@@ -383,7 +383,7 @@ class MDDLoss(BaseDALoss):
     ----------
     domain_criterion : torch criterion (class)
         The criterion (loss) used to compute the
-        MDD loss. If None, a BCELoss is used.
+        MDD loss. If None, a CrossEntropyLoss is used.
     gamma : float (default=4.0)
         Margin parameter following [35]_
 
@@ -397,7 +397,7 @@ class MDDLoss(BaseDALoss):
     def __init__(self, domain_criterion, gamma=4.0):
         super().__init__()
         if domain_criterion is None:
-            self.domain_criterion_ = torch.nn.BCELoss()
+            self.domain_criterion_ = torch.nn.CrossEntropyLoss()
         else:
             self.domain_criterion_ = domain_criterion
         self.gamma = gamma
@@ -414,17 +414,9 @@ class MDDLoss(BaseDALoss):
     ):
         """Compute the domain adaptation loss"""
         # TODO: handle binary classification
-        # if isinstance(self.criterion, torch.nn.BCEWithLogitsLoss):
-        #    pseudo_label_s = y_pred_s > 0
-        #    pseudo_label_t = y_pred_t > 0
-
-        # elif isinstance(self.criterion, torch.nn.BCELoss):
-        #     pseudo_label_s = y_pred_s > 0.5
-        #     pseudo_label_t = y_pred_t > 0.5
-
         # Multiclass classification
-        pseudo_label_s = torch.argmax(y_pred_s, axis=-1).float()
-        pseudo_label_t = torch.argmax(y_pred_t, axis=-1).float()
+        pseudo_label_s = torch.argmax(y_pred_s, axis=-1)
+        pseudo_label_t = torch.argmax(y_pred_t, axis=-1)
 
         disc_loss_src = self.domain_criterion_(domain_pred_s, pseudo_label_s)
         disc_loss_tgt = self.domain_criterion_(domain_pred_t, pseudo_label_t)
@@ -442,6 +434,7 @@ def MDD(
     gamma=4.0,
     domain_classifier=None,
     num_features=None,
+    n_classes=None,
     base_criterion=None,
     domain_criterion=None,
     **kwargs,
@@ -470,12 +463,15 @@ def MDD(
         the feature extractor.
         If domain_classifier is None, num_features has to be
         provided.
+    n_classes : int, default=None
+        Number of classes. If domain_classifier is None,
+        n_classes has to be provided.
     base_criterion : torch criterion (class)
         The base criterion used to compute the loss with source
         labels. If None, the default is `torch.nn.CrossEntropyLoss`.
     domain_criterion : torch criterion (class)
         The criterion (loss) used to compute the
-        MDD loss. If None, a BCELoss is used.
+        MDD loss. If None, a CrossEntropyLoss is used.
     gamma : float (default=4.0)
         Margin parameter following [35]_.
 
@@ -491,7 +487,9 @@ def MDD(
             raise ValueError(
                 "If domain_classifier is None, num_features has to be provided"
             )
-        domain_classifier = DomainClassifier(num_features=num_features)
+        domain_classifier = DomainClassifier(
+            num_features=num_features, n_classes=n_classes
+        )
 
     if base_criterion is None:
         base_criterion = torch.nn.CrossEntropyLoss()
