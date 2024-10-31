@@ -204,6 +204,7 @@ def cdd_loss(
     sigmas=None,
     distance_threshold=0.5,
     class_threshold=3,
+    eps=1e-7,
 ):
     """Define the contrastive domain discrepancy loss based on [33]_.
 
@@ -225,6 +226,8 @@ def cdd_loss(
         to far from the centroids.
     class_threshold : int, optional (default=3)
         Minimum number of samples in a class to be considered for the loss.
+    eps : float, default=1e-7
+        Small constant added to median distance calculation for numerical stability.
 
     Returns
     -------
@@ -240,31 +243,34 @@ def cdd_loss(
     """
     n_classes = len(y_s.unique())
 
-    # Use pre-computed cluster_labels_t
+    # Use pre-computed target_kmeans
     if target_kmeans is None:
-        warnings.warn(
-            "Source centroids are not computed for the whole training set, "
-            "computing them on the current batch set."
-        )
+        with torch.no_grad():
+            warnings.warn(
+                "Source centroids are not computed for the whole training set, "
+                "computing them on the current batch set."
+            )
 
-        source_centroids = []
+            source_centroids = []
 
-        for c in range(n_classes):
-            mask = y_s == c
-            if mask.sum() > 0:
-                class_features = features_s[mask]
-                normalized_features = F.normalize(class_features, p=2, dim=1)
-                centroid = normalized_features.sum(dim=0)
-                source_centroids.append(centroid)
+            for c in range(n_classes):
+                mask = y_s == c
+                if mask.sum() > 0:
+                    class_features = features_s[mask]
+                    normalized_features = F.normalize(class_features, p=2, dim=1)
+                    centroid = normalized_features.sum(dim=0)
+                    source_centroids.append(centroid)
 
-        # Use source centroids to initialize target clustering
-        target_kmeans = SphericalKMeans(
-            n_clusters=n_classes,
-            random_state=0,
-            centroids=source_centroids,
-            device=features_t.device,
-        )
-        target_kmeans.fit(features_t)
+            source_centroids = torch.stack(source_centroids)
+
+            # Use source centroids to initialize target clustering
+            target_kmeans = SphericalKMeans(
+                n_clusters=n_classes,
+                random_state=0,
+                centroids=source_centroids,
+                device=features_t.device,
+            )
+            target_kmeans.fit(features_t)
 
     # Predict clusters for target samples
     cluster_labels_t = target_kmeans.predict(features_t)
@@ -283,10 +289,11 @@ def cdd_loss(
     mask_t = valid_classes[cluster_labels_t]
     features_t = features_t[mask_t]
     cluster_labels_t = cluster_labels_t[mask_t]
-
     # Define sigmas
     if sigmas is None:
-        median_pairwise_distance = torch.median(torch.cdist(features_s, features_s))
+        median_pairwise_distance = (
+            torch.median(torch.cdist(features_s, features_s)) + eps
+        )
         sigmas = (
             torch.tensor([2 ** (-8) * 2 ** (i * 1 / 2) for i in range(33)]).to(
                 features_s.device
@@ -299,26 +306,43 @@ def cdd_loss(
     # Compute CDD
     intraclass = 0
     interclass = 0
-
     for c1 in range(n_classes):
         for c2 in range(c1, n_classes):
             if valid_classes[c1] and valid_classes[c2]:
                 # Compute e1
                 kernel_ss = _gaussian_kernel(features_s, features_s, sigmas)
                 mask_c1_c1 = (y_s == c1).float()
-                e1 = (kernel_ss * mask_c1_c1).sum() / (mask_c1_c1.sum() ** 2)
+
+                # e1 measure the intra-class domain discrepancy
+                # Thus if mask_c1_c1.sum() = 0 --> e1 = 0
+                if mask_c1_c1.sum() > 0:
+                    e1 = (kernel_ss * mask_c1_c1).sum() / (mask_c1_c1.sum() ** 2)
+                else:
+                    e1 = 0
 
                 # Compute e2
                 kernel_tt = _gaussian_kernel(features_t, features_t, sigmas)
                 mask_c2_c2 = (cluster_labels_t == c2).float()
-                e2 = (kernel_tt * mask_c2_c2).sum() / (mask_c2_c2.sum() ** 2)
+
+                # e2 measure the intra-class domain discrepancy
+                # Thus if mask_c2_c2.sum() = 0 --> e2 = 0
+                if mask_c2_c2.sum() > 0:
+                    e2 = (kernel_tt * mask_c2_c2).sum() / (mask_c2_c2.sum() ** 2)
+                else:
+                    e2 = 0
 
                 # Compute e3
                 kernel_st = _gaussian_kernel(features_s, features_t, sigmas)
                 mask_c1 = (y_s == c1).float().unsqueeze(1)
                 mask_c2 = (cluster_labels_t == c2).float().unsqueeze(0)
                 mask_c1_c2 = mask_c1 * mask_c2
-                e3 = (kernel_st * mask_c1_c2).sum() / (mask_c1_c2.sum() ** 2)
+
+                # e3 measure the inter-class domain discrepancy
+                # Thus if mask_c1_c2.sum() = 0 --> e3 = 0
+                if mask_c1_c2.sum() > 0:
+                    e3 = (kernel_st * mask_c1_c2).sum() / (mask_c1_c2.sum() ** 2)
+                else:
+                    e3 = 0
 
                 if c1 == c2:
                     intraclass += e1 + e2 - 2 * e3
