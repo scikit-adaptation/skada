@@ -25,6 +25,8 @@ class MCCLoss(BaseDALoss):
     T : float, default=1
         Temperature parameter for the scaling.
         If T=1, the scaling is a softmax function.
+    eps : float, default=1e-7
+        Small constant added to median distance calculation for numerical stability.
 
     References
     ----------
@@ -33,9 +35,10 @@ class MCCLoss(BaseDALoss):
             In ECCV, 2020.
     """
 
-    def __init__(self, T=1):
+    def __init__(self, T=1, eps=1e-7):
         super().__init__()
         self.T = T
+        self.eps = eps
 
     def forward(
         self,
@@ -51,6 +54,7 @@ class MCCLoss(BaseDALoss):
         loss = mcc_loss(
             y_pred_t,
             T=self.T,
+            eps=self.eps,
         )
         return loss
 

@@ -114,6 +114,8 @@ class DANLoss(BaseDALoss):
     ----------
     sigmas : array-like, optional (default=None)
         The sigmas for the Gaussian kernel.
+    eps : float, default=1e-7
+        Small constant added to median distance calculation for numerical stability.
 
     References
     ----------
@@ -122,9 +124,10 @@ class DANLoss(BaseDALoss):
             In ICML, 2015.
     """
 
-    def __init__(self, sigmas=None):
+    def __init__(self, sigmas=None, eps=1e-7):
         super().__init__()
         self.sigmas = sigmas
+        self.eps = eps
 
     def forward(
         self,
@@ -137,7 +140,7 @@ class DANLoss(BaseDALoss):
         features_t,
     ):
         """Compute the domain adaptation loss"""
-        loss = dan_loss(features_s, features_t, sigmas=self.sigmas)
+        loss = dan_loss(features_s, features_t, sigmas=self.sigmas, eps=self.eps)
         return loss
 
 
