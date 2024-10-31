@@ -200,6 +200,7 @@ def cdd_loss(
     sigmas=None,
     distance_threshold=0.5,
     class_threshold=3,
+    eps=1e-7,
 ):
     """Define the contrastive domain discrepancy loss based on [33]_.
 
@@ -221,6 +222,8 @@ def cdd_loss(
         to far from the centroids.
     class_threshold : int, optional (default=3)
         Minimum number of samples in a class to be considered for the loss.
+    eps : float, default=1e-7
+        Small constant added to median distance calculation for numerical stability.
 
     Returns
     -------
@@ -284,7 +287,6 @@ def cdd_loss(
     cluster_labels_t = cluster_labels_t[mask_t]
     # Define sigmas
     if sigmas is None:
-        eps = 1e-7
         median_pairwise_distance = (
             torch.median(torch.cdist(features_s, features_s)) + eps
         )
