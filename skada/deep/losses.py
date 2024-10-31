@@ -372,7 +372,7 @@ def probability_scaling(logits, temperature=1):
     return torch.nn.functional.softmax(logits / temperature, dim=1)
 
 
-def mcc_loss(y, T=1):
+def mcc_loss(y, T=1, eps=1e-7):
     """Estimate the Frobenius norm divide by 4*n**2
        for DeepCORAL method [33]_.
 
@@ -380,9 +380,10 @@ def mcc_loss(y, T=1):
     ----------
     y : tensor
         The output of target domain of the model.
-
     T : float, default=1
         The temperature for the scaling.
+    eps : float, default=1e-7
+        Small constant added to median distance calculation for numerical stability.
 
     Returns
     -------
@@ -399,7 +400,7 @@ def mcc_loss(y, T=1):
     y_scaled = probability_scaling(y, temperature=T)
 
     # Uncertainty Reweighting & class correlation matrix
-    H = -torch.sum(y_scaled * torch.log(y_scaled), axis=1)
+    H = -torch.sum(y_scaled * torch.log(y_scaled + eps), axis=1)
     W = (1 + torch.exp(-H)) / torch.mean(1 + torch.exp(-H))
     y_weighted = torch.matmul(torch.diag(W), y_scaled)
     C = torch.einsum("ij,ik->jk", y_scaled, y_weighted)
