@@ -114,6 +114,8 @@ class DANLoss(BaseDALoss):
     ----------
     sigmas : array-like, optional (default=None)
         The sigmas for the Gaussian kernel.
+    eps : float, default=1e-7
+        Small constant added to median distance calculation for numerical stability.
 
     References
     ----------
@@ -122,9 +124,10 @@ class DANLoss(BaseDALoss):
             In ICML, 2015.
     """
 
-    def __init__(self, sigmas=None):
+    def __init__(self, sigmas=None, eps=1e-7):
         super().__init__()
         self.sigmas = sigmas
+        self.eps = eps
 
     def forward(
         self,
@@ -137,7 +140,7 @@ class DANLoss(BaseDALoss):
         features_t,
     ):
         """Compute the domain adaptation loss"""
-        loss = dan_loss(features_s, features_t, sigmas=self.sigmas)
+        loss = dan_loss(features_s, features_t, sigmas=self.sigmas, eps=self.eps)
         return loss
 
 
@@ -202,6 +205,8 @@ class CANLoss(BaseDALoss):
         If None, uses sigmas proposed  in [1]_.
     target_kmeans : sklearn KMeans instance, default=None,
         Pre-computed target KMeans clustering model.
+    eps : float, default=1e-7
+        Small constant added to median distance calculation for numerical stability.
 
     References
     ----------
@@ -217,12 +222,14 @@ class CANLoss(BaseDALoss):
         class_threshold=3,
         sigmas=None,
         target_kmeans=None,
+        eps=1e-7,
     ):
         super().__init__()
         self.distance_threshold = distance_threshold
         self.class_threshold = class_threshold
         self.sigmas = sigmas
         self.target_kmeans = target_kmeans
+        self.eps = eps
 
     def forward(
         self,
@@ -242,6 +249,7 @@ class CANLoss(BaseDALoss):
             target_kmeans=self.target_kmeans,
             distance_threshold=self.distance_threshold,
             class_threshold=self.class_threshold,
+            eps=self.eps,
         )
 
         return loss
