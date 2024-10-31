@@ -2,6 +2,7 @@
 #         Ambroise Odonnat <ambroiseodonnattechnologie@gmail.com>
 #
 # License: BSD 3-Clause
+import copy
 import math
 
 import numpy as np
@@ -383,7 +384,8 @@ class MDDLoss(BaseDALoss):
     ----------
     disc_criterion : torch criterion (class)
         The criterion (loss) used to compute the
-        MDD loss for the discriminator.
+        MDD loss for the discriminator. It should
+        be the same loss as the base criterion.
         If None, a CrossEntropyLoss is used.
     gamma : float (default=4.0)
         Margin parameter following [35]_
@@ -475,7 +477,7 @@ def MDD(
     disc_criterion : torch criterion (class)
         The criterion (loss) used to compute the
         MDD loss for the discriminator.
-        If None, a CrossEntropyLoss is used.
+        If None, use the same loss as base_criterion.
     gamma : float (default=4.0)
         Margin parameter following [35]_.
 
@@ -497,6 +499,9 @@ def MDD(
 
     if base_criterion is None:
         base_criterion = torch.nn.CrossEntropyLoss()
+
+    if disc_criterion is None:
+        disc_criterion = copy.deepcopy(base_criterion)
 
     net = DomainAwareNet(
         module=DomainAwareModule,
