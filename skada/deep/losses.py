@@ -150,7 +150,7 @@ def _maximum_mean_discrepancy(x, y, kernel):
     return cost
 
 
-def dan_loss(features_s, features_t, sigmas=None):
+def dan_loss(features_s, features_t, sigmas=None, eps=1e-7):
     """Define the mmd loss based on multi-kernel defined in [14]_.
 
     Parameters
@@ -162,6 +162,8 @@ def dan_loss(features_s, features_t, sigmas=None):
     sigmas : array like, default=None,
         If array, sigmas used for the multi gaussian kernel.
         If None, uses sigmas proposed  in [1]_.
+    eps : float, default=1e-7
+        Small constant added to median distance calculation for numerical stability.
 
     Returns
     -------
@@ -175,7 +177,9 @@ def dan_loss(features_s, features_t, sigmas=None):
             In ICML, 2015.
     """
     if sigmas is None:
-        median_pairwise_distance = torch.median(torch.cdist(features_s, features_s))
+        median_pairwise_distance = (
+            torch.median(torch.cdist(features_s, features_s)) + eps
+        )
         sigmas = (
             torch.tensor([2 ** (-8) * 2 ** (i * 1 / 2) for i in range(33)]).to(
                 features_s.device
