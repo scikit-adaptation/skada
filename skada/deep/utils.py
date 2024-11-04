@@ -262,8 +262,10 @@ class SphericalKMeans:
             dissimilarities = self._compute_dissimilarities(X, self.cluster_centers_)
             return torch.argmin(dissimilarities, dim=1)
 
-    def _compute_dissimilarities(self, X, centroids, batch_size=1024):
-        """Compute dissimilarities between points and centroids in batches.
+    def _compute_dissimilarities(self, X, centroids):
+        """Compute dissimilarities between points and centroids.
+        If X.shape[0] == centroids.shape[0], it returns a vector of shape (X.shape[0],).
+        If X.shape[0] != centroids.shape[0], it returns a matrix of shape (X.shape[0], centroids.shape[0]).
 
         Parameters
         ----------
@@ -271,26 +273,22 @@ class SphericalKMeans:
             Input data points
         centroids : torch.Tensor of shape (n_clusters, n_features)
             Cluster centroids
-        batch_size : int, default=1024
-            Size of batches to use for computation
 
         Returns
         -------
-        dissimilarities : torch.Tensor of shape (n_samples, n_clusters)
-            Dissimilarity matrix between points and centroids
+        dissimilarities : torch.Tensor of shape (n_samples,) or (n_samples, n_clusters)
+            Dissimilarities between points and centroids
         """
         n_samples = X.shape[0]
-        n_clusters = centroids.shape[0]
-        dissimilarities = torch.zeros(n_samples, n_clusters, device=self.device)
-        
-        for i in range(0, n_samples, batch_size):
-            batch_end = min(i + batch_size, n_samples)
-            batch = X[i:batch_end]
-            similarities = cosine_similarity(
-                batch.unsqueeze(1),
-                centroids.unsqueeze(0),
-                dim=2
-            )
-            dissimilarities[i:batch_end] = 0.5 * (1 - similarities)
-            
-        return dissimilarities
+        n_centroids = centroids.shape[0]
+
+        if n_samples == n_centroids:
+            # Compute similarities between each sample and each centroid
+            # similarities: (n_samples,)
+            similarities = cosine_similarity(X, centroids, dim=1)
+        else:
+            # Compute similarities between each sample and each centroid
+            # similarities: (n_samples, n_centroids)
+            similarities = cosine_similarity(X.unsqueeze(1), centroids.unsqueeze(0), dim=2)
+
+        return 0.5 * (1 - similarities)
