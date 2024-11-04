@@ -418,8 +418,8 @@ class MDDLoss(BaseDALoss):
         """Compute the domain adaptation loss"""
         # TODO: handle binary classification
         # Multiclass classification
-        pseudo_label_s = torch.argmax(y_pred_s, axis=-1)
-        pseudo_label_t = torch.argmax(y_pred_t, axis=-1)
+        pseudo_label_s = torch.argmax(y_pred_s, axis=-1).float()
+        pseudo_label_t = torch.argmax(y_pred_t, axis=-1).float()
 
         disc_loss_src = self.disc_criterion_(disc_pred_s, pseudo_label_s)
         disc_loss_tgt = self.disc_criterion_(disc_pred_t, pseudo_label_t)
