@@ -206,7 +206,7 @@ class SphericalKMeans:
 
                 for n_iter in range(self.max_iter):
                     # Assign samples to closest centroids
-                    dissimilarities = self._compute_dissimilarities(X, centroids)
+                    dissimilarities = self._compute_dissimilarity_matrix(X, centroids)
                     labels = torch.argmin(dissimilarities, dim=1)
 
                     # Update centroids
@@ -222,8 +222,7 @@ class SphericalKMeans:
                     centroids = new_centroids
 
                 # Compute inertia
-                dissimilarities = self._compute_dissimilarities(X, centroids[labels])
-                inertia = dissimilarities.sum().item()
+                inertia = self._compute_dissimilarity_loss(X, centroids[labels])
 
                 if best_inertia is None or inertia < best_inertia:
                     best_inertia = inertia
@@ -259,11 +258,12 @@ class SphericalKMeans:
             # No need to normalize X as it is going
             # to be normalized in cosine_similarity
 
-            dissimilarities = self._compute_dissimilarities(X, self.cluster_centers_)
+            dissimilarities = self._compute_dissimilarity_matrix(X, self.cluster_centers_)
             return torch.argmin(dissimilarities, dim=1)
 
-    def _compute_dissimilarities(self, X, centroids, batch_size=1024):
-        """Compute dissimilarities between points and centroids in batches.
+    def _compute_dissimilarity_matrix(self, X, centroids):
+        """Compute dissimilarities between points and centroids.
+        It returns a matrix of shape (X.shape[0], centroids.shape[0]).
 
         Parameters
         ----------
@@ -271,26 +271,39 @@ class SphericalKMeans:
             Input data points
         centroids : torch.Tensor of shape (n_clusters, n_features)
             Cluster centroids
-        batch_size : int, default=1024
-            Size of batches to use for computation
 
         Returns
         -------
         dissimilarities : torch.Tensor of shape (n_samples, n_clusters)
-            Dissimilarity matrix between points and centroids
+            Dissimilarities between points and centroids
         """
-        n_samples = X.shape[0]
-        n_clusters = centroids.shape[0]
-        dissimilarities = torch.zeros(n_samples, n_clusters, device=self.device)
-        
-        for i in range(0, n_samples, batch_size):
-            batch_end = min(i + batch_size, n_samples)
-            batch = X[i:batch_end]
-            similarities = cosine_similarity(
-                batch.unsqueeze(1),
-                centroids.unsqueeze(0),
-                dim=2
-            )
-            dissimilarities[i:batch_end] = 0.5 * (1 - similarities)
-            
-        return dissimilarities
+        # Compute similarities between each sample and each centroid
+        # similarities: (n_samples, n_centroids)
+        similarities = cosine_similarity(X.unsqueeze(1), centroids.unsqueeze(0), dim=2)
+
+        return 0.5 * (1 - similarities)
+
+    def _compute_dissimilarity_loss(self, X, centroids):
+        """Compute dissimilarities between points and centroids.
+        It returns a scalar representing the sum of dissimilarities.
+
+        Parameters
+        ----------
+        X : torch.Tensor of shape (n_samples, n_features)
+            Input data points
+        centroids : torch.Tensor of shape (n_clusters, n_features)
+            Cluster centroids
+
+        Returns
+        -------
+        dissimilarity_loss : scalar
+        """
+        # Compute similarities between each sample and each centroid
+        # similarities: (n_samples,)
+        similarities = cosine_similarity(X, centroids, dim=1)
+        dissimilarities = 0.5 * (1 - similarities)
+
+        # Compute loss
+        dissimilarity_loss = dissimilarities.sum().item()
+
+        return dissimilarity_loss
