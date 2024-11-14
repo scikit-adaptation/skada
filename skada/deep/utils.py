@@ -122,7 +122,7 @@ class SphericalKMeans:
         in the cluster centers of two consecutive iterations to declare
         convergence.
 
-    centroids : torch.Tensor or None, default=None
+    initial_centroids : torch.Tensor or None, default=None
         Initial centroids to use. If None, centroids are initialized randomly.
 
     random_state : int or None, default=None
@@ -152,16 +152,12 @@ class SphericalKMeans:
     """
 
     def __init__(self, n_clusters=8, n_init=10, max_iter=300, tol=1e-4, 
-                 centroids=None, random_state=None, device='cpu'):
+                 initial_centroids=None, random_state=None, device='cpu'):
         self.n_clusters = n_clusters
         self.n_init = n_init
         self.max_iter = max_iter
         self.tol = tol
-        self.centroids = centroids
-        if centroids is None:
-            self.learn_centroids = True
-        else:
-            self.learn_centroids = False
+        self.initial_centroids = initial_centroids
         self.random_state = random_state
         self.device = device
 
@@ -202,18 +198,19 @@ class SphericalKMeans:
             best_centroids = None
             best_n_iter = None
 
-            if self.learn_centroids:
+            if self.initial_centroids is None:
                 for _ in range(self.n_init):
-                    centroids = self._init_centroids(X)
-                    inertia, centroids, n_iter = self._run_single_kmean(X, centroids)
+                    initial_centroids = self._init_centroids(X)
+                    inertia, centroids, n_iter = self._run_single_kmean(X, initial_centroids)
 
                     if best_inertia is None or inertia < best_inertia:
                         best_inertia = inertia
                         best_centroids = centroids
                         best_n_iter = n_iter
+
             else:
-                centroids = self.centroids.to(self.device)
-                inertia, centroids, n_iter = self._run_single_kmean(X, centroids)
+                initial_centroids = self.initial_centroids.to(self.device)
+                inertia, centroids, n_iter = self._run_single_kmean(X, initial_centroids)
                 best_centroids = centroids
                 best_inertia = inertia
                 best_n_iter = n_iter
@@ -224,14 +221,14 @@ class SphericalKMeans:
 
             return self
     
-    def _run_single_kmean(self, X, centroids):
+    def _run_single_kmean(self, X, initial_centroids):
         """Run a single spherical k-means clustering.
 
         Parameters
         ----------
         X : torch.Tensor of shape (n_samples, n_features)
             Training instances to cluster. Expected to be normalized.
-        centroids : torch.Tensor of shape (n_clusters, n_features)
+        initial_centroids : torch.Tensor of shape (n_clusters, n_features)
             Initial centroids to use. Expected to be normalized.
 
         Returns
