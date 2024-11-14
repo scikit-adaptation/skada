@@ -1,6 +1,8 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
+#         Ambroise Odonnat <ambroiseodonnattechnologie@gmail.com>
 #
 # License: BSD 3-Clause
+import copy
 import math
 
 import numpy as np
@@ -30,14 +32,14 @@ class DANNLoss(BaseDALoss):
 
     Parameters
     ----------
-    target_criterion : torch criterion (class), default=None
+    domain_criterion : torch criterion (class), default=None
         The initialized criterion (loss) used to compute the
         DANN loss. If None, a BCELoss is used.
 
     References
     ----------
     .. [15] Yaroslav Ganin et. al. Domain-Adversarial Training
-            of Neural Networks  In Journal of Machine Learning
+            of Neural Networks. In Journal of Machine Learning
             Research, 2016.
     """
 
@@ -120,7 +122,7 @@ def DANN(
     References
     ----------
     .. [15] Yaroslav Ganin et. al. Domain-Adversarial Training
-            of Neural Networks  In Journal of Machine Learning
+            of Neural Networks. In Journal of Machine Learning
             Research, 2016.
     """
     if domain_classifier is None:
@@ -161,9 +163,7 @@ class CDANLoss(BaseDALoss):
 
     Parameters
     ----------
-    reg : float, default=1
-        Regularization parameter.
-    target_criterion : torch criterion (class), default=None
+    domain_criterion : torch criterion (class), default=None
         The initialized criterion (loss) used to compute the
         CDAN loss. If None, a BCELoss is used.
 
@@ -365,6 +365,154 @@ def CDAN(
         criterion__base_criterion=base_criterion,
         criterion__reg=reg,
         criterion__adapt_criterion=CDANLoss(domain_criterion=domain_criterion),
+        **kwargs,
+    )
+    return net
+
+
+class MDDLoss(BaseDALoss):
+    """Loss MDD.
+
+    This loss tries to minimize the disparity discrepancy between
+    the source and target domains. The discrepancy is estimated
+    through adversarial training of three networks: an encoder,
+    a task network and a discriminator.
+
+    See [35]_ for details.
+
+    Parameters
+    ----------
+    disc_criterion : torch criterion (class)
+        The criterion (loss) used to compute the
+        MDD loss for the discriminator. It should
+        be the same loss as the base criterion.
+        If None, a CrossEntropyLoss is used.
+    gamma : float (default=4.0)
+        Margin parameter following [35]_
+
+    References
+    ----------
+    .. [35] Yuchen Zhang et. al. Bridging Theory and Algorithm
+            for Domain Adaptation. In International Conference on
+            Machine Learning, 2019.
+    """
+
+    def __init__(self, disc_criterion, gamma=4.0):
+        super().__init__()
+        if disc_criterion is None:
+            self.disc_criterion_ = torch.nn.CrossEntropyLoss()
+        else:
+            self.disc_criterion_ = disc_criterion
+        self.gamma = gamma
+
+    def forward(
+        self,
+        y_s,
+        y_pred_s,
+        y_pred_t,
+        disc_pred_s,
+        disc_pred_t,
+        features_s,
+        features_t,
+    ):
+        """Compute the domain adaptation loss"""
+        # TODO: handle binary classification
+        # Multiclass classification
+        pseudo_label_s = torch.argmax(y_pred_s, axis=-1)
+        pseudo_label_t = torch.argmax(y_pred_t, axis=-1)
+
+        disc_loss_src = self.disc_criterion_(disc_pred_s, pseudo_label_s)
+        disc_loss_tgt = self.disc_criterion_(disc_pred_t, pseudo_label_t)
+
+        # Compute the MDD loss value
+        disc_loss = self.gamma * disc_loss_src - disc_loss_tgt
+
+        return disc_loss
+
+
+def MDD(
+    module,
+    layer_name,
+    reg=1,
+    gamma=4.0,
+    disc_classifier=None,
+    num_features=None,
+    n_classes=None,
+    base_criterion=None,
+    disc_criterion=None,
+    **kwargs,
+):
+    """Margin Disparity Discrepancy (MDD).
+
+    From [35]_.
+
+    Parameters
+    ----------
+    module : torch module (class or instance)
+        A PyTorch :class:`~torch.nn.Module`. In general, the
+        uninstantiated class should be passed, although instantiated
+        modules will also work.
+    layer_name : str
+        The name of the module's layer whose outputs are
+        collected during the training.
+    reg : float, default=1
+        Regularization parameter for DA loss.
+    disc_classifier : torch module, default=None
+        A PyTorch :class:`~torch.nn.Module` used as a discriminator.
+        It should have the same architecture than the classifier
+        used on the source. If None, a domain classifier is
+        created following [1]_.
+    num_features : int, default=None
+        Size of the input of domain classifier,
+        e.g size of the last layer of
+        the feature extractor.
+        If domain_classifier is None, num_features has to be
+        provided.
+    n_classes : int, default=None
+        Number of classes. If domain_classifier is None,
+        n_classes has to be provided.
+    base_criterion : torch criterion (class)
+        The base criterion used to compute the loss with source
+        labels. If None, the default is `torch.nn.CrossEntropyLoss`.
+    disc_criterion : torch criterion (class)
+        The criterion (loss) used to compute the
+        MDD loss for the discriminator.
+        If None, use the same loss as base_criterion.
+    gamma : float (default=4.0)
+        Margin parameter following [35]_.
+
+    References
+    ----------
+    .. [35] Yuchen Zhang et. al. Bridging Theory and Algorithm
+            for Domain Adaptation. In International Conference on
+            Machine Learning, 2019.
+    """
+    if disc_classifier is None:
+        # raise error if num_feature is None
+        if num_features is None:
+            raise ValueError(
+                "If disc_classifier is None, num_features has to be provided"
+            )
+        disc_classifier = DomainClassifier(
+            num_features=num_features, n_classes=n_classes
+        )
+
+    if base_criterion is None:
+        base_criterion = torch.nn.CrossEntropyLoss()
+
+    if disc_criterion is None:
+        disc_criterion = copy.deepcopy(base_criterion)
+
+    net = DomainAwareNet(
+        module=DomainAwareModule,
+        module__base_module=module,
+        module__layer_name=layer_name,
+        module__domain_classifier=disc_classifier,
+        iterator_train=DomainBalancedDataLoader,
+        criterion=DomainAwareCriterion,
+        criterion__base_criterion=base_criterion,
+        criterion__reg=reg,
+        criterion__adapt_criterion=MDDLoss(gamma=gamma, disc_criterion=disc_criterion),
         **kwargs,
     )
     return net

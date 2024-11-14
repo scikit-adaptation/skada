@@ -2,6 +2,7 @@
 #         Remi Flamary <remi.flamary@polytechnique.edu>
 #         Yanis Lalou <yanis.lalou@polytechnique.edu>
 #         Antoine Collas <contact@antoinecollas.fr>
+#         Ambroise Odonnat <ambroiseodonnattechnologie@gmail.com>
 #
 # License: BSD 3-Clause
 import torch
@@ -192,7 +193,7 @@ class DomainClassifier(nn.Module):
             Parameter for the reverse layer.
         """
         reverse_x = GradientReversalLayer.apply(x, self.alpha)
-        return self.classifier(reverse_x).flatten()
+        return self.classifier(reverse_x).squeeze()
 
 
 class MNISTtoUSPSNet(nn.Module):
