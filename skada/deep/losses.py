@@ -245,7 +245,7 @@ def cdd_loss(
     if target_kmeans is None:
         raise ValueError(
             "cdd_loss: Please ensure `target_kmeans` is initialized before proceeding."
-            "A SphericalKMeans model should be fitted per epoch (and not per batch)."
+            "A fitted SphericalKMeans should be provided."
         )
 
     # Predict clusters for target samples
