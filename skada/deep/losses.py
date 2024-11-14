@@ -5,7 +5,6 @@
 #
 # License: BSD 3-Clause
 
-import warnings
 from functools import partial
 
 import ot
@@ -15,7 +14,6 @@ import torch.nn.functional as F
 from torch.nn.functional import mse_loss
 
 from skada.deep.base import BaseDALoss
-from skada.deep.utils import SphericalKMeans
 
 
 def deepcoral_loss(features, features_target, assume_centered=False):
@@ -245,32 +243,10 @@ def cdd_loss(
 
     # Use pre-computed target_kmeans
     if target_kmeans is None:
-        with torch.no_grad():
-            warnings.warn(
-                "Source centroids are not computed for the whole training set, "
-                "computing them on the current batch set."
-            )
-
-            source_centroids = []
-
-            for c in range(n_classes):
-                mask = y_s == c
-                if mask.sum() > 0:
-                    class_features = features_s[mask]
-                    normalized_features = F.normalize(class_features, p=2, dim=1)
-                    centroid = normalized_features.sum(dim=0)
-                    source_centroids.append(centroid)
-
-            source_centroids = torch.stack(source_centroids)
-
-            # Use source centroids to initialize target clustering
-            target_kmeans = SphericalKMeans(
-                n_clusters=n_classes,
-                random_state=0,
-                centroids=source_centroids,
-                device=features_t.device,
-            )
-            target_kmeans.fit(features_t)
+        raise ValueError(
+            "cdd_loss: Please ensure `target_kmeans` is initialized before proceeding."
+            "A SphericalKMeans model should be fitted per epoch (and not per batch)."
+        )
 
     # Predict clusters for target samples
     cluster_labels_t = target_kmeans.predict(features_t)
