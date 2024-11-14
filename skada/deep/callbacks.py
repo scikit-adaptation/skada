@@ -71,3 +71,70 @@ class ComputeSourceCentroids(Callback):
         target_kmeans.fit(features_t)
 
         net.criterion__adapt_criterion.target_kmeans = target_kmeans
+
+
+class ComputeMemoryBank(Callback):
+    """Callback to compute memory features and outputs of target domain.
+
+    This callback computes the memory features of target domain to be able
+    to compute pseudo label during training.
+    """
+
+    def __init__(self, momentum=0.7):
+        super().__init__()
+        self.momentum = momentum
+
+    def on_batch_end(self, net, batch, **kwargs):
+        """Compute memory bank at the beginning of each epoch.
+
+        Parameters
+        ----------
+        net : NeuralNet
+            The neural network being trained.
+        dataset_train : Dataset, optional
+            The training dataset.
+        **kwargs : dict
+            Additional arguments passed to the callback.
+        """
+        X, _ = batch
+        X_t = X["X"][X["sample_domain"] < 0]
+
+        net.eval()
+        batch_indices = net.criterion__adapt_criterion.batch_indices
+        with torch.no_grad():
+            output_t, features_t = net.module(X_t, return_features=True)
+            features_t = F.normalize(features_t, p=2, dim=1)
+            softmax_out = F.softmax(output_t, dim=1)
+            outputs_target = softmax_out**2 / ((softmax_out**2).sum(dim=0))
+
+            new_memory_features = (
+                1.0 - self.momentum
+            ) * net.criterion__adapt_criterion.memory_features[
+                batch_indices
+            ] + self.momentum * features_t.clone()
+
+            new_memory_outputs = (
+                1.0 - self.momentum
+            ) * net.criterion__adapt_criterion.memory_outputs[
+                batch_indices
+            ] + self.momentum * outputs_target.clone()
+        net.criterion__adapt_criterion.memory_features[batch_indices] = (
+            new_memory_features
+        )
+        net.criterion__adapt_criterion.memory_outputs[batch_indices] = (
+            new_memory_outputs
+        )
+
+
+class BatchIndexCallback(Callback):
+    """Callback to get the indexes of sample of a batch"""
+
+    def on_batch_begin(self, net, **kwargs):
+        """Get the indices of the samples in the batch."""
+        # Access indices from the sampler
+        print(net.iterator_train())
+        batch_sampler = net.iterator_train.batch_sampler
+        batch_indices = batch_sampler.indices[
+            batch_sampler.batch_index_start : batch_sampler.batch_index_end
+        ]
+        net.criterion__adapt_criterion.batch_indices = batch_indices

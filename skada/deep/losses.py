@@ -408,3 +408,68 @@ def mcc_loss(y, T=1):
     loss = torch.mean(torch.sum(torch.abs(C_), axis=1))
 
     return loss
+
+
+def _gauss(v1, v2, sigma):
+    norm_ = torch.norm(v1 - v2, p=2, dim=0)
+    return torch.exp(-0.5 * norm_ / sigma**2)
+
+
+def _euc(v1, v2):
+    return torch.norm(v1 - v2, p=2, dim=0)
+
+
+def _adj(s, t, metric="cos"):
+    # s, t [bsize, dim], [bsize, dim] -> [bsize, bsize]
+    if metric == "cos":
+        s_norm = s / torch.norm(s, p=2, dim=1, keepdim=True)
+        t_norm = t / torch.norm(t, p=2, dim=1, keepdim=True)
+        adj = s_norm @ t_norm.T
+
+    elif metric == "gauss":
+        sigma_ = 1.5
+        M, N = s.shape[0], t.shape[0]
+        adj = torch.zeros([M, N], dtype=torch.float).to(s.device)
+        for i in range(M):
+            for j in range(i):
+                adj[i][j] = adj[j][i] = _gauss(s[i], t[j], sigma_)
+
+    elif metric == "euc":
+        M, N = s.shape[0], t.shape[0]
+        adj = torch.zeros([M, N], dtype=torch.float).to(s.device)
+        for i in range(M):
+            for j in range(i):
+                adj[i][j] = adj[j][i] = _euc(s[i], t[j])
+
+    return adj
+
+
+def _laplacian(A, laplac="laplac1"):
+    v = torch.sum(A, dim=1)
+    if laplac == "laplac1":
+        v_inv = 1 / v
+        D_inv = torch.diag(v_inv).to(A.device)
+        return -D_inv @ A
+
+    elif laplac == "laplac2":
+        D = torch.diag(v).to(A.device)
+        return D - A
+
+    elif laplac == "laplac3":
+        v_sqrt = 1 / torch.sqrt(v)
+        D_sqrt = torch.diag(v_sqrt).to(A.device)
+        iden = torch.eye(A.shape[0]).to(A.device)
+        return iden - D_sqrt @ A @ D_sqrt
+
+
+def gda_loss(s, t, metric="euc", laplac="laplac1"):
+    """Compute the GDA loss between two graphs."""
+    # s, t [bsize, dim], [bsize, dim]
+    s_matrix = _adj(s, s, metric)
+    t_matrix = _adj(t, t, metric)
+    s_matrix = _laplacian(s_matrix, laplac)
+    t_matrix = _laplacian(t_matrix, laplac)
+    _, s_v, _ = torch.svd(s_matrix)
+    _, t_v, _ = torch.svd(t_matrix)
+    svd_loss = torch.norm(s_v - t_v, p=2)
+    return svd_loss
