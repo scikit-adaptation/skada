@@ -158,6 +158,10 @@ class SphericalKMeans:
         self.max_iter = max_iter
         self.tol = tol
         self.centroids = centroids
+        if centroids is None:
+            self.learn_centroids = True
+        else:
+            self.learn_centroids = False
         self.random_state = random_state
         self.device = device
 
@@ -198,7 +202,7 @@ class SphericalKMeans:
             best_centroids = None
             best_n_iter = None
 
-            if self.centroids is None:
+            if self.learn_centroids:
                 for _ in range(self.n_init):
                     centroids = self._init_centroids(X)
                     inertia, centroids, n_iter = self._run_single_kmean(X, centroids)
