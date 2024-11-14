@@ -206,7 +206,7 @@ class SphericalKMeans:
                         best_n_iter = n_iter
 
             else:
-                initial_centroids = self.initial_centroids.to(self.device)
+                initial_centroids = self.initial_centroids.to(self.device).clone()
                 inertia, centroids, n_iter = self._run_single_kmean(X, initial_centroids)
                 best_centroids = centroids
                 best_inertia = inertia
@@ -237,6 +237,7 @@ class SphericalKMeans:
         n_iter : int
             Number of iterations run.
         """
+        centroids = initial_centroids
         for n_iter in range(self.max_iter):
             # Assign samples to closest centroids
             dissimilarities = self._compute_dissimilarity_matrix(X, centroids)
