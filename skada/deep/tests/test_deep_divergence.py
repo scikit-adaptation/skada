@@ -15,6 +15,7 @@ from skada.datasets import make_shifted_datasets
 from skada.deep import CAN, DAN, DeepCoral
 from skada.deep.losses import cdd_loss, dan_loss
 from skada.deep.modules import ToyModule2D
+from skada.deep.utils import SphericalKMeans
 
 
 @pytest.mark.parametrize(
@@ -205,8 +206,15 @@ def test_cdd_loss_edge_cases():
     features_t = torch.randn((4, 2))
     y_s = torch.tensor([0, 0, 1, 1])  # Two classes
 
+    # Fit a SphericalKMeans
+    target_kmeans = SphericalKMeans(
+        n_clusters=len(torch.unique(y_s)),
+        random_state=0,
+    )
+    target_kmeans.fit(features_t)
+
     # This should not raise any errors due to the eps we added
-    loss = cdd_loss(y_s, features_s, features_t)
+    loss = cdd_loss(y_s, features_s, features_t, target_kmeans)
     assert not np.isnan(loss)
 
 
