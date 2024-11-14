@@ -473,3 +473,18 @@ def gda_loss(s, t, metric="euc", laplac="laplac1"):
     _, t_v, _ = torch.svd(t_matrix)
     svd_loss = torch.norm(s_v - t_v, p=2)
     return svd_loss
+
+
+def nap_loss(features_t, y_pred_t, memory_features, memory_outputs, K=5):
+    """Compute the NAP loss."""
+    dis = -torch.mm(features_t.detach(), memory_features.t())
+    _, p1 = torch.sort(dis, dim=1)
+
+    w = torch.zeros(features_t.size(0), memory_features.size(0)).to(features_t.device)
+    w.scatter_(1, p1[:, :K], 1 / K)
+    weight_, pred = torch.max(w.mm(memory_outputs), 1)
+
+    loss_ = torch.nn.CrossEntropyLoss(reduction="none")(y_pred_t, pred)
+    classifier_loss = torch.sum(weight_ * loss_) / (torch.sum(weight_).item())
+
+    return classifier_loss

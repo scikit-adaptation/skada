@@ -3,7 +3,6 @@
 # License: BSD 3-Clause
 
 import torch
-from torch import nn
 
 from skada.deep.base import (
     BaseDALoss,
@@ -12,8 +11,8 @@ from skada.deep.base import (
     DomainAwareNet,
     DomainBalancedDataLoader,
 )
-from skada.deep.callbacks import BatchIndexCallback, ComputeMemoryBank
-from skada.deep.losses import gda_loss
+from skada.deep.callbacks import ComputeMemoryBank
+from skada.deep.losses import gda_loss, nap_loss
 
 from .modules import DomainClassifier
 
@@ -25,19 +24,24 @@ class SPALoss(BaseDALoss):
     adversarial method. The weights are updated to make harder
     to classify domains (i.e., remove domain-specific features).
 
-    See [15]_ for details.
+    See [35]_ for details.
 
     Parameters
     ----------
     target_criterion : torch criterion (class), default=None
         The initialized criterion (loss) used to compute the
-        DANN loss. If None, a BCELoss is used.
+        adversarial loss. If None, a BCELoss is used.
+    reg_adv : float, default=1
+        Regularization parameter for adversarial loss.
+    reg_gsa : float, default=1
+        Regularization parameter for graph alignment loss
+    reg_nap : float, default=1
+        R
 
     References
     ----------
-    .. [15] Yaroslav Ganin et. al. Domain-Adversarial Training
-            of Neural Networks  In Journal of Machine Learning
-            Research, 2016.
+    .. [35] Xiao et. al. SPA: A Graph Spectral Alignment Perspective for
+            Domain Adaptation. In Neurips, 2023.
     """
 
     def __init__(
@@ -61,8 +65,8 @@ class SPALoss(BaseDALoss):
         self.reg_nap = reg_nap
         self.K = K
         self.memory_features = memory_features
+
         self.memory_outputs = memory_outputs
-        self.batch_indices = None
 
     def forward(
         self,
@@ -93,27 +97,16 @@ class SPALoss(BaseDALoss):
 
         if self.memory_features is None:
             self.memory_features = torch.rand_like(features_t)
-
         if self.memory_outputs is None:
             self.memory_outputs = torch.rand_like(y_pred_t)
 
-        dis = -torch.mm(features_t.detach(), self.memory_features.t())
-        for di in range(dis.size(0)):
-            print(self.batch_indices)
-            dis[di, self.batch_indices[di]] = torch.max(dis)
-        _, p1 = torch.sort(dis, dim=1)
-
-        w = torch.zeros(features_t.size(0), self.memory_features.size(0)).to(
-            features_t.device
+        loss_pl = self.reg_nap * nap_loss(
+            features_s,
+            features_t,
+            self.memory_features,
+            self.memory_outputs,
+            K=self.K,
         )
-        for wi in range(w.size(0)):
-            for wj in range(self.K):
-                w[wi][p1[wi, wj]] = 1 / self.K
-        weight_, pred = torch.max(w.mm(self.memory_outputs), 1)
-
-        loss_ = nn.CrossEntropyLoss(reduction="none")(y_pred_t, pred)
-        classifier_loss = torch.sum(weight_ * loss_) / (torch.sum(weight_).item())
-        loss_pl = self.reg_nap * classifier_loss
 
         loss = loss_adv + loss_gda + loss_pl
         return loss
@@ -134,7 +127,7 @@ def SPA(
 ):
     """Domain-Adversarial Training of Neural Networks (DANN).
 
-    From [15]_.
+    From [35]_.
 
     Parameters
     ----------
@@ -165,9 +158,8 @@ def SPA(
 
     References
     ----------
-    .. [15] Yaroslav Ganin et. al. Domain-Adversarial Training
-            of Neural Networks  In Journal of Machine Learning
-            Research, 2016.
+    .. [35] Xiao et. al. SPA: A Graph Spectral Alignment Perspective for
+            Domain Adaptation. In Neurips, 2023.
     """
     if domain_classifier is None:
         # raise error if num_feature is None
@@ -178,13 +170,17 @@ def SPA(
         domain_classifier = DomainClassifier(num_features=num_features)
 
     if callbacks is None:
-        callbacks = [ComputeMemoryBank(), BatchIndexCallback()]
+        callbacks = [
+            ComputeMemoryBank(),
+        ]
     else:
         if isinstance(callbacks, list):
             callbacks.append(ComputeMemoryBank())
-            callbacks.append(BatchIndexCallback())
         else:
-            callbacks = [callbacks, ComputeMemoryBank(), BatchIndexCallback()]
+            callbacks = [
+                callbacks,
+                ComputeMemoryBank(),
+            ]
     if base_criterion is None:
         base_criterion = torch.nn.CrossEntropyLoss()
 
