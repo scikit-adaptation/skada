@@ -67,7 +67,7 @@ class ComputeSourceCentroids(Callback):
             target_kmeans = SphericalKMeans(
                 n_clusters=n_classes,
                 random_state=0,
-                centroids=source_centroids,
+                initial_centroids=source_centroids,
                 device=features_t.device,
             )
             target_kmeans.fit(features_t)
