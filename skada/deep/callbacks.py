@@ -132,7 +132,7 @@ class BatchIndexCallback(Callback):
     def on_batch_begin(self, net, **kwargs):
         """Get the indices of the samples in the batch."""
         # Access indices from the sampler
-        print(net.iterator_train())
+        # TODO fix how to get indexes
         batch_sampler = net.iterator_train.batch_sampler
         batch_indices = batch_sampler.indices[
             batch_sampler.batch_index_start : batch_sampler.batch_index_end
