@@ -14,6 +14,7 @@ import torch.nn.functional as F
 from torch.nn.functional import mse_loss
 
 from skada.deep.base import BaseDALoss
+from skada.deep.utils import SphericalKMeans
 
 
 def deepcoral_loss(features, features_target, assume_centered=False):
@@ -198,7 +199,7 @@ def cdd_loss(
     y_s,
     features_s,
     features_t,
-    target_kmeans=None,
+    target_kmeans,
     sigmas=None,
     distance_threshold=0.5,
     class_threshold=3,
@@ -242,7 +243,7 @@ def cdd_loss(
     n_classes = len(y_s.unique())
 
     # Use pre-computed target_kmeans
-    if target_kmeans is None:
+    if type(target_kmeans) is not SphericalKMeans:
         raise ValueError(
             "cdd_loss: Please ensure `target_kmeans` is initialized before proceeding."
             "A fitted SphericalKMeans should be provided."
