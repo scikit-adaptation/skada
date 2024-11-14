@@ -136,9 +136,6 @@ class SphericalKMeans:
     cluster_centers_ : torch.Tensor of shape (n_clusters, n_features)
         Coordinates of cluster centers.
 
-    labels_ : torch.Tensor of shape (n_samples,)
-        Labels of each point.
-
     inertia_ : float
         Sum of squared distances of samples to their closest cluster center.
 
