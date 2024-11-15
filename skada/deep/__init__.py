@@ -18,7 +18,7 @@ except (ImportError, ModuleNotFoundError) as e:
 
 from ._divergence import DeepCoral, DeepCoralLoss, DANLoss, DAN, CAN, CANLoss
 from ._optimal_transport import DeepJDOT, DeepJDOTLoss
-from ._adversarial import DANN, CDAN, MDD, DANNLoss, CDANLoss, MDDLoss
+from ._adversarial import DANN, CDAN, MDD, DANNLoss, CDANLoss, MDDLoss, ModifiedCrossEntropyLoss
 from ._class_confusion import MCC, MCCLoss
 from ._baseline import SourceOnly, TargetOnly
 
@@ -42,6 +42,7 @@ __all__ = [
     "MCC",
     "MDDLoss",
     "MDD",
+    "ModifiedCrossEntropyLoss",
     "CANLoss",
     "CAN",
     "SourceOnly",
