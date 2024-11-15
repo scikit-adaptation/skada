@@ -371,6 +371,22 @@ def CDAN(
     return net
 
 
+class ModifiedCrossEntropyLoss(torch.nn.Module):
+    """Modified CrossEntropyLoss.
+    Implements modified CrossEntropyLoss as described in (29) from [35]_.
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, input, target):
+        """Compute the modified CrossEntropyLoss"""
+        prob = F.softmax(input, dim=-1)
+        prob = prob[..., target]
+        log_one_minus_prob = torch.log(1 - prob)
+        return torch.mean(log_one_minus_prob)
+
+
 class MDDLoss(BaseDALoss):
     """Loss MDD.
 
@@ -422,22 +438,6 @@ class MDDLoss(BaseDALoss):
         disc_loss = self.gamma * disc_loss_s - disc_loss_t
 
         return disc_loss
-
-
-class ModifiedCrossEntropyLoss(torch.nn.Module):
-    """Modified CrossEntropyLoss.
-    Implements modified CrossEntropyLoss as described in (29) from [35]_.
-    """
-
-    def __init__(self):
-        super().__init__()
-
-    def forward(self, input, target):
-        """Compute the modified CrossEntropyLoss"""
-        prob = F.softmax(input, dim=-1)
-        prob = prob[..., target]
-        log_one_minus_prob = torch.log(1 - prob)
-        return torch.mean(log_one_minus_prob)
 
 
 def MDD(
