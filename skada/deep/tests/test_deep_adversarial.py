@@ -1,6 +1,7 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Oleksii Kachaiev <kachayev@gmail.com>
 #         Ambroise Odonnat <ambroiseodonnattechnologie@gmail.com>
+#         Antoine Collas <contact@antoinecollas.fr>
 #
 # License: BSD 3-Clause
 import pytest
@@ -8,7 +9,7 @@ import pytest
 torch = pytest.importorskip("torch")
 
 import numpy as np
-from torch.nn import BCELoss, CrossEntropyLoss
+from torch.nn import BCELoss
 
 from skada.datasets import make_shifted_datasets
 from skada.deep import CDAN, DANN, MDD
@@ -116,25 +117,22 @@ def test_cdan(domain_classifier, domain_criterion, num_feature, max_feature, n_c
 
 
 @pytest.mark.parametrize(
-    "disc_classifier, disc_criterion, num_features, n_classes",
+    "disc_classifier, num_features, n_classes",
     [
         (
             DomainClassifier(num_features=10, n_classes=5),
-            CrossEntropyLoss(),
             10,
             5,
         ),
         (
             DomainClassifier(num_features=10, n_classes=5),
-            CrossEntropyLoss(),
             None,
             None,
         ),
-        (DomainClassifier(num_features=10, n_classes=5), None, None, None),
-        (None, None, 10, 5),
+        (None, 10, 5),
     ],
 )
-def test_mdd(disc_classifier, disc_criterion, num_features, n_classes):
+def test_mdd(disc_classifier, num_features, n_classes):
     n_samples = 20
     dataset = make_shifted_datasets(
         n_samples_source=n_samples,
@@ -152,7 +150,6 @@ def test_mdd(disc_classifier, disc_criterion, num_features, n_classes):
         disc_classifier=disc_classifier,
         num_features=num_features,
         n_classes=n_classes,
-        disc_criterion=disc_criterion,
         layer_name="dropout",
         batch_size=10,
         max_epochs=50,
