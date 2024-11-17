@@ -412,6 +412,8 @@ class MDDLoss(BaseDALoss):
     def __init__(self, gamma=4.0):
         super().__init__()
         self.gamma = gamma
+        self.disc_criterion_s = torch.nn.CrossEntropyLoss()
+        self.disc_criterion_t = ModifiedCrossEntropyLoss()
 
     def forward(
         self,
@@ -429,10 +431,8 @@ class MDDLoss(BaseDALoss):
         pseudo_label_s = torch.argmax(y_pred_s, axis=-1)
         pseudo_label_t = torch.argmax(y_pred_t, axis=-1)
 
-        disc_criterion_s_ = torch.nn.CrossEntropyLoss()
-        disc_loss_s = disc_criterion_s_(disc_pred_s, pseudo_label_s)
-        disc_criterion_t_ = ModifiedCrossEntropyLoss()
-        disc_loss_t = disc_criterion_t_(disc_pred_t, pseudo_label_t)
+        disc_loss_s = self.disc_criterion_s(disc_pred_s, pseudo_label_s)
+        disc_loss_t = self.disc_criterion_t(disc_pred_t, pseudo_label_t)
 
         # Compute the MDD loss value
         disc_loss = self.gamma * disc_loss_s - disc_loss_t
