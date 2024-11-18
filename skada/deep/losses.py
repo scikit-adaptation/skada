@@ -421,7 +421,7 @@ def _euc(v1, v2):
     return torch.norm(v1 - v2, p=2, dim=0)
 
 
-def _adj(s, t, metric="cos"):
+def _adj(s, t, metric="euc"):
     """Inspired by https://github.com/CrownX/SPA"""
     # s, t [bsize, dim], [bsize, dim] -> [bsize, bsize]
     if metric == "cos":
@@ -466,7 +466,7 @@ def _laplacian(A, laplac="laplac1"):
         return iden - D_sqrt @ A @ D_sqrt
 
 
-def gda_loss(s, t, metric="cos", laplac="laplac1"):
+def gda_loss(s, t, metric="euc", laplac="laplac1"):
     """Compute the GDA loss between two graphs.
 
         Inspired by https://github.com/CrownX/SPA
