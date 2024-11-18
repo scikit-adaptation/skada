@@ -45,13 +45,9 @@ class DeepCoralLoss(BaseDALoss):
 
     def forward(
         self,
-        y_s,
-        y_pred_s,
-        y_pred_t,
-        domain_pred_s,
-        domain_pred_t,
         features_s,
         features_t,
+        **kwargs,
     ):
         """Compute the domain adaptation loss"""
         loss = deepcoral_loss(features_s, features_t, self.assume_centered)
@@ -131,13 +127,9 @@ class DANLoss(BaseDALoss):
 
     def forward(
         self,
-        y_s,
-        y_pred_s,
-        y_pred_t,
-        domain_pred_s,
-        domain_pred_t,
         features_s,
         features_t,
+        **kwargs,
     ):
         """Compute the domain adaptation loss"""
         loss = dan_loss(features_s, features_t, sigmas=self.sigmas, eps=self.eps)
@@ -234,12 +226,9 @@ class CANLoss(BaseDALoss):
     def forward(
         self,
         y_s,
-        y_pred_s,
-        y_pred_t,
-        domain_pred_s,
-        domain_pred_t,
         features_s,
         features_t,
+        **kwargs,
     ):
         loss = cdd_loss(
             y_s,

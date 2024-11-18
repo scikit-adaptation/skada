@@ -86,7 +86,7 @@ class ComputeMemoryBank(Callback):
         super().__init__()
         self.momentum = momentum
 
-    def on_epochs_end(self, net, dataset_train=None, **kwargs):
+    def on_batch_end(self, net, batch, **kwargs):
         """Compute memory bank at the end of each epoch.
 
         Parameters
@@ -98,33 +98,26 @@ class ComputeMemoryBank(Callback):
         **kwargs : dict
             Additional arguments passed to the callback.
         """
-        X, _ = dataset_train.X, dataset_train.y
-
-        X, _ = net._prepare_input(X)
+        X, _ = batch
         X_t = X["X"][X["sample_domain"] < 0]
 
-        net.eval()
+        batch_idx = net.criterion__adapt_criterion.sample_idx
+        net.module_.eval()
         with torch.no_grad():
-            output_t, features_t = net.module(X_t, return_features=True)
+            output_t, features_t = net.module_(X_t, return_features=True)
             features_t = F.normalize(features_t, p=2, dim=1)
             softmax_out = F.softmax(output_t, dim=1)
             outputs_target = softmax_out**2 / ((softmax_out**2).sum(dim=0))
 
-            if net.criterion__adapt_criterion.memory_features is None:
-                memory_features = torch.rand_like(features_t)
-            else:
-                memory_features = net.criterion__adapt_criterion.memory_features
-
-            if net.criterion__adapt_criterion.memory_outputs is None:
-                memory_outputs = torch.rand_like(outputs_target)
-            else:
-                memory_outputs = net.criterion__adapt_criterion.memory_outputs
-
-            new_memory_features = (1.0 - self.momentum) * memory_features
+            new_memory_features = (
+                1.0 - self.momentum
+            ) * net.criterion__adapt_criterion.memory_features[batch_idx]
             +self.momentum * features_t.clone()
 
-            new_memory_outputs = (1.0 - self.momentum) * memory_outputs
+            new_memory_outputs = (
+                1.0 - self.momentum
+            ) * net.criterion__adapt_criterion.memory_outputs[batch_idx]
             +self.momentum * outputs_target.clone()
 
-        net.criterion__adapt_criterion.memory_features = new_memory_features
-        net.criterion__adapt_criterion.memory_outputs = new_memory_outputs
+        net.criterion__adapt_criterion.memory_features[batch_idx] = new_memory_features
+        net.criterion__adapt_criterion.memory_outputs[batch_idx] = new_memory_outputs

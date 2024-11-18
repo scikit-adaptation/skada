@@ -366,13 +366,7 @@ class TestLoss(BaseDALoss):
 
     def forward(
         self,
-        y_s,
-        y_pred_s,
-        y_pred_t,
-        domain_pred_s,
-        domain_pred_t,
-        features_s,
-        features_t,
+        **kwargs,
     ):
         """Compute the domain adaptation loss"""
         return 0
@@ -440,15 +434,18 @@ def mcc_loss(y, T=1, eps=1e-7):
 
 
 def _gauss(v1, v2, sigma):
+    """Inspired by https://github.com/CrownX/SPA"""
     norm_ = torch.norm(v1 - v2, p=2, dim=0)
     return torch.exp(-0.5 * norm_ / sigma**2)
 
 
 def _euc(v1, v2):
+    """Inspired by https://github.com/CrownX/SPA"""
     return torch.norm(v1 - v2, p=2, dim=0)
 
 
 def _adj(s, t, metric="cos"):
+    """Inspired by https://github.com/CrownX/SPA"""
     # s, t [bsize, dim], [bsize, dim] -> [bsize, bsize]
     if metric == "cos":
         s_norm = s / torch.norm(s, p=2, dim=1, keepdim=True)
@@ -474,6 +471,7 @@ def _adj(s, t, metric="cos"):
 
 
 def _laplacian(A, laplac="laplac1"):
+    """Inspired by https://github.com/CrownX/SPA"""
     v = torch.sum(A, dim=1)
     if laplac == "laplac1":
         v_inv = 1 / v
@@ -492,7 +490,21 @@ def _laplacian(A, laplac="laplac1"):
 
 
 def gda_loss(s, t, metric="euc", laplac="laplac1"):
-    """Compute the GDA loss between two graphs."""
+    """Compute the GDA loss between two graphs.
+
+        Inspired by https://github.com/CrownX/SPA
+
+    Parameters
+    ----------
+    s : torch.Tensor
+        Source features.
+    t : torch.Tensor
+        Target features.
+    metric : str, default="euc"
+        The metric to use for the adjacency matrix.
+    laplac : str, default="laplac1"
+        The Laplacian matrix to use.
+    """
     # s, t [bsize, dim], [bsize, dim]
     s_matrix = _adj(s, s, metric)
     t_matrix = _adj(t, t, metric)
@@ -504,15 +516,36 @@ def gda_loss(s, t, metric="euc", laplac="laplac1"):
     return svd_loss
 
 
-def nap_loss(features_t, y_pred_t, memory_features, memory_outputs, K=5):
-    """Compute the NAP loss."""
+def nap_loss(
+    features_t, y_pred_t, memory_features, memory_outputs, K=5, sample_idx=None
+):
+    """Compute the NAP loss.
+
+        Inspired by https://github.com/CrownX/SPA
+
+    Parameters
+    ----------
+    features_t : torch.Tensor
+        Target features.
+    y_pred_t : torch.Tensor
+        Target predictions.
+    memory_features : torch.Tensor
+        Memory features.
+    memory_outputs : torch.Tensor
+        Memory outputs.
+    K : int, default=5
+        The number of nearest neighbors.
+    sample_idx : torch.Tensor, default=None
+        The sample indices in the batch.
+    """
     dis = -torch.mm(features_t.detach(), memory_features.t())
+    for i in range(dis.size(0)):
+        dis[i, sample_idx[i]] = torch.inf
     _, p1 = torch.sort(dis, dim=1)
 
     w = torch.zeros(features_t.size(0), memory_features.size(0)).to(features_t.device)
     w.scatter_(1, p1[:, :K], 1 / K)
     weight_, pred = torch.max(w.mm(memory_outputs), 1)
-
     loss_ = torch.nn.CrossEntropyLoss(reduction="none")(y_pred_t, pred)
     classifier_loss = torch.sum(weight_ * loss_) / (torch.sum(weight_).item())
 

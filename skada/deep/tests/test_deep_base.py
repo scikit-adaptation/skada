@@ -63,7 +63,7 @@ def test_domainawaremodule_features_differ_between_domains():
         )
 
     # Unpack output
-    y_pred, domain_pred, features, sample_domain_output = output
+    y_pred, domain_pred, features, sample_domain_output, sample_idx = output
 
     # Separate features for source and target domains
     source_mask = sample_domain_tensor >= 0

@@ -24,7 +24,7 @@ class SPALoss(BaseDALoss):
     adversarial method. The weights are updated to make harder
     to classify domains (i.e., remove domain-specific features).
 
-    See [35]_ for details.
+    See [36]_ for details.
 
     Parameters
     ----------
@@ -36,11 +36,17 @@ class SPALoss(BaseDALoss):
     reg_gsa : float, default=1
         Regularization parameter for graph alignment loss
     reg_nap : float, default=1
-        R
+        Regularization parameter for nap loss
+    num_samples : int, default=None
+        Number of samples in the target domain.
+    num_features : int, default=None
+        Number of features in the network.
+    num_classes : int, default=None
+        Number of classes in the dataset.
 
     References
     ----------
-    .. [35] Xiao et. al. SPA: A Graph Spectral Alignment Perspective for
+    .. [36] Xiao et. al. SPA: A Graph Spectral Alignment Perspective for
             Domain Adaptation. In Neurips, 2023.
     """
 
@@ -53,6 +59,9 @@ class SPALoss(BaseDALoss):
         reg_adv=1,
         reg_gsa=1,
         reg_nap=1,
+        num_samples=None,
+        num_features=None,
+        num_classes=None,
     ):
         super().__init__()
         if domain_criterion is None:
@@ -64,21 +73,32 @@ class SPALoss(BaseDALoss):
         self.reg_gsa = reg_gsa
         self.reg_nap = reg_nap
         self.K = K
-        self.memory_features = memory_features
-
-        self.memory_outputs = memory_outputs
+        if memory_features is None:
+            if num_features is None or num_samples is None:
+                raise ValueError(
+                    "If memory_features is None, num_features"
+                    "and num_samples has to be provided"
+                )
+            self.memory_features = torch.rand(num_samples, num_features)
+        if memory_outputs is None:
+            if num_classes is None or num_samples is None:
+                raise ValueError(
+                    "If memory_outputs is None, num_classes"
+                    "and num_samples has to be provided"
+                )
+            self.memory_outputs = torch.rand(num_samples, num_classes)
 
     def forward(
         self,
-        y_s,
-        y_pred_s,
-        y_pred_t,
         domain_pred_s,
         domain_pred_t,
         features_s,
         features_t,
+        sample_idx_t,
+        **kwargs,
     ):
         """Compute the domain adaptation loss"""
+        self.sample_idx = sample_idx_t
         domain_label = torch.zeros(
             (domain_pred_s.size()[0]),
             device=domain_pred_s.device,
@@ -95,19 +115,14 @@ class SPALoss(BaseDALoss):
 
         loss_gda = self.reg_gsa * gda_loss(features_s, features_t)
 
-        if self.memory_features is None:
-            self.memory_features = torch.rand_like(features_t)
-        if self.memory_outputs is None:
-            self.memory_outputs = torch.rand_like(y_pred_t)
-
         loss_pl = self.reg_nap * nap_loss(
             features_s,
             features_t,
             self.memory_features,
             self.memory_outputs,
             K=self.K,
+            sample_idx=self.sample_idx,
         )
-
         loss = loss_adv + loss_gda + loss_pl
         return loss
 
@@ -120,14 +135,16 @@ def SPA(
     reg_nap=1,
     domain_classifier=None,
     num_features=None,
+    num_samples_t=None,
+    num_classes=None,
     base_criterion=None,
     domain_criterion=None,
     callbacks=None,
     **kwargs,
 ):
-    """Domain-Adversarial Training of Neural Networks (DANN).
+    """Domain Adaptation with SPA.
 
-    From [35]_.
+    From [36]_.
 
     Parameters
     ----------
@@ -149,6 +166,10 @@ def SPA(
         the feature extractor.
         If domain_classifier is None, num_features has to be
         provided.
+    num_samples_t : int, default=None
+        Number of samples in the target domain.
+    num_classes : int, default=None
+        Number of classes in the dataset.
     base_criterion : torch criterion (class)
         The base criterion used to compute the loss with source
         labels. If None, the default is `torch.nn.CrossEntropyLoss`.
@@ -158,7 +179,7 @@ def SPA(
 
     References
     ----------
-    .. [35] Xiao et. al. SPA: A Graph Spectral Alignment Perspective for
+    .. [36] Xiao et. al. SPA: A Graph Spectral Alignment Perspective for
             Domain Adaptation. In Neurips, 2023.
     """
     if domain_classifier is None:
@@ -198,6 +219,9 @@ def SPA(
             reg_adv=reg_adv,
             reg_gsa=reg_gsa,
             reg_nap=reg_nap,
+            num_samples=num_samples_t,
+            num_features=num_features,
+            num_classes=num_classes,
         ),
         callbacks=callbacks,
         **kwargs,

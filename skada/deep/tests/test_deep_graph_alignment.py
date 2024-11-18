@@ -17,8 +17,8 @@ from skada.deep.modules import DomainClassifier, ToyModule2D
 @pytest.mark.parametrize(
     "domain_classifier, domain_criterion, num_features",
     [
-        (DomainClassifier(num_features=10), BCELoss(), None),
-        (DomainClassifier(num_features=10), None, None),
+        (DomainClassifier(num_features=10), BCELoss(), 10),
+        (DomainClassifier(num_features=10), None, 10),
         (None, None, 10),
         (None, BCELoss(), 10),
     ],
@@ -36,10 +36,14 @@ def test_spa(domain_classifier, domain_criterion, num_features):
         random_state=42,
         return_dataset=True,
     )
+    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    n_samples_t = np.sum(sample_domain < 0)
     method = SPA(
         ToyModule2D(),
         domain_classifier=domain_classifier,
         num_features=num_features,
+        num_classes=2,
+        num_samples_t=n_samples_t,
         domain_criterion=domain_criterion,
         layer_name="dropout",
         batch_size=10,
@@ -47,7 +51,6 @@ def test_spa(domain_classifier, domain_criterion, num_features):
         train_split=None,
     )
 
-    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
     method.fit(X.astype(np.float32), y, sample_domain)
 
     X_test, y_test, sample_domain_test = dataset.pack_test(as_targets=["t"])
