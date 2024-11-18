@@ -5,7 +5,6 @@
 #
 # License: BSD 3-Clause
 
-import warnings
 from functools import partial
 
 import ot
@@ -200,7 +199,7 @@ def cdd_loss(
     y_s,
     features_s,
     features_t,
-    target_kmeans=None,
+    target_kmeans,
     sigmas=None,
     distance_threshold=0.5,
     class_threshold=3,
@@ -244,33 +243,11 @@ def cdd_loss(
     n_classes = len(y_s.unique())
 
     # Use pre-computed target_kmeans
-    if target_kmeans is None:
-        with torch.no_grad():
-            warnings.warn(
-                "Source centroids are not computed for the whole training set, "
-                "computing them on the current batch set."
-            )
-
-            source_centroids = []
-
-            for c in range(n_classes):
-                mask = y_s == c
-                if mask.sum() > 0:
-                    class_features = features_s[mask]
-                    normalized_features = F.normalize(class_features, p=2, dim=1)
-                    centroid = normalized_features.sum(dim=0)
-                    source_centroids.append(centroid)
-
-            source_centroids = torch.stack(source_centroids)
-
-            # Use source centroids to initialize target clustering
-            target_kmeans = SphericalKMeans(
-                n_clusters=n_classes,
-                random_state=0,
-                centroids=source_centroids,
-                device=features_t.device,
-            )
-            target_kmeans.fit(features_t)
+    if type(target_kmeans) is not SphericalKMeans:
+        raise ValueError(
+            "cdd_loss: Please ensure `target_kmeans` is initialized before proceeding."
+            "A fitted SphericalKMeans should be provided."
+        )
 
     # Predict clusters for target samples
     cluster_labels_t = target_kmeans.predict(features_t)

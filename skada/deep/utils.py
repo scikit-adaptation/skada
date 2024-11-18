@@ -122,7 +122,7 @@ class SphericalKMeans:
         in the cluster centers of two consecutive iterations to declare
         convergence.
 
-    centroids : torch.Tensor or None, default=None
+    initial_centroids : torch.Tensor or None, default=None
         Initial centroids to use. If None, centroids are initialized randomly.
 
     random_state : int or None, default=None
@@ -135,9 +135,6 @@ class SphericalKMeans:
     ----------
     cluster_centers_ : torch.Tensor of shape (n_clusters, n_features)
         Coordinates of cluster centers.
-
-    labels_ : torch.Tensor of shape (n_samples,)
-        Labels of each point.
 
     inertia_ : float
         Sum of squared distances of samples to their closest cluster center.
@@ -152,12 +149,12 @@ class SphericalKMeans:
     """
 
     def __init__(self, n_clusters=8, n_init=10, max_iter=300, tol=1e-4, 
-                 centroids=None, random_state=None, device='cpu'):
+                 initial_centroids=None, random_state=None, device='cpu'):
         self.n_clusters = n_clusters
         self.n_init = n_init
         self.max_iter = max_iter
         self.tol = tol
-        self.centroids = centroids
+        self.initial_centroids = initial_centroids
         self.random_state = random_state
         self.device = device
 
@@ -198,42 +195,71 @@ class SphericalKMeans:
             best_centroids = None
             best_n_iter = None
 
-            for _ in range(self.n_init):
-                if self.centroids is None:
-                    centroids = self._init_centroids(X)
-                else:
-                    centroids = self.centroids.to(self.device)
+            if self.initial_centroids is None:
+                for _ in range(self.n_init):
+                    initial_centroids = self._init_centroids(X)
+                    inertia, centroids, n_iter = self._run_single_kmean(X, initial_centroids)
 
-                for n_iter in range(self.max_iter):
-                    # Assign samples to closest centroids
-                    dissimilarities = self._compute_dissimilarity_matrix(X, centroids)
-                    labels = torch.argmin(dissimilarities, dim=1)
+                    if best_inertia is None or inertia < best_inertia:
+                        best_inertia = inertia
+                        best_centroids = centroids
+                        best_n_iter = n_iter
 
-                    # Update centroids
-                    new_centroids = torch.zeros_like(centroids)
-                    for k in range(self.n_clusters):
-                        if torch.any(labels == k):
-                            new_centroids[k] = X[labels == k].sum(dim=0)
-
-                    # Check for convergence
-                    if torch.allclose(centroids, new_centroids, atol=self.tol):
-                        break
-
-                    centroids = new_centroids
-
-                # Compute inertia
-                inertia = self._compute_dissimilarity_loss(X, centroids[labels])
-
-                if best_inertia is None or inertia < best_inertia:
-                    best_inertia = inertia
-                    best_centroids = centroids
-                    best_n_iter = n_iter
+            else:
+                initial_centroids = self.initial_centroids.to(self.device).clone()
+                inertia, centroids, n_iter = self._run_single_kmean(X, initial_centroids)
+                best_centroids = centroids
+                best_inertia = inertia
+                best_n_iter = n_iter
 
             self.cluster_centers_ = best_centroids
             self.inertia_ = best_inertia
             self.n_iter_ = best_n_iter + 1
 
             return self
+    
+    def _run_single_kmean(self, X, initial_centroids):
+        """Run a single spherical k-means clustering.
+
+        Parameters
+        ----------
+        X : torch.Tensor of shape (n_samples, n_features)
+            Training instances to cluster. Expected to be normalized.
+        initial_centroids : torch.Tensor of shape (n_clusters, n_features)
+            Initial centroids to use. Expected to be normalized.
+
+        Returns
+        -------
+        inertia : float
+            Sum of squared distances of samples to their closest cluster center.
+        centroids : torch.Tensor of shape (n_clusters, n_features)
+            Final positions of the centroids.
+        n_iter : int
+            Number of iterations run.
+        """
+        centroids = initial_centroids
+        for n_iter in range(self.max_iter):
+            # Assign samples to closest centroids
+            dissimilarities = self._compute_dissimilarity_matrix(X, centroids)
+            labels = torch.argmin(dissimilarities, dim=1)
+
+            # Update centroids
+            new_centroids = torch.zeros_like(centroids)
+            for k in range(self.n_clusters):
+                if torch.any(labels == k):
+                    new_centroids[k] = X[labels == k].sum(dim=0)
+
+
+            # Check for convergence
+            if torch.allclose(centroids, new_centroids, atol=self.tol):
+                break
+
+            centroids = new_centroids
+
+        # Compute inertia
+        inertia = self._compute_dissimilarity_loss(X, centroids[labels])
+
+        return inertia, centroids, n_iter
 
     def predict(self, X):
         """Predict the closest cluster each sample in X belongs to.

@@ -1,12 +1,13 @@
 # Author: Theo Gnassounou <theo.gnassounou@inria.fr>
 #         Ambroise Odonnat <ambroiseodonnattechnologie@gmail.com>
+#         Antoine Collas <contact@antoinecollas.fr>
 #
 # License: BSD 3-Clause
-import copy
 import math
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 from torch import nn
 
 from skada.deep.base import (
@@ -372,6 +373,22 @@ def CDAN(
     return net
 
 
+class ModifiedCrossEntropyLoss(torch.nn.Module):
+    """Modified CrossEntropyLoss.
+    Implements modified CrossEntropyLoss as described in (29) from [35]_.
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, input, target):
+        """Compute the modified CrossEntropyLoss"""
+        prob = F.softmax(input, dim=-1)
+        prob = prob[..., target]
+        log_one_minus_prob = torch.log(1 - prob)
+        return torch.mean(log_one_minus_prob)
+
+
 class MDDLoss(BaseDALoss):
     """Loss MDD.
 
@@ -384,11 +401,6 @@ class MDDLoss(BaseDALoss):
 
     Parameters
     ----------
-    disc_criterion : torch criterion (class)
-        The criterion (loss) used to compute the
-        MDD loss for the discriminator. It should
-        be the same loss as the base criterion.
-        If None, a CrossEntropyLoss is used.
     gamma : float (default=4.0)
         Margin parameter following [35]_
 
@@ -399,13 +411,11 @@ class MDDLoss(BaseDALoss):
             Machine Learning, 2019.
     """
 
-    def __init__(self, disc_criterion, gamma=4.0):
+    def __init__(self, gamma=4.0):
         super().__init__()
-        if disc_criterion is None:
-            self.disc_criterion_ = torch.nn.CrossEntropyLoss()
-        else:
-            self.disc_criterion_ = disc_criterion
         self.gamma = gamma
+        self.disc_criterion_s = torch.nn.CrossEntropyLoss()
+        self.disc_criterion_t = ModifiedCrossEntropyLoss()
 
     def forward(
         self,
@@ -421,11 +431,11 @@ class MDDLoss(BaseDALoss):
         pseudo_label_s = torch.argmax(y_pred_s, axis=-1)
         pseudo_label_t = torch.argmax(y_pred_t, axis=-1)
 
-        disc_loss_src = self.disc_criterion_(domain_pred_s, pseudo_label_s)
-        disc_loss_tgt = self.disc_criterion_(domain_pred_t, pseudo_label_t)
+        disc_loss_s = self.disc_criterion_(domain_pred_s, pseudo_label_s)
+        disc_loss_t = self.disc_criterion_(domain_pred_t, pseudo_label_t)
 
         # Compute the MDD loss value
-        disc_loss = self.gamma * disc_loss_src - disc_loss_tgt
+        disc_loss = self.gamma * disc_loss_s - disc_loss_t
 
         return disc_loss
 
@@ -439,7 +449,6 @@ def MDD(
     num_features=None,
     n_classes=None,
     base_criterion=None,
-    disc_criterion=None,
     **kwargs,
 ):
     """Margin Disparity Discrepancy (MDD).
@@ -474,10 +483,6 @@ def MDD(
     base_criterion : torch criterion (class)
         The base criterion used to compute the loss with source
         labels. If None, the default is `torch.nn.CrossEntropyLoss`.
-    disc_criterion : torch criterion (class)
-        The criterion (loss) used to compute the
-        MDD loss for the discriminator.
-        If None, use the same loss as base_criterion.
     gamma : float (default=4.0)
         Margin parameter following [35]_.
 
@@ -500,9 +505,6 @@ def MDD(
     if base_criterion is None:
         base_criterion = torch.nn.CrossEntropyLoss()
 
-    if disc_criterion is None:
-        disc_criterion = copy.deepcopy(base_criterion)
-
     net = DomainAwareNet(
         module=DomainAwareModule,
         module__base_module=module,
@@ -512,7 +514,9 @@ def MDD(
         criterion=DomainAwareCriterion,
         criterion__base_criterion=base_criterion,
         criterion__reg=reg,
-        criterion__adapt_criterion=MDDLoss(gamma=gamma, disc_criterion=disc_criterion),
+        criterion__adapt_criterion=MDDLoss(
+            gamma=gamma,
+        ),
         **kwargs,
     )
     return net
