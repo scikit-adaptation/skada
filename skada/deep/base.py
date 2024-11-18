@@ -874,7 +874,7 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
 
     def _infer_sample_idx(self, X, sample_domain):
         if sample_domain is None:
-            return torch.arange(len(X))
+            return None
         else:
             source_idx = sample_domain >= 0
 
