@@ -98,7 +98,6 @@ class SPALoss(BaseDALoss):
         **kwargs,
     ):
         """Compute the domain adaptation loss"""
-        self.sample_idx = sample_idx_t
         domain_label = torch.zeros(
             (domain_pred_s.size()[0]),
             device=domain_pred_s.device,
@@ -121,7 +120,7 @@ class SPALoss(BaseDALoss):
             self.memory_features,
             self.memory_outputs,
             K=self.K,
-            sample_idx=self.sample_idx,
+            sample_idx=sample_idx_t,
         )
         loss = loss_adv + loss_gda + loss_pl
         return loss

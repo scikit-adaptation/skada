@@ -100,8 +100,8 @@ class ComputeMemoryBank(Callback):
         """
         X, _ = batch
         X_t = X["X"][X["sample_domain"] < 0]
+        batch_idx = X["sample_idx"][X["sample_domain"] < 0]
 
-        batch_idx = net.criterion__adapt_criterion.sample_idx
         net.module_.eval()
         with torch.no_grad():
             output_t, features_t = net.module_(X_t, return_features=True)
