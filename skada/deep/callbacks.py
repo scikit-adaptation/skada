@@ -82,7 +82,7 @@ class ComputeMemoryBank(Callback):
     to compute pseudo label during training.
     """
 
-    def __init__(self, momentum=0.7):
+    def __init__(self, momentum=0.5):
         super().__init__()
         self.momentum = momentum
 
