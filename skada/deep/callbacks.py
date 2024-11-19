@@ -58,7 +58,9 @@ class ComputeSourceCentroids(Callback):
                 mask = y_s == c
                 if mask.sum() > 0:
                     class_features = features_s[mask]
-                    normalized_features = F.normalize(class_features, p=2, dim=1)
+                    normalized_features = F.normalize(
+                        class_features, p=2, dim=1
+                    )
                     centroid = normalized_features.sum(dim=0)
                     source_centroids.append(centroid)
 
@@ -107,7 +109,6 @@ class ComputeMemoryBank(Callback):
         with torch.no_grad():
             X_t = to_tensor(X_t, device=net.device)
             output_t, features_t = net.module_(X_t, return_features=True)
-            #output_t, features_t = net.feature_eval_step(X_t, training=False)
             features_t = F.normalize(features_t, p=2, dim=1)
             softmax_out = F.softmax(output_t, dim=1)
             outputs_target = softmax_out**2 / ((softmax_out**2).sum(dim=0))
