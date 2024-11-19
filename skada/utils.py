@@ -517,9 +517,9 @@ def source_target_merge(
             pair_index = i+1 if index_is_empty == i else i
 
             # Infer the value of the empty array
-            # only if the dimension of the new array is not (0, ...)
-            dim_to_complete = (sample_domain.shape[0] - arrays[pair_index].shape[0],) + arrays[pair_index].shape[1:]
-            if dim_to_complete[0] > 0:
+            # only if the shape of the new array is not (0, ...)
+            shape_to_complete = (sample_domain.shape[0] - arrays[pair_index].shape[0],) + arrays[pair_index].shape[1:]
+            if shape_to_complete[0] > 0:
                 y_type = _find_y_type(arrays[pair_index])
                 if y_type == Y_Type.DISCRETE:
                     default_masked_label = _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
@@ -528,7 +528,7 @@ def source_target_merge(
 
                 arrays[index_is_empty] = (
                     default_masked_label *
-                    np.ones(dim_to_complete)
+                    np.ones(shape_to_complete)
                 )
 
         # Check consistent number of samples in source-target arrays
