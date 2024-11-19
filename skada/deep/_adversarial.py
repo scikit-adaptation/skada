@@ -372,18 +372,49 @@ def CDAN(
 
 
 class ModifiedCrossEntropyLoss(torch.nn.Module):
-    """Modified CrossEntropyLoss.
-    Implements modified CrossEntropyLoss as described in (29) from [35]_.
+    """Modified CrossEntropyLoss as described in (29) from [35]_ with label smoothing.
+
+    Parameters
+    ----------
+    smoothing : float, default=0.1
+        Smoothing factor for label smoothing.
     """
 
-    def __init__(self):
+    def __init__(self, smoothing=0.1):
         super().__init__()
+        self.smoothing = smoothing
 
     def forward(self, input, target):
-        """Compute the modified CrossEntropyLoss"""
+        """
+        Compute the modified CrossEntropyLoss
+        with label smoothing applied to predictions.
+
+        Parameters
+        ----------
+        input : torch.Tensor
+            Predictions from the model.
+        target : torch.Tensor
+            Target labels.
+
+        Returns
+        -------
+        loss : torch.Tensor
+            The modified CrossEntropyLoss with label smoothing applied to predictions.
+        """
+        # Compute probabilities
         prob = F.softmax(input, dim=-1)
-        prob = prob[..., target]
-        log_one_minus_prob = torch.log(1 - prob)
+
+        # Apply label smoothing to predictions
+        num_classes = input.shape[-1]
+        smooth_prob = (1 - self.smoothing) * prob + self.smoothing / num_classes
+
+        # Gather probabilities of the target classes
+        target_prob = smooth_prob[..., target]
+
+        # Compute log(1 - probability) for the target class
+        log_one_minus_prob = torch.log(1 - target_prob)
+
+        # Return mean loss
         return torch.mean(log_one_minus_prob)
 
 
