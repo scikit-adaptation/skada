@@ -4,6 +4,7 @@
 
 import torch
 import torch.nn.functional as F
+from skorch.utils import to_tensor
 from skorch.callbacks import Callback
 
 from skada.deep.utils import SphericalKMeans
@@ -104,7 +105,9 @@ class ComputeMemoryBank(Callback):
 
         net.module_.eval()
         with torch.no_grad():
+            X_t = to_tensor(X_t, device=net.device)
             output_t, features_t = net.module_(X_t, return_features=True)
+            #output_t, features_t = net.feature_eval_step(X_t, training=False)
             features_t = F.normalize(features_t, p=2, dim=1)
             softmax_out = F.softmax(output_t, dim=1)
             outputs_target = softmax_out**2 / ((softmax_out**2).sum(dim=0))
@@ -154,8 +157,8 @@ class MemoryBankInit(Callback):
         n_classes = pred_sample.shape[1]
 
         net.criterion__adapt_criterion.memory_features = torch.rand(
-            (n_target_samples, n_features)
+            (n_target_samples, n_features), device=net.device,
         )
         net.criterion__adapt_criterion.memory_outputs = torch.rand(
-            (n_target_samples, n_classes)
+            (n_target_samples, n_classes), device=net.device,
         )
