@@ -546,6 +546,17 @@ def test_source_target_merge():
         labels.shape[0] == y_source.shape[0] + y_target.shape[0]
     ), "labels shape mismatch"
 
+    # Test that no Error is raised for empty X_source and X_target in {-1, 0, 1}
+    X_target_discrete = np.array([[-1, -1], [0, 1], [1, -1]])
+    samples, _ = source_target_merge(np.array([]), X_target_discrete)
+    assert (
+        samples.shape[0] == X_target_discrete.shape[0]
+    ), "target_samples shape mismatch"
+    sample_domain_discrete = np.array([-1] * X_target_discrete.shape[0])
+    samples, _ = source_target_merge(
+        np.array([]), X_target_discrete, sample_domain=sample_domain_discrete
+    )
+
     # Test with empty samples
     with pytest.raises(
         ValueError, match="Only one array can be None or empty in each pair"
