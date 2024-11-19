@@ -409,7 +409,7 @@ class ModifiedCrossEntropyLoss(torch.nn.Module):
         smooth_prob = (1 - self.smoothing) * prob + self.smoothing / num_classes
 
         # Gather probabilities of the target classes
-        target_prob = smooth_prob[torch.arange(input.shape[0]), target]
+        target_prob = smooth_prob[..., target]
 
         # Compute log(1 - probability) for the target class
         log_one_minus_prob = torch.log(1 - target_prob)
