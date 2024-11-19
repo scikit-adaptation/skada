@@ -4,8 +4,8 @@
 
 import torch
 import torch.nn.functional as F
-from skorch.utils import to_tensor
 from skorch.callbacks import Callback
+from skorch.utils import to_tensor
 
 from skada.deep.utils import SphericalKMeans
 
@@ -58,9 +58,7 @@ class ComputeSourceCentroids(Callback):
                 mask = y_s == c
                 if mask.sum() > 0:
                     class_features = features_s[mask]
-                    normalized_features = F.normalize(
-                        class_features, p=2, dim=1
-                    )
+                    normalized_features = F.normalize(class_features, p=2, dim=1)
                     centroid = normalized_features.sum(dim=0)
                     source_centroids.append(centroid)
 
@@ -158,8 +156,10 @@ class MemoryBankInit(Callback):
         n_classes = pred_sample.shape[1]
 
         net.criterion__adapt_criterion.memory_features = torch.rand(
-            (n_target_samples, n_features), device=net.device,
+            (n_target_samples, n_features),
+            device=net.device,
         )
         net.criterion__adapt_criterion.memory_outputs = torch.rand(
-            (n_target_samples, n_classes), device=net.device,
+            (n_target_samples, n_classes),
+            device=net.device,
         )
