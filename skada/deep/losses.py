@@ -416,54 +416,43 @@ def _gauss(v1, v2, sigma):
     return torch.exp(-0.5 * norm_ / sigma**2)
 
 
-def _euc(v1, v2):
-    """Inspired by https://github.com/CrownX/SPA"""
-    return torch.norm(v1 - v2, p=2, dim=0)
-
-
 def _adj(s, t, metric="euc"):
-    """Inspired by https://github.com/CrownX/SPA"""
     # s, t [bsize, dim], [bsize, dim] -> [bsize, bsize]
     if metric == "cos":
-        s_norm = s / torch.norm(s, p=2, dim=1, keepdim=True)
-        t_norm = t / torch.norm(t, p=2, dim=1, keepdim=True)
-        adj = s_norm @ t_norm.T
+        s_norm = F.normalize(s, p=2, dim=1)
+        t_norm = F.normalize(t, p=2, dim=1)
+        return torch.mm(s_norm, t_norm.t())
 
     elif metric == "gauss":
         sigma_ = 1.5
-        M, N = s.shape[0], t.shape[0]
-        adj = torch.zeros([M, N], dtype=torch.float).to(s.device)
-        for i in range(M):
-            for j in range(i):
-                adj[i][j] = adj[j][i] = _gauss(s[i], t[j], sigma_)
+        return _gauss(s, t, sigma_)
 
     elif metric == "euc":
-        M, N = s.shape[0], t.shape[0]
-        adj = torch.zeros([M, N], dtype=torch.float).to(s.device)
-        for i in range(M):
-            for j in range(i):
-                adj[i][j] = adj[j][i] = _euc(s[i], t[j])
+        return torch.cdist(s, t, p=2)
 
-    return adj
+    raise ValueError(f"Unknown metric: {metric}")
 
 
 def _laplacian(A, laplac="laplac1"):
     """Inspired by https://github.com/CrownX/SPA"""
+    eps = 1e-7  # For numerical stability
     v = torch.sum(A, dim=1)
     if laplac == "laplac1":
-        v_inv = 1 / v
-        D_inv = torch.diag(v_inv).to(A.device)
+        v_inv = 1 / (v + eps)
+        D_inv = torch.diag(v_inv)
         return -D_inv @ A
 
     elif laplac == "laplac2":
-        D = torch.diag(v).to(A.device)
+        D = torch.diag(v)
         return D - A
 
     elif laplac == "laplac3":
-        v_sqrt = 1 / torch.sqrt(v)
-        D_sqrt = torch.diag(v_sqrt).to(A.device)
-        iden = torch.eye(A.shape[0]).to(A.device)
+        v_sqrt = 1 / torch.sqrt(v + eps)
+        D_sqrt = torch.diag(v_sqrt)
+        iden = torch.eye(A.shape[0], device=A.device)
         return iden - D_sqrt @ A @ D_sqrt
+
+    raise ValueError(f"Unknown Laplacian type: {laplac}")
 
 
 def gda_loss(s, t, metric="euc", laplac="laplac1"):
@@ -516,14 +505,18 @@ def nap_loss(
         The sample indices in the batch.
     """
     dis = -torch.mm(features_t.detach(), memory_features.t())
-    for i in range(dis.size(0)):
-        dis[i, sample_idx[i]] = torch.inf
-    _, p1 = torch.sort(dis, dim=1)
 
-    w = torch.zeros(features_t.size(0), memory_features.size(0)).to(features_t.device)
-    w.scatter_(1, p1[:, :K], 1 / K)
+    dis[torch.arange(dis.size(0)), sample_idx] = float("-inf")
+
+    # Get top-K neighbors
+    _, top_k_indices = torch.topk(dis, k=K, dim=1)
+
+    batch_size, mem_size = features_t.size(0), memory_features.size(0)
+    w = torch.zeros(batch_size, mem_size, device=features_t.device)
+    w.scatter_(1, top_k_indices, 1.0 / K)
+
     weight_, pred = torch.max(w.mm(memory_outputs), 1)
     loss_ = torch.nn.CrossEntropyLoss(reduction="none")(y_pred_t, pred)
-    classifier_loss = torch.sum(weight_ * loss_) / (torch.sum(weight_).item())
+    classifier_loss = torch.sum(weight_ * loss_) / (torch.sum(weight_).item() + 1e-7)
 
     return classifier_loss
