@@ -168,7 +168,8 @@ class MemoryBankInit(Callback):
 class CountEpochs(Callback):
     """Callback to count the number of epochs."""
 
-    def __init__(self):
+    def on_train_begin(self, *args, **kwargs):
+        """Initialize the epoch counter."""
         self.n_iter = 0
 
     def on_epoch_begin(self, net, **kwargs):
