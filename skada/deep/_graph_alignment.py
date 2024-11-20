@@ -73,7 +73,7 @@ class SPALoss(BaseDALoss):
         self.max_epochs = max_epochs
         self.n_epochs = 0
 
-    def _scheduler(self, high=1.0, low=0.0, alpha=10.0):
+    def _scheduler_adv(self, high=1.0, low=0.0, alpha=10.0):
         max_epochs = self.max_epochs
         n_epochs = self.n_epochs
         return (
@@ -81,6 +81,9 @@ class SPALoss(BaseDALoss):
             - (high - low)
             + low
         )
+
+    def _scheduler_nap(self):
+        return self.n_epochs / self.max_epochs
 
     def forward(
         self,
@@ -92,8 +95,6 @@ class SPALoss(BaseDALoss):
         **kwargs,
     ):
         """Compute the domain adaptation loss"""
-        eff = self._scheduler()
-
         domain_label = torch.zeros(
             (domain_pred_s.size()[0]),
             device=domain_pred_s.device,
@@ -104,16 +105,22 @@ class SPALoss(BaseDALoss):
         )
 
         # update classification function
-        loss_adv = self.reg_adv * (
-            self.domain_criterion_(domain_pred_s, domain_label)
-            + self.domain_criterion_(domain_pred_t, domain_label_target)
+        scale = self._scheduler_adv()
+        loss_adv = (
+            self.reg_adv
+            * scale
+            * (
+                self.domain_criterion_(domain_pred_s, domain_label)
+                + self.domain_criterion_(domain_pred_t, domain_label_target)
+            )
         )
 
         loss_gda = self.reg_gsa * gda_loss(features_s, features_t)
 
+        scale = self._scheduler_nap()
         loss_pl = (
             self.reg_nap
-            * eff
+            * scale
             * nap_loss(
                 features_s,
                 features_t,
