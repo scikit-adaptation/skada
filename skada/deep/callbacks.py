@@ -76,7 +76,7 @@ class ComputeSourceCentroids(Callback):
         net.criterion__adapt_criterion.target_kmeans = target_kmeans
 
 
-class ComputeMemoryBank(Callback):
+class MemoryBank(Callback):
     """Callback to compute memory features and outputs of target domain.
 
     This callback computes the memory features of target domain to be able
@@ -86,6 +86,53 @@ class ComputeMemoryBank(Callback):
     def __init__(self, momentum=0.5):
         super().__init__()
         self.momentum = momentum
+
+    def on_train_begin(self, net, X=None, y=None):
+        """This method is called at the beginning of training.
+
+        Parameters
+        ----------
+        net (NeuralNet): The Skorch NeuralNet instance.
+        X (numpy.ndarray or None): The input data used for training. Only passed if
+            the `iterator_train` callback is not set.
+        y (numpy.ndarray or None): The target data used for training. Only passed if
+            the `iterator_train` callback is not set.
+        """
+        X, y_ = net._prepare_input(X)
+        y = y_ if y is None else y
+
+        # Take only first sample
+        X_sample = {key: X[key][0:1] for key in X.keys()}
+
+        # Disable gradient computation for feature extraction
+        with torch.no_grad():
+            features_sample = net.predict_features(X_sample)
+            pred_sample = net.predict_proba(X_sample, allow_source=True)
+
+        n_target_samples = X["X"][X["sample_domain"] < 0].shape[0]
+        n_features = features_sample.shape[1]
+
+        n_classes = pred_sample.shape[1]
+
+        memory_features = torch.rand(
+            (n_target_samples, n_features),
+            device=net.device,
+            dtype=torch.float32,
+        )
+        memory_features = memory_features / torch.linalg.norm(
+            memory_features, dim=1, keepdim=True
+        )
+        net.criterion__adapt_criterion.memory_features = memory_features
+
+        memory_outputs = (
+            torch.ones(
+                (n_target_samples, n_classes),
+                device=net.device,
+                dtype=torch.float32,
+            )
+            / n_classes
+        )
+        net.criterion__adapt_criterion.memory_outputs = memory_outputs
 
     def on_batch_end(self, net, batch, **kwargs):
         """Compute memory bank at the end of each epoch.
@@ -123,46 +170,6 @@ class ComputeMemoryBank(Callback):
 
         net.criterion__adapt_criterion.memory_features[batch_idx] = new_memory_features
         net.criterion__adapt_criterion.memory_outputs[batch_idx] = new_memory_outputs
-
-
-class MemoryBankInit(Callback):
-    """Callback that runs at the start of training."""
-
-    def on_train_begin(self, net, X=None, y=None):
-        """This method is called at the beginning of training.
-
-        Parameters
-        ----------
-        net (NeuralNet): The Skorch NeuralNet instance.
-        X (numpy.ndarray or None): The input data used for training. Only passed if
-            the `iterator_train` callback is not set.
-        y (numpy.ndarray or None): The target data used for training. Only passed if
-            the `iterator_train` callback is not set.
-        """
-        X, y_ = net._prepare_input(X)
-        y = y_ if y is None else y
-
-        # Take only first sample
-        X_sample = {key: X[key][0:1] for key in X.keys()}
-
-        # Disable gradient computation for feature extraction
-        with torch.no_grad():
-            features_sample = net.predict_features(X_sample)
-            pred_sample = net.predict_proba(X_sample, allow_source=True)
-
-        n_target_samples = X["X"][X["sample_domain"] < 0].shape[0]
-        n_features = features_sample.shape[1]
-
-        n_classes = pred_sample.shape[1]
-
-        net.criterion__adapt_criterion.memory_features = torch.rand(
-            (n_target_samples, n_features),
-            device=net.device,
-        )
-        net.criterion__adapt_criterion.memory_outputs = torch.rand(
-            (n_target_samples, n_classes),
-            device=net.device,
-        )
 
 
 class CountEpochs(Callback):

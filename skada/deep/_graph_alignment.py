@@ -12,7 +12,7 @@ from skada.deep.base import (
     DomainAwareNet,
     DomainBalancedDataLoader,
 )
-from skada.deep.callbacks import ComputeMemoryBank, CountEpochs, MemoryBankInit
+from skada.deep.callbacks import CountEpochs, MemoryBank
 from skada.deep.losses import gda_loss, nap_loss
 
 from .modules import DomainClassifier
@@ -198,20 +198,17 @@ def SPA(
 
     if callbacks is None:
         callbacks = [
-            ComputeMemoryBank(),
-            MemoryBankInit(),
+            MemoryBank(),
             CountEpochs(),
         ]
     else:
         if isinstance(callbacks, list):
-            callbacks.append(ComputeMemoryBank())
-            callbacks.append(MemoryBankInit())
+            callbacks.append(MemoryBank())
             callbacks.append(CountEpochs())
         else:
             callbacks = [
                 callbacks,
-                ComputeMemoryBank(),
-                MemoryBankInit(),
+                MemoryBank(),
                 CountEpochs(),
             ]
     if base_criterion is None:
