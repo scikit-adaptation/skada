@@ -2,6 +2,7 @@
 #
 # License: BSD 3-Clause
 
+import numpy as np
 import torch
 
 from skada.deep.base import (
@@ -71,6 +72,15 @@ class SPALoss(BaseDALoss):
         self.memory_outputs = memory_outputs
         self.max_epochs = max_epochs
         self.n_epochs = 0
+
+    def _scheduler(self, high=1.0, low=0.0, alpha=10.0):
+        max_epochs = self.max_epochs
+        n_epochs = self.n_epochs
+        return (
+            2.0 * (high - low) / (1.0 + np.exp(-alpha * n_epochs / max_epochs))
+            - (high - low)
+            + low
+        )
 
     def forward(
         self,
