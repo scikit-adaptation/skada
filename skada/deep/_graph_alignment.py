@@ -115,7 +115,7 @@ class SPALoss(BaseDALoss):
             )
         )
 
-        loss_gda = self.reg_gsa * gda_loss(features_s, features_t)
+        loss_gda = self.reg_gsa * gda_loss(features_s, features_t, metric="gauss")
 
         scale = self._scheduler_nap()
         loss_pl = (
