@@ -92,7 +92,8 @@ class SPALoss(BaseDALoss):
         **kwargs,
     ):
         """Compute the domain adaptation loss"""
-        eff = self.n_epochs / self.max_epochs
+        eff = self._scheduler()
+
         domain_label = torch.zeros(
             (domain_pred_s.size()[0]),
             device=domain_pred_s.device,
