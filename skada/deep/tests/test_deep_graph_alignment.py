@@ -39,6 +39,9 @@ def test_spa(domain_classifier, domain_criterion, num_features):
     X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
     method = SPA(
         ToyModule2D(),
+        reg_adv=1,
+        reg_gsa=1,
+        reg_nap=1e-1,
         domain_classifier=domain_classifier,
         num_features=num_features,
         domain_criterion=domain_criterion,
