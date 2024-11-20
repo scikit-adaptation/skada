@@ -170,8 +170,8 @@ class CountEpochs(Callback):
 
     def on_train_begin(self, *args, **kwargs):
         """Initialize the epoch counter."""
-        self.n_iter = 0
+        self.n_epochs = 0
 
     def on_epoch_begin(self, net, **kwargs):
         """Increment the number of epochs."""
-        net.criterion__adapt_criterion.n_iter += 1
+        net.criterion__adapt_criterion.n_epochs += 1
