@@ -472,9 +472,9 @@ def gda_loss(s, t, metric="euc", laplac="laplac1"):
     t_matrix = _adj(t, t, metric)
     s_matrix = _laplacian(s_matrix, laplac)
     t_matrix = _laplacian(t_matrix, laplac)
-    _, s_v, _ = torch.svd(s_matrix)
-    _, t_v, _ = torch.svd(t_matrix)
-    svd_loss = torch.norm(s_v - t_v, p=2)
+    _, s_v, _ = torch.linalg.svd(s_matrix)
+    _, t_v, _ = torch.linalg.svd(t_matrix)
+    svd_loss = torch.linalg.norm(s_v - t_v, p=2)
     return svd_loss
 
 
