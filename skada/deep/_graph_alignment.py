@@ -91,13 +91,9 @@ class SPALoss(BaseDALoss):
         )
 
         # update classification function
-        loss_adv = (
-            self.reg_adv
-            * eff
-            * (
-                self.domain_criterion_(domain_pred_s, domain_label)
-                + self.domain_criterion_(domain_pred_t, domain_label_target)
-            )
+        loss_adv = self.reg_adv * (
+            self.domain_criterion_(domain_pred_s, domain_label)
+            + self.domain_criterion_(domain_pred_t, domain_label_target)
         )
 
         loss_gda = self.reg_gsa * gda_loss(features_s, features_t)
