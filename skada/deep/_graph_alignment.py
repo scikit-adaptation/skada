@@ -28,6 +28,8 @@ class SPALoss(BaseDALoss):
 
     Parameters
     ----------
+    max_epochs : int
+        Maximum number of epochs to train the model.
     target_criterion : torch criterion (class), default=None
         The initialized criterion (loss) used to compute the
         adversarial loss. If None, a BCELoss is used.
@@ -46,6 +48,7 @@ class SPALoss(BaseDALoss):
 
     def __init__(
         self,
+        max_epochs,
         domain_criterion=None,
         memory_features=None,
         memory_outputs=None,
@@ -53,7 +56,6 @@ class SPALoss(BaseDALoss):
         reg_adv=1,
         reg_gsa=1,
         reg_nap=1,
-        max_iter=100,
     ):
         super().__init__()
         if domain_criterion is None:
@@ -67,8 +69,8 @@ class SPALoss(BaseDALoss):
         self.K = K
         self.memory_features = memory_features
         self.memory_outputs = memory_outputs
-        self.max_iter = max_iter
-        self.n_iter = 0
+        self.max_epochs = max_epochs
+        self.n_epochs = 0
 
     def forward(
         self,
@@ -80,7 +82,7 @@ class SPALoss(BaseDALoss):
         **kwargs,
     ):
         """Compute the domain adaptation loss"""
-        eff = self.n_iter / self.max_iter
+        eff = self.n_epochs / self.max_epochs
         domain_label = torch.zeros(
             (domain_pred_s.size()[0]),
             device=domain_pred_s.device,
@@ -91,13 +93,9 @@ class SPALoss(BaseDALoss):
         )
 
         # update classification function
-        loss_adv = (
-            self.reg_adv
-            * eff
-            * (
-                self.domain_criterion_(domain_pred_s, domain_label)
-                + self.domain_criterion_(domain_pred_t, domain_label_target)
-            )
+        loss_adv = self.reg_adv * (
+            self.domain_criterion_(domain_pred_s, domain_label)
+            + self.domain_criterion_(domain_pred_t, domain_label_target)
         )
 
         loss_gda = self.reg_gsa * gda_loss(features_s, features_t)
@@ -215,7 +213,7 @@ def SPA(
             reg_adv=reg_adv,
             reg_gsa=reg_gsa,
             reg_nap=reg_nap,
-            max_iter=max_epochs,
+            max_epochs=max_epochs,
         ),
         callbacks=callbacks,
         max_epochs=max_epochs,
