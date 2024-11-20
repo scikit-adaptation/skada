@@ -87,6 +87,7 @@ class SPALoss(BaseDALoss):
 
     def forward(
         self,
+        y_pred_t,
         domain_pred_s,
         domain_pred_t,
         features_s,
@@ -122,12 +123,12 @@ class SPALoss(BaseDALoss):
             self.reg_nap
             * scale
             * nap_loss(
-                features_s,
-                features_t,
-                self.memory_features,
-                self.memory_outputs,
+                features_t=features_t,
+                y_pred_t=y_pred_t,
+                memory_features=self.memory_features,
+                memory_outputs=self.memory_outputs,
                 K=self.K,
-                sample_idx=sample_idx_t,
+                sample_idx_t=sample_idx_t,
             )
         )
         loss = loss_adv + loss_gda + loss_pl

@@ -478,7 +478,7 @@ def gda_loss(s, t, metric="euc", laplac="laplac1"):
     return svd_loss
 
 
-def nap_loss(features_t, y_pred_t, memory_features, memory_outputs, sample_idx, K=5):
+def nap_loss(features_t, y_pred_t, memory_features, memory_outputs, sample_idx_t, K=5):
     """Compute the NAP loss.
 
         Inspired by https://github.com/CrownX/SPA
@@ -493,13 +493,13 @@ def nap_loss(features_t, y_pred_t, memory_features, memory_outputs, sample_idx, 
         Memory features.
     memory_outputs : torch.Tensor
         Memory outputs.
-    sample_idx : torch.Tensor
-        The sample indices in the batch.
+    sample_idx_t : torch.Tensor
+        The sample indices in the batch features_t
     K : int, default=5
         The number of nearest neighbors.
     """
     dis = torch.cdist(features_t.detach(), memory_features, p=2) ** 2
-    dis[..., sample_idx] = float("+inf")
+    dis[..., sample_idx_t] = float("+inf")
 
     # Get top-K neighbors
     _, top_k_indices = torch.topk(-dis, k=K, dim=1)
