@@ -410,13 +410,8 @@ def mcc_loss(y, T=1, eps=1e-7):
     return loss
 
 
-def _gauss(v1, v2, sigma):
-    """Inspired by https://github.com/CrownX/SPA"""
-    norm_ = torch.norm(v1 - v2, p=2, dim=0)
-    return torch.exp(-0.5 * norm_ / sigma**2)
-
-
 def _adj(s, t, metric="euc"):
+    """Inspired by https://github.com/CrownX/SPA"""
     # s, t [bsize, dim], [bsize, dim] -> [bsize, bsize]
     if metric == "cos":
         s_norm = F.normalize(s, p=2, dim=1)
@@ -424,8 +419,9 @@ def _adj(s, t, metric="euc"):
         return torch.mm(s_norm, t_norm.t())
 
     elif metric == "gauss":
+        squared_dist = torch.cdist(s, t, p=2) ** 2
         sigma_ = 1.5
-        return _gauss(s, t, sigma_)
+        return torch.exp(-0.5 * squared_dist / sigma_**2)
 
     elif metric == "euc":
         return torch.cdist(s, t, p=2)
