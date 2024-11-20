@@ -498,12 +498,11 @@ def nap_loss(features_t, y_pred_t, memory_features, memory_outputs, sample_idx, 
     K : int, default=5
         The number of nearest neighbors.
     """
-    dis = -torch.mm(features_t.detach(), memory_features.t())
-
-    dis[torch.arange(dis.size(0)), sample_idx] = float("-inf")
+    dis = torch.cdist(features_t.detach(), memory_features, p=2) ** 2
+    dis[..., sample_idx] = float("+inf")
 
     # Get top-K neighbors
-    _, top_k_indices = torch.topk(dis, k=K, dim=1)
+    _, top_k_indices = torch.topk(-dis, k=K, dim=1)
 
     batch_size, mem_size = features_t.size(0), memory_features.size(0)
     w = torch.zeros(batch_size, mem_size, device=features_t.device)
