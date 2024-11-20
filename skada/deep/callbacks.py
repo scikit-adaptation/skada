@@ -159,3 +159,14 @@ class MemoryBankInit(Callback):
         net.criterion__adapt_criterion.memory_outputs = torch.rand(
             (n_target_samples, n_classes)
         )
+
+
+class CountEpochs(Callback):
+    """Callback to count the number of epochs."""
+
+    def __init__(self):
+        self.n_iter = 0
+
+    def on_epoch_begin(self, net, **kwargs):
+        """Increment the number of epochs."""
+        net.criterion__adapt_criterion.n_iter += 1

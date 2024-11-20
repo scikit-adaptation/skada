@@ -97,9 +97,11 @@ class BaseOTMappingAdapter(BaseAdapter):
         # thus there's no need to perform any transformations
         if X_source.shape[0] > 0:
             X_source = self.ot_transport_.transform(Xs=X_source)
-        X_adapt, _ = source_target_merge(
-            X_source, X_target, sample_domain=sample_domain
-        )
+            X_adapt, _ = source_target_merge(
+                X_source, X_target, sample_domain=sample_domain
+            )
+        else:
+            X_adapt = X_target
         return X_adapt
 
     @abstractmethod

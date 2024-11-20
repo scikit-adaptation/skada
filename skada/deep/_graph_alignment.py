@@ -11,7 +11,7 @@ from skada.deep.base import (
     DomainAwareNet,
     DomainBalancedDataLoader,
 )
-from skada.deep.callbacks import ComputeMemoryBank, MemoryBankInit
+from skada.deep.callbacks import ComputeMemoryBank, CountEpochs, MemoryBankInit
 from skada.deep.losses import gda_loss, nap_loss
 
 from .modules import DomainClassifier
@@ -53,6 +53,7 @@ class SPALoss(BaseDALoss):
         reg_adv=1,
         reg_gsa=1,
         reg_nap=1,
+        max_iter=100,
     ):
         super().__init__()
         if domain_criterion is None:
@@ -66,6 +67,8 @@ class SPALoss(BaseDALoss):
         self.K = K
         self.memory_features = memory_features
         self.memory_outputs = memory_outputs
+        self.max_iter = max_iter
+        self.n_iter = 0
 
     def forward(
         self,
@@ -77,6 +80,7 @@ class SPALoss(BaseDALoss):
         **kwargs,
     ):
         """Compute the domain adaptation loss"""
+        eff = self.n_iter / self.max_iter
         domain_label = torch.zeros(
             (domain_pred_s.size()[0]),
             device=domain_pred_s.device,
@@ -87,19 +91,28 @@ class SPALoss(BaseDALoss):
         )
 
         # update classification function
-        loss_adv = self.domain_criterion_(
-            domain_pred_s, domain_label
-        ) + self.domain_criterion_(domain_pred_t, domain_label_target)
+        loss_adv = (
+            self.reg_adv
+            * eff
+            * (
+                self.domain_criterion_(domain_pred_s, domain_label)
+                + self.domain_criterion_(domain_pred_t, domain_label_target)
+            )
+        )
 
         loss_gda = self.reg_gsa * gda_loss(features_s, features_t)
 
-        loss_pl = self.reg_nap * nap_loss(
-            features_s,
-            features_t,
-            self.memory_features,
-            self.memory_outputs,
-            K=self.K,
-            sample_idx=sample_idx_t,
+        loss_pl = (
+            self.reg_nap
+            * eff
+            * nap_loss(
+                features_s,
+                features_t,
+                self.memory_features,
+                self.memory_outputs,
+                K=self.K,
+                sample_idx=sample_idx_t,
+            )
         )
         loss = loss_adv + loss_gda + loss_pl
         return loss
@@ -116,6 +129,7 @@ def SPA(
     base_criterion=None,
     domain_criterion=None,
     callbacks=None,
+    max_epochs=100,
     **kwargs,
 ):
     """Domain Adaptation with SPA.
@@ -148,6 +162,10 @@ def SPA(
     domain_criterion : torch criterion (class)
         The criterion (loss) used to compute the
         adversarial loss. If None, a BCELoss is used.
+    callbacks : list, default=None
+        List of callbacks to use during training.
+    max_epochs : int, default=100
+        Maximum number of epochs to train the model.
 
     References
     ----------
@@ -166,16 +184,19 @@ def SPA(
         callbacks = [
             ComputeMemoryBank(),
             MemoryBankInit(),
+            CountEpochs(),
         ]
     else:
         if isinstance(callbacks, list):
             callbacks.append(ComputeMemoryBank())
             callbacks.append(MemoryBankInit())
+            callbacks.append(CountEpochs())
         else:
             callbacks = [
                 callbacks,
                 ComputeMemoryBank(),
                 MemoryBankInit(),
+                CountEpochs(),
             ]
     if base_criterion is None:
         base_criterion = torch.nn.CrossEntropyLoss()
@@ -194,8 +215,10 @@ def SPA(
             reg_adv=reg_adv,
             reg_gsa=reg_gsa,
             reg_nap=reg_nap,
+            max_iter=max_epochs,
         ),
         callbacks=callbacks,
+        max_epochs=max_epochs,
         **kwargs,
     )
     return net
