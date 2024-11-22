@@ -20,6 +20,7 @@ from ._divergence import DeepCoral, DeepCoralLoss, DANLoss, DAN, CAN, CANLoss
 from ._optimal_transport import DeepJDOT, DeepJDOTLoss
 from ._adversarial import DANN, CDAN, MDD, DANNLoss, CDANLoss, MDDLoss, ModifiedCrossEntropyLoss
 from ._class_confusion import MCC, MCCLoss
+from ._graph_alignment import SPA, SPALoss
 from ._baseline import SourceOnly, TargetOnly
 
 from . import losses
@@ -45,6 +46,8 @@ __all__ = [
     "ModifiedCrossEntropyLoss",
     "CANLoss",
     "CAN",
+    'SPALoss',
+    'SPA',
     "SourceOnly",
     "TargetOnly",
 ]

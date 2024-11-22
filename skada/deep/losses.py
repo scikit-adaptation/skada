@@ -343,13 +343,7 @@ class TestLoss(BaseDALoss):
 
     def forward(
         self,
-        y_s,
-        y_pred_s,
-        y_pred_t,
-        domain_pred_s,
-        domain_pred_t,
-        features_s,
-        features_t,
+        **kwargs,
     ):
         """Compute the domain adaptation loss"""
         return 0
@@ -414,3 +408,108 @@ def mcc_loss(y, T=1, eps=1e-7):
     loss = torch.mean(torch.sum(torch.abs(C_), axis=1))
 
     return loss
+
+
+def _adj(s, t, metric="euc"):
+    """Inspired by https://github.com/CrownX/SPA"""
+    # s, t [bsize, dim], [bsize, dim] -> [bsize, bsize]
+    if metric == "cos":
+        s_norm = F.normalize(s, p=2, dim=1)
+        t_norm = F.normalize(t, p=2, dim=1)
+        return torch.mm(s_norm, t_norm.t())
+
+    elif metric == "gauss":
+        squared_dist = torch.cdist(s, t, p=2) ** 2
+        sigma_ = 1.5
+        return torch.exp(-0.5 * squared_dist / sigma_**2)
+
+    elif metric == "euc":
+        return torch.cdist(s, t, p=2)
+
+    raise ValueError(f"Unknown metric: {metric}")
+
+
+def _laplacian(A, laplac="laplac1"):
+    """Inspired by https://github.com/CrownX/SPA"""
+    eps = 1e-7  # For numerical stability
+    v = torch.sum(A, dim=1)
+    if laplac == "laplac1":
+        v_inv = 1 / (v + eps)
+        D_inv = torch.diag(v_inv)
+        return -D_inv @ A
+
+    elif laplac == "laplac2":
+        D = torch.diag(v)
+        return D - A
+
+    elif laplac == "laplac3":
+        v_sqrt = 1 / torch.sqrt(v + eps)
+        D_sqrt = torch.diag(v_sqrt)
+        iden = torch.eye(A.shape[0], device=A.device)
+        return iden - D_sqrt @ A @ D_sqrt
+
+    raise ValueError(f"Unknown Laplacian type: {laplac}")
+
+
+def gda_loss(s, t, metric="euc", laplac="laplac1"):
+    """Compute the GDA loss between two graphs.
+
+        Inspired by https://github.com/CrownX/SPA
+
+    Parameters
+    ----------
+    s : torch.Tensor
+        Source features.
+    t : torch.Tensor
+        Target features.
+    metric : str, default="euc"
+        The metric to use for the adjacency matrix.
+    laplac : str, default="laplac1"
+        The Laplacian matrix to use.
+    """
+    # s, t [bsize, dim], [bsize, dim]
+    s_matrix = _adj(s, s, metric)
+    t_matrix = _adj(t, t, metric)
+    s_matrix = _laplacian(s_matrix, laplac)
+    t_matrix = _laplacian(t_matrix, laplac)
+    _, s_v, _ = torch.linalg.svd(s_matrix)
+    _, t_v, _ = torch.linalg.svd(t_matrix)
+    svd_loss = torch.linalg.norm(s_v - t_v)
+    return svd_loss
+
+
+def nap_loss(features_t, y_pred_t, memory_features, memory_outputs, sample_idx_t, K=5):
+    """Compute the NAP loss.
+
+        Inspired by https://github.com/CrownX/SPA
+
+    Parameters
+    ----------
+    features_t : torch.Tensor
+        Target features.
+    y_pred_t : torch.Tensor
+        Target predictions.
+    memory_features : torch.Tensor
+        Memory features.
+    memory_outputs : torch.Tensor
+        Memory outputs.
+    sample_idx_t : torch.Tensor
+        The sample indices in the batch features_t
+    K : int, default=5
+        The number of nearest neighbors.
+    """
+    dis = torch.cdist(features_t.detach(), memory_features, p=2) ** 2
+    dis[..., sample_idx_t] = float("+inf")
+
+    # Get top-K neighbors
+    _, top_k_indices = torch.topk(-dis, k=K, dim=1)
+
+    batch_size, mem_size = features_t.size(0), memory_features.size(0)
+    w = torch.zeros(batch_size, mem_size, device=features_t.device)
+    w.scatter_(1, top_k_indices, 1.0 / K)
+
+    weight_, pred = torch.max(w.mm(memory_outputs), 1)
+    loss_ = torch.nn.CrossEntropyLoss(reduction="none")(y_pred_t, pred)
+    classifier_loss = torch.sum(weight_ * loss_) / (torch.sum(weight_).item() + 1e-7)
+
+    return classifier_loss

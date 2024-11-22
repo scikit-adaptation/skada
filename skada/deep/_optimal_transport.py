@@ -51,12 +51,10 @@ class DeepJDOTLoss(BaseDALoss):
     def forward(
         self,
         y_s,
-        y_pred_s,
         y_pred_t,
-        domain_pred_s,
-        domain_pred_t,
         features_s,
         features_t,
+        **kwargs,
     ):
         """Compute the domain adaptation loss"""
         loss = deepjdot_loss(
