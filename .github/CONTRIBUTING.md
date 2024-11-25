@@ -200,4 +200,4 @@ method does to the data and a figure (coming from an example)
 illustrating it.
 
 
-This Contribution guide is strongly inspired by the one of the [scikit-learn](https://github.com/scikit-learn/scikit-learn) team.
+This Contribution guide is strongly inspired by the one of the [POT](https://pythonot.github.io/) and [scikit-learn](https://github.com/scikit-learn/scikit-learn) teams.
