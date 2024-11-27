@@ -19,9 +19,9 @@ Contents
    self
    auto_examples/plot_how_to_use_skada
    quickstart
-   contributing
    all
    auto_examples/index
+   contributing
 
 .. include:: ../../README.md
    :parser: myst_parser.sphinx_
