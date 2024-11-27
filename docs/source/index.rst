@@ -21,6 +21,7 @@ Contents
    quickstart
    all
    auto_examples/index
+   contributing
 
 .. include:: ../../README.md
    :parser: myst_parser.sphinx_

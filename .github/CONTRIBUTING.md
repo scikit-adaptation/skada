@@ -38,7 +38,7 @@ GitHub, clone, and develop on a branch. Steps:
    $ git checkout -b my-feature
    ```
 
-   Always use a ``feature`` branch. It's good practice to never work on the ``master`` branch!
+   Always use a ``feature`` branch. It's good practice to never work on the ``main`` branch!
 
 4. Develop the feature on your feature branch. Add changed files using ``git add`` and then ``git commit`` files:
 
@@ -101,7 +101,7 @@ following rules before you submit a pull request:
    manner, further modifications on the code base are granted to be consistent
    with the desired behavior.
    For the Bug-fixes case, at the time of the PR, this tests should fail for
-   the code base in master and pass for the PR code.
+   the code base in main and pass for the PR code.
 
 -  At least one paragraph of narrative documentation with links to
    references in the literature (with PDF links when possible) and
@@ -177,7 +177,7 @@ Documentation
 -------------
 
 We are glad to accept any sort of documentation: function docstrings,
-reStructuredText documents (like this one), tutorials, etc.
+reStructuredText documents (like this one), tutorials, and Markdown etc.
 reStructuredText documents live in the source code repository under the
 doc/ directory.
 
@@ -200,4 +200,4 @@ method does to the data and a figure (coming from an example)
 illustrating it.
 
 
-This Contribution guide is strongly inspired by the one of the [scikit-learn](https://github.com/scikit-learn/scikit-learn) team.
+This Contribution guide is strongly inspired by the one of the [POT](https://pythonot.github.io/) and [scikit-learn](https://github.com/scikit-learn/scikit-learn) teams.
