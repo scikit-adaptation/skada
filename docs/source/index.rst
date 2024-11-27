@@ -22,6 +22,7 @@ Contents
    all
    auto_examples/index
    contributing
+   release
 
 .. include:: ../../README.md
    :parser: myst_parser.sphinx_
