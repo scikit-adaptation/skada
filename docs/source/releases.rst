@@ -1,6 +1,6 @@
 Release of SKADA
 =====================
 
-.. include:: ../../RELEASE.md
+.. include:: ../../RELEASES.md
     :parser: myst_parser.sphinx_
     :start-line: 2
