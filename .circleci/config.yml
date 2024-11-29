@@ -67,11 +67,13 @@ jobs:
                python -c "import skada"
                which sphinx-build
 
-        # - run:
-        #     name: Correct link in release file
-        #     command: |
-        #       sed -i -r 's/PR #([[:digit:]]*)/\[PR #\1\]\(https:\/\/github.com\/scikit-adaptation\/skada\/pull\/\1\)/' RELEASES.md
-        #       sed -i -r 's/Issue #([[:digit:]]*)/\[Issue #\1\]\(https:\/\/github.com\/scikit-adaptation\/skada\/issues\/\1\)/' RELEASES.md
+        - run:
+            name: Correct link in release file
+            command: |
+              sed -i -r 's/PR #([[:digit:]]*)/\[PR #\1\]\(https:\/\/github.com\/scikit-adaptation\/skada\/pull\/\1\)/' RELEASES.md
+              sed -i -r 's/Issue #([[:digit:]]*)/\[Issue #\1\]\(https:\/\/github.com\/scikit-adaptation\/skada\/issues\/\1\)/' RELEASES.md
+              sed -i -r 's/https:\/\/github.com\/scikit-adaptation\/skada\/pull\/([[:digit:]]*)/\[PR #\1\]\(https:\/\/github.com\/scikit-adaptation\/skada\/pull\/\1\)/' RELEASES.md
+              sed -i -r 's/https:\/\/github.com\/scikit-adaptation\/skada\/issue\/([[:digit:]]*)/\[Issue #\1\]\(https:\/\/github.com\/scikit-adaptation\/skada\/issue\/\1\)/' RELEASES.md
         # Build docs
         - run:
             name: make html
