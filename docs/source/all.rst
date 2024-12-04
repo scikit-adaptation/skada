@@ -98,6 +98,7 @@ Other DA methods
 
    JDOTRegressor
    DASVMClassifier
+   DIPLS
 
 DA pipeline
 ^^^^^^^^^^^
