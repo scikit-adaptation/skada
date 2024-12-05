@@ -10,7 +10,6 @@ from enum import Enum
 from numbers import Real
 
 import numpy as np
-import sklearn
 from sklearn.covariance import (
     empirical_covariance,
     ledoit_wolf,
