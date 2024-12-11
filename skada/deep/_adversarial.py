@@ -53,13 +53,9 @@ class DANNLoss(BaseDALoss):
 
     def forward(
         self,
-        y_s,
-        y_pred_s,
-        y_pred_t,
         domain_pred_s,
         domain_pred_t,
-        features_s,
-        features_t,
+        **kwargs,
     ):
         """Compute the domain adaptation loss"""
         domain_label = torch.zeros(
@@ -183,13 +179,11 @@ class CDANLoss(BaseDALoss):
 
     def forward(
         self,
-        y_s,
-        y_pred_s,
-        y_pred_t,
         domain_pred_s,
         domain_pred_t,
         features_s,
         features_t,
+        **kwargs,
     ):
         """Compute the domain adaptation loss"""
         dtype = torch.float32
@@ -247,7 +241,14 @@ class CDANModule(DomainAwareModule):
         self.max_features = max_features
         self.random_state = random_state
 
-    def forward(self, X, sample_domain=None, is_fit=False, return_features=False):
+    def forward(
+        self,
+        X,
+        sample_domain=None,
+        sample_idx=None,
+        is_fit=False,
+        return_features=False,
+    ):
         if is_fit:
             # predict
             y_pred = self.base_module_(X)
@@ -279,6 +280,7 @@ class CDANModule(DomainAwareModule):
                 domain_pred,
                 features,
                 sample_domain,
+                sample_idx,
             )
         else:
             if return_features:
@@ -448,13 +450,11 @@ class MDDLoss(BaseDALoss):
 
     def forward(
         self,
-        y_s,
         y_pred_s,
         y_pred_t,
-        disc_pred_s,
-        disc_pred_t,
-        features_s,
-        features_t,
+        domain_pred_s,
+        domain_pred_t,
+        **kwargs,
     ):
         """Compute the domain adaptation loss"""
         # TODO: handle binary classification
@@ -462,8 +462,8 @@ class MDDLoss(BaseDALoss):
         pseudo_label_s = torch.argmax(y_pred_s, axis=-1)
         pseudo_label_t = torch.argmax(y_pred_t, axis=-1)
 
-        disc_loss_s = self.disc_criterion_s(disc_pred_s, pseudo_label_s)
-        disc_loss_t = self.disc_criterion_t(disc_pred_t, pseudo_label_t)
+        disc_loss_s = self.disc_criterion_s(domain_pred_s, pseudo_label_s)
+        disc_loss_t = self.disc_criterion_t(domain_pred_t, pseudo_label_t)
 
         # Compute the MDD loss value
         disc_loss = self.gamma * disc_loss_s - disc_loss_t

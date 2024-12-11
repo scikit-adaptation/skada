@@ -115,8 +115,8 @@ DA pipeline
 
    Shared
    PerDomain
-   SourceSelect
-   TargetSelect
+   SelectSource
+   SelectTarget
 
 Utilities
 ^^^^^^^^^
@@ -140,6 +140,26 @@ Deep learning DA :py:mod:`skada.deep`:
    :no-members:
    :no-inherited-members:
 
+
+Deep learning DA methods
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autosummary::
+   :toctree: gen_modules/
+   :template: function.rst
+
+   DeepCoral
+   DeepJDOT
+   DANN
+   CDAN
+   MCC
+   CAN
+   MDD
+
+
+SKADA deep learning DA losses
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 .. autosummary::
    :toctree: gen_modules/
    :template: class.rst
@@ -152,6 +172,15 @@ Deep learning DA :py:mod:`skada.deep`:
    CANLoss
    MDDLoss
 
+Torch compatible DA losses in :py:mod:`skada.deep.losses`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. currentmodule:: skada.deep.losses
+
+.. automodule:: skada.deep.losses
+   :no-members:
+   :no-inherited-members:
+
 .. autosummary::
    :toctree: gen_modules/
    :template: function.rst
@@ -161,15 +190,6 @@ Deep learning DA :py:mod:`skada.deep`:
    deepjdot_loss
    mcc_loss
    cdd_loss
-   DeepCoral
-   DeepJDOT
-   DANN
-   CDAN
-   MCC
-   CAN
-   MDD
-
-
 
 
 DA metrics :py:mod:`skada.metrics`

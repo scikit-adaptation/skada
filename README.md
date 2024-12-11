@@ -243,4 +243,6 @@ The library is distributed under the 3-Clause BSD license.
 
 [35] Zhang, Y., Liu, T., Long, M., & Jordan, M. I. (2019). [Bridging Theory and Algorithm for Domain Adaptation](https://arxiv.org/abs/1904.05801). In Proceedings of the 36th International Conference on Machine Learning, (pp. 7404-7413).
 
-[36] Nikzad-Langerodi, R., Zellinger, W., Saminger-Platz, S., & Moser, B. A. (2020). [Domain adaptation for regression under Beer–Lambert’s law](https://www.sciencedirect.com/science/article/abs/pii/S0950705120305761). Knowledge-Based Systems, 210, 106447.
+[36] Xiao, Zhiqing, Wang, Haobo, Jin, Ying, Feng, Lei, Chen, Gang, Huang, Fei, Zhao, Junbo.[SPA: A Graph Spectral Alignment Perspective for Domain Adaptation](https://arxiv.org/pdf/2310.17594). In Neurips, 2023.
+
+[37] Nikzad-Langerodi, R., Zellinger, W., Saminger-Platz, S., & Moser, B. A. (2020). [Domain adaptation for regression under Beer–Lambert’s law](https://www.sciencedirect.com/science/article/abs/pii/S0950705120305761). Knowledge-Based Systems, 210, 106447.
