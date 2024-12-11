@@ -165,7 +165,7 @@ def dipals(x, y, xs, xt, A, reg_param, heuristic: bool = False, target_domain=0)
 
     References
     ----------
-    [36] Nikzad-Langerodi, R., Zellinger, W., Saminger-Platz, S., & Moser, B. A. (2020).
+    [37] Nikzad-Langerodi, R., Zellinger, W., Saminger-Platz, S., & Moser, B. A. (2020).
          Domain adaptation for regression under Beer–Lambert’s law.
          Knowledge-Based Systems, 210, 106447.
 
@@ -481,7 +481,7 @@ class DIPLS(DAEstimator):
 
     References
     ----------
-    [36] Nikzad-Langerodi, R., Zellinger, W., Saminger-Platz, S., & Moser, B. A. (2020).
+    [37] Nikzad-Langerodi, R., Zellinger, W., Saminger-Platz, S., & Moser, B. A. (2020).
          Domain adaptation for regression under Beer–Lambert’s law.
          Knowledge-Based Systems, 210, 106447.
 
