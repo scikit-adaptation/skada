@@ -322,8 +322,6 @@ def dipals(x, y, xs, xt, A, reg_param, heuristic: bool = False, target_domain=0)
         else:
             xt = xt - np.outer(tt, pt)
 
-        # y = y.reshape(-1, 1) - c * t
-        # y = y.ravel()
         y = y - c * t
 
         # Store w,t,p,c
