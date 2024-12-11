@@ -39,7 +39,7 @@ def convex_relaxation(xs, xt):
     Examples
     --------
     >>> import numpy as np
-    >>> from diPLSlib.functions import convex_relaxation
+    >>> from skada._dipls import convex_relaxation
     >>> xs = np.random.random((100, 10))
     >>> xt = np.random.random((100, 10))
     >>> D = convex_relaxation(xs, xt)
@@ -177,8 +177,7 @@ def dipals(x, y, xs, xt, A, reg_param, heuristic: bool = False, target_domain=0)
     >>> y = np.random.random((100, 1))
     >>> xs = np.random.random((50, 10))
     >>> xt = np.random.random((50, 10))
-    >>> b, T, Ts, Tt, W, P, Ps, Pt, E, Es, Et, Ey, C, opt_l, discrepancy = dipals(
-        x, y, xs, xt, 2, 0.1)
+    >>> results = dipals(x, y, xs, xt, 2, 0.1)
     """
     # Get array dimensions
     (n, k) = np.shape(x)
@@ -727,10 +726,10 @@ def genspec(length, mu, sigma, mag, noise=0):
 
     Examples
     --------
-    >>> from diPLSlib.utils.misc import gengaus
+    >>> from skada._dipls import genspec
     >>> import numpy as np
     >>> import scipy.stats
-    >>> signal = gengaus(100, 50, 10, 5, noise=0.1)
+    >>> signal = genspec(100, 50, 10, 5, noise=0.1)
     """
     s = mag * norm.pdf(np.arange(length), mu, sigma)
     n = noise * np.random.rand(length)
