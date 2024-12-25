@@ -517,7 +517,7 @@ def nap_loss(features_t, y_pred_t, memory_features, memory_outputs, sample_idx_t
 
 def grouped_mmd_loss(features_s, features_t):
     """Compute the sum of MMD losses for different groups of data,
-       for Confounded Domain Adaptation method [TODO]_.
+       for ConDo method [TODO]_.
 
     Parameters
     ----------
