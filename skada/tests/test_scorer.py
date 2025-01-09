@@ -2,6 +2,7 @@
 #         Remi Flamary <remi.flamary@polytechnique.edu>
 #         Oleksii Kachaiev <kachayev@gmail.com>
 #         Yanis Lalou <yanis.lalou@polytechnique.edu>
+#         Ambroise Odonnat <ambroiseodonnattechnologie@gmail.com>
 #
 # License: BSD 3-Clause
 
@@ -23,6 +24,7 @@ from skada.metrics import (
     CircularValidation,
     DeepEmbeddedValidation,
     ImportanceWeightedScorer,
+    MaNoScorer,
     MixValScorer,
     PredictionEntropyScorer,
     SoftNeighborhoodDensity,
@@ -92,6 +94,7 @@ def test_supervised_scorer(da_dataset):
     [
         PredictionEntropyScorer(),
         SoftNeighborhoodDensity(),
+        MaNoScorer(),
     ],
 )
 def test_scorer_with_entropy_requires_predict_proba(scorer, da_dataset):
@@ -351,6 +354,30 @@ def test_mixval_scorer_regression(da_reg_dataset):
         scorer(estimator, X, y, sample_domain)
 
 
+def test_mano_scorer(da_dataset):
+    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    estimator = make_da_pipeline(
+        DensityReweightAdapter(),
+        LogisticRegression().set_fit_request(sample_weight=True),
+    )
+
+    estimator.fit(X, y, sample_domain=sample_domain)
+
+    scorer = MaNoScorer()
+    score_mean = scorer._score(estimator, X, y, sample_domain=sample_domain)
+    assert isinstance(score_mean, float), "score_mean is not a float"
+
+
+def test_mano_scorer_regression(da_reg_dataset):
+    X, y, sample_domain = da_reg_dataset.pack(as_sources=["s"], as_targets=["t"])
+
+    estimator = make_da_pipeline(DensityReweightAdapter(), LinearRegression())
+
+    scorer = MixValScorer(alpha=0.55, random_state=42)
+    with pytest.raises(ValueError):
+        scorer(estimator, X, y, sample_domain)
+
+
 @pytest.mark.parametrize(
     "scorer",
     [
@@ -360,6 +387,7 @@ def test_mixval_scorer_regression(da_reg_dataset):
         SoftNeighborhoodDensity(),
         CircularValidation(),
         MixValScorer(alpha=0.55, random_state=42),
+        MaNoScorer(),
     ],
 )
 def test_scorer_with_nd_input(scorer, da_dataset):
