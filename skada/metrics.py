@@ -806,8 +806,10 @@ class MaNoScorer(_BaseDomainAwareScorer):
     ----------
     p : int, default=4
         Order for the p-norm normalization.
+        It must be non-negative.
     threshold : int, default=5
-        Threshold value to determine which normalization to use
+        Threshold value to determine which normalization to use.
+        If threshold <= 0, softmax normalization is always used.
         See Eq.(6) of [37]_ for more details.
     greater_is_better : bool, default=True
         Whether higher scores are better.
@@ -828,6 +830,9 @@ class MaNoScorer(_BaseDomainAwareScorer):
         self.p = p
         self.threshold = threshold
         self._sign = 1 if greater_is_better else -1
+
+        if self.p <= 0:
+            raise ValueError("The order of the p-norm must be positive")
 
     def _get_criterion(self, logits):
         """
@@ -850,8 +855,9 @@ class MaNoScorer(_BaseDomainAwareScorer):
     def _taylor_softmax(self, logits):
         """Compute Taylor approximation of order 2 of softmax."""
         tay_logits = 1 + logits + logits**2 / 2
-        tay_logits -= np.min(tay_logits, axis=1, keepdim=True)
+        tay_logits -= np.min(tay_logits, axis=1, keepdims=True)
         tay_logits /= np.sum(tay_logits, axis=1, keepdims=True)
+
         return tay_logits
 
     def _softrun(self, logits, criterion, threshold):
@@ -884,11 +890,15 @@ class MaNoScorer(_BaseDomainAwareScorer):
         # Recover target probabilities
         if not isinstance(estimator, BaseEstimator):
             # 1) Recover logits on target
-            logits = estimator.module_(X[~source_idx], **params)
+            logits = estimator.infer(X[~source_idx], **params).cpu().detach().numpy()
 
             # 2) Normalize logits to obtain probabilities
             criterion = self._get_criterion(logits)
-            proba = self._softrun(logits=logits, criterion=criterion)
+            proba = self._softrun(
+                logits=logits,
+                criterion=criterion,
+                threshold=self.threshold,
+            )
         else:
             # Directly recover predicted probabilities
             proba = estimator.predict_proba(
