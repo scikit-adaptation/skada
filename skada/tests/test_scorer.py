@@ -367,13 +367,27 @@ def test_mano_scorer(da_dataset):
     score_mean = scorer._score(estimator, X, y, sample_domain=sample_domain)
     assert isinstance(score_mean, float), "score_mean is not a float"
 
+    # Test softmax normalization
+    scorer = MaNoScorer(threshold=-1)
+    score_mean = scorer._score(estimator, X, y, sample_domain=sample_domain)
+    assert isinstance(score_mean, float), "score_mean is not a float"
+
+    # Test softmax normalization
+    scorer = MaNoScorer(threshold=float("inf"))
+    score_mean = scorer._score(estimator, X, y, sample_domain=sample_domain)
+    assert isinstance(score_mean, float), "score_mean is not a float"
+
+    # Test invalid p-norm order
+    with pytest.raises(ValueError):
+        MaNoScorer(p=-1)
+
 
 def test_mano_scorer_regression(da_reg_dataset):
     X, y, sample_domain = da_reg_dataset.pack(as_sources=["s"], as_targets=["t"])
 
-    estimator = make_da_pipeline(DensityReweightAdapter(), LinearRegression())
+    estimator = make_da_pipeline(DensityReweightAdapter(), LogisticRegression())
 
-    scorer = MixValScorer(alpha=0.55, random_state=42)
+    scorer = MaNoScorer()
     with pytest.raises(ValueError):
         scorer(estimator, X, y, sample_domain)
 
