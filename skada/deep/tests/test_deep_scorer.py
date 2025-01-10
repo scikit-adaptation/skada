@@ -1,4 +1,5 @@
 # Author: Yanis Lalou <yanis.lalou@polytechnique.edu>
+#         Ambroise Odonnat <ambroiseodonnattechnologie@gmail.com>
 #
 # License: BSD 3-Clause
 
@@ -16,6 +17,7 @@ from skada.metrics import (
     CircularValidation,
     DeepEmbeddedValidation,
     ImportanceWeightedScorer,
+    MaNoScorer,
     MixValScorer,
     PredictionEntropyScorer,
     SoftNeighborhoodDensity,
@@ -29,6 +31,7 @@ from skada.metrics import (
         PredictionEntropyScorer(),
         SoftNeighborhoodDensity(),
         CircularValidation(),
+        MaNoScorer(),
         MixValScorer(),
         ImportanceWeightedScorer(),
     ],
@@ -66,6 +69,7 @@ def test_generic_scorer_on_deepmodel(scorer, da_dataset):
         PredictionEntropyScorer(),
         SoftNeighborhoodDensity(),
         DeepEmbeddedValidation(),
+        MaNoScorer(),
     ],
 )
 def test_generic_scorer(scorer, da_dataset):
@@ -101,6 +105,7 @@ def test_generic_scorer(scorer, da_dataset):
     [
         DeepEmbeddedValidation(),
         ImportanceWeightedScorer(),
+        MaNoScorer(),
     ],
 )
 def test_scorer_with_nd_features(scorer, da_dataset):
