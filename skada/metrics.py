@@ -834,44 +834,6 @@ class MaNoScorer(_BaseDomainAwareScorer):
         if self.p <= 0:
             raise ValueError("The order of the p-norm must be positive")
 
-    def _get_criterion(self, logits):
-        """
-        Compute criterion to select the proper normalization.
-        See Eq.(6) of [1]_ for more details.
-        """
-        proba = self._stable_softmax(logits)
-        proba = np.log(proba)
-        divergence = -np.mean(proba)
-
-        return divergence
-
-    def _stable_softmax(self, logits):
-        """Compute softmax function."""
-        logits -= np.max(logits, axis=1, keepdims=True)
-        exp_logits = np.exp(logits)
-        exp_logits /= np.sum(exp_logits, axis=1, keepdims=True)
-        return exp_logits
-
-    def _taylor_softmax(self, logits):
-        """Compute Taylor approximation of order 2 of softmax."""
-        tay_logits = 1 + logits + logits**2 / 2
-        tay_logits -= np.min(tay_logits, axis=1, keepdims=True)
-        tay_logits /= np.sum(tay_logits, axis=1, keepdims=True)
-
-        return tay_logits
-
-    def _softrun(self, logits, criterion, threshold):
-        """Normalize the logits following Eq.(6) of [37]_."""
-        if criterion > threshold:
-            # Apply softmax normalization
-            outputs = self._stable_softmax(logits)
-
-        else:
-            # Apply Taylor approximation
-            outputs = self._taylor_softmax(logits)
-
-        return outputs
-
     def _score(self, estimator, X, y, sample_domain=None, **params):
         if not hasattr(estimator, "predict_proba"):
             raise AttributeError(
@@ -909,3 +871,43 @@ class MaNoScorer(_BaseDomainAwareScorer):
         score = np.mean(proba**self.p) ** (1 / self.p)
 
         return self._sign * score
+
+    def _get_criterion(self, logits):
+        """
+        Compute criterion to select the proper normalization.
+        See Eq.(6) of [1]_ for more details.
+        """
+        proba = self._stable_softmax(logits)
+        proba = np.log(proba)
+        divergence = -np.mean(proba)
+
+        return divergence
+
+    def _softrun(self, logits, criterion, threshold):
+        """Normalize the logits following Eq.(6) of [37]_."""
+        if criterion > threshold:
+            # Apply softmax normalization
+            outputs = self._stable_softmax(logits)
+
+        else:
+            # Apply Taylor approximation
+            outputs = self._taylor_softmax(logits)
+
+        return outputs
+
+    @staticmethod
+    def _stable_softmax(logits):
+        """Compute softmax function."""
+        logits -= np.max(logits, axis=1, keepdims=True)
+        exp_logits = np.exp(logits)
+        exp_logits /= np.sum(exp_logits, axis=1, keepdims=True)
+        return exp_logits
+
+    @staticmethod
+    def _taylor_softmax(logits):
+        """Compute Taylor approximation of order 2 of softmax."""
+        tay_logits = 1 + logits + logits**2 / 2
+        tay_logits -= np.min(tay_logits, axis=1, keepdims=True)
+        tay_logits /= np.sum(tay_logits, axis=1, keepdims=True)
+
+        return tay_logits
