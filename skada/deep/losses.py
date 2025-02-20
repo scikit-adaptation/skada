@@ -513,3 +513,49 @@ def nap_loss(features_t, y_pred_t, memory_features, memory_outputs, sample_idx_t
     classifier_loss = torch.sum(weight_ * loss_) / (torch.sum(weight_).item() + 1e-7)
 
     return classifier_loss
+
+
+class GroupedMMDLoss(torch.nn.Module):
+    """Compute the sum of MMD losses for paired groups of data,
+       for ConDo method [TODO]_.
+
+    References
+    ----------
+    .. [TODO] Calvin McCarter. Towards backwards-compatible data with
+              confounded domain adaptation. In TMLR, 2024.
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, features_s, features_t):
+        """Computes the sum of MMD losses for paired groups of data.
+
+        Parameters
+        ----------
+        features_s : tensor (n_groups, n_samples_per_group, n_dims)
+            Source features.
+        features_t : tensor (n_groups, n_samples_per_group, n_dims)
+            Target features.
+
+        Returns
+        -------
+        loss : tensor (scalar)
+            The loss of the method.
+        """
+        n_groups, group_size, n_dims = features_s.shape
+        loss = torch.tensor(0.0)
+        for i in range(n_groups):
+            X = features_s[i, :, :]
+            Y = features_t[i, :, :]
+            XY = torch.vstack([X, Y])
+            L2_dists = torch.cdist(XY, XY) ** 2
+            bandwidth = L2_dists.detach().data.sum() / (
+                (group_size * 2) ** 2 - group_size * 2
+            )
+            K = torch.exp(-L2_dists / bandwidth)
+            kXX = K[:group_size, :group_size].mean()
+            kXY = K[:group_size, group_size:].mean()
+            kYY = K[group_size:, group_size:].mean()
+            loss = loss + kXX - 2 * kXY + kYY
+        return loss
