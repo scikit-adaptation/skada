@@ -12,12 +12,10 @@ from copy import deepcopy
 
 import numpy as np
 from sklearn.base import clone
-from sklearn.base import clone
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import balanced_accuracy_score, check_scoring
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KernelDensity
-from sklearn.pipeline import Pipeline
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelEncoder, Normalizer
 from sklearn.utils import check_random_state
