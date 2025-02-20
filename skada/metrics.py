@@ -12,10 +12,12 @@ from copy import deepcopy
 
 import numpy as np
 from sklearn.base import clone
+from sklearn.base import clone
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import balanced_accuracy_score, check_scoring
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KernelDensity
+from sklearn.pipeline import Pipeline
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelEncoder, Normalizer
 from sklearn.utils import check_random_state
@@ -397,6 +399,7 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
             )
 
         has_transform_method = False
+
         if not isinstance(estimator, Pipeline):
             # The estimator is a deep model
             if estimator.module_.layer_name is None:
@@ -850,7 +853,7 @@ class MaNoScorer(_BaseDomainAwareScorer):
             raise ValueError("MaNo scorer only supports classification problems.")
 
         # Recover target probabilities
-        if not isinstance(estimator, BaseEstimator):
+        if not isinstance(estimator, Pipeline):
             # 1) Recover logits on target
             logits = estimator.infer(X[~source_idx], **params).cpu().detach().numpy()
 
