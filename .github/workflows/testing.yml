@@ -26,11 +26,11 @@ jobs:
 
     # Install skada
     - name: Checking Out Repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
     # Cache 'skada' datasets
     - name: Create/Restore Skada Data Cache
       id: cache-skada_datasets
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       with:
         path: ~/skada_datasets
         key: ${{ runner.os }}-v3
@@ -58,11 +58,11 @@ jobs:
 
     # Install skada
     - name: Checking Out Repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
     # Cache 'skada' datasets
     - name: Create/Restore Skada Data Cache
       id: cache-skada_datasets
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       with:
         path: ~/skada_datasets
         key: ${{ runner.os }}-v3
@@ -100,11 +100,11 @@ jobs:
 
     # Install skada
     - name: Checking Out Repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
     # Cache 'skada' datasets
     - name: Create/Restore Skada Data Cache
       id: cache-skada_datasets
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       with:
         path: ~/skada_datasets
         key: ${{ runner.os }}-v3
