@@ -15,12 +15,11 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import balanced_accuracy_score, check_scoring
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KernelDensity
+from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelEncoder, Normalizer
 from sklearn.utils import check_random_state
 from sklearn.utils.extmath import softmax
 from sklearn.utils.metadata_routing import _MetadataRequester, get_routing_for_object
-
-from skada.deep.base import DomainAwareNet
 
 from ._utils import (
     _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
@@ -397,7 +396,7 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
             )
 
         has_transform_method = False
-        if isinstance(estimator, DomainAwareNet):
+        if not isinstance(estimator, Pipeline):
             # The estimator is a deep model
             if estimator.module_.layer_name is None:
                 raise ValueError("The layer_name of the estimator is not set.")
