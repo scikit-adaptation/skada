@@ -396,14 +396,7 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
 
         has_transform_method = False
 
-        if not isinstance(estimator, BaseEstimator):
-            # The estimator is a deep model
-            if estimator.module_.layer_name is None:
-                raise ValueError("The layer_name of the estimator is not set.")
-
-            transformer = estimator.predict_features
-            has_transform_method = True
-        else:
+        if isinstance(estimator, BaseEstimator):
             # We need to find the last layer of the pipeline with a transform method
             pipeline_steps = list(enumerate(estimator.named_steps.items()))
 
@@ -412,6 +405,13 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
                     transformer = estimator[: index_transformer + 1].transform
                     has_transform_method = True
                     break  # Stop after the first occurrence if there are multiple
+        else:
+            # The estimator is a deep model
+            if estimator.module_.layer_name is None:
+                raise ValueError("The layer_name of the estimator is not set.")
+
+            transformer = estimator.predict_features
+            has_transform_method = True
 
         def identity(x):
             return x
