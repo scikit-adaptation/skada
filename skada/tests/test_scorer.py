@@ -40,6 +40,7 @@ from skada.metrics import (
         SoftNeighborhoodDensity(),
         DeepEmbeddedValidation(),
         CircularValidation(),
+        MaNoScorer(),
     ],
 )
 def test_generic_scorer(scorer, da_dataset):

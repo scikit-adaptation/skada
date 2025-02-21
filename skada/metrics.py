@@ -850,8 +850,11 @@ class MaNoScorer(_BaseDomainAwareScorer):
         if y_type != Y_Type.DISCRETE:
             raise ValueError("MaNo scorer only supports classification problems.")
 
-        # Recover target probabilities
         if not isinstance(estimator, Pipeline):
+            # The estimator is a deep model
+            if estimator.module_.layer_name is None:
+                raise ValueError("The layer_name of the estimator is not set.")
+
             # 1) Recover logits on target
             logits = estimator.infer(X[~source_idx], **params).cpu().detach().numpy()
 

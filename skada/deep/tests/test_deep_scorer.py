@@ -196,7 +196,14 @@ def test_dev_scorer_on_source_only(da_dataset):
     assert ~np.isnan(scores), "The score is computed"
 
 
-def test_dev_exception_layer_name(da_dataset):
+@pytest.mark.parametrize(
+    "scorer",
+    [
+        DeepEmbeddedValidation(),
+        MaNoScorer(),
+    ],
+)
+def test_dev_exception_layer_name(scorer, da_dataset):
     X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
     X_test, y_test, sample_domain_test = da_dataset.pack_test(as_targets=["t"])
 
@@ -214,4 +221,4 @@ def test_dev_exception_layer_name(da_dataset):
     estimator.fit(X, y, sample_domain=sample_domain)
 
     with pytest.raises(ValueError, match="The layer_name of the estimator is not set."):
-        DeepEmbeddedValidation()(estimator, X, y, sample_domain)
+        scorer(estimator, X, y, sample_domain)
