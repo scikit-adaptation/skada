@@ -382,6 +382,13 @@ def test_mano_scorer(da_dataset):
     with pytest.raises(ValueError):
         MaNoScorer(p=-1)
 
+    # Test correct output range
+    scorer = MaNoScorer()
+    score_mean = scorer._score(estimator, X, y, sample_domain=sample_domain)
+    assert (scorer._sign * score_mean >= 0) and (
+        scorer._sign * score_mean <= 1
+    ), "The output range should be [-1, 0] or [0, 1]."
+
 
 def test_mano_scorer_regression(da_reg_dataset):
     X, y, sample_domain = da_reg_dataset.pack(as_sources=["s"], as_targets=["t"])
