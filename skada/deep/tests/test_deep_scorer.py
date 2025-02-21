@@ -203,7 +203,7 @@ def test_dev_scorer_on_source_only(da_dataset):
         MaNoScorer(),
     ],
 )
-def test_dev_exception_layer_name(scorer, da_dataset):
+def test_exception_layer_name(scorer, da_dataset):
     X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
     X_test, y_test, sample_domain_test = da_dataset.pack_test(as_targets=["t"])
 
@@ -222,3 +222,91 @@ def test_dev_exception_layer_name(scorer, da_dataset):
 
     with pytest.raises(ValueError, match="The layer_name of the estimator is not set."):
         scorer(estimator, X, y, sample_domain)
+
+
+def test_mano_softmax(da_dataset):
+    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X_test, y_test, sample_domain_test = da_dataset.pack_test(as_targets=["t"])
+
+    estimator = DeepCoral(
+        ToyModule2D(proba=True),
+        reg=1,
+        layer_name="dropout",
+        batch_size=10,
+        max_epochs=10,
+        train_split=None,
+    )
+
+    X = X.astype(np.float32)
+    X_test = X_test.astype(np.float32)
+
+    # without dict
+    estimator.fit(X, y, sample_domain=sample_domain)
+
+    estimator.predict(X_test, sample_domain=sample_domain_test, allow_source=True)
+    estimator.predict_proba(X, sample_domain=sample_domain, allow_source=True)
+
+    scorer = MaNoScorer(threshold=-1)
+    scorer(estimator, X, y, sample_domain)
+    print(scorer.chosen_normalization.lower())
+    assert (
+        scorer.chosen_normalization.lower() == "softmax"
+    ), "the wrong normalization was chosen"
+
+
+def test_mano_taylor(da_dataset):
+    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X_test, y_test, sample_domain_test = da_dataset.pack_test(as_targets=["t"])
+
+    estimator = DeepCoral(
+        ToyModule2D(proba=True),
+        reg=1,
+        layer_name="dropout",
+        batch_size=10,
+        max_epochs=10,
+        train_split=None,
+    )
+
+    X = X.astype(np.float32)
+    X_test = X_test.astype(np.float32)
+
+    # without dict
+    estimator.fit(X, y, sample_domain=sample_domain)
+
+    estimator.predict(X_test, sample_domain=sample_domain_test, allow_source=True)
+    estimator.predict_proba(X, sample_domain=sample_domain, allow_source=True)
+
+    scorer = MaNoScorer(threshold=float("inf"))
+    scorer(estimator, X, y, sample_domain)
+    assert (
+        scorer.chosen_normalization.lower() == "taylor"
+    ), "the wrong normalization was chosen"
+
+
+def test_mano_output_range(da_dataset):
+    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X_test, y_test, sample_domain_test = da_dataset.pack_test(as_targets=["t"])
+
+    estimator = DeepCoral(
+        ToyModule2D(proba=True),
+        reg=1,
+        layer_name="dropout",
+        batch_size=10,
+        max_epochs=10,
+        train_split=None,
+    )
+
+    X = X.astype(np.float32)
+    X_test = X_test.astype(np.float32)
+
+    # without dict
+    estimator.fit(X, y, sample_domain=sample_domain)
+
+    estimator.predict(X_test, sample_domain=sample_domain_test, allow_source=True)
+    estimator.predict_proba(X, sample_domain=sample_domain, allow_source=True)
+
+    scorer = MaNoScorer(threshold=float("inf"))
+    score = scorer(estimator, X, y, sample_domain)
+    assert (scorer._sign * score >= 0) and (
+        scorer._sign * score <= 1
+    ), "The output range should be [-1, 0] or [0, 1]."
