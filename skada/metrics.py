@@ -817,7 +817,7 @@ class MaNoScorer(_BaseDomainAwareScorer):
 
     Returns
     -------
-    score : float in [0, 1].
+    score : float in [0, 1] (or [-1, 0] depending on the value of self._sign).
 
     References
     ----------
@@ -831,6 +831,7 @@ class MaNoScorer(_BaseDomainAwareScorer):
         self.p = p
         self.threshold = threshold
         self._sign = 1 if greater_is_better else -1
+        self.chosen_normalization = None
 
         if self.p <= 0:
             raise ValueError("The order of the p-norm must be positive")
@@ -892,10 +893,11 @@ class MaNoScorer(_BaseDomainAwareScorer):
         if criterion > threshold:
             # Apply softmax normalization
             outputs = self._stable_softmax(logits)
-
+            self.chosen_normalization = "softmax"
         else:
             # Apply Taylor approximation
             outputs = self._taylor_softmax(logits)
+            self.chosen_normalization = "taylor"
 
         return outputs
 
