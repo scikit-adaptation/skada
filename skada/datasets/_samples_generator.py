@@ -848,3 +848,59 @@ def make_variable_frequency_dataset(
         return dataset
     else:
         return dataset.pack(as_sources=["s"], as_targets=["t"], return_X_y=return_X_y)
+
+
+def make_classification_dataset(mean,
+                                cov,
+                                v=None,
+                                separation=1,
+                                n=200):
+    """Creates a 2D linearly separable dataset with two classes."""
+    x1 = np.random.multivariate_normal(mean, cov, size=n)
+    if v is None:
+        v = np.random.randn(2,)
+        v = separation * (v / np.linalg.norm(v)).reshape(1, -1)
+    elif np.linalg.norm(v) != separation:
+        v = separation * (v / np.linalg.norm(v)).reshape(1, -1)
+    else:
+        v = v.reshape(1, -1)
+    x2 = x1 + v
+    X = np.concatenate([x1, x2], axis=0)
+    y = np.array([0] * len(x1) + [1] * len(x2))
+
+    return X, y
+
+
+def make_multi_source_da_example(
+    n_datasets, n_samples=400, angle_min=0.0, angle_max=45, separation=6
+):
+    mu = np.array([0, 0])
+    angles = np.linspace(angle_min, angle_max, n_datasets)
+    Xs, ys, samples_domain = [], [], []
+    for i in range(n_datasets - 1):
+        A = np.random.randn(2, 2)
+        cov = .25 * np.dot(A.T, A) + np.eye(2)
+        v = np.array([np.cos((np.pi / 180) * angles[i]),
+                      np.sin((np.pi / 180) * angles[i])])
+        X, y = make_classification_dataset(mu, cov, v=v,
+                                           separation=separation,
+                                           n=n_samples // 2)
+        Xs.append(X)
+        ys.append(y)
+        samples_domain.append(np.ones_like(y) * i)
+
+    A = np.random.randn(2, 2)
+    cov = .1 * np.dot(A.T, A) + np.eye(2)
+    v = np.array([np.cos((np.pi / 180) * angles[-1]),
+                  np.sin((np.pi / 180) * angles[-1])])
+    Xt, yt = make_classification_dataset(mu, cov,
+                                         v=v,
+                                         separation=separation,
+                                         n=n_samples)
+    samples_domain.append(np.ones_like(yt) * -1)
+
+    return (
+        np.concatenate([*Xs, Xt], axis=0),
+        np.concatenate([*ys, yt], axis=0),
+        np.concatenate(samples_domain, axis=0)
+    )
