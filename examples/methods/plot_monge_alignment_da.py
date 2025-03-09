@@ -120,7 +120,7 @@ print(
     clf.score(X, y, sample_domain=sample_domain, allow_source=True),
 )
 
-# %% Multisource and taregt data
+# %% Multisource and target data
 
 
 def get_multidomain_data(
