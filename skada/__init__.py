@@ -24,7 +24,10 @@ from ._mapping import (
     OTMappingAdapter,
     OTMapping,
     MultiLinearMongeAlignmentAdapter,
-    MultiLinearMongeAlignment
+    MultiLinearMongeAlignment,
+    WassersteinBarycenterTransportAdapter,
+    WassersteinBarycenterTransport,
+    LinearWassersteinBarycenterTransportAdapter
 )
 from ._reweight import (
     DiscriminatorReweightAdapter,
@@ -139,4 +142,9 @@ __all__ = [
 
     "source_target_split",
     "per_domain_split",
+
+    "WassersteinBarycenterTransportAdapter",
+    "WassersteinBarycenterTransport"
+
+    "LinearWassersteinBarycenterTransportAdapter"
 ]
