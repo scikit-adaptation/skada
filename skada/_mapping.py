@@ -930,7 +930,7 @@ class LinearWassersteinBarycenterTransportAdapter(BaseAdapter):
     in [7]_, which assumes each measure is a Gaussian with mean vector
     :math:`\mu` and covariance matrix :math:`\Sigma`. The barycentric 
     measure is estimated through the fixed-point iteration algorithm of
-    [37]_. For all effects, this class is a linearized version of the
+    [38]_. For all effects, this class is a linearized version of the
     Wasserstein Barycenter Transport algorithm of [29]_
 
     Parameters
@@ -974,7 +974,7 @@ class LinearWassersteinBarycenterTransportAdapter(BaseAdapter):
         of the IEEE/CVF conference on computer vision and pattern recognition, pp.
         16785-16793. 2021.
         
-    .. [37] Álvarez-Esteban, Pedro C., et al. "A fixed-point approach to barycenters
+    .. [38] Álvarez-Esteban, Pedro C., et al. "A fixed-point approach to barycenters
         in Wasserstein space." Journal of Mathematical Analysis and Applications
         441.2 (2016): 744-762.
     """
@@ -1103,7 +1103,7 @@ class WassersteinBarycenterTransportAdapter(BaseAdapter):
     the Wasserstein barycenter of source domains. This class performs
     a 2-step adaptation strategy proposed in [29]_, by first computing
     the Wasserstein barycenter of empirical source domain measures using
-    the algorithm of [38]_, then applying the Barycentric mapping of [6]_
+    the algorithm of [39]_, then applying the Barycentric mapping of [6]_
 
     Parameters
     ----------
@@ -1150,11 +1150,7 @@ class WassersteinBarycenterTransportAdapter(BaseAdapter):
         of the IEEE/CVF conference on computer vision and pattern recognition, pp.
         16785-16793. 2021.
 
-    .. [37] Álvarez-Esteban, Pedro C., et al. "A fixed-point approach to barycenters
-        in Wasserstein space." Journal of Mathematical Analysis and Applications
-        441.2 (2016): 744-762.
-
-    .. [38] Montesuma, Eduardo, Fred Maurice Ngole Mboula, and Antoine Souloumiac.
+    .. [39] Montesuma, Eduardo, Fred Maurice Ngole Mboula, and Antoine Souloumiac.
         "Multi-source domain adaptation through dataset dictionary learning in
         wasserstein space." ECAI 2023. IOS Press, 2023. 1739-1746.
     """
