@@ -244,3 +244,7 @@ The library is distributed under the 3-Clause BSD license.
 [35] Zhang, Y., Liu, T., Long, M., & Jordan, M. I. (2019). [Bridging Theory and Algorithm for Domain Adaptation](https://arxiv.org/abs/1904.05801). In Proceedings of the 36th International Conference on Machine Learning, (pp. 7404-7413).
 
 [36] Xiao, Zhiqing, Wang, Haobo, Jin, Ying, Feng, Lei, Chen, Gang, Huang, Fei, Zhao, Junbo.[SPA: A Graph Spectral Alignment Perspective for Domain Adaptation](https://arxiv.org/pdf/2310.17594). In Neurips, 2023.
+
+[37] Álvarez-Esteban, Pedro C., et al. [A fixed-point approach to barycenters in Wasserstein space.](https://arxiv.org/abs/1511.05355) Journal of Mathematical Analysis and Applications 441.2 (2016): 744-762
+
+[38] Montesuma, Eduardo, Fred Maurice Ngole Mboula, and Antoine Souloumiac. [Multi-source domain adaptation through dataset dictionary learning in wasserstein space.](https://arxiv.org/pdf/2307.14953) ECAI 2023. IOS Press, 2023. 1739-1746.
