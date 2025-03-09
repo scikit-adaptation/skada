@@ -13,7 +13,7 @@ Main module :py:mod:`skada`
    :no-members:
    :no-inherited-members:
 
-Sample reweighting DA methods 
+Sample reweighting DA methods
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. .. autosummary::
@@ -211,6 +211,7 @@ DA metrics :py:mod:`skada.metrics`
    SoftNeighborhoodDensity
    CircularValidation
    MixValScorer
+   MaNoScorer
 
 
 Model Selection :py:mod:`skada.model_selection`
