@@ -1,4 +1,5 @@
 -r requirements.txt
+miceforest==5.7.0
 torch
 torchvision
 skorch

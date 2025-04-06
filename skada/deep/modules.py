@@ -226,3 +226,99 @@ class MNISTtoUSPSNet(nn.Module):
         x = self.dropout2(x)
         output = self.fc2(x)
         return output
+
+
+class LinearAdapter(torch.nn.Module):
+    """Linear adaptation layer for ConDo method [TODO]_.
+
+    This currently implements location-scale and affine transforms,
+    but in principle could also implement orthogonal and other transforms.
+
+    Parameters
+    ----------
+    transform_type : str ('location-scale' or 'affine')
+        Desired type of linear transformation.
+    in_features : int
+        Size of the input for source data.
+    out_features : int
+        Size of the input for target data.
+
+    References
+    ----------
+    .. [TODO] Calvin McCarter. Towards backwards-compatible data with
+            confounded domain adaptation. In TMLR, 2024.
+    """
+
+    def __init__(
+        self,
+        transform_type: str,
+        in_features: int,
+        out_features: int,
+        device=None,
+        dtype=None,
+    ) -> None:
+        factory_kwargs = {"device": device, "dtype": dtype}
+        super().__init__()
+        self.transform_type = transform_type
+        self.in_features = in_features
+        self.out_features = out_features
+
+        if transform_type == "location-scale":
+            assert in_features == out_features
+            num_feats = in_features
+            self.M = torch.nn.Parameter(torch.empty(num_feats, **factory_kwargs))
+            self.b = torch.nn.Parameter(torch.empty(num_feats, **factory_kwargs))
+
+        elif transform_type == "affine":
+            self.M = torch.nn.Parameter(
+                torch.empty((out_features, in_features), **factory_kwargs)
+            )
+            self.b = torch.nn.Parameter(torch.empty(out_features, **factory_kwargs))
+        else:
+            raise ValueError(f"invalid transform_type:{transform_type}")
+        self.reset_parameters()
+
+    def reset_parameters(self) -> None:
+        """Initializes adaptation layer to the identity transform."""
+        if self.transform_type == "location-scale":
+            torch.nn.init.ones_(self.M)
+            torch.nn.init.zeros_(self.b)
+        elif self.transform_type == "affine":
+            torch.nn.init.eye_(self.M)
+            torch.nn.init.zeros_(self.b)
+
+    def forward(self, S: torch.Tensor) -> torch.Tensor:
+        """Forward pass.
+
+        Parameters
+        ----------
+        S: torch.Tensor
+            Source features (n_groups, n_samples_per_group, in_features).
+
+        Returns
+        -------
+        adaptedS : torch.Tensor
+            Adapted source features (n_groups, n_samples_per_group, out_features).
+        """
+        (batch_size, n_samples_per_group, ds) = S.shape
+        S_ = S.reshape(-1, ds)
+        if self.transform_type == "location-scale":
+            adaptedS = S_ * self.M.reshape(1, -1) + self.b.reshape(1, -1)
+        elif self.transform_type == "affine":
+            adaptedS = S_ @ self.M.T + self.b.reshape(1, -1)
+        adaptedS = adaptedS.reshape(batch_size, n_samples_per_group, -1)
+        return adaptedS
+
+    def extra_repr(self) -> str:
+        """Prints module metadata."""
+        return "transform_type={}, in_features={}, out_features={}".format(
+            self.transform_type,
+            self.in_features,
+            self.out_features,
+        )
+
+    def get_M_b(self):
+        """Returns parameters as detached ndarrays."""
+        best_M = self.M.detach().numpy()
+        best_b = self.b.detach().numpy()
+        return (best_M, best_b)

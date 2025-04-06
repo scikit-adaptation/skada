@@ -4,7 +4,9 @@
 #
 # License: BSD 3-Clause
 import numbers
+import numpy as np
 from functools import partial
+from copy import deepcopy
 
 from skorch.utils import _identity
 import torch
@@ -31,6 +33,43 @@ def _register_forwards_hook(module, intermediate_layers, layer_names):
             layer_module.register_forward_hook(
                 _get_intermediate_layers(intermediate_layers, layer_name)
             )
+
+
+class EarlyStopping:
+    """Keep track of best loss and parameters, and indicate whether to stop early."""
+    def __init__(self, patience, model=None):
+        self.patience = patience
+        self.counter = 0
+        self.early_stop = False
+        self.loss_min = np.Inf
+        self.state_dict = None
+        if model is not None:
+            self.state_dict = deepcopy(model.state_dict())
+
+    def __call__(self, loss, model):
+        """Track optimization progress, and determine whether to stop
+
+        Parameters
+        ----------
+        loss: float
+            Loss at current step.
+        model: torch.nn.Module
+            Model at current step.
+
+        Returns
+        -------
+        early_stop: bool
+            Whether to stop early right now.
+        """
+        if loss < self.loss_min:
+            self.loss_min = loss
+            self.state_dict = deepcopy(model.state_dict())
+            self.counter = 0
+        else:
+            self.counter += 1
+            if self.counter >= self.patience:
+                self.early_stop = True
+        return self.early_stop
 
 
 def check_generator(seed):
