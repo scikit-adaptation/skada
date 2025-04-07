@@ -8,8 +8,7 @@
 from abc import abstractmethod
 
 import numpy as np
-from ot import da
-from ot import emd, sinkhorn
+from ot import da, emd, sinkhorn
 from ot.gaussian import bures_wasserstein_barycenter, bures_wasserstein_mapping
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics.pairwise import pairwise_distances
@@ -43,7 +42,7 @@ def joint_wasserstein_barycenter(
     n_iter_max=100,
     tol=1e-4,
     verbose=False,
-    log=False
+    log=False,
 ):
     r"""Computes the Wasserstein Barycenter [1] for a list of distributions
     :math:`\mathcal{P}`, containing :math:`\hat{P}_{1}, \cdots ,\hat{P}_{K}`
@@ -118,7 +117,7 @@ def joint_wasserstein_barycenter(
         # has sum(nsi) where si is the i-th source
         # domain.
         n_samples = int(np.sum([len(Xs_k) for Xs_k in Xs]))
-    
+
     if measure_weights is None:
         measure_weights = np.ones(len(Xs)) / len(Xs)
 
@@ -137,20 +136,15 @@ def joint_wasserstein_barycenter(
     last_loss = np.inf
 
     if verbose:
-        vmessage = "|{:^25}|{:^25}|{:^25}|".format(
-            'Iteration', 'Loss', 'dLoss'
-        )
+        vmessage = "|{:^25}|{:^25}|{:^25}|".format("Iteration", "Loss", "dLoss")
         print("-" * len(vmessage))
         print(vmessage)
         print("-" * len(vmessage))
-    
-    if log:
-        extra_ret = {
-            'loss_hist': [],
-            'd_loss': []
-        }
 
-    while (delta > tol and it < n_iter_max):
+    if log:
+        extra_ret = {"loss_hist": [], "d_loss": []}
+
+    while delta > tol and it < n_iter_max:
         ground_costs, ot_plans = [], []
 
         for k in range(len(Xs)):
@@ -165,7 +159,9 @@ def joint_wasserstein_barycenter(
             ot_plans.append(plan_k)
 
         loss, _XB, _YB = 0.0, np.zeros_like(XB), np.zeros_like(YB)
-        for k, (Xsk, Ysk, pi_k, C_k, alpha_k) in enumerate(zip(Xs, Ys, ot_plans, ground_costs, measure_weights)):
+        for k, (Xsk, Ysk, pi_k, C_k, alpha_k) in enumerate(
+            zip(Xs, Ys, ot_plans, ground_costs, measure_weights)
+        ):
             _loss_k = (C_k * plan_k).sum()
             loss += alpha_k * _loss_k
             _XB += alpha_k * XB.shape[0] * (pi_k @ Xsk)
@@ -177,19 +173,19 @@ def joint_wasserstein_barycenter(
         last_loss = loss
 
         if verbose:
-            vmessage = "|{:^25}|{:^25}|{:^25}|".format(it, loss, delta)
+            vmessage = f"|{it:^25}|{loss:^25}|{delta:^25}|"
             print(vmessage)
 
         if log:
-            extra_ret['loss_hist'].append(loss)
-            extra_ret['d_loss'].append(delta)
+            extra_ret["loss_hist"].append(loss)
+            extra_ret["d_loss"].append(delta)
 
         it += 1
     if verbose:
         print("-" * len(vmessage))
 
     if log:
-        extra_ret['transport_plans'] = ot_plans
+        extra_ret["transport_plans"] = ot_plans
         return XB, YB, extra_ret
     return XB, YB
 
@@ -919,16 +915,16 @@ def MultiLinearMongeAlignment(
 
 
 class LinearWassersteinBarycenterTransportAdapter(BaseAdapter):
-    """Estimate a mapping from the source domains to the target domain
+    r"""Estimate a mapping from the source domains to the target domain
     through a Wasserstein barycenter. This class performs a 2-step
     multi-source domain adaptation algorithm. The first step consists
     of mapping each source domain measure to the barycentric measure.
     The second step consists of mapping the barycentric measure to the
     target domain.
-    
+
     All mappings are computed using the affine mapping strategy proposed
     in [7]_, which assumes each measure is a Gaussian with mean vector
-    :math:`\mu` and covariance matrix :math:`\Sigma`. The barycentric 
+    :math:`\mu` and covariance matrix :math:`\Sigma`. The barycentric
     measure is estimated through the fixed-point iteration algorithm of
     [38]_. For all effects, this class is a linearized version of the
     Wasserstein Barycenter Transport algorithm of [29]_
@@ -973,11 +969,12 @@ class LinearWassersteinBarycenterTransportAdapter(BaseAdapter):
         "Wasserstein barycenter for multi-source domain adaptation." In Proceedings
         of the IEEE/CVF conference on computer vision and pattern recognition, pp.
         16785-16793. 2021.
-        
+
     .. [38] Álvarez-Esteban, Pedro C., et al. "A fixed-point approach to barycenters
         in Wasserstein space." Journal of Mathematical Analysis and Applications
         441.2 (2016): 744-762.
     """
+
     def __init__(self, reg=1e-08, bias=True, test_time=False):
         super().__init__()
         self.reg = reg
@@ -1073,7 +1070,9 @@ class LinearWassersteinBarycenterTransportAdapter(BaseAdapter):
         X, sample_domain = check_X_domain(
             X, sample_domain, allow_multi_source=True, allow_multi_target=True
         )
-        source_domains, target_domains = per_domain_split(X, y, sample_domain=sample_domain)
+        source_domains, target_domains = per_domain_split(
+            X, y, sample_domain=sample_domain
+        )
 
         est_XB, est_yB = [], []
         for domain in source_domains:
@@ -1090,10 +1089,7 @@ class LinearWassersteinBarycenterTransportAdapter(BaseAdapter):
         mapped_samples = {}
         for domain in target_domains:
             A, b = self.mappings_target_[domain]
-            mapped_samples[domain] = (
-                est_XB.dot(A) + b,
-                est_yB
-            )
+            mapped_samples[domain] = (est_XB.dot(A) + b, est_yB)
 
         return mapped_samples
 
@@ -1133,11 +1129,14 @@ class WassersteinBarycenterTransportAdapter(BaseAdapter):
     barycenter_ : dict
         A dictionary containing the features and labels of the computed barycenter.
     mappings : dict
-        A dictionary containing the EMDTransport objects for mapping source domains to the barycenter.
+        A dictionary containing the EMDTransport objects for mapping source domains
+        to the barycenter.
     mapping_target : dict
-        A dictionary containing the EMDTransport or SinkhornTransport objects for mapping the barycenter to target domains.
+        A dictionary containing the EMDTransport or SinkhornTransport objects for
+        mapping the barycenter to target domains.
     log : dict
-        A dictionary containing logs from the barycenter computation and target mappings.
+        A dictionary containing logs from the barycenter computation and
+        target mappings.
 
     References
     ----------
@@ -1155,7 +1154,16 @@ class WassersteinBarycenterTransportAdapter(BaseAdapter):
         wasserstein space." ECAI 2023. IOS Press, 2023. 1739-1746.
     """
 
-    def __init__(self, reg_e=0.0, n_samples=None, label_weight=None, n_iter_max=100, tol=1e-4, verbose=False, use_labels_target=False):
+    def __init__(
+        self,
+        reg_e=0.0,
+        n_samples=None,
+        label_weight=None,
+        n_iter_max=100,
+        tol=1e-4,
+        verbose=False,
+        use_labels_target=False,
+    ):
         super().__init__()
         self.reg_e = reg_e
         self.n_samples = n_samples
@@ -1186,11 +1194,19 @@ class WassersteinBarycenterTransportAdapter(BaseAdapter):
             Returns self.
         """
         X, sample_domain = check_X_domain(X, sample_domain)
-        self.source_domains, self.target_domains = per_domain_split(X, y, w, sample_domain=sample_domain)
+        self.source_domains, self.target_domains = per_domain_split(
+            X, y, w, sample_domain=sample_domain
+        )
 
-        Xs = [self.source_domains[domain_index][0] for domain_index in self.source_domains]
-        Ys = [self.source_domains[domain_index][1] for domain_index in self.source_domains]
-        mus = [self.source_domains[domain_index][2] for domain_index in self.source_domains]
+        Xs = [
+            self.source_domains[domain_index][0] for domain_index in self.source_domains
+        ]
+        Ys = [
+            self.source_domains[domain_index][1] for domain_index in self.source_domains
+        ]
+        mus = [
+            self.source_domains[domain_index][2] for domain_index in self.source_domains
+        ]
         if any([mu is None for mu in mus]):
             mus = None
 
@@ -1205,19 +1221,16 @@ class WassersteinBarycenterTransportAdapter(BaseAdapter):
             n_iter_max=self.n_iter_max,
             tol=self.tol,
             verbose=self.verbose,
-            log=True
+            log=True,
         )
-        self.log['barycenter_computation'] = log
+        self.log["barycenter_computation"] = log
 
         self.transport_plans = {
-            domain_index: log['transport_plans'][i]
+            domain_index: log["transport_plans"][i]
             for i, domain_index in enumerate(self.source_domains)
         }
 
-        self.barycenter_ = {
-            "features": XB,
-            "labels": YB
-        }
+        self.barycenter_ = {"features": XB, "labels": YB}
 
         self.mappings = {}
         for i, domain_index in enumerate(self.source_domains):
@@ -1225,7 +1238,7 @@ class WassersteinBarycenterTransportAdapter(BaseAdapter):
             self.mappings[domain_index].coupling_ = self.transport_plans[i]
             self.mappings[domain_index].mu_s = self.source_domains[domain_index][2]
             self.mappings[domain_index].xs_ = self.source_domains[domain_index][0]
-            self.mappings[domain_index].xt_ = self.barycenter_['features']
+            self.mappings[domain_index].xt_ = self.barycenter_["features"]
 
         self.mapping_target = {
             domain: (
@@ -1233,21 +1246,27 @@ class WassersteinBarycenterTransportAdapter(BaseAdapter):
                     Xs=XB,
                     ys=YB.argmax(axis=1),
                     Xt=self.target_domains[domain][0],
-                    yt=self.target_domains[domain][1] if self.use_labels_target else None
-                ) if self.reg_e == 0.0 else da.SinkhornTransport(
+                    yt=self.target_domains[domain][1]
+                    if self.use_labels_target
+                    else None,
+                )
+                if self.reg_e == 0.0
+                else da.SinkhornTransport(
                     Xs=XB,
                     ys=YB.argmax(axis=1),
                     Xt=self.target_domains[domain][0],
-                    yt=self.target_domains[domain][1] if self.use_labels_target else None,
+                    yt=self.target_domains[domain][1]
+                    if self.use_labels_target
+                    else None,
                     reg_e=self.reg_e,
-                    norm='max',
-                    log=True
+                    norm="max",
+                    log=True,
                 )
-            ) for domain in self.target_domains
+            )
+            for domain in self.target_domains
         }
-        self.log['mapping_targets'] = {
-            domain: self.mapping_target[domain].log_
-            for domain in self.mapping_target
+        self.log["mapping_targets"] = {
+            domain: self.mapping_target[domain].log_ for domain in self.mapping_target
         }
 
         return self
@@ -1275,8 +1294,10 @@ class WassersteinBarycenterTransportAdapter(BaseAdapter):
     def transform(
         self, X, y=None, w=None, *, sample_domain=None, allow_source=False, **params
     ) -> np.ndarray:
-        source_domains, target_domains = per_domain_split(X, y, w, sample_domain=sample_domain)
-        
+        source_domains, target_domains = per_domain_split(
+            X, y, w, sample_domain=sample_domain
+        )
+
         # Checks if the arrays on each domain are the same
         new_source = not any(
             np.array_equal(self.source_domains[domain][0], source_domains[domain][0])
@@ -1294,12 +1315,16 @@ class WassersteinBarycenterTransportAdapter(BaseAdapter):
             # don't need to recompute OT. We simply map the barycenter to
             # the target.
             return {
-                domain: (self.mapping_target[domain].transform(
-                    Xs=self.barycenter_['features'],
-                    ys=self.barycenter_['labels'].argmax(axis=1),
-                    Xt=target_domains[domain],
-                    yt=target_domains[domain]
-                ), self.barycenter_['labels'].argmax(axis=1)) for domain in self.target_domains
+                domain: (
+                    self.mapping_target[domain].transform(
+                        Xs=self.barycenter_["features"],
+                        ys=self.barycenter_["labels"].argmax(axis=1),
+                        Xt=target_domains[domain],
+                        yt=target_domains[domain],
+                    ),
+                    self.barycenter_["labels"].argmax(axis=1),
+                )
+                for domain in self.target_domains
             }
         else:
             # Otherwise, we re-estimate the barycenter support using the new
@@ -1307,11 +1332,15 @@ class WassersteinBarycenterTransportAdapter(BaseAdapter):
             # mappings, for instance.
             est_XB = 0.0
             for domain in source_domains:
-                est_Xs += self.mappings[domain].transform(Xs=source_domains[domain][0]) / len(source_domains)
-            
+                est_XB += self.mappings[domain].transform(
+                    Xs=source_domains[domain][0]
+                ) / len(source_domains)
+
             # We then map the estimated barycenter support to the target domain
             return {
-                domain: self.mapping_target[domain].transform(Xs=est_XB, ys=None, Xt=target_domains[domain])
+                domain: self.mapping_target[domain].transform(
+                    Xs=est_XB, ys=None, Xt=target_domains[domain]
+                )
                 for domain in target_domains
             }
 
@@ -1324,7 +1353,7 @@ def WassersteinBarycenterTransport(
     n_iter_max=100,
     tol=1e-4,
     verbose=False,
-    use_labels_target=False
+    use_labels_target=False,
 ):
     if base_estimator is None:
         base_estimator = LogisticRegression()
@@ -1337,7 +1366,7 @@ def WassersteinBarycenterTransport(
             n_iter_max=n_iter_max,
             tol=tol,
             verbose=verbose,
-            use_labels_target=use_labels_target
+            use_labels_target=use_labels_target,
         ),
         base_estimator,
     )

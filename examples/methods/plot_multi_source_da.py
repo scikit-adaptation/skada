@@ -22,11 +22,7 @@ np.random.seed(42)
 # for the angles (0.0, 10.0, 20.0, 30.0)
 
 X, y, sample_domain = make_multi_source_da_example(
-    n_datasets=4,
-    n_samples=500,
-    angle_min=0.0,
-    angle_max=30,
-    separation=10
+    n_datasets=4, n_samples=500, angle_min=0.0, angle_max=30, separation=10
 )
 
 # Converts labels into one-hot encoded labels
@@ -37,7 +33,7 @@ Y[np.arange(y.size), y] = 1
 #
 # Visualize the datasets
 # ----------------------
-# 
+#
 # Here we visualize the datasets
 
 fig, axes = plt.subplots(2, 2, figsize=(10, 10), sharex=True, sharey=True)
@@ -46,14 +42,14 @@ for k, ax in enumerate(axes.flatten()[:-1]):
         x=X[sample_domain == k, 0],
         y=X[sample_domain == k, 1],
         c=y[sample_domain == k],
-        cmap=plt.cm.coolwarm
+        cmap=plt.cm.coolwarm,
     )
     ax.set_title(f"Source domain {k + 1}")
 axes[1, 1].scatter(
     x=X[sample_domain == -1, 0],
     y=X[sample_domain == -1, 1],
     c=y[sample_domain == -1],
-    cmap=plt.cm.coolwarm
+    cmap=plt.cm.coolwarm,
 )
 axes[1, 1].set_title("Target domain")
 plt.tight_layout()
@@ -67,13 +63,14 @@ plt.show()
 clf = LogisticRegression()
 clf.fit(X[sample_domain != -1], y[sample_domain != -1])
 print(
-    f"[Source-Only] Accuracy on the target domain: {clf.score(X[sample_domain == -1], y[sample_domain==-1])}"
+    "[Source-Only] Accuracy on the target domain:"
+    f" {clf.score(X[sample_domain == -1], y[sample_domain==-1])}"
 )
 
 # %%
 # Fit Linear Wasserstein Barycenter Transport
 # -------------------------------------------
-# 
+#
 # Next, we map the source domain data to the target domain
 # through a linearized version of the Wasserstein barycenter
 # transport. This algorithm assumes that the data is Gaussian,
@@ -97,20 +94,20 @@ mapped_samples = wbt.transform(X, Y, w=None, sample_domain=sample_domain)
 # %%
 # Plots loss of barycenter algorithm
 # ----------------------------------
-# 
+#
 # Here, we plot the loss of the empirical wasserstein barycenter
 # algorithm per iteration. Note that convergence happens quite fast,
 # with a few iterations.
 fig, ax = plt.subplots(1, 1, figsize=(5, 5))
-ax.plot(wbt.log['barycenter_computation']['loss_hist'])
-ax.set_xlabel('Iteration')
-ax.set_ylabel('Barycenter loss')
+ax.plot(wbt.log["barycenter_computation"]["loss_hist"])
+ax.set_xlabel("Iteration")
+ax.set_ylabel("Barycenter loss")
 plt.show()
 
 # %%
 # Plots the results of WBT
 # ------------------------
-# 
+#
 # Next, we compare the results for both the empirical and Gaussian
 # versions of the Wasserstein barycenter transport algorithm
 fig, axes = plt.subplots(1, 3, figsize=(15, 5), sharex=True, sharey=True)
@@ -118,21 +115,21 @@ axes[0].scatter(
     X[sample_domain == -1, 0],
     X[sample_domain == -1, 1],
     c=y[sample_domain == -1],
-    cmap=plt.cm.coolwarm
+    cmap=plt.cm.coolwarm,
 )
 axes[0].set_title("Target domain")
 axes[1].scatter(
     mapped_samples[-1][0][:, 0],
     mapped_samples[-1][0][:, 1],
     c=mapped_samples[-1][1],
-    cmap=plt.cm.coolwarm
+    cmap=plt.cm.coolwarm,
 )
 axes[1].set_title("WassersteinBarycenterTransport")
 axes[2].scatter(
     linear_mapped_samples[-1][0][:, 0],
     linear_mapped_samples[-1][0][:, 1],
     c=linear_mapped_samples[-1][1].argmax(axis=1),
-    cmap=plt.cm.coolwarm
+    cmap=plt.cm.coolwarm,
 )
 axes[2].set_title("MultiLinearMongeAlignment")
 plt.show()
@@ -148,52 +145,36 @@ plt.show()
 
 a = ot.unif(len(X[sample_domain == -1, 0]))
 b = ot.unif(len(mapped_samples[-1][0]))
-C = ot.dist(
-    X[sample_domain == -1],
-    mapped_samples[-1][0],
-    metric='sqeuclidean'
-)
+C = ot.dist(X[sample_domain == -1], mapped_samples[-1][0], metric="sqeuclidean")
 dist_w2 = ot.emd2(a, b, C)
-print(
-    f"Empirical WBT: {dist_w2}"
-)
+print(f"Empirical WBT: {dist_w2}")
 
 a = ot.unif(len(X[sample_domain == -1, 0]))
 b = ot.unif(len(linear_mapped_samples[-1][0]))
-C = ot.dist(
-    X[sample_domain == -1],
-    linear_mapped_samples[-1][0],
-    metric='sqeuclidean'
-)
+C = ot.dist(X[sample_domain == -1], linear_mapped_samples[-1][0], metric="sqeuclidean")
 dist_w2 = ot.emd2(a, b, C)
-print(
-    f"Linear WBT: {dist_w2}"
-)
+print(f"Linear WBT: {dist_w2}")
 
 # %%
 # Fit a classifier on WBT mapped data
 # -----------------------------------
-# 
+#
 # Here we compare the performance of both
 # algorithms in domain adaptation.
 clf = LogisticRegression()
-clf.fit(
-    X=mapped_samples[-1][0],
-    y=mapped_samples[-1][1]
-)
+clf.fit(X=mapped_samples[-1][0], y=mapped_samples[-1][1])
 print(
-    f"[WBT] Accuracy on the target domain: {clf.score(X[sample_domain == -1], y[sample_domain==-1])}"
+    "[WBT] Accuracy on the target domain:"
+    f" {clf.score(X[sample_domain == -1], y[sample_domain==-1])}"
 )
 
 # %%
 # Fit a classifier on WBT mapped data
 #
-# 
+#
 clf = LogisticRegression()
-clf.fit(
-    X=linear_mapped_samples[-1][0],
-    y=linear_mapped_samples[-1][1].argmax(axis=1)
-)
+clf.fit(X=linear_mapped_samples[-1][0], y=linear_mapped_samples[-1][1].argmax(axis=1))
 print(
-    f"[LinearWBT] Accuracy on the target domain: {clf.score(X[sample_domain == -1], y[sample_domain==-1])}"
+    "[LinearWBT] Accuracy on the target domain:"
+    f" {clf.score(X[sample_domain == -1], y[sample_domain==-1])}"
 )

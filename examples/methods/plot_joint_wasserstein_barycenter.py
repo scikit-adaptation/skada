@@ -14,9 +14,9 @@ This example illustrates the use of the MultiLinearMongeAlignmentAdapter
 import matplotlib.pyplot as plt
 import numpy as np
 import ot
+from sklearn.datasets import make_moons
 
 from skada._mapping import joint_wasserstein_barycenter
-from sklearn.datasets import make_moons
 
 # %%
 # Generate labeled data from multiple distributions
@@ -48,32 +48,25 @@ for y in [y0, y1, y2]:
 # %%
 # Gaussian Modeling
 # -----------------
-# 
+#
 # We start our illlustration of Wasserstein barycenters
 # by computing the Bures-Wasserstein barycenter. In this
 # case, one assumes each measure is a Gaussian with its
 # own mean vector and covariance matrix.
 means = np.concatenate(
-    [
-        X0.mean(axis=0)[None, :],
-        X1.mean(axis=0)[None, :],
-        X2.mean(axis=0)[None, :]
-    ], axis=0
+    [X0.mean(axis=0)[None, :], X1.mean(axis=0)[None, :], X2.mean(axis=0)[None, :]],
+    axis=0,
 )  # shape: (k, d)
 
 covs = np.concatenate(
-    [
-        np.cov(X0.T)[None, ...],
-        np.cov(X1.T)[None, ...],
-        np.cov(X2.T)[None, ...]
-    ], axis=0
+    [np.cov(X0.T)[None, ...], np.cov(X1.T)[None, ...], np.cov(X2.T)[None, ...]], axis=0
 )  # shape: (k, d, d)
 
 
 # %%
 # Bures-Wasserstein Barycenter
 # ----------------------------
-# 
+#
 # Here, we compute the Bures-Wasserstein barycenter using
 # the parameters obtained in the previous section. The
 # barycenter is calculated using a fixed-point algorithm.
@@ -85,7 +78,8 @@ barycenter_mean, barycenter_cov = ot.gaussian.bures_wasserstein_barycenter(
 mappings = [
     ot.gaussian.bures_wasserstein_mapping(
         ms=m, Cs=C, mt=barycenter_mean, Ct=barycenter_cov
-    ) for m, C in zip(means, covs)
+    )
+    for m, C in zip(means, covs)
 ]
 
 linear_XB, linear_YB = [], []
@@ -98,17 +92,23 @@ linear_YB = np.concatenate(linear_YB, axis=0)
 # %%
 # Plots the results of Gaussian Wasserstein Barycenter
 # ------------------------
-# 
+#
 fig, axes = plt.subplots(1, 4, figsize=(16, 4), sharex=True, sharey=True)
 
 names = ["$X_{0}$", "$X_{1}$", "$X_{2}$", "$X_{B}$"]
-for ax, _X, _Y, name in zip(axes, Xs + [linear_XB,], Ys + [linear_YB,], names):
-    ax.scatter(
-        _X[:, 0],
-        _X[:, 1],
-        c=_Y.argmax(axis=1),
-        cmap=plt.cm.coolwarm
-    )
+for ax, _X, _Y, name in zip(
+    axes,
+    Xs
+    + [
+        linear_XB,
+    ],
+    Ys
+    + [
+        linear_YB,
+    ],
+    names,
+):
+    ax.scatter(_X[:, 0], _X[:, 1], c=_Y.argmax(axis=1), cmap=plt.cm.coolwarm)
     ax.set_title
 plt.suptitle("Bures-Wasserstein Barycenter")
 plt.tight_layout()
@@ -120,7 +120,8 @@ plt.show()
 #
 # Computes the Barycenter
 XB, YB = joint_wasserstein_barycenter(
-    Xs, Ys,
+    Xs,
+    Ys,
     mus=None,
     XB=None,
     YB=None,
@@ -128,23 +129,29 @@ XB, YB = joint_wasserstein_barycenter(
     measure_weights=None,
     n_samples=X0.shape[0],
     reg_e=0.0,
-    verbose=True
+    verbose=True,
 )
 
 # %%
 # Plots the results of Empirical Wasserstein Barycenter
 # -----------------------------------------------------
-# 
+#
 fig, axes = plt.subplots(1, 4, figsize=(16, 4), sharex=True, sharey=True)
 
 names = ["$X_{0}$", "$X_{1}$", "$X_{2}$", "$X_{B}$"]
-for ax, _X, _Y, name in zip(axes, Xs + [XB,], Ys + [YB,], names):
-    ax.scatter(
-        _X[:, 0],
-        _X[:, 1],
-        c=_Y.argmax(axis=1),
-        cmap=plt.cm.coolwarm
-    )
+for ax, _X, _Y, name in zip(
+    axes,
+    Xs
+    + [
+        XB,
+    ],
+    Ys
+    + [
+        YB,
+    ],
+    names,
+):
+    ax.scatter(_X[:, 0], _X[:, 1], c=_Y.argmax(axis=1), cmap=plt.cm.coolwarm)
     ax.set_title
 plt.suptitle("Empirical Wasserstein Barycenter")
 plt.tight_layout()
@@ -153,26 +160,19 @@ plt.show()
 # %%
 # Compares the obtained barycenters
 # ---------------------------------
-# 
-# 
+#
+#
 fig, axes = plt.subplots(1, 2, figsize=(10, 5), sharex=True, sharey=True)
 
-axes[0].scatter(
-    XB[:, 0],
-    XB[:, 1],
-    c=YB.argmax(axis=1),
-    cmap=plt.cm.coolwarm
-)
+axes[0].scatter(XB[:, 0], XB[:, 1], c=YB.argmax(axis=1), cmap=plt.cm.coolwarm)
 axes[0].set_title("Empirical Wasserstein Barycenter")
 axes[1].scatter(
-    linear_XB[:, 0],
-    linear_XB[:, 1],
-    c=linear_YB.argmax(axis=1),
-    cmap=plt.cm.coolwarm
+    linear_XB[:, 0], linear_XB[:, 1], c=linear_YB.argmax(axis=1), cmap=plt.cm.coolwarm
 )
 axes[1].set_title("Gaussian Wasserstein Barycenter")
 
 plt.show()
+
 
 # %%
 # When to choose the mapping strategy
@@ -186,16 +186,18 @@ plt.show()
 # is an affine transformation. More generally, if
 # we expect that the mappings between all the measures
 # involved is affine (e.g., $T(x) = Ax + b$), then
-# we can succesfully use Gaussian modeling. We now
+# we can successfully use Gaussian modeling. We now
 # present an example where it fails.
 def non_affine_map(points, b):
     """
     Apply the non-affine map T(x, y; b) = [x^2 - y^2 + b, 2xy] to a set of points.
 
-    Parameters:
+    Parameters
+    ----------
         points (np.ndarray): An array of shape (N, 2), where each row is a point (x, y).
 
-    Returns:
+    Returns
+    -------
         np.ndarray: An array of shape (N, 2), where each row is the transformed point.
     """
     x = points[:, 0]  # Extract x-coordinates
@@ -233,19 +235,9 @@ for y in [y0, y1]:
 #
 fig, axes = plt.subplots(1, 2, figsize=(10, 5), sharex=True, sharey=True)
 
-axes[0].scatter(
-    X0[:, 0],
-    X0[:, 1],
-    c=y0,
-    cmap=plt.cm.coolwarm
-)
+axes[0].scatter(X0[:, 0], X0[:, 1], c=y0, cmap=plt.cm.coolwarm)
 axes[0].set_title("Measure 0")
-axes[1].scatter(
-    X1[:, 0],
-    X1[:, 1],
-    c=y1,
-    cmap=plt.cm.coolwarm
-)
+axes[1].scatter(X1[:, 0], X1[:, 1], c=y1, cmap=plt.cm.coolwarm)
 axes[1].set_title("Measure 1")
 
 plt.show()
@@ -253,25 +245,20 @@ plt.show()
 # %%
 # Compute the Bures-Wasserstein Barycenter
 # ----------------------------------------
-# 
+#
 means = np.concatenate(
-    [
-        X0.mean(axis=0)[None, :],
-        X1.mean(axis=0)[None, :]
-    ], axis=0
+    [X0.mean(axis=0)[None, :], X1.mean(axis=0)[None, :]], axis=0
 )  # shape: (k, d)
 
 covs = np.concatenate(
-    [
-        np.cov(X0.T)[None, ...],
-        np.cov(X1.T)[None, ...]
-    ], axis=0
+    [np.cov(X0.T)[None, ...], np.cov(X1.T)[None, ...]], axis=0
 )  # shape: (k, d, d)
 
 mappings = [
     ot.gaussian.bures_wasserstein_mapping(
         ms=m, Cs=C, mt=barycenter_mean, Ct=barycenter_cov
-    ) for m, C in zip(means, covs)
+    )
+    for m, C in zip(means, covs)
 ]
 
 linear_XB, linear_YB = [], []
@@ -287,7 +274,8 @@ linear_YB = np.concatenate(linear_YB, axis=0)
 #
 # Computes the Barycenter
 XB, YB = joint_wasserstein_barycenter(
-    Xs, Ys,
+    Xs,
+    Ys,
     mus=None,
     XB=None,
     YB=None,
@@ -295,33 +283,25 @@ XB, YB = joint_wasserstein_barycenter(
     measure_weights=None,
     n_samples=X0.shape[0],
     reg_e=0.0,
-    verbose=True
+    verbose=True,
 )
 
 # %%
 # Compares the obtained barycenters
 # ---------------------------------
-# 
+#
 # Here, as you can see, the barycenter obtained
 # with the Gaussian assumption is actually just
-# a translated version of the input measures. 
+# a translated version of the input measures.
 # The empirical barycenter is actually capable
 # of capturing the non-linearity of the input
 # measures.
 fig, axes = plt.subplots(1, 2, figsize=(10, 5), sharex=True, sharey=True)
 
-axes[0].scatter(
-    XB[:, 0],
-    XB[:, 1],
-    c=YB.argmax(axis=1),
-    cmap=plt.cm.coolwarm
-)
+axes[0].scatter(XB[:, 0], XB[:, 1], c=YB.argmax(axis=1), cmap=plt.cm.coolwarm)
 axes[0].set_title("Empirical Barycenter")
 axes[1].scatter(
-    linear_XB[:, 0],
-    linear_XB[:, 1],
-    c=linear_YB.argmax(axis=1),
-    cmap=plt.cm.coolwarm
+    linear_XB[:, 0], linear_XB[:, 1], c=linear_YB.argmax(axis=1), cmap=plt.cm.coolwarm
 )
 axes[1].set_title("Bures-Wasserstein Barycenter")
 
@@ -330,4 +310,6 @@ plt.show()
 # %%
 # References
 # ----------
-# Álvarez-Esteban, Pedro C., et al. "A fixed-point approach to barycenters in Wasserstein space." Journal of Mathematical Analysis and Applications 441.2 (2016): 744-762.
+# Álvarez-Esteban, Pedro C., et al. "A fixed-point approach to barycenters in
+# Wasserstein space." Journal of Mathematical Analysis and Applications 441.2
+# (2016): 744-762.
