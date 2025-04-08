@@ -2,6 +2,7 @@
 #         Remi Flamary <remi.flamary@polytechnique.edu>
 #         Oleksii Kachaiev <kachayev@gmail.com>
 #         Yanis Lalou <yanis.lalou@polytechnique.edu>
+#         Ambroise Odonnat <ambroiseodonnattechnologie@gmail.com>
 #
 # License: BSD 3-Clause
 
@@ -396,6 +397,7 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
             )
 
         has_transform_method = False
+
         if not isinstance(estimator, Pipeline):
             # The estimator is a deep model
             if estimator.module_.layer_name is None:
@@ -782,3 +784,136 @@ class MixValScorer(_BaseDomainAwareScorer):
             ice_score = ice_diff
 
         return self._sign * ice_score
+
+
+class MaNoScorer(_BaseDomainAwareScorer):
+    """
+    MaNo scorer inspired by [38]_, an approach for unsupervised accuracy estimation.
+
+    This scorer used the model's predictions on target data to estimate
+    the accuracy of the model. The original implementation in [38]_ is
+    tailored to neural networks and consist of three steps:
+    1) Recover target logits (inference step),
+    2) Normalize them as probabilities (e.g., with softmax),
+    3) Aggregate by averaging the p-norms of the target normalized logits.
+
+    To ensure compatibility with any estimator, we adapt the original implementation.
+    If the estimator is a neural network, follow 1) --> 2) --> 3) like in [38]_.
+    Else, directly use the probabilities predicted by the estimator and then do 3).
+
+    See [38]_ for details.
+
+    Parameters
+    ----------
+    p : int, default=4
+        Order for the p-norm normalization.
+        It must be non-negative.
+    threshold : int, default=5
+        Threshold value to determine which normalization to use.
+        If threshold <= 0, softmax normalization is always used.
+        See Eq.(6) of [37]_ for more details.
+    greater_is_better : bool, default=True
+        Whether higher scores are better.
+
+    Returns
+    -------
+    score : float in [0, 1] (or [-1, 0] depending on the value of self._sign).
+
+    References
+    ----------
+    .. [38] Renchunzi Xie et al. MaNo: Matrix Norm for Unsupervised Accuracy Estimation
+            under Distribution Shifts.
+            In NeurIPS, 2024.
+    """
+
+    def __init__(self, p=4, threshold=5, greater_is_better=True):
+        super().__init__()
+        self.p = p
+        self.threshold = threshold
+        self._sign = 1 if greater_is_better else -1
+        self.chosen_normalization = None
+
+        if self.p <= 0:
+            raise ValueError("The order of the p-norm must be positive")
+
+    def _score(self, estimator, X, y, sample_domain=None, **params):
+        if not hasattr(estimator, "predict_proba"):
+            raise AttributeError(
+                "The estimator passed should have a 'predict_proba' method. "
+                f"The estimator {estimator!r} does not."
+            )
+
+        X, y, sample_domain = check_X_y_domain(X, y, sample_domain, allow_nd=True)
+        source_idx = extract_source_indices(sample_domain)
+
+        # Check from y values if it is a classification problem
+        y_type = _find_y_type(y)
+        if y_type != Y_Type.DISCRETE:
+            raise ValueError("MaNo scorer only supports classification problems.")
+
+        if not isinstance(estimator, Pipeline):
+            # The estimator is a deep model
+            if estimator.module_.layer_name is None:
+                raise ValueError("The layer_name of the estimator is not set.")
+
+            # 1) Recover logits on target
+            logits = estimator.infer(X[~source_idx], **params).cpu().detach().numpy()
+
+            # 2) Normalize logits to obtain probabilities
+            criterion = self._get_criterion(logits)
+            proba = self._softrun(
+                logits=logits,
+                criterion=criterion,
+                threshold=self.threshold,
+            )
+        else:
+            # Directly recover predicted probabilities
+            proba = estimator.predict_proba(
+                X[~source_idx], sample_domain=sample_domain[~source_idx], **params
+            )
+
+        # 3) Aggregate following Eq.(2) of [37]_.
+        score = np.mean(proba**self.p) ** (1 / self.p)
+
+        return self._sign * score
+
+    def _get_criterion(self, logits):
+        """
+        Compute criterion to select the proper normalization.
+        See Eq.(6) of [1]_ for more details.
+        """
+        proba = self._stable_softmax(logits)
+        proba = np.log(proba)
+        divergence = -np.mean(proba)
+
+        return divergence
+
+    def _softrun(self, logits, criterion, threshold):
+        """Normalize the logits following Eq.(6) of [37]_."""
+        if criterion > threshold:
+            # Apply softmax normalization
+            outputs = self._stable_softmax(logits)
+            self.chosen_normalization = "softmax"
+        else:
+            # Apply Taylor approximation
+            outputs = self._taylor_softmax(logits)
+            self.chosen_normalization = "taylor"
+
+        return outputs
+
+    @staticmethod
+    def _stable_softmax(logits):
+        """Compute softmax function."""
+        logits -= np.max(logits, axis=1, keepdims=True)
+        exp_logits = np.exp(logits)
+        exp_logits /= np.sum(exp_logits, axis=1, keepdims=True)
+        return exp_logits
+
+    @staticmethod
+    def _taylor_softmax(logits):
+        """Compute Taylor approximation of order 2 of softmax."""
+        tay_logits = 1 + logits + logits**2 / 2
+        tay_logits -= np.min(tay_logits, axis=1, keepdims=True)
+        tay_logits /= np.sum(tay_logits, axis=1, keepdims=True)
+
+        return tay_logits

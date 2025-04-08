@@ -50,7 +50,7 @@ The following algorithms are currently implemented.
 
 Any methods that can be cast as an adaptation of the input data can be used in one of two ways:
 - a scikit-learn transformer (Adapter) which provides both a full Classifier/Regressor estimator
- - or an `Adapter` that can be used in a DA pipeline with `make_da_pipeline`. 
+ - or an `Adapter` that can be used in a DA pipeline with `make_da_pipeline`.
  Refer to the examples below and visit [the gallery](https://scikit-adaptation.github.io/auto_examples/index.html)for more details.
 
 ### Deep learning domain adaptation algorithms
@@ -84,7 +84,7 @@ details, please refer to this [example](https://scikit-adaptation.github.io/auto
 First, the DA data in the SKADA API is stored in the following format:
 
 ```python
-X, y, sample_domain 
+X, y, sample_domain
 ```
 
 Where `X` is the input data, `y` is the target labels and `sample_domain` is the
@@ -112,7 +112,7 @@ pipe = make_da_pipeline(StandardScaler(), CORALAdapter(), LogisticRegression())
 pipe.fit(X, y, sample_domain=sample_domain) # sample_domain passed by name
 ```
 
-Please note that for `Adapter` classes that implement sample reweighting, the 
+Please note that for `Adapter` classes that implement sample reweighting, the
 subsequent classifier/regressor must require sample_weights as input. This is
 done with the `set_fit_requires` method. For instance, with `LogisticRegression`, you
 would use `LogisticRegression().set_fit_requires('sample_weight')`:
@@ -143,7 +143,7 @@ cv = SourceTargetShuffleSplit()
 scorer = PredictionEntropyScorer()
 
 # cross val score
-scores = cross_val_score(pipe, X, y, params={'sample_domain': sample_domain}, 
+scores = cross_val_score(pipe, X, y, params={'sample_domain': sample_domain},
                          cv=cv, scoring=scorer)
 
 # grid search
@@ -239,10 +239,12 @@ The library is distributed under the 3-Clause BSD license.
 
 [33] Kang, G., Jiang, L., Yang, Y., & Hauptmann, A. G. (2019). [Contrastive Adaptation Network for Unsupervised Domain Adaptation](https://arxiv.org/abs/1901.00976). In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (pp. 4893-4902).
 
-[34] Jin, Ying, Wang, Ximei, Long, Mingsheng, Wang, Jianmin. [Minimum Class Confusion for Versatile Domain Adaptation](https://arxiv.org/pdf/1912.03699). ECCV, 2020. 
+[34] Jin, Ying, Wang, Ximei, Long, Mingsheng, Wang, Jianmin. [Minimum Class Confusion for Versatile Domain Adaptation](https://arxiv.org/pdf/1912.03699). ECCV, 2020.
 
 [35] Zhang, Y., Liu, T., Long, M., & Jordan, M. I. (2019). [Bridging Theory and Algorithm for Domain Adaptation](https://arxiv.org/abs/1904.05801). In Proceedings of the 36th International Conference on Machine Learning, (pp. 7404-7413).
 
 [36] Xiao, Zhiqing, Wang, Haobo, Jin, Ying, Feng, Lei, Chen, Gang, Huang, Fei, Zhao, Junbo.[SPA: A Graph Spectral Alignment Perspective for Domain Adaptation](https://arxiv.org/pdf/2310.17594). In Neurips, 2023.
 
 [37] Nikzad-Langerodi, R., Zellinger, W., Saminger-Platz, S., & Moser, B. A. (2020). [Domain adaptation for regression under Beer–Lambert’s law](https://www.sciencedirect.com/science/article/abs/pii/S0950705120305761). Knowledge-Based Systems, 210, 106447.
+
+[38] Xie, Renchunzi, Odonnat, Ambroise, Feofanov, Vasilii, Deng, Weijian, Zhang, Jianfeng and An, Bo. [MaNo: Exploiting Matrix Norm for Unsupervised Accuracy Estimation Under Distribution Shifts](https://arxiv.org/pdf/2405.18979). In NeurIPS, 2024.

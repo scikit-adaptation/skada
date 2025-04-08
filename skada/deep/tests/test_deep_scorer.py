@@ -1,4 +1,5 @@
 # Author: Yanis Lalou <yanis.lalou@polytechnique.edu>
+#         Ambroise Odonnat <ambroiseodonnattechnologie@gmail.com>
 #
 # License: BSD 3-Clause
 
@@ -16,6 +17,7 @@ from skada.metrics import (
     CircularValidation,
     DeepEmbeddedValidation,
     ImportanceWeightedScorer,
+    MaNoScorer,
     MixValScorer,
     PredictionEntropyScorer,
     SoftNeighborhoodDensity,
@@ -29,6 +31,7 @@ from skada.metrics import (
         PredictionEntropyScorer(),
         SoftNeighborhoodDensity(),
         CircularValidation(),
+        MaNoScorer(),
         MixValScorer(),
         ImportanceWeightedScorer(),
     ],
@@ -66,6 +69,7 @@ def test_generic_scorer_on_deepmodel(scorer, da_dataset):
         PredictionEntropyScorer(),
         SoftNeighborhoodDensity(),
         DeepEmbeddedValidation(),
+        MaNoScorer(),
     ],
 )
 def test_generic_scorer(scorer, da_dataset):
@@ -101,6 +105,7 @@ def test_generic_scorer(scorer, da_dataset):
     [
         DeepEmbeddedValidation(),
         ImportanceWeightedScorer(),
+        MaNoScorer(),
     ],
 )
 def test_scorer_with_nd_features(scorer, da_dataset):
@@ -191,7 +196,14 @@ def test_dev_scorer_on_source_only(da_dataset):
     assert ~np.isnan(scores), "The score is computed"
 
 
-def test_dev_exception_layer_name(da_dataset):
+@pytest.mark.parametrize(
+    "scorer",
+    [
+        DeepEmbeddedValidation(),
+        MaNoScorer(),
+    ],
+)
+def test_exception_layer_name(scorer, da_dataset):
     X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
     X_test, y_test, sample_domain_test = da_dataset.pack_test(as_targets=["t"])
 
@@ -209,4 +221,92 @@ def test_dev_exception_layer_name(da_dataset):
     estimator.fit(X, y, sample_domain=sample_domain)
 
     with pytest.raises(ValueError, match="The layer_name of the estimator is not set."):
-        DeepEmbeddedValidation()(estimator, X, y, sample_domain)
+        scorer(estimator, X, y, sample_domain)
+
+
+def test_mano_softmax(da_dataset):
+    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X_test, y_test, sample_domain_test = da_dataset.pack_test(as_targets=["t"])
+
+    estimator = DeepCoral(
+        ToyModule2D(proba=True),
+        reg=1,
+        layer_name="dropout",
+        batch_size=10,
+        max_epochs=10,
+        train_split=None,
+    )
+
+    X = X.astype(np.float32)
+    X_test = X_test.astype(np.float32)
+
+    # without dict
+    estimator.fit(X, y, sample_domain=sample_domain)
+
+    estimator.predict(X_test, sample_domain=sample_domain_test, allow_source=True)
+    estimator.predict_proba(X, sample_domain=sample_domain, allow_source=True)
+
+    scorer = MaNoScorer(threshold=-1)
+    scorer(estimator, X, y, sample_domain)
+    print(scorer.chosen_normalization.lower())
+    assert (
+        scorer.chosen_normalization.lower() == "softmax"
+    ), "the wrong normalization was chosen"
+
+
+def test_mano_taylor(da_dataset):
+    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X_test, y_test, sample_domain_test = da_dataset.pack_test(as_targets=["t"])
+
+    estimator = DeepCoral(
+        ToyModule2D(proba=True),
+        reg=1,
+        layer_name="dropout",
+        batch_size=10,
+        max_epochs=10,
+        train_split=None,
+    )
+
+    X = X.astype(np.float32)
+    X_test = X_test.astype(np.float32)
+
+    # without dict
+    estimator.fit(X, y, sample_domain=sample_domain)
+
+    estimator.predict(X_test, sample_domain=sample_domain_test, allow_source=True)
+    estimator.predict_proba(X, sample_domain=sample_domain, allow_source=True)
+
+    scorer = MaNoScorer(threshold=float("inf"))
+    scorer(estimator, X, y, sample_domain)
+    assert (
+        scorer.chosen_normalization.lower() == "taylor"
+    ), "the wrong normalization was chosen"
+
+
+def test_mano_output_range(da_dataset):
+    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X_test, y_test, sample_domain_test = da_dataset.pack_test(as_targets=["t"])
+
+    estimator = DeepCoral(
+        ToyModule2D(proba=True),
+        reg=1,
+        layer_name="dropout",
+        batch_size=10,
+        max_epochs=10,
+        train_split=None,
+    )
+
+    X = X.astype(np.float32)
+    X_test = X_test.astype(np.float32)
+
+    # without dict
+    estimator.fit(X, y, sample_domain=sample_domain)
+
+    estimator.predict(X_test, sample_domain=sample_domain_test, allow_source=True)
+    estimator.predict_proba(X, sample_domain=sample_domain, allow_source=True)
+
+    scorer = MaNoScorer(threshold=float("inf"))
+    score = scorer(estimator, X, y, sample_domain)
+    assert (scorer._sign * score >= 0) and (
+        scorer._sign * score <= 1
+    ), "The output range should be [-1, 0] or [0, 1]."
