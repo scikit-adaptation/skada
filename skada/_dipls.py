@@ -26,7 +26,7 @@ def convex_relaxation(X_s, X_t):
     X_t : ndarray of shape (n_target_samples, n_features)
         Feature data from the target domain.
 
-    Return_s
+    Returns
     -------
     D : ndarray of shape (n_features, n_features)
         Relaxed covariance difference matrix.
@@ -44,7 +44,7 @@ def convex_relaxation(X_s, X_t):
     >>> X_t = np.random.random((100, 10))
     >>> D = convex_relaxation(X_s, X_t)
     """
-    # En_sure input array_s are numerical
+    # Ensure input array_s are numerical
     X_s = np.asarray(X_s, dtype=np.float64)
     X_t = np.asarray(X_t, dtype=np.float64)
 
@@ -93,7 +93,7 @@ def dipals(X_s, y_s, X_t, A, reg_param, heuristic: bool = False, target_domain=0
         Response variable associated with the source domain.
 
     X_t : ndarray of shape (n_target_samples, n_features) or list of ndarray
-        Target domain feature data. Multiple domain_s can be provided as a list.
+        Target domain feature data. Multiple domains can be provided as a list.
 
     A : int
         Number of latent variables to use in the model.
@@ -110,7 +110,7 @@ def dipals(X_s, y_s, X_t, A, reg_param, heuristic: bool = False, target_domain=0
         Specifies which target domain the model should apply to, where 0
         indicates the source domain.
 
-    Return_s
+    Returns
     -------
     b : ndarray of shape (n_features, 1)
         Regression coefficient vector.
@@ -121,22 +121,21 @@ def dipals(X_s, y_s, X_t, A, reg_param, heuristic: bool = False, target_domain=0
     References
     ----------
     [37] Nikzad-Langerodi, R., Zellinger, W., Saminger-Platz, S., & Moser, B. A. (2020).
-         Domain adaP_tation for regression under Beer–Lambert’s law.
+         Domain adaptation for regression under Beer–Lambert’s law.
          Knowledge-Based Systems, 210, 106447.
 
     Examples
     --------
     >>> import numpy as np
     >>> from skada._dipls import dipals
-    >>> x = np.random.random((100, 10))
-    >>> y = np.random.random((100, 1))
     >>> X_s = np.random.random((50, 10))
+    >>> y_s = np.random.random((100, 1))
     >>> X_t = np.random.random((50, 10))
     >>> results = dipals(X_s, y_s, X_t, 2, 0.1)
     """
     (n_s, k) = np.shape(X_s)
 
-    # If multiple target domain_s are passed
+    # If multiple target domains are passed
     if isinstance(X_t, list):
         P_t = []
         T_t = []
@@ -187,7 +186,7 @@ def dipals(X_s, y_s, X_t, A, reg_param, heuristic: bool = False, target_domain=0
                 # Convex relaxation of covariance difference matrix
                 D = convex_relaxation(X_s, X_t)
 
-            # Multiple target domain_s
+            # Multiple target domains
             elif isinstance(X_t, list):
                 ndoms = len(X_t)
                 D = np.zeros([k, k])
@@ -199,7 +198,7 @@ def dipals(X_s, y_s, X_t, A, reg_param, heuristic: bool = False, target_domain=0
             else:
                 print(
                     "X_t must either be a matrix or list of "
-                    "(appropriately dimen_sioned) matrices"
+                    "(appropriately dimensioned) matrices"
                 )
 
             if heuristic is True:  # Regularization parameter heuristic
@@ -217,7 +216,7 @@ def dipals(X_s, y_s, X_t, A, reg_param, heuristic: bool = False, target_domain=0
             w = w / np.linalg.norm(w)
 
             # Absolute difference between variance of source and
-            # target domain projection_s
+            # target domain projections
             discrepancy[i] = (w @ D @ w.T).item()
 
         else:
@@ -287,13 +286,13 @@ def dipals(X_s, y_s, X_t, A, reg_param, heuristic: bool = False, target_domain=0
 
     if isinstance(reg_param, tuple):  # Check if multiple regularization
         # parameters are passed (one for each LV)
-        if target_domain == 0:  # Multiple target domain_s (Domain unknown)
+        if target_domain == 0:  # Multiple target domains (Domain unknown)
             b = W @ (np.linalg.inv(P_s.T @ W)) @ C
 
         elif isinstance(X_t, np.ndarray):  # Single target domain
             b = W @ (np.linalg.inv(P_t.T @ W)) @ C
 
-        elif isinstance(X_t, list):  # Multiple target domain_s (Domain known)
+        elif isinstance(X_t, list):  # Multiple target domains (Domain known)
             b = W @ (np.linalg.inv(P_t[target_domain - 1].T @ W)) @ C
 
     else:
@@ -304,12 +303,12 @@ def dipals(X_s, y_s, X_t, A, reg_param, heuristic: bool = False, target_domain=0
 
 class DIPLS(DAEstimator):
     """
-    Domain-Invariant Partial Least Squares (DIPLS) algorithm for domain adaP_tation.
+    Domain-Invariant Partial Least Squares (DIPLS) algorithm for domain adaptation.
 
     This class implements the DIPLS algorithm, which aligns feature
     distributions of source and target domain data in terms of second order
     moment differences while identifying latent variables with high covariance
-    between input data and the respon_se variable.
+    between input data and the response variable.
 
     Parameters
     ----------
@@ -341,29 +340,17 @@ class DIPLS(DAEstimator):
 
     Attributes
     ----------
-    n_ : int
-        Number of samples in `x`.
-
-    n_s_ : int
-        Number of samples in `X_s`.
-
-    n_t_ : int
-        Number of samples in `X_t`.
-
-    n_features_in_ : int
-        Number of features (variables) in `x`.
-
     mu_s_ : ndarray of shape (n_features,)
         Mean of columns in `X_s`.
 
-    mu_t_ : ndarray of shape (n_features,) or ndarray of shape (n_domain_s, n_features)
+    mu_t_ : ndarray of shape (n_features,) or ndarray of shape (n_domains, n_features)
         Mean of columns in `X_t`, averaged per target domain if multiple domains exist.
 
     b_ : ndarray of shape (n_features, 1)
         Regression coefficient vector.
 
     b0_ : float
-        interceP_t of the regression model.
+        intercept of the regression model.
 
     is_fitted_ : bool, default=False
         Whether the model has been fitted to data.
@@ -372,23 +359,22 @@ class DIPLS(DAEstimator):
     References
     ----------
     [37] Nikzad-Langerodi, R., Zellinger, W., Saminger-Platz, S., & Moser, B. A. (2020).
-         Domain adaP_tation for regression under Beer–Lambert’s law.
+         Domain adaptation for regression under Beer–Lambert’s law.
          Knowledge-Based Systems, 210, 106447.
 
     Examples
     --------
     >>> import numpy as np
     >>> from skada import DIPLS
-    >>> x = np.random.rand(100, 10)
-    >>> y = np.random.rand(100)
-    >>> X_s = x
+    >>> X_s = np.random.rand(100, 10)
+    >>> y_s = np.random.rand(100)
     >>> X_t = np.random.rand(50, 10)
-    >>> y_t = np.random.rand(50)
+    >>> y_t = -np.random.rand(50)
     >>> X = np.vstack([X_s, X_t])
-    >>> Y = np.hstack([y, y_t])
-    >>> class_variable = np.concatenate((np.full(100, 1), np.full(50, -1)))
+    >>> y = np.hstack([y_s, y_t])
+    >>> sample_domain = np.concatenate((np.full(100, 1), np.full(50, -1)))
     >>> model = DIPLS(A=5, reg_param=10)
-    >>> model.fit(X, Y, sample_domain=class_variable)
+    >>> model.fit(X, y, sample_domain=sample_domain)
     DIPLS(A=5, reg_param=10)
     >>> X_test = np.array([5, 7, 4, 3, 2, 1, 6, 8, 9, 10])
     >>> yhat = model.predict(X_test)
@@ -425,7 +411,7 @@ class DIPLS(DAEstimator):
             Labeled input data from the source domain.
 
         y : ndarray of shape (n_samples, 1)
-            Respon_se variable corresponding to the input data `x`.
+            Response variable corresponding to the input data `x`.
 
         sample_domain : array-like of shape (n_samples,), default=None
             Domain labels for the samples. If None, all samples are assumed to be
@@ -434,26 +420,26 @@ class DIPLS(DAEstimator):
         sample_weight : array-like of shape (n_samples,), default=None
             Sample weights. If None, all samples are assumed to have equal weight.
 
-        Return_s
+        Returns
         -------
         self : object
-            FiT_ted model in_stance.
+            FiT_ted model instance.
         """
         # Check for sparse input
         if issparse(X):
             raise ValueError(
                 "Sparse input is not supported. Please convert your data to "
-                "den_se format."
+                "dense format."
             )
 
         # Validate input array_s
         X, y = check_X_y(
             X,
             y,
-            en_sure_2d=True,
+            ensure_2d=True,
             allow_nd=False,
-            acceP_t_large_sparse=False,
-            acceP_t_sparse=False,
+            accept_large_sparse=False,
+            accept_sparse=False,
             force_all_finite=True,
         )
 
@@ -474,7 +460,7 @@ class DIPLS(DAEstimator):
             X_s = X_s - self.mu_s_
             y_s = y_s - self.b0_
 
-            # Multiple target domain_s
+            # Multiple target domains
             if isinstance(X_t, list):
                 n_t_, _ = X_t[0].shape
                 self.mu_t_ = [np.mean(x, axis=0) for x in X_t]
@@ -502,7 +488,7 @@ class DIPLS(DAEstimator):
         """
         Predict y using the fiT_ted DIPLS model.
 
-        This method predicts the respon_se variable for the provided test data using
+        This method predicts the response variable for the provided test data using
         the fitted domain-invariant partial least squares (di-PLS) model.
 
         Parameters
@@ -517,7 +503,7 @@ class DIPLS(DAEstimator):
         sample_weight : array-like of shape (n_samples,), default=None
             Sample weights. If None, all samples are assumed to have equal weight.
 
-        Return_s
+        Returns
         -------
         yhat : ndarray of shape (n_samples_test,)
             Predicted response values for the test data.
@@ -533,7 +519,7 @@ class DIPLS(DAEstimator):
             )
 
         # Validate input array
-        X = check_array(X, en_sure_2d=False, allow_nd=False, force_all_finite=True)
+        X = check_array(X, ensure_2d=False, allow_nd=False, force_all_finite=True)
 
         # Rescale Test data
         if isinstance(self.rescale, str):
@@ -556,13 +542,13 @@ class DIPLS(DAEstimator):
 
         yhat = X_test @ self.b_ + self.b0_
 
-        # En_sure the shape of yhat matches the shape of y
+        # Ensure the shape of yhat matches the shape of y
         yhat = np.ravel(yhat)
 
         return yhat
 
 
-def gen_spec(length, mu, sigma, mag, noise=0):
+def genspec(length, mu, sigma, mag, noise=0):
     """
     Generate a spectrum-like signal with optional random noise.
 
@@ -581,17 +567,17 @@ def gen_spec(length, mu, sigma, mag, noise=0):
         Magnitude of the Gaussian.
 
 
-    Return_s
+    Returns
     -------
     signal : ndarray of shape (length,)
         The generated Gaussian signal with noise.
 
     Examples
     --------
-    >>> from skada._dipls import gen_spec
+    >>> from skada._dipls import genspec
     >>> import numpy as np
     >>> import scipy.stats
-    >>> signal = gen_spec(100, 50, 10, 5, noise=0.1)
+    >>> signal = genspec(100, 50, 10, 5, noise=0.1)
     """
     s = mag * norm.pdf(np.arange(length), mu, sigma)
     n = noise * np.random.rand(length)
