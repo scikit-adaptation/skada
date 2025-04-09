@@ -471,7 +471,7 @@ class DIPLS(DAEstimator):
                 X_t = X_t - self.mu_t_
 
         # Fit model
-        self.b = dipals(
+        self.b_ = dipals(
             X_s,
             y_s,
             X_t,
