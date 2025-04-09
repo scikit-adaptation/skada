@@ -129,7 +129,7 @@ def dipals(X_s, y_s, X_t, A, reg_param, heuristic: bool = False, target_domain=0
     >>> import numpy as np
     >>> from skada._dipls import dipals
     >>> X_s = np.random.random((50, 10))
-    >>> y_s = np.random.random((100, 1))
+    >>> y_s = np.random.random((50, 1))
     >>> X_t = np.random.random((50, 10))
     >>> results = dipals(X_s, y_s, X_t, 2, 0.1)
     """
@@ -233,14 +233,14 @@ def dipals(X_s, y_s, X_t, A, reg_param, heuristic: bool = False, target_domain=0
         t_s = X_s @ w.T
 
         if isinstance(X_t, list):
-            T_t = []
+            t_t = []
 
             for z in range(len(X_t)):
-                T_ti = X_t[z] @ w.T
-                T_t.append(T_ti)
+                t_ti = X_t[z] @ w.T
+                t_t.append(t_ti)
 
         else:
-            T_t = X_t @ w.T
+            t_t = X_t @ w.T
 
         # Regress y on t
         c = (y_s.reshape(-1, 1).T @ t_s) / (t_s.T @ t_s)
@@ -248,24 +248,24 @@ def dipals(X_s, y_s, X_t, A, reg_param, heuristic: bool = False, target_domain=0
         # Compute loadings
         p_s = (t_s.T @ X_s) / (t_s.T @ t_s)
         if isinstance(X_t, list):
-            P_t = []
+            p_t = []
 
             for z in range(len(X_t)):
-                P_ti = (T_t[z].T @ X_t[z]) / (T_t[z].T @ T_t[z])
-                P_t.append(P_ti)
+                p_ti = (t_t[z].T @ X_t[z]) / (t_t[z].T @ t_t[z])
+                p_t.append(p_ti)
 
         else:
-            P_t = (T_t.T @ X_t) / (T_t.T @ T_t)
+            p_t = (t_t.T @ X_t) / (t_t.T @ t_t)
 
         # Deflate X and y (Gram-Schmidt orthogonalization)
         X_s = X_s - np.outer(t_s, p_s)
 
         if isinstance(X_t, list):
             for z in range(len(X_t)):
-                X_t[z] = X_t[z] - np.outer(T_t[z], P_t[z])
+                X_t[z] = X_t[z] - np.outer(t_t[z], p_t[z])
 
         else:
-            X_t = X_t - np.outer(T_t, P_t)
+            X_t = X_t - np.outer(t_t, p_t)
 
         y_s = y_s - c * t_s
 
@@ -277,12 +277,12 @@ def dipals(X_s, y_s, X_t, A, reg_param, heuristic: bool = False, target_domain=0
 
         if isinstance(X_t, list):
             for z in range(len(X_t)):
-                P_t[z][:, i] = P_t[z].reshape(k)
-                T_t[z][:, i] = T_t[z].reshape(np.shape(X_t[z])[0])
+                P_t[z][:, i] = p_t[z].reshape(k)
+                T_t[z][:, i] = t_t[z].reshape(np.shape(X_t[z])[0])
 
         else:
-            P_t[:, i] = P_t.reshape(k)
-            T_t[:, i] = T_t.reshape(n_t)
+            P_t[:, i] = p_t.reshape(k)
+            T_t[:, i] = t_t.reshape(n_t)
 
     if isinstance(reg_param, tuple):  # Check if multiple regularization
         # parameters are passed (one for each LV)
