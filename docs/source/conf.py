@@ -276,7 +276,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [(master_doc, "skada", "SKADA : Scikit Domain Adaptation", [author], 1)]
+man_pages = [(master_doc, "skada", "Scikit Adaptation", [author], 1)]
 
 # If true, show URL addresses after external links.
 # man_show_urls = False
@@ -291,10 +291,10 @@ texinfo_documents = [
     (
         master_doc,
         "SKADA",
-        "SKADA : Scikit Domain Adaptation",
+        "Scikit Adaptation",
         author,
         "SKADA",
-        "SKADA : Scikit Domain Adaptation",
+        "Scikit Adaptation",
         "Miscellaneous",
     ),
 ]
