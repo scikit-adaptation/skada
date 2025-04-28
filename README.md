@@ -20,7 +20,7 @@ compatible API with the following features:
 **Citation**: If you use this library in your research, please cite the following reference:
 
 ```
-Gnassounou T., Kachaiev O., Flamary R., Collas A., Lalou Y., de Mathelin A., Gramfort A., Bueno R., Michel F., Mellot A.,  Loison V., Odonnat A., Moreau T. (2024). SKADA : Scikit Adaptation (version 0.3.0). URL: https://scikit-adaptation.github.io/
+Gnassounou T., Kachaiev O., Flamary R., Collas A., Lalou Y., de Mathelin A., Gramfort A., Bueno R., Michel F., Mellot A.,  Loison V., Odonnat A., Moreau T. (2025). SKADA : Scikit Adaptation (version 0.4.0). URL: https://scikit-adaptation.github.io/
 ```
 
 or in Bibtex format :
@@ -28,10 +28,10 @@ or in Bibtex format :
 ```bibtex
 @misc{gnassounou2024skada,
 author = {Gnassounou, Théo and Kachaiev, Oleksii and Flamary, Rémi and Collas, Antoine and Lalou, Yanis and de Mathelin, Antoine and Gramfort, Alexandre and Bueno, Ruben and Michel, Florent and Mellot, Apolline and  Loison, Virginie and Odonnat, Ambroise and Moreau, Thomas},
-month = {7},
+month = {4},
 title = {SKADA : Scikit Adaptation},
 url = {https://scikit-adaptation.github.io/},
-year = {2024}
+year = {2025}
 }
 ```
 

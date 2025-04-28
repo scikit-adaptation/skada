@@ -65,7 +65,7 @@ Pull Request Checklist
 We recommended that your contribution complies with the
 following rules before you submit a pull request:
 
--  Follow the PEP8 Guidelines which should be handles automatically by pre-commit.
+-  Follow the PEP8 Guidelines which should be handled automatically by pre-commit.
 
 -  If your pull request addresses an issue, please use the pull request title
    to describe the issue and mention the issue number in the pull request description. This will make sure a link back to the original issue is
