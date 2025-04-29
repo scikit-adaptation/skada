@@ -3,7 +3,7 @@ JDOT Regressor and Classifier examples
 ======================================
 
 This example shows how to use the JDOTRegressor [10] to learn a regression model
-from source to target domain on a simple concept drift 2D example. We use a
+from source to target domain on a simple conditional shift 2D example. We use a
 simple Kernel Ridge Regression (KRR) as base estimator.
 
 We compare the performance of the KRR on the source and target domain, and the
@@ -33,15 +33,15 @@ from skada import JDOTClassifier, JDOTRegressor, source_target_split
 from skada.datasets import make_shifted_datasets
 
 # %%
-# Generate concept drift regression dataset and plot it
+# Generate conditional shift regression dataset and plot it
 # -----------------------------------------------------
 #
-# We generate a simple 2D concept drift dataset.
+# We generate a simple 2D conditional shift dataset.
 
 X, y, sample_domain = make_shifted_datasets(
     n_samples_source=20,
     n_samples_target=20,
-    shift="concept_drift",
+    shift="conditional_shift",
     noise=0.3,
     label="regression",
     random_state=42,
@@ -170,15 +170,15 @@ plt.title("OT plan between source and target")
 
 
 # %%
-# Generate concept drift classification dataset and plot it
+# Generate conditional shift classification dataset and plot it
 # -----------------------------------------------------
 #
-# We generate a simple 2D concept drift dataset.
+# We generate a simple 2D conditional shift dataset.
 
 X, y, sample_domain = make_shifted_datasets(
     n_samples_source=20,
     n_samples_target=20,
-    shift="concept_drift",
+    shift="conditional_shift",
     noise=0.2,
     label="multiclass",
     random_state=42,

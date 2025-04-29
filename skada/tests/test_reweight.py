@@ -144,7 +144,7 @@ def test_reg_reweight_estimator(estimator):
     dataset = make_shifted_datasets(
         n_samples_source=20,
         n_samples_target=21,
-        shift="concept_drift",
+        shift="conditional_shift",
         mean=0.5,
         noise=0.3,
         label="regression",

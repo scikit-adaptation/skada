@@ -50,7 +50,7 @@ from skada.model_selection import SourceTargetShuffleSplit
 
 # Get DA dataset
 X, y, sample_domain = make_shifted_datasets(
-    20, 20, shift="concept_drift", random_state=42
+    20, 20, shift="conditional_shift", random_state=42
 )
 
 # split source and target for visualization
@@ -137,7 +137,7 @@ pipe.fit(X, y, sample_domain=sample_domain)
 print("Accuracy on target:", pipe.score(Xt, yt))
 
 # create a DA pipeline with GaussianReweight adapter (does not work well on
-# concept drift).
+# conditional shift).
 pipe = make_da_pipeline(
     StandardScaler(),
     GaussianReweightAdapter(),

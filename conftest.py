@@ -26,7 +26,7 @@ def da_reg_dataset():
     return make_shifted_datasets(
         n_samples_source=20,
         n_samples_target=21,
-        shift="concept_drift",
+        shift="conditional_shift",
         mean=0.5,
         noise=0.3,
         label="regression",
@@ -40,7 +40,7 @@ def da_reg_datasets():
     da_reg_dataset_1 = make_shifted_datasets(
         n_samples_source=5,
         n_samples_target=10,
-        shift="concept_drift",
+        shift="conditional_shift",
         mean=0.5,
         noise=0.3,
         label="regression",
@@ -51,7 +51,7 @@ def da_reg_datasets():
     da_reg_dataset_2 = make_shifted_datasets(
         n_samples_source=10,
         n_samples_target=5,
-        shift="concept_drift",
+        shift="conditional_shift",
         mean=0.5,
         noise=0.3,
         label="regression",
@@ -65,7 +65,7 @@ def da_multiclass_dataset():
     return make_shifted_datasets(
         n_samples_source=20,
         n_samples_target=21,
-        shift="concept_drift",
+        shift="conditional_shift",
         noise=0.1,
         label="multiclass",
         random_state=42,
@@ -78,7 +78,7 @@ def da_binary_dataset():
     return make_shifted_datasets(
         n_samples_source=20,
         n_samples_target=21,
-        shift="concept_drift",
+        shift="conditional_shift",
         noise=0.1,
         label="binary",
         random_state=42,
