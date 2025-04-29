@@ -872,7 +872,7 @@ def make_classification_dataset(mean, cov, v=None, separation=1, n=200):
 def make_multi_source_da_example(
     n_datasets, n_samples=400, angle_min=0.0, angle_max=45, separation=6
 ):
-    mu = np.array([0, 0])
+    mu = np.array([0.0, 0.0])
     angles = np.linspace(angle_min, angle_max, n_datasets)
     Xs, ys, samples_domain = [], [], []
     for i in range(n_datasets - 1):
@@ -889,6 +889,7 @@ def make_multi_source_da_example(
         samples_domain.append(np.ones_like(y) * i)
 
     A = np.random.randn(2, 2)
+    mu = np.array([5.0, 5.0])
     cov = 0.1 * np.dot(A.T, A) + np.eye(2)
     v = np.array(
         [np.cos((np.pi / 180) * angles[-1]), np.sin((np.pi / 180) * angles[-1])]

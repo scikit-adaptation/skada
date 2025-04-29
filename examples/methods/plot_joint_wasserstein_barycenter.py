@@ -1,8 +1,8 @@
 """
-Multi-domain Linear Monge Alignment
-===================================
+Computation of feature-label joint Wasserstein Barycenters
+==========================================================
 
-This example illustrates the use of the MultiLinearMongeAlignmentAdapter
+This example illustrates the computation of feature-label joint Wasserstein barycenters
 
 """
 

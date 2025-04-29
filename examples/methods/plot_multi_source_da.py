@@ -1,11 +1,22 @@
+"""
+Wasserstein Barycenter Transport
+================================
+
+This example illustrates the method "Wasserstein Barycenter Transport"
+
+"""
+
+# Author: Eduardo Fernandes Montesuma
+#
+# License: BSD 3-Clause
+# sphinx_gallery_thumbnail_number = 4
+
 # %% Imports
 import matplotlib.pyplot as plt
 import numpy as np
-import ot
 from sklearn.linear_model import LogisticRegression
 
 from skada import (
-    LinearWassersteinBarycenterTransportAdapter,
     WassersteinBarycenterTransportAdapter,
 )
 from skada.datasets import make_multi_source_da_example
@@ -68,19 +79,6 @@ print(
 )
 
 # %%
-# Fit Linear Wasserstein Barycenter Transport
-# -------------------------------------------
-#
-# Next, we map the source domain data to the target domain
-# through a linearized version of the Wasserstein barycenter
-# transport. This algorithm assumes that the data is Gaussian,
-# and models optimal transport through an affine map between
-# domains.
-linear_wbt = LinearWassersteinBarycenterTransportAdapter()
-linear_wbt.fit(X, Y, sample_domain=sample_domain)
-linear_mapped_samples = linear_wbt.transform(X, Y, w=None, sample_domain=sample_domain)
-
-# %%
 # Fit Wasserstein Barycenter Transport
 # ------------------------------------
 #
@@ -105,62 +103,10 @@ ax.set_ylabel("Barycenter loss")
 plt.show()
 
 # %%
-# Plots the results of WBT
-# ------------------------
-#
-# Next, we compare the results for both the empirical and Gaussian
-# versions of the Wasserstein barycenter transport algorithm
-fig, axes = plt.subplots(1, 3, figsize=(15, 5), sharex=True, sharey=True)
-axes[0].scatter(
-    X[sample_domain == -1, 0],
-    X[sample_domain == -1, 1],
-    c=y[sample_domain == -1],
-    cmap=plt.cm.coolwarm,
-)
-axes[0].set_title("Target domain")
-axes[1].scatter(
-    mapped_samples[-1][0][:, 0],
-    mapped_samples[-1][0][:, 1],
-    c=mapped_samples[-1][1],
-    cmap=plt.cm.coolwarm,
-)
-axes[1].set_title("WassersteinBarycenterTransport")
-axes[2].scatter(
-    linear_mapped_samples[-1][0][:, 0],
-    linear_mapped_samples[-1][0][:, 1],
-    c=linear_mapped_samples[-1][1].argmax(axis=1),
-    cmap=plt.cm.coolwarm,
-)
-axes[2].set_title("MultiLinearMongeAlignment")
-plt.show()
-
-# %%
-# Compare the distance in distribution between the measures
-# ---------------------------------------------------------
-#
-# Next, we compare the distance in distribution between the
-# obtained measures, and the target domain. As you can see,
-# the empirical WBT mapping is able to better approximate
-# the target domain.
-
-a = ot.unif(len(X[sample_domain == -1, 0]))
-b = ot.unif(len(mapped_samples[-1][0]))
-C = ot.dist(X[sample_domain == -1], mapped_samples[-1][0], metric="sqeuclidean")
-dist_w2 = ot.emd2(a, b, C)
-print(f"Empirical WBT: {dist_w2}")
-
-a = ot.unif(len(X[sample_domain == -1, 0]))
-b = ot.unif(len(linear_mapped_samples[-1][0]))
-C = ot.dist(X[sample_domain == -1], linear_mapped_samples[-1][0], metric="sqeuclidean")
-dist_w2 = ot.emd2(a, b, C)
-print(f"Linear WBT: {dist_w2}")
-
-# %%
 # Fit a classifier on WBT mapped data
 # -----------------------------------
 #
-# Here we compare the performance of both
-# algorithms in domain adaptation.
+# Here, we evaluate the performance of WBT in the target domain.
 clf = LogisticRegression()
 clf.fit(X=mapped_samples[-1][0], y=mapped_samples[-1][1])
 print(
@@ -169,12 +115,27 @@ print(
 )
 
 # %%
-# Fit a classifier on WBT mapped data
 #
+# Visualize the datasets
+# ----------------------
 #
-clf = LogisticRegression()
-clf.fit(X=linear_mapped_samples[-1][0], y=linear_mapped_samples[-1][1].argmax(axis=1))
-print(
-    "[LinearWBT] Accuracy on the target domain:"
-    f" {clf.score(X[sample_domain == -1], y[sample_domain==-1])}"
+# Here we visualize the target and the transported barycenter
+
+XB, yB = mapped_samples[-1]
+fig, axes = plt.subplots(1, 2, figsize=(10, 5), sharex=True, sharey=True)
+axes[0].scatter(
+    x=X[sample_domain == -1, 0],
+    y=X[sample_domain == -1, 1],
+    c=y[sample_domain == -1],
+    cmap=plt.cm.coolwarm,
 )
+axes[0].set_title("Target")
+axes[1].scatter(
+    x=XB[:, 0],
+    y=XB[:, 1],
+    c=yB,
+    cmap=plt.cm.coolwarm,
+)
+axes[1].set_title("Transported Barycenter")
+plt.tight_layout()
+plt.show()
