@@ -26,8 +26,7 @@ from ._mapping import (
     MultiLinearMongeAlignmentAdapter,
     MultiLinearMongeAlignment,
     WassersteinBarycenterTransportAdapter,
-    WassersteinBarycenterTransport,
-    LinearWassersteinBarycenterTransportAdapter
+    WassersteinBarycenterTransport
 )
 from ._reweight import (
     DiscriminatorReweightAdapter,
@@ -146,5 +145,4 @@ __all__ = [
     "WassersteinBarycenterTransportAdapter",
     "WassersteinBarycenterTransport"
 
-    "LinearWassersteinBarycenterTransportAdapter"
 ]
