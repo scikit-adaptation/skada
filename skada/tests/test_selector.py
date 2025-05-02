@@ -37,7 +37,7 @@ def test_base_selector_estimator_fetcher():
     X, y, sample_domain = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=n_samples,
-        shift="concept_drift",
+        shift="conditional_shift",
         noise=0.1,
         random_state=42,
     )
@@ -60,7 +60,7 @@ def test_remove_masked_helper():
     X, y, sample_domain = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=n_samples,
-        shift="concept_drift",
+        shift="conditional_shift",
         noise=0.1,
         random_state=42,
     )
@@ -85,7 +85,7 @@ def test_base_selector_remove_masked(step):
     dataset = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=n_samples,
-        shift="concept_drift",
+        shift="conditional_shift",
         noise=0.1,
         random_state=42,
         return_dataset=True,
@@ -101,7 +101,7 @@ def test_base_selector_no_filtering_transformer():
     dataset = make_shifted_datasets(
         n_samples_source=10,
         n_samples_target=20,
-        shift="concept_drift",
+        shift="conditional_shift",
         noise=0.1,
         random_state=42,
         return_dataset=True,
