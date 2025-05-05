@@ -2,8 +2,10 @@
 How to use SKADA
 ====================================================
 
-This is a short example to get started with SKADA and perform domain adaptation
+This is a short beginners guide to get started with SKADA and perform domain adaptation
 on a simple dataset. It illustrates the API choice specific to DA.
+For better readability, only the use of SKADA is provided and the plotting code
+with matplotlib is hidden.
 """
 
 # Author: Remi Flamary
@@ -11,7 +13,7 @@ on a simple dataset. It illustrates the API choice specific to DA.
 # License: BSD 3-Clause
 # sphinx_gallery_thumbnail_number = 1
 
-# %% imports
+# necessary imports
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.decomposition import PCA
@@ -47,8 +49,86 @@ from skada.model_selection import SourceTargetShuffleSplit
 #   used when fitting the DA estimator)
 # * :code:`sample_domain` encodes the domain of each sample (integer >=0 for
 #   source and <0 for target)
+#
+# Four different types of dataset shifts are handled
+#
+# Covariate shift
+# ~~~~~~~~~~~~~~~
+#
+# Covariate shift is characterised by a change of distribution in one or more of
+# the independent variables from the input data.
 
-# Get DA dataset
+# create a DA dataset with covariate shift
+X, y, sample_domain = make_shifted_datasets(
+    20, 20, shift="covariate_shift", random_state=42
+)
+
+# split source and target for visualization
+Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
+sample_domain_s = np.ones(Xs.shape[0])
+sample_domain_t = -np.ones(Xt.shape[0]) * 2
+
+
+# sphinx_gallery_start_ignore
+def source_target_comparison(X, y, sample_domain, title):
+    Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
+    plt.subplot(1, 2, 1)
+    plt.scatter(
+        Xs[:, 0], Xs[:, 1], c=ys, cmap="tab10", vmax=9, label="Source", alpha=0.5
+    )
+
+    plt.xticks([])
+    plt.yticks([])
+    plt.title("Source data")
+    ax = plt.axis()
+
+    plt.subplot(1, 2, 2)
+    plt.scatter(
+        Xt[:, 0], Xt[:, 1], c=yt, cmap="tab10", vmax=9, label="Target", alpha=0.5
+    )
+    plt.xticks([])
+    plt.yticks([])
+    plt.title("Target data")
+    plt.axis(ax)
+    plt.suptitle(title)
+
+
+plt.figure(1, (7.5, 3.625))
+source_target_comparison(X, y, sample_domain, "Covariate shift")
+plt.tight_layout()
+# sphinx_gallery_end_ignore
+
+# %%
+# Target shift
+# ~~~~~~~~~~~~
+#
+# Target shift (or prior probability shift) is characterised by a change in
+# target variable distribution while the source data distribution remains the same.
+
+# create a DA dataset with conditional shift
+X, y, sample_domain = make_shifted_datasets(
+    20, 20, shift="target_shift", random_state=42
+)
+
+# split source and target for visualization
+Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
+sample_domain_s = np.ones(Xs.shape[0])
+sample_domain_t = -np.ones(Xt.shape[0]) * 2
+
+# sphinx_gallery_start_ignore
+plt.figure(2, (7.5, 3.625))
+source_target_comparison(X, y, sample_domain, "Target shift")
+plt.tight_layout()
+# sphinx_gallery_end_ignore
+
+# %%
+# Conditional shift
+# ~~~~~~~~~~~~~~~~~
+#
+# Conditional shift (or concept drift) is characterised by a change in
+# the relation between input and output variables.
+
+# create a DA dataset with conditional shift
 X, y, sample_domain = make_shifted_datasets(
     20, 20, shift="conditional_shift", random_state=42
 )
@@ -58,18 +138,47 @@ Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 sample_domain_s = np.ones(Xs.shape[0])
 sample_domain_t = -np.ones(Xt.shape[0]) * 2
 
-# plot data
-plt.figure(1, (10, 5))
+# sphinx_gallery_start_ignore
+plt.figure(3, (7.5, 3.625))
+source_target_comparison(X, y, sample_domain, "Conditional shift")
+plt.tight_layout()
+# sphinx_gallery_end_ignore
 
-plt.subplot(1, 2, 1)
-plt.scatter(Xs[:, 0], Xs[:, 1], c=ys, cmap="tab10", vmax=9, label="Source")
-plt.title("Source data")
-ax = plt.axis()
+# %%
+# Subspace shift
+# ~~~~~~~~~~~~~~
+#
+# Subspace shift is characterised by a change in data distribution where
+# there exists a subspace such that the projection of the data
+# on that subspace keeps the same distribution
 
-plt.subplot(1, 2, 2)
-plt.scatter(Xt[:, 0], Xt[:, 1], c=yt, cmap="tab10", vmax=9, label="Target")
-plt.axis(ax)
-plt.title("Target data")
+# create a DA dataset with conditional shift
+X, y, sample_domain = make_shifted_datasets(20, 20, shift="subspace", random_state=42)
+
+# split source and target for visualization
+Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
+sample_domain_s = np.ones(Xs.shape[0])
+sample_domain_t = -np.ones(Xt.shape[0]) * 2
+
+# sphinx_gallery_start_ignore
+plt.figure(4, (7.5, 3.625))
+source_target_comparison(X, y, sample_domain, "Subspace shift")
+plt.tight_layout()
+# sphinx_gallery_end_ignore
+
+# %%
+# From now on, we will use the data made with conditional shift in this guide
+
+# sphinx_gallery_start_ignore
+X, y, sample_domain = make_shifted_datasets(
+    20, 20, shift="conditional_shift", random_state=42
+)
+
+# split source and target for visualization
+Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
+sample_domain_s = np.ones(Xs.shape[0])
+sample_domain_t = -np.ones(Xt.shape[0]) * 2
+# sphinx_gallery_end_ignore
 
 # %%
 # DA Classifier estimator
@@ -97,7 +206,6 @@ print("Accuracy on target:", clf.score(Xt, yt))
 # DA estimator in a pipeline
 # -----------------------------
 #
-
 # SKADA estimators can be used as the final estimator of a scikit-learn pipeline.
 # Again, the only difference is that the :code:`sample_domain` array must be passed
 # by name during in fit.
@@ -121,7 +229,7 @@ print("Accuracy on target:", pipe.score(Xt, yt))
 # Here is an example with the CORAL and GaussianReweight adapters.
 #
 # .. WARNING::
-
+#
 #   Note that as illustrated below for reweighting adapters, one needs a
 #   subsequent estimator that takes :code:`sample_weight` as an input parameter.
 #   This can be done using the :code:`set_fit_request` method of the estimator
@@ -136,8 +244,8 @@ pipe.fit(X, y, sample_domain=sample_domain)
 
 print("Accuracy on target:", pipe.score(Xt, yt))
 
-# create a DA pipeline with GaussianReweight adapter (does not work well on
-# conditional shift).
+# create a DA pipeline with GaussianReweight adapter
+# (does not work well on conditional shift).
 pipe = make_da_pipeline(
     StandardScaler(),
     GaussianReweightAdapter(),
