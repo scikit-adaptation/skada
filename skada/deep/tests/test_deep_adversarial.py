@@ -33,7 +33,7 @@ def test_dann(domain_classifier, domain_criterion, num_features):
     dataset = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=n_samples,
-        shift="concept_drift",
+        shift="conditional_shift",
         noise=0.1,
         random_state=42,
         return_dataset=True,
@@ -82,7 +82,7 @@ def test_cdan(domain_classifier, domain_criterion, num_feature, max_feature, n_c
     dataset = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=n_samples,
-        shift="concept_drift",
+        shift="conditional_shift",
         noise=0.1,
         random_state=42,
         return_dataset=True,
@@ -137,7 +137,7 @@ def test_mdd(disc_classifier, num_features, n_classes):
     dataset = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=n_samples,
-        shift="concept_drift",
+        shift="conditional_shift",
         noise=0.1,
         random_state=42,
         return_dataset=True,
@@ -224,7 +224,7 @@ def test_return_features():
     dataset = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=n_samples,
-        shift="concept_drift",
+        shift="conditional_shift",
         noise=0.1,
         random_state=42,
         return_dataset=True,

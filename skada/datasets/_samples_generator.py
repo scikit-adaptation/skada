@@ -405,7 +405,7 @@ def make_shifted_datasets(
         Choose the nature of the shift.
         If 'covariate_shift', use covariate shift.
         If 'target_shift', use target shift.
-        If 'concept_drift', use concept drift.
+        If 'conditional_shift', use conditional shift.
         If 'subspace', a subspace where the classes are separable
         independently of the domains exists.
         See detailed description of each shift in [1]_.
@@ -421,9 +421,9 @@ def make_shifted_datasets(
         Ratio of the number of data in class 1 selected
         in the target shift and the sample_selection bias
     mean : float, default=1
-        value of the translation in the concept drift.
+        value of the translation in the conditional shift.
     sigma : float, default=0.7
-        multiplicative value of the concept drift.
+        multiplicative value of the conditional shift.
     mu_regression : np.array|float, default=None
         Will only be used if label=='regression'
         should be 2x1 matrix when shift != 'subspace'
@@ -541,7 +541,7 @@ def make_shifted_datasets(
         X_target = X_target[isel]
         y_target = y_target[isel]
 
-    elif shift == "concept_drift":
+    elif shift == "conditional_shift":
         X_target, y_target = _generate_data_2d_classif(
             n_samples_target,
             rng,
@@ -574,7 +574,7 @@ def make_shifted_datasets(
     else:
         raise ValueError(
             f"Invalid shift value: {shift}. The shift should either be "
-            "'covariate_shift', 'target_shift', 'concept_drift' "
+            "'covariate_shift', 'target_shift', 'conditional_shift' "
             "or 'subspace'"
         )
 

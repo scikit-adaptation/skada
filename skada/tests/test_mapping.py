@@ -129,7 +129,7 @@ def test_reg_mapping_estimator(estimator):
     dataset = make_shifted_datasets(
         n_samples_source=5,
         n_samples_target=10,
-        shift="concept_drift",
+        shift="conditional_shift",
         mean=0.5,
         noise=0.3,
         label="regression",
@@ -204,7 +204,7 @@ def test_new_X_adapt(estimator):
     dataset = make_shifted_datasets(
         n_samples_source=5,
         n_samples_target=10,
-        shift="concept_drift",
+        shift="conditional_shift",
         mean=0.5,
         noise=0.3,
         label="regression",
@@ -231,7 +231,7 @@ def test_reg_new_X_adapt(estimator):
     dataset = make_shifted_datasets(
         n_samples_source=5,
         n_samples_target=10,
-        shift="concept_drift",
+        shift="conditional_shift",
         mean=0.5,
         noise=0.3,
         label="regression",

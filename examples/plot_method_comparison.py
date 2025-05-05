@@ -114,7 +114,7 @@ datasets = [
     make_shifted_datasets(
         n_samples_source=20,
         n_samples_target=20,
-        shift="concept_drift",
+        shift="conditional_shift",
         label="binary",
         noise=0.4,
         random_state=RANDOM_SEED,

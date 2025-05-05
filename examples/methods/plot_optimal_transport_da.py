@@ -31,13 +31,13 @@ from skada import (
 from skada.datasets import make_shifted_datasets
 
 # %%
-# Generate concept drift dataset
+# Generate conditional shift dataset
 # ------------------------------
 n_samples = 20
 X, y, sample_domain = make_shifted_datasets(
     n_samples_source=n_samples,
     n_samples_target=n_samples + 1,
-    shift="concept_drift",
+    shift="conditional_shift",
     noise=0.1,
     random_state=42,
 )

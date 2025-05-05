@@ -35,7 +35,7 @@ def test_domainawaremodule_features_differ_between_domains():
     dataset = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=n_samples,
-        shift="concept_drift",
+        shift="conditional_shift",
         noise=0.1,
         random_state=42,
         return_dataset=True,
@@ -96,7 +96,7 @@ def test_domainawaretraining():
     dataset = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=n_samples,
-        shift="concept_drift",
+        shift="conditional_shift",
         noise=0.1,
         random_state=42,
         return_dataset=True,
@@ -259,7 +259,7 @@ def test_return_features():
     dataset = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=n_samples,
-        shift="concept_drift",
+        shift="conditional_shift",
         noise=0.1,
         random_state=42,
         return_dataset=True,
@@ -306,7 +306,7 @@ def test_domain_balanced_sampler(max_samples):
     dataset = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=n_samples,
-        shift="concept_drift",
+        shift="conditional_shift",
         noise=0.1,
         random_state=42,
         return_dataset=True,
@@ -335,7 +335,7 @@ def test_domain_balanced_dataloader():
     dataset = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=n_samples,
-        shift="concept_drift",
+        shift="conditional_shift",
         noise=0.1,
         random_state=42,
         return_dataset=True,
@@ -356,7 +356,7 @@ def test_domain_balanced_dataloader():
     dataset = make_shifted_datasets(
         n_samples_source=2 * n_samples,
         n_samples_target=n_samples,
-        shift="concept_drift",
+        shift="conditional_shift",
         noise=0.1,
         random_state=42,
         return_dataset=True,
@@ -377,7 +377,7 @@ def test_domain_balanced_dataloader():
     dataset = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=2 * n_samples,
-        shift="concept_drift",
+        shift="conditional_shift",
         noise=0.1,
         random_state=42,
         return_dataset=True,
@@ -407,7 +407,7 @@ def test_domain_only_sampler(domain_used):
     dataset = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=n_samples,
-        shift="concept_drift",
+        shift="conditional_shift",
         noise=0.1,
         random_state=42,
         return_dataset=True,
@@ -437,7 +437,7 @@ def test_domain_only_dataloader(domain_used):
     dataset = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=n_samples,
-        shift="concept_drift",
+        shift="conditional_shift",
         noise=0.1,
         random_state=42,
         return_dataset=True,
@@ -469,7 +469,7 @@ def test_sample_weight():
     dataset = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=n_samples,
-        shift="concept_drift",
+        shift="conditional_shift",
         noise=0.1,
         random_state=42,
         return_dataset=True,
@@ -538,7 +538,7 @@ def test_sample_weight_error_with_reduction_none():
     dataset = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=n_samples,
-        shift="concept_drift",
+        shift="conditional_shift",
         noise=0.1,
         random_state=42,
         return_dataset=True,
@@ -612,7 +612,7 @@ def test_allow_source():
     dataset = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=n_samples,
-        shift="concept_drift",
+        shift="conditional_shift",
         noise=0.1,
         random_state=42,
         return_dataset=True,
