@@ -20,6 +20,7 @@ import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV, cross_val_score
+from sklearn.neighbors import KernelDensity
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
@@ -27,6 +28,7 @@ from sklearn.svm import SVC
 from skada import (
     CORAL,
     CORALAdapter,
+    DensityReweight,
     GaussianReweightAdapter,
     PerDomain,
     SelectSource,
@@ -37,6 +39,7 @@ from skada import (
 from skada.datasets import make_shifted_datasets
 from skada.metrics import PredictionEntropyScorer
 from skada.model_selection import SourceTargetShuffleSplit
+from skada.utils import extract_source_indices
 
 # %%
 # DA dataset
@@ -66,6 +69,9 @@ X, y, sample_domain = make_shifted_datasets(
 
 
 # sphinx_gallery_start_ignore
+plot_dim = (7.5, 3.625)
+
+
 def decision_borders_plot(X, model):
     # Create a meshgrid
     x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
@@ -82,11 +88,20 @@ def decision_borders_plot(X, model):
     plt.contourf(xx, yy, Z, alpha=0.4, cmap="tab10", vmax=9)
 
 
-def source_target_comparison(X, y, sample_domain, title, prediction=False, model=None):
+def source_target_comparison(
+    X, y, sample_domain, title, prediction=False, model=None, size=25
+):
     Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
     plt.subplot(1, 2, 1)
     plt.scatter(
-        Xs[:, 0], Xs[:, 1], c=ys, cmap="tab10", vmax=9, label="Source", alpha=0.8
+        Xs[:, 0],
+        Xs[:, 1],
+        s=size,
+        c=ys,
+        cmap="tab10",
+        vmax=9,
+        label="Source",
+        alpha=0.8,
     )
     plt.xticks([])
     plt.yticks([])
@@ -106,10 +121,10 @@ def source_target_comparison(X, y, sample_domain, title, prediction=False, model
         decision_borders_plot(X, model)
     plt.axis(ax)
 
-    plt.suptitle(title)
+    plt.suptitle(title, fontsize=15)
 
 
-plt.figure(1, (7.5, 3.625))
+plt.figure(1, plot_dim)
 source_target_comparison(X, y, sample_domain, "Covariate shift")
 plt.tight_layout()
 # sphinx_gallery_end_ignore
@@ -127,7 +142,7 @@ X, y, sample_domain = make_shifted_datasets(
 )
 
 # sphinx_gallery_start_ignore
-plt.figure(2, (7.5, 3.625))
+plt.figure(2, plot_dim)
 source_target_comparison(X, y, sample_domain, "Target shift")
 plt.tight_layout()
 # sphinx_gallery_end_ignore
@@ -145,7 +160,7 @@ X, y, sample_domain = make_shifted_datasets(
 )
 
 # sphinx_gallery_start_ignore
-plt.figure(3, (7.5, 3.625))
+plt.figure(3, plot_dim)
 source_target_comparison(X, y, sample_domain, "Conditional shift")
 plt.tight_layout()
 # sphinx_gallery_end_ignore
@@ -162,7 +177,7 @@ plt.tight_layout()
 X, y, sample_domain = make_shifted_datasets(20, 20, shift="subspace", random_state=42)
 
 # sphinx_gallery_start_ignore
-plt.figure(4, (7.5, 3.625))
+plt.figure(4, plot_dim)
 source_target_comparison(X, y, sample_domain, "Subspace shift")
 plt.tight_layout()
 # sphinx_gallery_end_ignore
@@ -175,6 +190,11 @@ plt.tight_layout()
 # that the :code:`sample_domain` array must be passed by name when fitting the
 # estimator.
 
+# sphinx_gallery_start_ignore
+X, y, sample_domain = make_shifted_datasets(20, 20, "covariate_shift", random_state=42)
+# sphinx_gallery_end_ignore
+
+# Using a dataset with covariate shift, as presented above.
 # split source and target for visualization and source-target comparison
 Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 sample_domain_s = np.ones(Xs.shape[0])
@@ -194,9 +214,9 @@ acc_s = clf.score(Xs, ys)
 acc_t = clf.score(Xt, yt)
 
 # sphinx_gallery_start_ignore
-plt.figure(5, (7.5, 3.625))
+plt.figure(5, plot_dim)
 source_target_comparison(
-    X, y, sample_domain, "Predictions on conditional shift", prediction=True, model=clf
+    X, y, sample_domain, "Predictions on covariate shift", prediction=True, model=clf
 )
 plt.tight_layout()
 # accuracy on source and target
@@ -256,6 +276,77 @@ pipe = make_da_pipeline(
 pipe.fit(X, y, sample_domain=sample_domain)
 
 print("Accuracy on target:", pipe.score(Xt, yt))
+
+# %%
+# Reweighting
+# -----------
+#
+# A common method for dealing with covariate shift is reweighting the source data.
+#
+# SKADA handles this with multiple reweighting methods:
+#
+# * Density Reweighting
+# * Gaussian Reweighting
+# * Discr. Reweighting
+# * KLIEPReweight
+# * Nearest Neighbor reweighting
+# * Kernel Mean Matching
+#
+# Each method estimates the weight for the source dataset to fit an estimator
+# to predict labels from the target dataset.
+#
+# Using the same dataset and a simple :code:`LogisticRegression` classifier,
+# we can see that the estimator is not optimal on the target dataset.
+
+base_classifier = LogisticRegression().set_fit_request(sample_weight=True)
+base_classifier.fit(Xs, ys)
+
+# sphinx_gallery_start_ignore
+plt.figure(6, plot_dim)
+source_target_comparison(
+    X,
+    y,
+    sample_domain,
+    "Predictions without reweighting",
+    prediction=True,
+    model=base_classifier,
+)
+plt.tight_layout()
+print("Accuracy on target:", base_classifier.score(Xt, yt))
+# sphinx_gallery_end_ignore
+
+# %%
+# The reweighting is done by transforming the source dataset using an instance of
+# the :code:`Adapter` class provided by SKADA.
+
+# We define the classifier as a da pipeline from the base classifier
+clf = DensityReweight(
+    base_estimator=base_classifier, weight_estimator=KernelDensity(bandwidth=0.5)
+)
+
+clf.fit(X, y, sample_domain=sample_domain)
+
+# To extract the weights, we take the weight estimator from the pipeline
+weight_estimator = clf[0].get_estimator()
+idx = extract_source_indices(sample_domain)
+# then compute the weights corresponding to the source dataset
+weights = weight_estimator.compute_weights(X, sample_domain=sample_domain)[idx]
+
+# sphinx_gallery_start_ignore
+weights = 10 * weights
+plt.figure(7, plot_dim)
+source_target_comparison(
+    X,
+    y,
+    sample_domain,
+    "Weights representation",
+    prediction=True,
+    model=clf,
+    size=weights,
+)
+plt.tight_layout()
+print("Accuracy on target:", clf.score(Xt, yt))
+# sphinx_gallery_end_ignore
 
 # %%
 # DA estimators with score cross-validation
