@@ -5,10 +5,11 @@ How to use SKADA
 This is a short beginners guide to get started with SKADA and perform domain adaptation
 on a simple dataset. It illustrates the API choice specific to DA.
 For better readability, only the use of SKADA is provided and the plotting code
-with matplotlib is hidden.
+with matplotlib is hidden (it is still available in the source file of the example).
 """
 
 # Author: Remi Flamary
+#         Maxence Barnèche
 #
 # License: BSD 3-Clause
 # sphinx_gallery_thumbnail_number = 1
@@ -63,33 +64,48 @@ X, y, sample_domain = make_shifted_datasets(
     20, 20, shift="covariate_shift", random_state=42
 )
 
-# split source and target for visualization
-Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
-sample_domain_s = np.ones(Xs.shape[0])
-sample_domain_t = -np.ones(Xt.shape[0]) * 2
-
 
 # sphinx_gallery_start_ignore
-def source_target_comparison(X, y, sample_domain, title):
+def decision_borders_plot(X, model):
+    # Create a meshgrid
+    x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+    y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+    xx, yy = np.meshgrid(
+        np.linspace(x_min, x_max, num=100), np.linspace(y_min, y_max, num=100)
+    )
+
+    # Predict on every point of the meshgrid
+    Z = model.predict(np.c_[xx.ravel(), yy.ravel()])
+    Z = Z.reshape(xx.shape)
+
+    # Plot decision borders
+    plt.contourf(xx, yy, Z, alpha=0.4, cmap="tab10", vmax=9)
+
+
+def source_target_comparison(X, y, sample_domain, title, prediction=False, model=None):
     Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
     plt.subplot(1, 2, 1)
     plt.scatter(
-        Xs[:, 0], Xs[:, 1], c=ys, cmap="tab10", vmax=9, label="Source", alpha=0.5
+        Xs[:, 0], Xs[:, 1], c=ys, cmap="tab10", vmax=9, label="Source", alpha=0.8
     )
-
     plt.xticks([])
     plt.yticks([])
     plt.title("Source data")
+    if prediction:
+        decision_borders_plot(X, model)
     ax = plt.axis()
 
     plt.subplot(1, 2, 2)
     plt.scatter(
-        Xt[:, 0], Xt[:, 1], c=yt, cmap="tab10", vmax=9, label="Target", alpha=0.5
+        Xt[:, 0], Xt[:, 1], c=yt, cmap="tab10", vmax=9, label="Target", alpha=0.8
     )
     plt.xticks([])
     plt.yticks([])
     plt.title("Target data")
+    if prediction:
+        decision_borders_plot(X, model)
     plt.axis(ax)
+
     plt.suptitle(title)
 
 
@@ -105,15 +121,10 @@ plt.tight_layout()
 # Target shift (or prior probability shift) is characterised by a change in
 # target variable distribution while the source data distribution remains the same.
 
-# create a DA dataset with conditional shift
+# create a DA dataset with target shift
 X, y, sample_domain = make_shifted_datasets(
     20, 20, shift="target_shift", random_state=42
 )
-
-# split source and target for visualization
-Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
-sample_domain_s = np.ones(Xs.shape[0])
-sample_domain_t = -np.ones(Xt.shape[0]) * 2
 
 # sphinx_gallery_start_ignore
 plt.figure(2, (7.5, 3.625))
@@ -133,11 +144,6 @@ X, y, sample_domain = make_shifted_datasets(
     20, 20, shift="conditional_shift", random_state=42
 )
 
-# split source and target for visualization
-Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
-sample_domain_s = np.ones(Xs.shape[0])
-sample_domain_t = -np.ones(Xt.shape[0]) * 2
-
 # sphinx_gallery_start_ignore
 plt.figure(3, (7.5, 3.625))
 source_target_comparison(X, y, sample_domain, "Conditional shift")
@@ -152,32 +158,13 @@ plt.tight_layout()
 # there exists a subspace such that the projection of the data
 # on that subspace keeps the same distribution
 
-# create a DA dataset with conditional shift
+# create a DA dataset with subspace
 X, y, sample_domain = make_shifted_datasets(20, 20, shift="subspace", random_state=42)
-
-# split source and target for visualization
-Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
-sample_domain_s = np.ones(Xs.shape[0])
-sample_domain_t = -np.ones(Xt.shape[0]) * 2
 
 # sphinx_gallery_start_ignore
 plt.figure(4, (7.5, 3.625))
 source_target_comparison(X, y, sample_domain, "Subspace shift")
 plt.tight_layout()
-# sphinx_gallery_end_ignore
-
-# %%
-# From now on, we will use the data made with conditional shift in this guide
-
-# sphinx_gallery_start_ignore
-X, y, sample_domain = make_shifted_datasets(
-    20, 20, shift="conditional_shift", random_state=42
-)
-
-# split source and target for visualization
-Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
-sample_domain_s = np.ones(Xs.shape[0])
-sample_domain_t = -np.ones(Xt.shape[0]) * 2
 # sphinx_gallery_end_ignore
 
 # %%
@@ -188,6 +175,10 @@ sample_domain_t = -np.ones(Xt.shape[0]) * 2
 # that the :code:`sample_domain` array must be passed by name when fitting the
 # estimator.
 
+# split source and target for visualization and source-target comparison
+Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
+sample_domain_s = np.ones(Xs.shape[0])
+sample_domain_t = -np.ones(Xt.shape[0]) * 2
 
 # create a DA estimator
 clf = CORAL()
@@ -198,9 +189,20 @@ clf.fit(X, y, sample_domain=sample_domain)
 # estimator is designed to predict on target by default
 yt_pred = clf.predict(Xt)
 
+# accuracy on source and on target
+acc_s = clf.score(Xs, ys)
+acc_t = clf.score(Xt, yt)
+
+# sphinx_gallery_start_ignore
+plt.figure(5, (7.5, 3.625))
+source_target_comparison(
+    X, y, sample_domain, "Predictions on conditional shift", prediction=True, model=clf
+)
+plt.tight_layout()
 # accuracy on source and target
-print("Accuracy on source:", clf.score(Xs, ys))
-print("Accuracy on target:", clf.score(Xt, yt))
+print("Accuracy on source:", acc_s)
+print("Accuracy on target:", acc_t)
+# sphinx_gallery_end_ignore
 
 # %%
 # DA estimator in a pipeline
