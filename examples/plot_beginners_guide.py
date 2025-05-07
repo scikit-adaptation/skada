@@ -29,6 +29,7 @@ with matplotlib is hidden (but is available in the source file of the example).
 # Author: Maxence Barneche
 #
 # License: BSD 3-Clause
+# sphinx_gallery_thumbnail_number = 4
 
 # %%
 # Necessary imports
