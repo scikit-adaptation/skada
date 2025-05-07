@@ -201,7 +201,7 @@ plt.tight_layout()
 # relation between input and output variables.
 
 X, y, sample_domain = make_shifted_datasets(
-    n_samples_source=20, n_samples_target=20, shift="conditional_shift", random_state=42
+    n_samples_source=20, n_samples_target=20, shift="concept_drift", random_state=42
 )
 
 # sphinx_gallery_start_ignore
