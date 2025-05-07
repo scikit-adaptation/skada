@@ -10,7 +10,7 @@ In this page, we will present the key concepts and methods for starting to use S
 and how to use them.
 
 * :ref:`Shifted dataset creation<Creating a shifted dataset>`:
-    * :ref:`Covariate shift<Example of covariate shift`
+    * :ref:`Covariate shift<Example of covariate shift>`
     * :ref:`Target shift<Example of target shift>`
     * :ref:`Conditional shift<Example of conditional shift>`
     * :ref:`Subspace shift<Example of subspace shift>`
@@ -18,7 +18,7 @@ and how to use them.
 * :ref:`Methods<Adaptation methods>`
     * :ref:`Reweighting<Source dataset reweighting>`
     * :ref:`Mapping<Source to target mapping>`
-    * :ref:`Subspace<Subspace mapping>`
+    * :ref:`Subspace<Subspace methods>`
 
 * :ref:`Summary<Results summary>`
 
@@ -29,7 +29,7 @@ with matplotlib is hidden (but is available in the source file of the example).
 # Author: Maxence Barneche
 #
 # License: BSD 3-Clause
-# sphinx_gallery_thumbnail_number = 4
+# sphinx_gallery_thumbnail_number = 6
 
 # %%
 # Necessary imports
@@ -37,15 +37,20 @@ with matplotlib is hidden (but is available in the source file of the example).
 # sphinx_gallery_start_ignore
 import matplotlib.pyplot as plt
 import numpy as np
+from sklearn.linear_model import LogisticRegression
 
 # sphinx_gallery_end_ignore
-from skada import source_target_split
+from sklearn.neighbors import KernelDensity
+from sklearn.svm import SVC
+
+import skada
 from skada.datasets import make_shifted_datasets
+from skada.utils import extract_source_indices
 
 # %%
 
 # sphinx_gallery_start_ignore
-fig_size = (7.5, 3.625)
+fig_size = (8, 4)
 
 
 def decision_borders_plot(X, model):
@@ -64,11 +69,20 @@ def decision_borders_plot(X, model):
     plt.contourf(xx, yy, Z, alpha=0.4, cmap="tab10", vmax=9)
 
 
-def source_target_comparison(X, y, sample_domain, title, prediction=False, model=None):
-    Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
+def source_target_comparison(
+    X, y, sample_domain, title, prediction=False, model=None, size=25
+):
+    Xs, Xt, ys, yt = skada.source_target_split(X, y, sample_domain=sample_domain)
     plt.subplot(1, 2, 1)
     plt.scatter(
-        Xs[:, 0], Xs[:, 1], c=ys, cmap="tab10", vmax=9, label="Source", alpha=0.8
+        Xs[:, 0],
+        Xs[:, 1],
+        s=size,
+        c=ys,
+        cmap="tab10",
+        vmax=9,
+        label="Source",
+        alpha=0.8,
     )
 
     plt.xticks([])
@@ -127,7 +141,7 @@ X, y, sample_domain = make_shifted_datasets(
 # To split the dataset between the source and the target dataset, use
 # :code:`source_target_split` from the main module
 
-Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
+Xs, Xt, ys, yt = skada.source_target_split(X, y, sample_domain=sample_domain)
 # %%
 # .. NOTE::
 #
@@ -218,28 +232,167 @@ plt.tight_layout()
 # Adaptation methods
 # ------------------
 #
+# As stated before, a model trained on a source dataset will have a decrease
+# in performance when evaluated on a shifted target dataset. Thus, there is a need
+# to train the model again to account for the shift in data distribution.
 #
-
-# %%
+# In some cases, the source is the only data fully available, as the target may not
+# have been classified yet. A common solution is to adapt the source data.
+#
+# For every shift, there is a method to adapt the source data to train the model on.
+#
 # Source dataset reweighting
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
+# A common method for dealing with covariate shift is reweighting the source data.
 #
+# SKADA handles this with multiple reweighting methods:
+#
+# * Density Reweighting
+# * Gaussian Reweighting
+# * Discr. Reweighting
+# * KLIEPReweight
+# * Nearest Neighbor reweighting
+# * Kernel Mean Matching
+#
+# Each method estimates the weight for the source dataset for an estimator
+# to predict labels from the target dataset.
+#
+# Using a simple :code:`LogisticRegression` classifier,
+# we can see that the estimator is not optimal on the target dataset.
+
+X, y, sample_domain = make_shifted_datasets(
+    n_samples_source=20, n_samples_target=20, shift="covariate_shift", random_state=42
+)
+Xs, Xt, ys, yt = skada.source_target_split(X, y, sample_domain=sample_domain)
+
+base_classifier = LogisticRegression().set_fit_request(sample_weight=True)
+base_classifier.fit(Xs, ys)
+
+# compute the accuracy of the model
+accuracy = base_classifier.score(Xt, yt)
+
+# sphinx_gallery_start_ignore
+plt.figure(5, fig_size)
+source_target_comparison(
+    X,
+    y,
+    sample_domain,
+    "Predictions without reweighting",
+    prediction=True,
+    model=base_classifier,
+)
+plt.tight_layout()
+print("Accuracy on target:", accuracy)
+# sphinx_gallery_end_ignore
+
+# %%
+# The reweighting is done by transforming the source dataset using an instance of
+# the :code:`Adapter` class provided by SKADA.
+
+# We define the classifier as a da pipeline from the base classifier
+clf = skada.DensityReweight(
+    base_estimator=base_classifier, weight_estimator=KernelDensity(bandwidth=0.5)
+)
+
+clf.fit(X, y, sample_domain=sample_domain)
+
+# To extract the weights, we take the weight estimator from the pipeline
+weight_estimator = clf[0].get_estimator()
+idx = extract_source_indices(sample_domain)
+# then compute the weights corresponding to the source dataset
+weights = weight_estimator.compute_weights(X, sample_domain=sample_domain)[idx]
+
+# comput the accuracy of the newly obtained model
+accuracy = clf.score(Xt, yt)
+
+# sphinx_gallery_start_ignore
+weights = 15 * weights
+plt.figure(6, fig_size)
+source_target_comparison(
+    X,
+    y,
+    sample_domain,
+    "Prediction on reweighted dataset",
+    prediction=True,
+    model=clf,
+    size=weights,
+)
+plt.tight_layout()
+print("Accuracy on target:", accuracy)
+# sphinx_gallery_end_ignore
+
 
 # %%
 # Source to target mapping
 # ~~~~~~~~~~~~~~~~~~~~~~~~
 #
+# The traditional way of dealing with conditional shift is via mapping.
 #
 
+X, y, sample_domain = make_shifted_datasets(
+    n_samples_source=20, n_samples_target=20, shift="concept_drift", random_state=42
+)
+
+Xs, Xt, ys, yt = skada.source_target_split(X, y, sample_domain=sample_domain)
+
 # %%
-# Subspace mapping
+#
+#
+#
+# %%
+# Subspace methods
 # ~~~~~~~~~~~~~~~~
 #
+# The goal of a subspace method is to project data from its original space into a
+# lower dimensional subspace. Subspace methods are particularly effective when dealing
+# with subspace shift, when the source and target data have the same distribution when
+# projected onto a subspace.
 #
+# There are multiple methods available in SKADA:
+#
+# * Subspace alignment
+# * Transfer Component Analysis
+# * Transfer Joint Matching
+# * Transfer Subspace Learning
+#
+# Without domain adaptation, the estimator will have difficulties on the target
+
+X, y, sample_domain = make_shifted_datasets(
+    n_samples_source=20, n_samples_target=20, shift="subspace", random_state=42
+)
+
+Xs, Xt, ys, yt = skada.source_target_split(X, y, sample_domain=sample_domain)
+
+# setting and fitting the estimator on the source data
+base_classifier = SVC()
+base_classifier.fit(Xs, ys)
+
+# accuracy on target data
+accuracy = base_classifier.score(Xt, yt)
+
+# sphinx_gallery_start_ignore
+plt.figure(9, fig_size)
+source_target_comparison(
+    X, y, sample_domain, "Prediction on dataset", True, base_classifier
+)
+plt.tight_layout()
+print("Accuracy on target:", accuracy)
+# sphinx_gallery_end_ignore
+
+# %%
+# Now, we will illustrate what happens when using the Transfer Subspace Learning method
+clf = skada.TransferSubspaceLearning(base_classifier, n_components=1)
+clf.fit(X, y, sample_domain=sample_domain)
+accuracy = clf.score(Xt, yt)
+
+# sphinx_gallery_start_ignore
+plt.figure(10, fig_size)
+source_target_comparison(X, y, sample_domain, "Prediction on dataset", True, clf)
+plt.tight_layout()
+print("Accuracy on target:", accuracy)
+# sphinx_gallery_end_ignore
 
 # %%
 # Results summary
 # ---------------
-#
-#
