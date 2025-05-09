@@ -416,7 +416,7 @@ print("Accuracy on target:", accuracy)
 
 adapted_clf = skada.OTMapping(base_classifier)
 adapted_clf.fit(X, y, sample_domain=sample_domain)
-accuracy = adapted_clf.fit(Xt, yt)
+accuracy = adapted_clf.score(Xt, yt)
 
 # sphinx_gallery_start_ignore
 n_tot_source = Xs.shape[0]
