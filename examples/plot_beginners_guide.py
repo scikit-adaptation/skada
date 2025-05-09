@@ -498,6 +498,9 @@ print("\nAccuracy on target:", accuracy)
 # ---------------
 #
 # Here is a summary of the different shifts and the domain adaptation methods used.
+
+# Using everything we have used before
+
 # sphinx_gallery_start_ignore
 plt.figure(13, (15, 15))
 shift_list = ["covariate_shift", "target_shift", "conditional_shift", "subspace"]
