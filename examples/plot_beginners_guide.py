@@ -74,15 +74,15 @@ def decision_borders_plot(X, model):
     plt.contourf(xx, yy, Z, alpha=0.4, cmap="tab10", vmax=9)
 
 
-def plot_full_data(X, y, title, size=25, second_color=False):
-    if not second_color:
-        plt.scatter(X[:, 0], X[:, 1], s=size, c=y, cmap="tab10", vmax=9, alpha=0.8)
-    else:
-        plt.scatter(X[:, 0], X[:, 1], s=size, c=y, alpha=0.8)
+def plot_full_data(X, y, title=None, size=25, marker="o"):
+    plt.scatter(
+        X[:, 0], X[:, 1], s=size, c=y, cmap="tab10", vmax=9, marker=marker, alpha=0.8
+    )
     plt.xticks([])
     plt.yticks([])
     if title is not None:
-        plt.title(title)
+        plt.title(title, fontsize=16)
+    plt.gca().set_aspect("equal")
 
 
 def source_target_comparison(
@@ -113,14 +113,11 @@ def source_target_comparison(
 # Creating a shifted dataset
 # --------------------------
 #
-# Data shift occurs when there is a change in data distribution. It can come
-# from a change in the input dataset, the target variable or the latent relations
-# between the two.
-#
-# This implies that a model trained on an original dataset (called source)
-# will have a decrease in performance when predicting on the shifted dataset
-# (called target).
-# We will see the different methods used to deal with data shift
+# Data shift refers to changes in the distribution
+# of inputs, targets, or their relationships.
+# As a result, a model trained on the source data may perform
+# poorly on the shifted target data.
+# Methods for handling data shift are discussed
 # in the :ref:`methods<Adaptation methods>` section.
 #
 # DA datasets provided by SKADA are organized as follows:
@@ -148,8 +145,7 @@ Xs, Xt, ys, yt = skada.source_target_split(X, y, sample_domain=sample_domain)
 #
 #   For reproducibility, we will use the seed 42 throughout the guide.
 #   For simplicity, we will use a small (20) number of samples
-#   in both source and target. Feel free to change these arguments to your liking once
-#   you have a good understanding of the process.
+#   in both source and target.
 #
 # .. NOTE::
 #
@@ -227,60 +223,6 @@ X, y, sample_domain = make_shifted_datasets(
 plt.figure(4, fig_size)
 source_target_comparison(X, y, sample_domain, "Example subspace shift")
 plt.tight_layout()
-# sphinx_gallery_end_ignore
-
-# %%
-# The subspace (projected on the positive diagonal)
-
-# sphinx_gallery_start_ignore
-Xs, Xt, ys, yt = skada.source_target_split(X, y, sample_domain=sample_domain)
-
-clf = skada.TransferJointMatching(SVC(), n_components=1)
-clf.fit(X, y, sample_domain=sample_domain)
-
-subspace_estimator = clf.steps[-2][1].get_estimator()
-Xs_sub = subspace_estimator.transform(
-    Xs,
-    # mark all samples as sources
-    sample_domain=np.ones(Xs.shape[0]),
-    allow_source=True,
-)
-Xt_sub = subspace_estimator.transform(Xt)
-Xs_sub *= 9
-mean = Xs_sub.mean()
-Xs_sub = Xs_sub - mean
-Xs_sub = -Xs_sub + mean
-Xs_sub = np.c_[Xs_sub, Xs_sub]
-
-plt.figure(5, fig_size)
-plt.subplot(1, 2, 1)
-plot_full_data(Xs, ys, "Source data (projected)")
-plot_full_data(Xs_sub, ys, None)
-for i in range(len(Xs)):
-    plt.plot(
-        [Xs[i, 0], Xs_sub[i, 0]],
-        [Xs[i, 1], Xs_sub[i, 0]],
-        "-g",
-        alpha=0.2,
-        zorder=0,
-    )
-
-plt.subplot(1, 2, 2)
-Xt_sub *= 9
-mean = Xt_sub.mean()
-Xt_sub = Xt_sub - mean
-Xt_sub = -Xt_sub + mean
-Xt_sub = np.c_[Xt_sub, Xt_sub]
-plot_full_data(Xt, yt, "Target data (projected)")
-plot_full_data(Xt_sub, yt, None)
-for i in range(len(Xt)):
-    plt.plot(
-        [Xt[i, 0], Xt_sub[i, 0]],
-        [Xt[i, 1], Xt_sub[i, 0]],
-        "-g",
-        alpha=0.2,
-        zorder=0,
-    )
 # sphinx_gallery_end_ignore
 
 # %%
@@ -426,8 +368,8 @@ T = adapter.ot_transport_.coupling_
 T = T / T.max()
 
 plt.figure(9)
-plot_full_data(Xs, ys, "Mapping source (orange, blue) to target (yellow, purple)")
-plot_full_data(Xt, yt, None, second_color=True)
+plot_full_data(Xs, ys, "Mapping source (circle) to target (triangle)")
+plot_full_data(Xt, yt, marker="v")
 for i in range(n_tot_source):
     for j in range(n_tot_target):
         if T[i, j] > 0:
@@ -439,10 +381,13 @@ for i in range(n_tot_source):
                 zorder=0,
             )
 
+plt.tight_layout()
+
 plt.figure(10, fig_size)
 source_target_comparison(
     X, y, sample_domain, "Predictions after mapping", True, adapted_clf
 )
+plt.tight_layout()
 print("Accuracy on target:", accuracy)
 # sphinx_gallery_end_ignore
 
@@ -493,6 +438,53 @@ adapted_clf.fit(X, y, sample_domain=sample_domain)
 accuracy = adapted_clf.score(Xt, yt)
 
 # sphinx_gallery_start_ignore
+clf = skada.TransferJointMatching(SVC(), n_components=1)
+clf.fit(X, y, sample_domain=sample_domain)
+
+subspace_estimator = clf.steps[-2][1].get_estimator()
+Xs_sub = subspace_estimator.transform(
+    Xs,
+    # mark all samples as sources
+    sample_domain=np.ones(Xs.shape[0]),
+    allow_source=True,
+)
+Xt_sub = subspace_estimator.transform(Xt)
+Xs_sub *= 9
+mean = Xs_sub.mean()
+Xs_sub = Xs_sub - mean
+Xs_sub = -Xs_sub + mean
+Xs_sub = np.c_[Xs_sub, Xs_sub]
+
+plt.figure(5, fig_size)
+plt.subplot(1, 2, 1)
+plot_full_data(Xs, ys, "Source data (projected)")
+plot_full_data(Xs_sub, ys, None)
+for i in range(len(Xs)):
+    plt.plot(
+        [Xs[i, 0], Xs_sub[i, 0]],
+        [Xs[i, 1], Xs_sub[i, 0]],
+        "-g",
+        alpha=0.2,
+        zorder=0,
+    )
+
+plt.subplot(1, 2, 2)
+Xt_sub *= 9
+mean = Xt_sub.mean()
+Xt_sub = Xt_sub - mean
+Xt_sub = -Xt_sub + mean
+Xt_sub = np.c_[Xt_sub, Xt_sub]
+plot_full_data(Xt, yt, "Target data (projected)")
+plot_full_data(Xt_sub, yt, None)
+for i in range(len(Xt)):
+    plt.plot(
+        [Xt[i, 0], Xt_sub[i, 0]],
+        [Xt[i, 1], Xt_sub[i, 0]],
+        "-g",
+        alpha=0.2,
+        zorder=0,
+    )
+
 plt.figure(12, fig_size)
 source_target_comparison(
     X, y, sample_domain, "Prediction on dataset", True, adapted_clf
@@ -506,9 +498,8 @@ print("\nAccuracy on target:", accuracy)
 # ---------------
 #
 # Here is a summary of the different shifts and the domain adaptation methods used.
-
 # sphinx_gallery_start_ignore
-plt.figure(13, (17.5, 9))
+plt.figure(13, (15, 15))
 shift_list = ["covariate_shift", "target_shift", "conditional_shift", "subspace"]
 clfs = {
     "covariate_shift": LogisticRegression().set_fit_request(sample_weight=True),
@@ -524,19 +515,19 @@ for indx, shift in enumerate(shift_list):
     Xs, Xt, ys, yt = skada.source_target_split(X, y, sample_domain=sd)
     shift_name = shift.capitalize().replace("_", " ")
 
-    plt.subplot(4, 5, 2 + indx)
-    plot_full_data(X, y, shift_name)
+    plt.subplot(4, 4, 1 + indx)
+    plot_full_data(Xs, ys, shift_name)
 
-    plt.subplot(4, 5, 7 + indx)
-    plt.xlim(X[:, 0].min() - 1, X[:, 0].max() + 1)
-    plt.ylim(X[:, 1].min() - 1, X[:, 1].max() + 1)
-    plot_full_data(Xt, yt, None)
+    plt.subplot(4, 4, 5 + indx)
+    plt.xlim(X[:, 0].min() - 2, X[:, 0].max() + 2)
+    plt.ylim(X[:, 1].min() - 2, X[:, 1].max() + 2)
+    plot_full_data(Xt, yt)
 
     base_clf = clfs[shift]
     base_clf.fit(Xs, ys)
     shift_acc_before[shift_name] = base_clf.score(Xt, yt)
-    plt.subplot(4, 5, 12 + indx)
-    plot_full_data(Xt, yt, None)
+    plt.subplot(4, 4, 9 + indx)
+    plot_full_data(Xt, yt)
     decision_borders_plot(X, base_clf)
 
     if shift == "covariate_shift" or shift == "target_shift":
@@ -552,34 +543,26 @@ for indx, shift in enumerate(shift_list):
 
     adapted_clf.fit(X, y, sample_domain=sd)
     shift_acc_after[shift_name] = adapted_clf.score(Xt, yt)
-    plt.subplot(4, 5, 17 + indx)
-    plot_full_data(Xt, yt, None)
+    plt.subplot(4, 4, 13 + indx)
+    plot_full_data(Xt, yt)
     decision_borders_plot(X, adapted_clf)
 
 X, y, sd = make_shifted_datasets(20, 20, random_state=42)
 Xs, Xt, ys, yt = skada.source_target_split(X, y, sample_domain=sd)
 
-plt.subplot(4, 5, 1)
-plot_full_data(Xs, ys, "Source data")
-plt.ylabel("Full dataset", fontsize=15)
+plt.subplot(4, 4, 1)
+plt.ylabel("Source data", fontsize=16)
 
-plt.subplot(4, 5, 6)
-plot_full_data(Xs, ys, None)
-plt.ylabel("Observed data", fontsize=15)
+plt.subplot(4, 4, 5)
+plt.ylabel("Target data", fontsize=16)
 
-clf = SVC()
-clf.fit(Xs, ys)
-plt.subplot(4, 5, 11)
-plot_full_data(Xs, ys, None)
-decision_borders_plot(Xs, clf)
-plt.ylabel("Before DA", fontsize=15)
+plt.subplot(4, 4, 9)
+plt.ylabel("Train before DA", fontsize=16)
 
-plt.subplot(4, 5, 16)
-plot_full_data(Xs, ys, None)
-decision_borders_plot(Xs, clf)
-plt.ylabel("After DA", fontsize=15)
+plt.subplot(4, 4, 13)
+plt.ylabel("Train after DA", fontsize=16)
 
-plt.suptitle("Summary plot", fontsize=20)
+plt.suptitle("Summary plot", fontsize=22)
 plt.tight_layout()
 
 print("\nAccuracy scores before Domain Adaptation:")
