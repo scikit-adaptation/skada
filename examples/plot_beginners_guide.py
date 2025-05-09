@@ -359,7 +359,7 @@ idx = extract_source_indices(sample_domain)
 # then compute the weights corresponding to the source dataset
 weights = weight_estimator.compute_weights(X, sample_domain=sample_domain)[idx]
 
-# comput the accuracy of the newly obtained model
+# compute the accuracy of the newly obtained model
 accuracy = clf.score(Xt, yt)
 
 # sphinx_gallery_start_ignore
@@ -440,6 +440,8 @@ for i in range(n_tot_source):
 
 plt.figure(10, fig_size)
 source_target_comparison(X, y, sample_domain, "Predictions after mapping", True, clf)
+# sphinx_gallery_end_ignore
+
 # %%
 # Subspace methods
 # ~~~~~~~~~~~~~~~~
