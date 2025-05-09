@@ -29,7 +29,7 @@ with matplotlib is hidden (but is available in the source file of the example).
 # Author: Maxence Barneche
 #
 # License: BSD 3-Clause
-# sphinx_gallery_thumbnail_number = 6
+# sphinx_gallery_thumbnail_number = 13
 
 # %%
 # Necessary imports
@@ -46,8 +46,6 @@ from sklearn.svm import SVC
 import skada
 from skada.datasets import make_shifted_datasets
 from skada.utils import extract_source_indices
-
-# %%
 
 # sphinx_gallery_start_ignore
 fig_size = (8, 4)
@@ -76,10 +74,13 @@ def decision_borders_plot(X, model):
     plt.contourf(xx, yy, Z, alpha=0.4, cmap="tab10", vmax=9)
 
 
-def plot_full_data(X, y, title, prediction=False, model=None, size=25):
-    plt.scatter(
-        X[:, 0], X[:, 1], s=size, c=y, cmap="tab10", vmax=9, label="Target", alpha=0.8
-    )
+def plot_full_data(
+    X, y, title, prediction=False, model=None, size=25, second_color=False
+):
+    if not second_color:
+        plt.scatter(X[:, 0], X[:, 1], s=size, c=y, cmap="tab10", vmax=9, alpha=0.8)
+    else:
+        plt.scatter(X[:, 0], X[:, 1], s=size, c=y, alpha=0.8)
     plt.xticks([])
     plt.yticks([])
     if prediction:
@@ -94,9 +95,13 @@ def source_target_comparison(
     Xs, Xt, ys, yt = skada.source_target_split(X, y, sample_domain=sample_domain)
 
     plt.subplot(1, 2, 1)
+    plt.xlim(X[:, 0].min() - 1, X[:, 0].max() + 1)
+    plt.ylim(X[:, 1].min() - 1, X[:, 1].max() + 1)
     plot_full_data(Xs, ys, "Source data", prediction, model, size)
 
     plt.subplot(1, 2, 2)
+    plt.xlim(X[:, 0].min() - 1, X[:, 0].max() + 1)
+    plt.ylim(X[:, 1].min() - 1, X[:, 1].max() + 1)
     plot_full_data(Xt, yt, "Target data", prediction, model)
 
     plt.suptitle(title, fontsize=16)
@@ -225,6 +230,60 @@ plt.tight_layout()
 # sphinx_gallery_end_ignore
 
 # %%
+# The subspace (projected on the positive diagonal)
+
+# sphinx_gallery_start_ignore
+Xs, Xt, ys, yt = skada.source_target_split(X, y, sample_domain=sample_domain)
+
+clf = skada.TransferJointMatching(SVC(), n_components=1)
+clf.fit(X, y, sample_domain=sample_domain)
+
+subspace_estimator = clf.steps[-2][1].get_estimator()
+Xs_sub = subspace_estimator.transform(
+    Xs,
+    # mark all samples as sources
+    sample_domain=np.ones(Xs.shape[0]),
+    allow_source=True,
+)
+Xt_sub = subspace_estimator.transform(Xt)
+Xs_sub *= 9
+mean = Xs_sub.mean()
+Xs_sub = Xs_sub - mean
+Xs_sub = -Xs_sub + mean
+Xs_sub = np.c_[Xs_sub, Xs_sub]
+
+plt.figure(5, fig_size)
+plt.subplot(1, 2, 1)
+plot_full_data(Xs, ys, "Source data (projected)")
+plot_full_data(Xs_sub, ys, None)
+for i in range(len(Xs)):
+    plt.plot(
+        [Xs[i, 0], Xs_sub[i, 0]],
+        [Xs[i, 1], Xs_sub[i, 0]],
+        "-g",
+        alpha=0.2,
+        zorder=0,
+    )
+
+plt.subplot(1, 2, 2)
+Xt_sub *= 9
+mean = Xt_sub.mean()
+Xt_sub = Xt_sub - mean
+Xt_sub = -Xt_sub + mean
+Xt_sub = np.c_[Xt_sub, Xt_sub]
+plot_full_data(Xt, yt, "Target data (projected)")
+plot_full_data(Xt_sub, yt, None)
+for i in range(len(Xt)):
+    plt.plot(
+        [Xt[i, 0], Xt_sub[i, 0]],
+        [Xt[i, 1], Xt_sub[i, 0]],
+        "-g",
+        alpha=0.2,
+        zorder=0,
+    )
+# sphinx_gallery_end_ignore
+
+# %%
 # Adaptation methods
 # ------------------
 #
@@ -240,7 +299,8 @@ plt.tight_layout()
 # Source dataset reweighting
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# A common method for dealing with covariate shift is reweighting the source data.
+# A common method for dealing with covariate and target shift is reweighting
+# the source data.
 #
 # SKADA handles this with multiple reweighting methods:
 #
@@ -269,7 +329,7 @@ base_classifier.fit(Xs, ys)
 accuracy = base_classifier.score(Xt, yt)
 
 # sphinx_gallery_start_ignore
-plt.figure(5, fig_size)
+plt.figure(6, fig_size)
 source_target_comparison(
     X,
     y,
@@ -286,7 +346,7 @@ print("Accuracy on target:", accuracy)
 # The reweighting is done by transforming the source dataset using an instance of
 # the :code:`Adapter` class provided by SKADA.
 
-# We define the classifier as a da pipeline from the base classifier
+# Define the classifier as a domain adaptation (DA) pipeline from the base classifier
 clf = skada.DensityReweight(
     base_estimator=base_classifier, weight_estimator=KernelDensity(bandwidth=0.5)
 )
@@ -304,7 +364,7 @@ accuracy = clf.score(Xt, yt)
 
 # sphinx_gallery_start_ignore
 weights = 15 * weights
-plt.figure(6, fig_size)
+plt.figure(7, fig_size)
 source_target_comparison(
     X,
     y,
@@ -323,19 +383,63 @@ print("Accuracy on target:", accuracy)
 # Source to target mapping
 # ~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# The traditional way of dealing with conditional shift is via mapping.
+# The traditional way of dealing with conditional and target shift is via
+# mapping the source data to the target data.
 #
+# First, let's look at what happens wen we try to fit an estimator on the target
 
 X, y, sample_domain = make_shifted_datasets(
     n_samples_source=20, n_samples_target=20, shift="conditional_shift", random_state=42
 )
-
 Xs, Xt, ys, yt = skada.source_target_split(X, y, sample_domain=sample_domain)
 
+# setting and fitting the estimator on the source data
+base_classifier = SVC()
+base_classifier.fit(Xs, ys)
+
+# accuracy on target data
+accuracy = base_classifier.score(Xt, yt)
+
+# sphinx_gallery_start_ignore
+plt.figure(8, fig_size)
+source_target_comparison(
+    X, y, sample_domain, "Prediction without mapping", True, base_classifier
+)
+plt.tight_layout()
+print("Accuracy on target:", accuracy)
+# sphinx_gallery_end_ignore
+
 # %%
-#
-#
-#
+# Mapping consist of mapping point from the source data to point from the target data
+# using optimal transport methods. This is done automatically
+# by the :code:`OTMapping` method.
+
+clf = skada.OTMapping(base_classifier)
+clf.fit(X, y, sample_domain=sample_domain)
+
+# sphinx_gallery_start_ignore
+n_tot_source = Xs.shape[0]
+n_tot_target = Xt.shape[0]
+adapter = clf.named_steps["otmappingadapter"].get_estimator()
+T = adapter.ot_transport_.coupling_
+T = T / T.max()
+
+plt.figure(9)
+plot_full_data(Xs, ys, "Mapping source (orange, blue) to target (yellow, purple)")
+plot_full_data(Xt, yt, None, second_color=True)
+for i in range(n_tot_source):
+    for j in range(n_tot_target):
+        if T[i, j] > 0:
+            plt.plot(
+                [Xs[i, 0], Xt[j, 0]],
+                [Xs[i, 1], Xt[j, 1]],
+                "-g",
+                alpha=T[i, j] * 0.5,
+                zorder=0,
+            )
+
+plt.figure(10, fig_size)
+source_target_comparison(X, y, sample_domain, "Predictions after mapping", True, clf)
 # %%
 # Subspace methods
 # ~~~~~~~~~~~~~~~~
@@ -368,7 +472,7 @@ base_classifier.fit(Xs, ys)
 accuracy = base_classifier.score(Xt, yt)
 
 # sphinx_gallery_start_ignore
-plt.figure(9, fig_size)
+plt.figure(11, fig_size)
 source_target_comparison(
     X, y, sample_domain, "Prediction on dataset", True, base_classifier
 )
@@ -383,7 +487,7 @@ clf.fit(X, y, sample_domain=sample_domain)
 accuracy = clf.score(Xt, yt)
 
 # sphinx_gallery_start_ignore
-plt.figure(10, fig_size)
+plt.figure(12, fig_size)
 source_target_comparison(X, y, sample_domain, "Prediction on dataset", True, clf)
 plt.tight_layout()
 print("Accuracy on target:", accuracy)
@@ -394,11 +498,11 @@ print("Accuracy on target:", accuracy)
 # ---------------
 
 # sphinx_gallery_start_ignore
-plt.figure(10, (15, 7.5))
+plt.figure(13, (15, 7.5))
 shift_list = ["covariate_shift", "target_shift", "conditional_shift", "subspace"]
 clfs = {
     "covariate_shift": LogisticRegression().set_fit_request(sample_weight=True),
-    "target_shift": LogisticRegression(),
+    "target_shift": LogisticRegression().set_fit_request(sample_weight=True),
     "conditional_shift": SVC(),
     "subspace": SVC(),
 }
@@ -410,13 +514,16 @@ for indx, shift in enumerate(shift_list):
     Xs, Xt, ys, yt = skada.source_target_split(X, y, sample_domain=sd)
     shift_name = shift.capitalize().replace("_", " ")
 
-    plt.subplot(3, 5, 2 + indx)
-    plot_full_data(Xt, yt, shift_name)
+    plt.subplot(4, 5, 2 + indx)
+    plot_full_data(X, y, shift_name)
+
+    plt.subplot(4, 5, 7 + indx)
+    plot_full_data(Xt, yt, None)
 
     base_clf = clfs[shift]
     base_clf.fit(Xs, ys)
     shift_acc_before[shift_name] = base_clf.score(Xt, yt)
-    plt.subplot(3, 5, 7 + indx)
+    plt.subplot(4, 5, 12 + indx)
     plot_full_data(Xt, yt, None, True, base_clf)
 
     if shift == "covariate_shift":
@@ -425,32 +532,39 @@ for indx, shift in enumerate(shift_list):
         )
 
     elif shift == "target_shift":
-        ...
+        clf = skada.DensityReweight(
+            base_clf, weight_estimator=KernelDensity(bandwidth=0.5)
+        )
 
     elif shift == "conditional_shift":
-        ...
+        clf = skada.OTMapping(base_clf)
 
     elif shift == "subspace":
         clf = skada.TransferSubspaceLearning(base_clf, n_components=1)
 
     clf.fit(X, y, sample_domain=sd)
     shift_acc_after[shift_name] = clf.score(Xt, yt)
-    plt.subplot(3, 5, 12 + indx)
+    plt.subplot(4, 5, 17 + indx)
     plot_full_data(Xt, yt, None, True, clf)
 
 X, y, sd = make_shifted_datasets(20, 20, random_state=42)
 Xs, Xt, ys, yt = skada.source_target_split(X, y, sample_domain=sd)
-plt.subplot(3, 5, 1)
+
+plt.subplot(4, 5, 1)
 plot_full_data(Xs, ys, "Source data")
-plt.ylabel("Data", fontsize=15)
+plt.ylabel("Full dataset", fontsize=15)
+
+plt.subplot(4, 5, 6)
+plot_full_data(Xs, ys, "Source data")
+plt.ylabel("Observed data", fontsize=15)
 
 clf = SVC()
 clf.fit(Xs, ys)
-plt.subplot(3, 5, 6)
+plt.subplot(4, 5, 11)
 plot_full_data(Xs, ys, None, True, clf)
 plt.ylabel("Before DA", fontsize=15)
 
-plt.subplot(3, 5, 11)
+plt.subplot(4, 5, 16)
 plot_full_data(Xs, ys, None, True, clf)
 plt.ylabel("After DA", fontsize=15)
 
