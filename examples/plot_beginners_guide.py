@@ -53,6 +53,13 @@ from skada.utils import extract_source_indices
 fig_size = (8, 4)
 
 
+def print_scores_as_table(scores):
+    max_len = max(len(k) for k in scores.keys())
+    for k, v in scores.items():
+        print(f"{k}{' '*(max_len - len(k))} | ", end="")
+        print(f"{v*100}{' '*(6-len(str(v*100)))}%")
+
+
 def decision_borders_plot(X, model):
     # Create a meshgrid
     x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
@@ -69,41 +76,30 @@ def decision_borders_plot(X, model):
     plt.contourf(xx, yy, Z, alpha=0.4, cmap="tab10", vmax=9)
 
 
+def plot_full_data(X, y, title, prediction=False, model=None, size=25):
+    plt.scatter(
+        X[:, 0], X[:, 1], s=size, c=y, cmap="tab10", vmax=9, label="Target", alpha=0.8
+    )
+    plt.xticks([])
+    plt.yticks([])
+    if prediction:
+        decision_borders_plot(X, model)
+    if title is not None:
+        plt.title(title)
+
+
 def source_target_comparison(
     X, y, sample_domain, title, prediction=False, model=None, size=25
 ):
     Xs, Xt, ys, yt = skada.source_target_split(X, y, sample_domain=sample_domain)
-    plt.subplot(1, 2, 1)
-    plt.scatter(
-        Xs[:, 0],
-        Xs[:, 1],
-        s=size,
-        c=ys,
-        cmap="tab10",
-        vmax=9,
-        label="Source",
-        alpha=0.8,
-    )
 
-    plt.xticks([])
-    plt.yticks([])
-    plt.title("Source data")
-    if prediction:
-        decision_borders_plot(X, model)
-    ax = plt.axis()
+    plt.subplot(1, 2, 1)
+    plot_full_data(Xs, ys, "Source data", prediction, model, size)
 
     plt.subplot(1, 2, 2)
-    plt.scatter(
-        Xt[:, 0], Xt[:, 1], c=yt, cmap="tab10", vmax=9, label="Target", alpha=0.8
-    )
-    plt.xticks([])
-    plt.yticks([])
-    plt.title("Target data")
-    if prediction:
-        decision_borders_plot(X, model)
-    plt.axis(ax)
+    plot_full_data(Xt, yt, "Target data", prediction, model)
 
-    plt.suptitle(title)
+    plt.suptitle(title, fontsize=16)
 
 
 # sphinx_gallery_end_ignore
@@ -201,7 +197,7 @@ plt.tight_layout()
 # relation between input and output variables.
 
 X, y, sample_domain = make_shifted_datasets(
-    n_samples_source=20, n_samples_target=20, shift="concept_drift", random_state=42
+    n_samples_source=20, n_samples_target=20, shift="conditional_shift", random_state=42
 )
 
 # sphinx_gallery_start_ignore
@@ -331,7 +327,7 @@ print("Accuracy on target:", accuracy)
 #
 
 X, y, sample_domain = make_shifted_datasets(
-    n_samples_source=20, n_samples_target=20, shift="concept_drift", random_state=42
+    n_samples_source=20, n_samples_target=20, shift="conditional_shift", random_state=42
 )
 
 Xs, Xt, ys, yt = skada.source_target_split(X, y, sample_domain=sample_domain)
@@ -396,3 +392,73 @@ print("Accuracy on target:", accuracy)
 # %%
 # Results summary
 # ---------------
+
+# sphinx_gallery_start_ignore
+plt.figure(10, (15, 7.5))
+shift_list = ["covariate_shift", "target_shift", "conditionl_shift", "subspace"]
+clfs = {
+    "covariate_shift": LogisticRegression().set_fit_request(sample_weight=True),
+    "target_shift": LogisticRegression(),
+    "conditionl_shift": SVC(),
+    "subspace": SVC(),
+}
+shift_acc_before = {}
+shift_acc_after = {}
+
+for indx, shift in enumerate(shift_list):
+    X, y, sd = make_shifted_datasets(20, 20, shift, random_state=42)
+    Xs, Xt, ys, yt = skada.source_target_split(X, y, sample_domain=sd)
+    shift_name = shift.capitalize().replace("_", " ")
+
+    plt.subplot(3, 5, 2 + indx)
+    plot_full_data(Xt, yt, shift_name)
+
+    base_clf = clfs[shift]
+    base_clf.fit(Xs, ys)
+    shift_acc_before[shift_name] = base_clf.score(Xt, yt)
+    plt.subplot(3, 5, 7 + indx)
+    plot_full_data(Xt, yt, None, True, base_clf)
+
+    if shift == "covariate_shift":
+        clf = skada.DensityReweight(
+            base_estimator=base_clf, weight_estimator=KernelDensity(bandwidth=0.5)
+        )
+
+    elif shift == "target_shift":
+        ...
+
+    elif shift == "conditionl_shift":
+        ...
+
+    elif shift == "subspace":
+        clf = skada.TransferSubspaceLearning(base_clf, n_components=1)
+
+    clf.fit(X, y, sample_domain=sd)
+    shift_acc_after[shift_name] = clf.score(Xt, yt)
+    plt.subplot(3, 5, 12 + indx)
+    plot_full_data(Xt, yt, None, True, clf)
+
+X, y, sd = make_shifted_datasets(20, 20, random_state=42)
+Xs, Xt, ys, yt = skada.source_target_split(X, y, sample_domain=sd)
+plt.subplot(3, 5, 1)
+plot_full_data(Xs, ys, "Source data")
+plt.ylabel("Data", fontsize=15)
+
+clf = SVC()
+clf.fit(Xs, ys)
+plt.subplot(3, 5, 6)
+plot_full_data(Xs, ys, None, True, clf)
+plt.ylabel("Before DA", fontsize=15)
+
+plt.subplot(3, 5, 11)
+plot_full_data(Xs, ys, None, True, clf)
+plt.ylabel("After DA", fontsize=15)
+
+plt.suptitle("Summary plot", fontsize=20)
+plt.tight_layout()
+
+print("Accuracy scores before Domain Adaptation:")
+print_scores_as_table(shift_acc_before)
+print("\nAfter Domain Adaptation:")
+print_scores_as_table(shift_acc_after)
+# sphinx_gallery_end_ignore
