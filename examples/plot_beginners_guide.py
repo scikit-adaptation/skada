@@ -113,11 +113,11 @@ def source_target_comparison(
 # Creating a shifted dataset
 # --------------------------
 #
-# Data shift occurs when there is a change in data distribution. It can come from
+# Data shift occurs when there is a change in data distribution. It can come
 # from a change in the input dataset, the target variable or the latent relations
 # between the two.
 #
-# This implies that a model trained on an original dataset, (called source)
+# This implies that a model trained on an original dataset (called source)
 # will have a decrease in performance when predicting on the shifted dataset
 # (called target).
 # We will see the different methods used to deal with data shift
