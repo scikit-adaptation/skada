@@ -15,7 +15,7 @@ and how to use them.
     * :ref:`Conditional shift<Example of conditional shift>`
     * :ref:`Subspace shift<Example of subspace shift>`
 
-* :ref:`Methods<Adaptation methods>`
+* :ref:`Methods<Adaptation methods>`:
     * :ref:`Reweighting<Source dataset reweighting>`
     * :ref:`Mapping<Source to target mapping>`
     * :ref:`Subspace<Subspace methods>`
@@ -74,17 +74,13 @@ def decision_borders_plot(X, model):
     plt.contourf(xx, yy, Z, alpha=0.4, cmap="tab10", vmax=9)
 
 
-def plot_full_data(
-    X, y, title, prediction=False, model=None, size=25, second_color=False
-):
+def plot_full_data(X, y, title, size=25, second_color=False):
     if not second_color:
         plt.scatter(X[:, 0], X[:, 1], s=size, c=y, cmap="tab10", vmax=9, alpha=0.8)
     else:
         plt.scatter(X[:, 0], X[:, 1], s=size, c=y, alpha=0.8)
     plt.xticks([])
     plt.yticks([])
-    if prediction:
-        decision_borders_plot(X, model)
     if title is not None:
         plt.title(title)
 
@@ -97,12 +93,16 @@ def source_target_comparison(
     plt.subplot(1, 2, 1)
     plt.xlim(X[:, 0].min() - 1, X[:, 0].max() + 1)
     plt.ylim(X[:, 1].min() - 1, X[:, 1].max() + 1)
-    plot_full_data(Xs, ys, "Source data", prediction, model, size)
+    plot_full_data(Xs, ys, "Source data", size)
+    if prediction:
+        decision_borders_plot(X, model)
 
     plt.subplot(1, 2, 2)
     plt.xlim(X[:, 0].min() - 1, X[:, 0].max() + 1)
     plt.ylim(X[:, 1].min() - 1, X[:, 1].max() + 1)
-    plot_full_data(Xt, yt, "Target data", prediction, model)
+    plot_full_data(Xt, yt, "Target data")
+    if prediction:
+        decision_borders_plot(X, model)
 
     plt.suptitle(title, fontsize=16)
 
@@ -347,20 +347,20 @@ print("Accuracy on target:", accuracy)
 # the :code:`Adapter` class provided by SKADA.
 
 # Define the classifier as a domain adaptation (DA) pipeline from the base classifier
-clf = skada.DensityReweight(
+adapted_clf = skada.DensityReweight(
     base_estimator=base_classifier, weight_estimator=KernelDensity(bandwidth=0.5)
 )
 
-clf.fit(X, y, sample_domain=sample_domain)
+adapted_clf.fit(X, y, sample_domain=sample_domain)
 
 # To extract the weights, we take the weight estimator from the pipeline
-weight_estimator = clf[0].get_estimator()
+weight_estimator = adapted_clf[0].get_estimator()
 idx = extract_source_indices(sample_domain)
 # then compute the weights corresponding to the source dataset
 weights = weight_estimator.compute_weights(X, sample_domain=sample_domain)[idx]
 
 # compute the accuracy of the newly obtained model
-accuracy = clf.score(Xt, yt)
+accuracy = adapted_clf.score(Xt, yt)
 
 # sphinx_gallery_start_ignore
 weights = 15 * weights
@@ -371,7 +371,7 @@ source_target_comparison(
     sample_domain,
     "Prediction on reweighted dataset",
     prediction=True,
-    model=clf,
+    model=adapted_clf,
     size=weights,
 )
 plt.tight_layout()
@@ -414,13 +414,14 @@ print("Accuracy on target:", accuracy)
 # using optimal transport methods. This is done automatically
 # by the :code:`OTMapping` method.
 
-clf = skada.OTMapping(base_classifier)
-clf.fit(X, y, sample_domain=sample_domain)
+adapted_clf = skada.OTMapping(base_classifier)
+adapted_clf.fit(X, y, sample_domain=sample_domain)
+accuracy = adapted_clf.fit(Xt, yt)
 
 # sphinx_gallery_start_ignore
 n_tot_source = Xs.shape[0]
 n_tot_target = Xt.shape[0]
-adapter = clf.named_steps["otmappingadapter"].get_estimator()
+adapter = adapted_clf.named_steps["otmappingadapter"].get_estimator()
 T = adapter.ot_transport_.coupling_
 T = T / T.max()
 
@@ -439,7 +440,10 @@ for i in range(n_tot_source):
             )
 
 plt.figure(10, fig_size)
-source_target_comparison(X, y, sample_domain, "Predictions after mapping", True, clf)
+source_target_comparison(
+    X, y, sample_domain, "Predictions after mapping", True, adapted_clf
+)
+print("Accuracy on target:", accuracy)
 # sphinx_gallery_end_ignore
 
 # %%
@@ -484,23 +488,27 @@ print("Accuracy on target:", accuracy)
 
 # %%
 # Now, we will illustrate what happens when using the Transfer Subspace Learning method
-clf = skada.TransferSubspaceLearning(base_classifier, n_components=1)
-clf.fit(X, y, sample_domain=sample_domain)
-accuracy = clf.score(Xt, yt)
+adapted_clf = skada.TransferSubspaceLearning(base_classifier, n_components=1)
+adapted_clf.fit(X, y, sample_domain=sample_domain)
+accuracy = adapted_clf.score(Xt, yt)
 
 # sphinx_gallery_start_ignore
 plt.figure(12, fig_size)
-source_target_comparison(X, y, sample_domain, "Prediction on dataset", True, clf)
+source_target_comparison(
+    X, y, sample_domain, "Prediction on dataset", True, adapted_clf
+)
 plt.tight_layout()
-print("Accuracy on target:", accuracy)
+print("\nAccuracy on target:", accuracy)
 # sphinx_gallery_end_ignore
 
 # %%
 # Results summary
 # ---------------
+#
+# Here is a summary of the different shifts and the domain adaptation methods used.
 
 # sphinx_gallery_start_ignore
-plt.figure(13, (15, 7.5))
+plt.figure(13, (17.5, 9))
 shift_list = ["covariate_shift", "target_shift", "conditional_shift", "subspace"]
 clfs = {
     "covariate_shift": LogisticRegression().set_fit_request(sample_weight=True),
@@ -520,34 +528,33 @@ for indx, shift in enumerate(shift_list):
     plot_full_data(X, y, shift_name)
 
     plt.subplot(4, 5, 7 + indx)
+    plt.xlim(X[:, 0].min() - 1, X[:, 0].max() + 1)
+    plt.ylim(X[:, 1].min() - 1, X[:, 1].max() + 1)
     plot_full_data(Xt, yt, None)
 
     base_clf = clfs[shift]
     base_clf.fit(Xs, ys)
     shift_acc_before[shift_name] = base_clf.score(Xt, yt)
     plt.subplot(4, 5, 12 + indx)
-    plot_full_data(Xt, yt, None, True, base_clf)
+    plot_full_data(Xt, yt, None)
+    decision_borders_plot(X, base_clf)
 
-    if shift == "covariate_shift":
-        clf = skada.DensityReweight(
+    if shift == "covariate_shift" or shift == "target_shift":
+        adapted_clf = skada.DensityReweight(
             base_estimator=base_clf, weight_estimator=KernelDensity(bandwidth=0.5)
         )
 
-    elif shift == "target_shift":
-        clf = skada.DensityReweight(
-            base_clf, weight_estimator=KernelDensity(bandwidth=0.5)
-        )
-
     elif shift == "conditional_shift":
-        clf = skada.OTMapping(base_clf)
+        adapted_clf = skada.OTMapping(base_clf)
 
     elif shift == "subspace":
-        clf = skada.TransferSubspaceLearning(base_clf, n_components=1)
+        adapted_clf = skada.TransferSubspaceLearning(base_clf, n_components=1)
 
-    clf.fit(X, y, sample_domain=sd)
-    shift_acc_after[shift_name] = clf.score(Xt, yt)
+    adapted_clf.fit(X, y, sample_domain=sd)
+    shift_acc_after[shift_name] = adapted_clf.score(Xt, yt)
     plt.subplot(4, 5, 17 + indx)
-    plot_full_data(Xt, yt, None, True, clf)
+    plot_full_data(Xt, yt, None)
+    decision_borders_plot(X, adapted_clf)
 
 X, y, sd = make_shifted_datasets(20, 20, random_state=42)
 Xs, Xt, ys, yt = skada.source_target_split(X, y, sample_domain=sd)
@@ -557,24 +564,30 @@ plot_full_data(Xs, ys, "Source data")
 plt.ylabel("Full dataset", fontsize=15)
 
 plt.subplot(4, 5, 6)
-plot_full_data(Xs, ys, "Source data")
+plot_full_data(Xs, ys, None)
 plt.ylabel("Observed data", fontsize=15)
 
 clf = SVC()
 clf.fit(Xs, ys)
 plt.subplot(4, 5, 11)
-plot_full_data(Xs, ys, None, True, clf)
+plot_full_data(Xs, ys, None)
+decision_borders_plot(Xs, clf)
 plt.ylabel("Before DA", fontsize=15)
 
 plt.subplot(4, 5, 16)
-plot_full_data(Xs, ys, None, True, clf)
+plot_full_data(Xs, ys, None)
+decision_borders_plot(Xs, clf)
 plt.ylabel("After DA", fontsize=15)
 
 plt.suptitle("Summary plot", fontsize=20)
 plt.tight_layout()
 
-print("Accuracy scores before Domain Adaptation:")
+print("\nAccuracy scores before Domain Adaptation:")
 print_scores_as_table(shift_acc_before)
 print("\nAfter Domain Adaptation:")
 print_scores_as_table(shift_acc_after)
 # sphinx_gallery_end_ignore
+
+# %%
+# For information on DA pipelines and the :code:`Adapter` class with SKADA,
+# don't hesitate to check out the "How to use SKADA" page and the "Users Guide" page.
