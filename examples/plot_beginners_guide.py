@@ -395,11 +395,11 @@ print("Accuracy on target:", accuracy)
 
 # sphinx_gallery_start_ignore
 plt.figure(10, (15, 7.5))
-shift_list = ["covariate_shift", "target_shift", "conditionl_shift", "subspace"]
+shift_list = ["covariate_shift", "target_shift", "conditional_shift", "subspace"]
 clfs = {
     "covariate_shift": LogisticRegression().set_fit_request(sample_weight=True),
     "target_shift": LogisticRegression(),
-    "conditionl_shift": SVC(),
+    "conditional_shift": SVC(),
     "subspace": SVC(),
 }
 shift_acc_before = {}
@@ -427,7 +427,7 @@ for indx, shift in enumerate(shift_list):
     elif shift == "target_shift":
         ...
 
-    elif shift == "conditionl_shift":
+    elif shift == "conditional_shift":
         ...
 
     elif shift == "subspace":
