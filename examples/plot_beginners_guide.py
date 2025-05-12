@@ -16,8 +16,8 @@ and how to use them.
     * :ref:`Subspace shift<Example of subspace shift>`
 
 * :ref:`Methods<Adaptation methods>`:
-    * :ref:`Reweighting<Source dataset reweighting>`
-    * :ref:`Mapping<Source to target mapping>`
+    * :ref:`Reweighting<Reweighting methods>`
+    * :ref:`Mapping<Mapping methods>`
     * :ref:`Subspace<Subspace methods>`
 
 * :ref:`Summary<Results summary>`
