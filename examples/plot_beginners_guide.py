@@ -37,9 +37,9 @@ with matplotlib is hidden (but is available in the source file of the example).
 # sphinx_gallery_start_ignore
 import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.linear_model import LogisticRegression
 
 # sphinx_gallery_end_ignore
+from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KernelDensity
 from sklearn.svm import SVC
 
@@ -58,10 +58,10 @@ def print_scores_as_table(scores):
         print(f"{v*100}{' '*(6-len(str(v*100)))}%")
 
 
-def decision_borders_plot(X, model):
+def decision_borders_plot(model):
     # Create a meshgrid
-    x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
-    y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+    x_min, x_max = -2.5, 4.5
+    y_min, y_max = -2.5, 4.5
     xx, yy = np.meshgrid(
         np.linspace(x_min, x_max, num=100), np.linspace(y_min, y_max, num=100)
     )
@@ -74,7 +74,7 @@ def decision_borders_plot(X, model):
     plt.contourf(xx, yy, Z, alpha=0.4, cmap="tab10", vmax=9)
 
 
-def plot_full_data(X, y, title=None, size=25, marker="o"):
+def plot_full_data(X, y, title=None, size=25, marker="o", subspace=False):
     plt.scatter(
         X[:, 0], X[:, 1], s=size, c=y, cmap="tab10", vmax=9, marker=marker, alpha=0.8
     )
@@ -83,28 +83,43 @@ def plot_full_data(X, y, title=None, size=25, marker="o"):
     if title is not None:
         plt.title(title, fontsize=16)
     plt.gca().set_aspect("equal")
+    maxi = 2.5 if subspace else 4.5
+    mini = -2.5
+    plt.xlim(mini, maxi)
+    plt.ylim(mini, maxi)
 
 
 def source_target_comparison(
-    X, y, sample_domain, title, prediction=False, model=None, size=25
+    X,
+    y,
+    sample_domain,
+    title,
+    prediction=False,
+    model=None,
+    size=25,
+    figsize=(8, 4),
+    subspace=False,
 ):
     Xs, Xt, ys, yt = skada.source_target_split(X, y, sample_domain=sample_domain)
 
-    plt.subplot(1, 2, 1)
-    plt.xlim(X[:, 0].min() - 1, X[:, 0].max() + 1)
-    plt.ylim(X[:, 1].min() - 1, X[:, 1].max() + 1)
-    plot_full_data(Xs, ys, "Source data", size)
-    if prediction:
-        decision_borders_plot(X, model)
+    fig, axes = plt.subplots(1, 2, figsize=figsize)
 
-    plt.subplot(1, 2, 2)
-    plt.xlim(X[:, 0].min() - 1, X[:, 0].max() + 1)
-    plt.ylim(X[:, 1].min() - 1, X[:, 1].max() + 1)
-    plot_full_data(Xt, yt, "Target data")
+    plt.sca(axes[0])
+    plot_full_data(
+        Xs, ys, title="Source data", size=size, marker="o", subspace=subspace
+    )
     if prediction:
-        decision_borders_plot(X, model)
+        decision_borders_plot(model)
 
-    plt.suptitle(title, fontsize=16)
+    plt.sca(axes[1])
+    plot_full_data(Xt, yt, title="Target data", marker="v", subspace=subspace)
+    if prediction:
+        decision_borders_plot(model)
+
+    fig.suptitle(title, fontsize=16)
+    fig.tight_layout()
+    plt.subplots_adjust(top=0.85)
+    plt.show()
 
 
 # sphinx_gallery_end_ignore
@@ -168,9 +183,7 @@ X, y, sample_domain = make_shifted_datasets(
 )
 
 # sphinx_gallery_start_ignore
-plt.figure(1, fig_size)
 source_target_comparison(X, y, sample_domain, "Example covariate shift")
-plt.tight_layout()
 # sphinx_gallery_end_ignore
 
 # %%
@@ -185,9 +198,7 @@ X, y, sample_domain = make_shifted_datasets(
 )
 
 # sphinx_gallery_start_ignore
-plt.figure(2, fig_size)
 source_target_comparison(X, y, sample_domain, "Example target shift")
-plt.tight_layout()
 # sphinx_gallery_end_ignore
 
 # %%
@@ -202,9 +213,7 @@ X, y, sample_domain = make_shifted_datasets(
 )
 
 # sphinx_gallery_start_ignore
-plt.figure(3, fig_size)
 source_target_comparison(X, y, sample_domain, "Example conditional shift")
-plt.tight_layout()
 # sphinx_gallery_end_ignore
 
 # %%
@@ -220,9 +229,7 @@ X, y, sample_domain = make_shifted_datasets(
 )
 
 # sphinx_gallery_start_ignore
-plt.figure(4, fig_size)
-source_target_comparison(X, y, sample_domain, "Example subspace shift")
-plt.tight_layout()
+source_target_comparison(X, y, sample_domain, "Example subspace shift", subspace=True)
 # sphinx_gallery_end_ignore
 
 # %%
@@ -238,8 +245,8 @@ plt.tight_layout()
 #
 # For every shift, there is a method to adapt the source data to train the model on.
 #
-# Source dataset reweighting
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Reweighting methods
+# ~~~~~~~~~~~~~~~~~~~
 #
 # A common method for dealing with covariate and target shift is reweighting
 # the source data.
@@ -271,7 +278,6 @@ base_classifier.fit(Xs, ys)
 accuracy = base_classifier.score(Xt, yt)
 
 # sphinx_gallery_start_ignore
-plt.figure(6, fig_size)
 source_target_comparison(
     X,
     y,
@@ -280,7 +286,6 @@ source_target_comparison(
     prediction=True,
     model=base_classifier,
 )
-plt.tight_layout()
 print("Accuracy on target:", accuracy)
 # sphinx_gallery_end_ignore
 
@@ -306,7 +311,6 @@ accuracy = adapted_clf.score(Xt, yt)
 
 # sphinx_gallery_start_ignore
 weights = 15 * weights
-plt.figure(7, fig_size)
 source_target_comparison(
     X,
     y,
@@ -316,19 +320,18 @@ source_target_comparison(
     model=adapted_clf,
     size=weights,
 )
-plt.tight_layout()
 print("Accuracy on target:", accuracy)
 # sphinx_gallery_end_ignore
 
 
 # %%
-# Source to target mapping
-# ~~~~~~~~~~~~~~~~~~~~~~~~
+# Mapping methods
+# ~~~~~~~~~~~~~~~
 #
 # The traditional way of dealing with conditional and target shift is via
 # mapping the source data to the target data.
 #
-# First, let's look at what happens wen we try to fit an estimator on the target
+# First, let's look at what happens when we try to fit an estimator on the target
 
 X, y, sample_domain = make_shifted_datasets(
     n_samples_source=20, n_samples_target=20, shift="conditional_shift", random_state=42
@@ -343,11 +346,9 @@ base_classifier.fit(Xs, ys)
 accuracy = base_classifier.score(Xt, yt)
 
 # sphinx_gallery_start_ignore
-plt.figure(8, fig_size)
 source_target_comparison(
     X, y, sample_domain, "Prediction without mapping", True, base_classifier
 )
-plt.tight_layout()
 print("Accuracy on target:", accuracy)
 # sphinx_gallery_end_ignore
 
@@ -367,7 +368,7 @@ adapter = adapted_clf.named_steps["otmappingadapter"].get_estimator()
 T = adapter.ot_transport_.coupling_
 T = T / T.max()
 
-plt.figure(9)
+plt.figure(9, figsize=fig_size)
 plot_full_data(Xs, ys, "Mapping source (circle) to target (triangle)")
 plot_full_data(Xt, yt, marker="v")
 for i in range(n_tot_source):
@@ -382,12 +383,11 @@ for i in range(n_tot_source):
             )
 
 plt.tight_layout()
+plt.show()
 
-plt.figure(10, fig_size)
 source_target_comparison(
     X, y, sample_domain, "Predictions after mapping", True, adapted_clf
 )
-plt.tight_layout()
 print("Accuracy on target:", accuracy)
 # sphinx_gallery_end_ignore
 
@@ -423,11 +423,9 @@ base_classifier.fit(Xs, ys)
 accuracy = base_classifier.score(Xt, yt)
 
 # sphinx_gallery_start_ignore
-plt.figure(11, fig_size)
 source_target_comparison(
-    X, y, sample_domain, "Prediction on dataset", True, base_classifier
+    X, y, sample_domain, "Prediction on dataset", True, base_classifier, subspace=True
 )
-plt.tight_layout()
 print("Accuracy on target:", accuracy)
 # sphinx_gallery_end_ignore
 
@@ -455,14 +453,14 @@ Xs_sub = Xs_sub - mean
 Xs_sub = -Xs_sub + mean
 Xs_sub = np.c_[Xs_sub, Xs_sub]
 
-plt.figure(5, fig_size)
+plt.figure(5, figsize=fig_size)
 plt.subplot(1, 2, 1)
-plot_full_data(Xs, ys, "Source data (projected)")
-plot_full_data(Xs_sub, ys, None)
+plot_full_data(Xs, ys, "Source data (projected)", subspace=True)
+plot_full_data(Xs_sub, ys, subspace=True)
 for i in range(len(Xs)):
     plt.plot(
         [Xs[i, 0], Xs_sub[i, 0]],
-        [Xs[i, 1], Xs_sub[i, 0]],
+        [Xs[i, 1], Xs_sub[i, 1]],
         "-g",
         alpha=0.2,
         zorder=0,
@@ -474,22 +472,21 @@ mean = Xt_sub.mean()
 Xt_sub = Xt_sub - mean
 Xt_sub = -Xt_sub + mean
 Xt_sub = np.c_[Xt_sub, Xt_sub]
-plot_full_data(Xt, yt, "Target data (projected)")
-plot_full_data(Xt_sub, yt, None)
+plot_full_data(Xt, yt, "Target data (projected)", marker="v", subspace=True)
+plot_full_data(Xt_sub, yt, marker="v", subspace=True)
 for i in range(len(Xt)):
     plt.plot(
         [Xt[i, 0], Xt_sub[i, 0]],
-        [Xt[i, 1], Xt_sub[i, 0]],
+        [Xt[i, 1], Xt_sub[i, 1]],
         "-g",
         alpha=0.2,
         zorder=0,
     )
+plt.show()
 
-plt.figure(12, fig_size)
 source_target_comparison(
-    X, y, sample_domain, "Prediction on dataset", True, adapted_clf
+    X, y, sample_domain, "Prediction on dataset", True, adapted_clf, subspace=True
 )
-plt.tight_layout()
 print("\nAccuracy on target:", accuracy)
 # sphinx_gallery_end_ignore
 
@@ -502,7 +499,7 @@ print("\nAccuracy on target:", accuracy)
 # Using everything we have used before
 
 # sphinx_gallery_start_ignore
-plt.figure(13, (15, 15))
+plt.figure(13, (12.5, 12.5))
 shift_list = ["covariate_shift", "target_shift", "conditional_shift", "subspace"]
 clfs = {
     "covariate_shift": LogisticRegression().set_fit_request(sample_weight=True),
@@ -517,21 +514,20 @@ for indx, shift in enumerate(shift_list):
     X, y, sd = make_shifted_datasets(20, 20, shift, random_state=42)
     Xs, Xt, ys, yt = skada.source_target_split(X, y, sample_domain=sd)
     shift_name = shift.capitalize().replace("_", " ")
+    subspace = shift == "subspace"
 
     plt.subplot(4, 4, 1 + indx)
-    plot_full_data(Xs, ys, shift_name)
+    plot_full_data(Xs, ys, shift_name, subspace=subspace)
 
     plt.subplot(4, 4, 5 + indx)
-    plt.xlim(X[:, 0].min() - 2, X[:, 0].max() + 2)
-    plt.ylim(X[:, 1].min() - 2, X[:, 1].max() + 2)
-    plot_full_data(Xt, yt)
+    plot_full_data(Xt, yt, marker="v", subspace=subspace)
 
     base_clf = clfs[shift]
     base_clf.fit(Xs, ys)
     shift_acc_before[shift_name] = base_clf.score(Xt, yt)
     plt.subplot(4, 4, 9 + indx)
-    plot_full_data(Xt, yt)
-    decision_borders_plot(X, base_clf)
+    plot_full_data(Xt, yt, marker="v", subspace=subspace)
+    decision_borders_plot(base_clf)
 
     if shift == "covariate_shift" or shift == "target_shift":
         adapted_clf = skada.DensityReweight(
@@ -541,14 +537,14 @@ for indx, shift in enumerate(shift_list):
     elif shift == "conditional_shift":
         adapted_clf = skada.OTMapping(base_clf)
 
-    elif shift == "subspace":
+    elif subspace:
         adapted_clf = skada.TransferSubspaceLearning(base_clf, n_components=1)
 
     adapted_clf.fit(X, y, sample_domain=sd)
     shift_acc_after[shift_name] = adapted_clf.score(Xt, yt)
     plt.subplot(4, 4, 13 + indx)
-    plot_full_data(Xt, yt)
-    decision_borders_plot(X, adapted_clf)
+    plot_full_data(Xt, yt, marker="v", subspace=subspace)
+    decision_borders_plot(adapted_clf)
 
 X, y, sd = make_shifted_datasets(20, 20, random_state=42)
 Xs, Xt, ys, yt = skada.source_target_split(X, y, sample_domain=sd)
