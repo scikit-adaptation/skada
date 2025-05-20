@@ -4,6 +4,8 @@ import torch
 from skorch.utils import to_tensor
 from torch.utils.data import Dataset
 
+from skada import per_domain_split
+
 # %%
 _EMPTY_DOMAIN = [None]
 _DEFAULT_DOMAIN_ID = 0
@@ -14,7 +16,6 @@ class DeepDADataset(Dataset):
         self.X = torch.Tensor()
         self._domain_ids_container = [_DEFAULT_DOMAIN_ID]
         self._domain_sizes_container = [0]
-        self.domain_id = set(self._domain_ids_container)
         self.has_y = [False]
         self.has_weights = False
         self.y = _EMPTY_DOMAIN
@@ -40,7 +41,7 @@ class DeepDADataset(Dataset):
                     " a numpy array, torch tensor, or another DeepDADataset instance."
                 )
             elif isinstance(dataset, dict) and len(dataset):
-                self._if_given_dict(dataset, domain_id)
+                self._if_given_dict(dataset, **kwargs)
             elif isinstance(dataset, (list, tuple)) and len(dataset):
                 self._if_given_list(dataset, domain_id, **kwargs)
             elif isinstance(dataset, DeepDADataset) and len(dataset):
@@ -56,10 +57,34 @@ class DeepDADataset(Dataset):
                 dataset = DeepDADataset(dataset, domain_id=domain_id, **kwargs)
                 self.merge(dataset)
 
-    def _if_given_dict(self, dataset, domain_id):
-        # be careful, has to account for the possibility that there
-        # are multiple domains in this dictionary
-        ...
+    def _if_given_dict(self, dataset, **kwargs):
+        if "X" not in dataset or "sample_domain" not in dataset:
+            raise ValueError(
+                "dataset represented as dict should contain both 'X' and"
+                " 'sample_domain' keys."
+            )
+        sample_domain = dataset["sample_domain"]
+        X = dataset["X"]
+        x_dict, xt_dict = per_domain_split(X, sample_domain=sample_domain)
+        x_dict.update(xt_dict)
+        try:
+            y = dataset["y"]
+            ys_dict, yt_dict = per_domain_split(y, sample_domain=sample_domain)
+            y_dict = ys_dict.update(yt_dict)
+        except KeyError:
+            y_dict = {k: _EMPTY_DOMAIN for k in x_dict.keys()}
+
+        try:
+            weights = dataset["sample_weights"]
+            ws_dict, wt_dict = per_domain_split(weights, sample_domain=sample_domain)
+            w_dict = ws_dict.update(wt_dict)
+        except KeyError:
+            w_dict = {k: _EMPTY_DOMAIN for k in x_dict.keys()}
+
+        per_domain_dict = {k: [x_dict, y_dict, k, w_dict] for k in x_dict.keys()}
+        for v in per_domain_dict.values():
+            dataset = DeepDADataset(v, **kwargs)
+            self.merge(dataset)
 
     def _if_given_list(self, dataset, domain_id, **kwargs):
         dataset = list(dataset)
@@ -101,7 +126,6 @@ class DeepDADataset(Dataset):
                 # proper distribution would be nice here
                 self.weights = torch.cat(self.weights, other.weights)
             self.has_weights = bool(len(self.weights))
-            self.domain_id = self.domain_id.union(other.domain_id)
         else:
             raise TypeError("Can only merge two instances of DeepDADataset")
 
@@ -109,19 +133,34 @@ class DeepDADataset(Dataset):
         self.merge(other)
 
     def __len__(self):
-        return len(self.X)
+        return sum(
+            self._domain_sizes_container,
+        )
 
     def __getitem__(self, index):
-        if index >= len(self):
+        if not isinstance(index, int):
+            raise TypeError(f"Dataset indices must be integers, not {type(index)}")
+        elif index >= len(self):
             raise IndexError("Dataset index out of range")
-        tot = 0
-        i = 0
-        while tot < index:
-            tot += self._domain_sizes_container[i]
+        x = self.X[index]
+        _ = 0
+        i = -1
+        while _ < index:
             i += 1
-        ...
+            _ += self._domain_sizes_container[i]
+        try:
+            y_ind = index - sum(self._domain_sizes_container[:i])
+            y_res = self.y[i][y_ind]
+            return x, y_res
+        except TypeError:
+            return x, None
 
 
 # TODO: make method for add_data, source_idx, target_idx,
 # source_data, target_data, source_label, target_label,
 # domain_separation, __repr__, as_dict, as_numpy, as_tensor,
+#
+# Would it work better with containers all the way up?
+# The way I am seeing this is with the _DDAD_Container class being a series of
+# containers that keeps the order of the data and the creation methods,
+# and the DeepDADataset being a subclass working towards a better visualization
