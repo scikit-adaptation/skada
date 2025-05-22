@@ -1052,6 +1052,28 @@ class DeepDADataset(Dataset):
         self.has_weights = has_weights
 
     def merge(self, other: "DeepDADataset", keep_weights=False, out=True):
+        """Merges to instances of DeepDADataset and either returns the result
+        or updates the first one. The merging is done by concatenation of the data.
+
+        Args:
+            other (DeepDADataset): the second dataset to merge.
+            keep_weights (bool, optional): whether to keep the weights (if any).
+                If False, weights become empty. If True, weights are concatenated.
+                Defaults to False.
+
+                ..WARNING::
+                    There is no check to ensure weights still form
+                    a probability distribution after merging.
+
+            out (bool, optional): whether to return the result instead of 
+                updating first dataset. Defaults to True.
+
+        Raises:
+            TypeError: raises if the other dataset is not a DeepDADataset instance.
+
+        Returns:
+            DeepDADataset (optional): the concatenation of the datasets.
+        """
         if isinstance(other, DeepDADataset):
             X = torch.cat((self.X, other.X))
             y = torch.cat((self.y, other.y))
@@ -1343,18 +1365,44 @@ class DeepDADataset(Dataset):
         self._is_correct()
 
     def insert(self, indices, to_add):
+        """Return DeepDADataset in which the argument datasets have been inserted at
+        the given indices.
+        Datasets and indices must be contained in a list or a tuple.
+        If there is only one dataset, it will be inserted at every index.
+        Else, if there is more of one of the arguments than the other (either indices 
+        or datasets), only the first few datasets will be inserted at
+        the first few indices, stopping when the shortest container runs out.
+        
+        Datasets in the container can be of form dict, list (or tuple) of arrays
+        or DeepDADatasets
+
+        Keep in mind that weights are not conserved.
+
+        Args:
+            indices (list or tuple): The container of the indices to insert the
+                datasets at. 
+            to_add (list or tuple): The container of the datasets to insert.
+
+        Returns:
+            DeepDADataset: the result of the insertion.
+        """
         assert isinstance(indices, list) and isinstance(to_add, list), (
-            "Input must be two lists or tuples representing the indices to insert at"
+            "Input must be two lists or tuples containing the indices to insert at"
             " and and the datasets to insert."
         )
-        to_add = (DeepDADataset(dataset, device=self.device) for dataset in to_add)
+        to_add_dataset = []
+        for dataset in to_add:
+            if isinstance(dataset, (dict, DeepDADataset)):
+                to_add_dataset.append(DeepDADataset(dataset, device=self.device))
+            else:
+                to_add_dataset.append(DeepDADataset(*dataset, device=self.device))
         split_data = self.split(*indices)
         res = DeepDADataset()
-        if len(to_add) == 1:
+        if len(to_add_dataset) == 1:
             dataset = to_add[0]
             for subset in split_data:
                 res += subset + dataset
         else:
-            for original_subset, added_subset in zip(split_data, to_add):
+            for original_subset, added_subset in zip(split_data, to_add_dataset):
                 res += original_subset, added_subset
         return res
