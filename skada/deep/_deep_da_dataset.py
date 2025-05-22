@@ -8,11 +8,27 @@ from torch.utils.data import Dataset
 _EMPTY_ = torch.Tensor()
 _DEFAULT_SAMPLE_DOMAIN_ = 0
 # I don't really like that the _NO_LABEL_ value is torch.nan,
-# but it didn't work with None
+# but torch Tensor doesn't support None
 _NO_LABEL_ = torch.nan
 
 
 class DeepDADataset(Dataset):
+    """The Domain Aware Dataset class for deep learning.
+    This class fills the gap between dictionary representation and array_like
+    representation by combining them into a single object.
+
+    All passed data will be converted to :code:`torch.Tensor`. Dict representation
+    should at least contain an 'X' key containing the input data or be completely empty
+
+    If no sample domain is provided, domain :code:`0` is attributed
+    to the given data.
+
+    If no label is provided, :code:`torch.nan` is attributed to the given data.
+
+    When accessing an item from this dataset, returned is a dict representation
+    of the element and its associated label.
+    """
+
     def __init__(
         self,
         dataset=None,
@@ -25,7 +41,7 @@ class DeepDADataset(Dataset):
         self.y = _EMPTY_
         self.sample_domain = _EMPTY_
         self.sample_weight = _EMPTY_
-        self.has_y = _EMPTY_
+        self.has_y = self.y != _NO_LABEL_
         self.has_weights = bool(len(self.sample_weight))
         self.device = device
 
@@ -60,14 +76,7 @@ class DeepDADataset(Dataset):
                     sample_domain = _DEFAULT_SAMPLE_DOMAIN_
                 self._true_init(X, y, sample_domain, sample_weight)
 
-        assert (len(self.X) == len(self.y) == len(self.sample_domain)) and (
-            len(self.X) == len(self.sample_weight) or not self.has_weights
-        ), (
-            "Every input data X should have a domain associated, a label (if there is "
-            "no label, it must be represented by torch.nan) and, optionally, a weight. "
-            "If you see this message, please report the issue in the "
-            "original GitHub repository at https://github.com/scikit-adaptation/skada/"
-        )
+        self._is_correct()
 
     def _if_given_dict(self, dataset: dict, y, sample_domain, sample_weight):
         if "X" not in dataset:
@@ -83,7 +92,7 @@ class DeepDADataset(Dataset):
 
     def _true_init(self, X, y, sample_domain, sample_weight):
         if isinstance(sample_domain, int):
-            sample_domain = torch.full_like(X, sample_domain)
+            sample_domain = torch.full(len(X), sample_domain)
         else:
             sample_domain = check_array(
                 sample_domain, allow_nd=True, ensure_2d=False, ensure_min_samples=False
@@ -91,8 +100,8 @@ class DeepDADataset(Dataset):
             sample_domain = to_tensor(sample_domain, self.device)
 
         if y is None or not len(y):
-            y = torch.full_like(X, _NO_LABEL_, dtype=torch.float)
-            has_y = torch.full_like(X, False)
+            y = torch.full(len(X), _NO_LABEL_, dtype=torch.float)
+            has_y = torch.full(len(X), False, dtype=torch.bool)
         else:
             y = check_array(
                 y,
@@ -144,6 +153,30 @@ class DeepDADataset(Dataset):
         else:
             raise TypeError("Can only merge two instances of DeepDADataset")
 
+    def _is_correct(self):
+        assert (len(self.X) == len(self.y) == len(self.sample_domain)) and (
+            len(self.X) == len(self.sample_weight) or not self.has_weights
+        ), (
+            "Every input data X should have a domain associated, a label (if there is "
+            "no label, it must be represented by torch.nan) and, optionally, a weight. "
+        )
+
+    def __len__(self):
+        return len(self.X)
+
+    def __getitem__(self, index):
+        if not isinstance(index, (int, slice)):
+            raise TypeError(
+                f"DeepDADataset indices must be int or slice, not {type(index)}"
+            )
+
+        X = {"X": self.X[index], "sample_domain": self.sample_domain[index]}
+
+        if self.has_weights:
+            X["sample_weight"] = self.sample_weight[index]
+
+        return X, self.y[index]
+
     def __add__(self, other):
         if isinstance(other, dict):
             try:
@@ -166,21 +199,13 @@ class DeepDADataset(Dataset):
 
         return self.merge(other)
 
-    def __len__(self):
-        return len(self.X)
+    def __truediv__(self, divisor):
+        start = len(self) // divisor
+        indices = torch.linspace(start, len(self), start)
+        return self.split(*indices)
 
-    def __getitem__(self, index):
-        if not isinstance(index, (int, slice)):
-            raise TypeError(
-                f"DeepDADataset indices must be int or slice, not {type(index)}"
-            )
-
-        X = {"X": self.X[index], "sample_domain": self.sample_domain[index]}
-
-        if self.has_weights:
-            X["sample_weight"] = self.sample_weight[index]
-
-        return X, self.y[index]
+    def __floordiv__(self, divisor):
+        return self / divisor
 
     def __repr__(self):
         rep = f"DeepDADataset(\n{self.X},\n\n{self.y},\n\n{self.sample_domain}"
@@ -201,23 +226,22 @@ class DeepDADataset(Dataset):
         else:
             return self.X, self.y, self.sample_domain
 
-    def select_source(self, return_weights=False):
-        mask = self.sample_domain >= 0
+    def select(self, mask, return_weights=False):
         dataset = self.as_arrays(return_weights=return_weights)
         dataset = (data[mask] for data in dataset)
         return DeepDADataset(*dataset, device=self.device)
+
+    def select_source(self, return_weights=False):
+        mask = self.sample_domain >= 0
+        return self.select(mask, return_weights)
 
     def select_target(self, return_weights=False):
         mask = self.sample_domain < 0
-        dataset = self.as_arrays(return_weights=return_weights)
-        dataset = (data[mask] for data in dataset)
-        return DeepDADataset(*dataset, device=self.device)
+        return self.select(mask, return_weights)
 
     def select_domain(self, domain_id, return_weights=False):
         mask = self.sample_domain == domain_id
-        dataset = self.as_arrays(return_weights=return_weights)
-        dataset = (data[mask] for data in dataset)
-        return DeepDADataset(*dataset, device=self.device)
+        return self.select(mask, return_weights)
 
     def per_domain_split(self, return_weights=False):
         dataset = {}
@@ -225,8 +249,53 @@ class DeepDADataset(Dataset):
             dataset[domain_id] = self.select_domain(domain_id, return_weights)
         return dataset
 
+    def split(self, *indices):
+        if any(not isinstance(index, int) for index in indices):
+            raise TypeError("All splitting indices must be integers.")
+        start = None
+        stop = None
+        res = []
+        for index in indices:
+            start = stop
+            stop = index
+            res.append(self[start:stop])
+        return res
+
     def select_labels(self, return_weights=False):
         mask = self.has_y
-        dataset = self.as_arrays(return_weights=return_weights)
-        dataset = (data[mask] for data in dataset)
-        return DeepDADataset(*dataset, device=self.device)
+        return self.select(mask, return_weights)
+
+    def change_X(self, index, value):
+        self.X[index] = value
+
+    def change_y(self, index, value):
+        self.y[index] = value
+
+    def change_domain(self, index, value):
+        self.sample_domain[index] = value
+
+    def change_weight(self, index, value):
+        if self.has_weights:
+            self.sample_weight[index] = value
+
+    def add_weights(self, sample_weight):
+        self.sample_weight = sample_weight
+        self.has_weights = bool(len(self.sample_weight))
+        self._is_correct()
+
+    def insert(self, indices, to_add):
+        assert isinstance(indices, list) and isinstance(to_add, list), (
+            "Input must be two lists or tuples representing the indices to insert at"
+            " and and the datasets to insert."
+        )
+        to_add = (DeepDADataset(dataset) for dataset in to_add)
+        split_data = self.split(*indices)
+        res = DeepDADataset()
+        if len(to_add) == 1:
+            dataset = to_add[0]
+            for subset in split_data:
+                res += subset + dataset
+        else:
+            for original_subset, added_subset in zip(split_data, to_add):
+                res += original_subset, added_subset
+        return res
