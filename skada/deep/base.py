@@ -1070,16 +1070,19 @@ class DeepDADataset(Dataset):
                 self.has_y = torch.cat((self.has_y, other.has_y))
                 self.has_weights = bool(len(self.sample_weight))
                 self.device = X.device
-
+            self._is_correct()
         else:
             raise TypeError("Can only merge two instances of DeepDADataset")
 
     def _is_correct(self):
+        """Validates the dataset. Fails if there are not as many labels, domain,
+        or weights (if any) as data samples.
+        """
         assert (len(self.X) == len(self.y) == len(self.sample_domain)) and (
             len(self.X) == len(self.sample_weight) or not self.has_weights
         ), (
             "Every input data X should have a domain associated, a label (if there is "
-            "no label, it must be represented by torch.nan) and, optionally, a weight. "
+            "no label, it must be represented by torch.nan) and, optionally, a weight."
         )
 
     def __len__(self):
@@ -1136,41 +1139,145 @@ class DeepDADataset(Dataset):
         return rep
 
     def as_dict(self):
+        """Switches to dict representation of the dataset.
+        Dictionary representation is of the form
+        {'X': input data (torch tensor),
+        'y': corresponding label (torch tensor),
+        'sample_domain': corresponding domains (torch tensor),
+        'sample_weight': corresponding weights if any (torch tensor)
+        }
+
+        Returns:
+            dict: dictionary representation of the dataset
+        """
         dataset = {"X": self.X, "y": self.y, "sample_domain": self.sample_domain}
         if self.has_weights:
             dataset["sample_weight"] = self.sample_weight
         return dataset
 
     def as_arrays(self, return_weights=False):
+        """switches to array representation of the dataset.
+
+        Args:
+            return_weights (bool, optional): whether to return the sample weights 
+                (if any). Defaults to False.
+
+        Returns:
+            X: input data
+            y: corresponding labels (if a sample has no label, torch.nan at its index)
+            sample_domain: corresponding domain of each sample
+            sample_weights (optional): corresponding weight of each sample (if any)
+        """
         if self.has_weights and return_weights:
             return self.X, self.y, self.sample_domain, self.sample_weight
         else:
             return self.X, self.y, self.sample_domain
 
     def select(self, mask, return_weights=False):
+        """Returns a DeepDADataset instance of the data corresponding to the mask
+        The mask must be a boolean array like of True or False corresponding to PyTorch
+        boolean indexing methods.
+
+        Args:
+            mask (array_like of bools): the mask of the data to get.
+            return_weights (bool, optional): whether to return the sample weights
+                (if any). Defaults to False.
+
+        Returns:
+            DeepDADataset: the dataset corresponding to the input mask.
+        """
+        mask = to_tensor(mask, device=self.device)
         dataset = self.as_arrays(return_weights=return_weights)
         dataset = (data[mask] for data in dataset)
         return DeepDADataset(*dataset, device=self.device)
 
     def select_source(self, return_weights=False):
+        """Returns a DeepDADataset composed only of the source (marked with 
+        sample_domain >= 0)
+
+        Args:
+            return_weights (bool, optional): whether to return the sample weights
+                (if any). Defaults to False.
+
+        Returns:
+            DeepDADataset: the source domain from the dataset.
+        """
         mask = self.sample_domain >= 0
         return self.select(mask, return_weights)
 
     def select_target(self, return_weights=False):
+        """Returns a DeepDADataset composed only of the target (marked with 
+        sample_domain < 0)
+
+        Args:
+            return_weights (bool, optional): whether to return the sample weights
+                (if any). Defaults to False.
+
+        Returns:
+            DeepDADataset: the target domain from the dataset.
+        """
         mask = self.sample_domain < 0
         return self.select(mask, return_weights)
 
     def select_domain(self, domain_id, return_weights=False):
+        """Returns a DeepDADataset composed only of the selected domain
+
+        Args:
+            return_weights (bool, optional): whether to return the sample weights
+                (if any). Defaults to False.
+
+        Returns:
+            DeepDADataset: the selected domain from the dataset.
+        """
         mask = self.sample_domain == domain_id
         return self.select(mask, return_weights)
 
+    def select_labels(self, return_weights=False):
+        """Returns a DeepDADataset instance composed of the data that is labelled.
+
+        Args:
+            return_weights (bool, optional): whether to return the sample weights
+                (if any). Defaults to False.
+
+        Returns:
+            DeepDADataset: the data with labels.
+        """
+        mask = self.has_y
+        return self.select(mask, return_weights)
+
     def per_domain_split(self, return_weights=False):
+        """Splits the data per domain, returning a dict where each key is a domain id
+        and value is a DeepDADataset composed of said domain.
+
+        Args:
+            return_weights (bool, optional): whether to return the sample weights
+                (if any). Defaults to False.
+
+        Returns:
+            dict: the dataset split per domain id
+        """
         dataset = {}
         for domain_id in self.sample_domain.unique():
             dataset[domain_id] = self.select_domain(domain_id, return_weights)
         return dataset
 
     def split(self, *indices):
+        """Splits the Dataset into smaller DeepDADatasets, with the first starting at
+        index 0 and the others starting at the given indices.
+
+        Args:
+        -----
+            *indices: all indices to split at. If no index is given, returns an empty
+            list
+
+        Raises:
+        -------
+            TypeError: raised when non-integer index is found.
+
+        Returns:
+        --------
+            list: the subsets, in order of appearance.
+        """
         if any(not isinstance(index, int) for index in indices):
             raise TypeError("All splitting indices must be integers.")
         start = None
@@ -1182,25 +1289,56 @@ class DeepDADataset(Dataset):
             res.append(self[start:stop])
         return res
 
-    def select_labels(self, return_weights=False):
-        mask = self.has_y
-        return self.select(mask, return_weights)
-
     def change_X(self, index, value):
+        """Changes the input data of the dataset at given index (or slice).
+
+        Args:
+            index (int, slice, array_like): index at which modify the data.
+                Must be supported by PyTorch indexing methods
+            value: the new value of the data at given index. 
+        """
         self.X[index] = value
 
     def change_y(self, index, value):
+        """Changes the label of the dataset at given index (or slice).
+
+        Args:
+            index (int, slice, array_like): index at which modify the label.
+                Must be supported by PyTorch indexing methods
+            value: the new label for the data at given index. 
+        """
         self.y[index] = value
 
     def change_domain(self, index, value):
+        """Changes the domain of the dataset at given index (or slice).
+
+        Args:
+            index (int, slice, array_like): index at which modify the domain.
+                Must be supported by PyTorch indexing methods
+            value: the new domain for the data at given index. 
+        """
         self.sample_domain[index] = value
 
     def change_weight(self, index, value):
+        """Changes the weight of the dataset at given index (or slice).
+        If the dataset had originally no weights, nothing happens.
+
+        Args:
+            index (int, slice, array_like): index at which modify the weight.
+                Must be supported by PyTorch indexing methods
+            value: the new weight for the data at given index. 
+        """
         if self.has_weights:
             self.sample_weight[index] = value
 
     def add_weights(self, sample_weight):
-        self.sample_weight = sample_weight
+        """Adds weights to the dataset.
+
+        Args:
+            sample_weight (array_like): the weights to add to the dataset.
+                Must be convertible to torch Tensor
+        """
+        self.sample_weight = to_tensor(sample_weight, device=self.device)
         self.has_weights = bool(len(self.sample_weight))
         self._is_correct()
 
@@ -1209,7 +1347,7 @@ class DeepDADataset(Dataset):
             "Input must be two lists or tuples representing the indices to insert at"
             " and and the datasets to insert."
         )
-        to_add = (DeepDADataset(dataset) for dataset in to_add)
+        to_add = (DeepDADataset(dataset, device=self.device) for dataset in to_add)
         split_data = self.split(*indices)
         res = DeepDADataset()
         if len(to_add) == 1:
