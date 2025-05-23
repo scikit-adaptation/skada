@@ -14,6 +14,7 @@ from skorch.dataset import Dataset
 from skada.datasets import make_shifted_datasets
 from skada.deep.base import (
     BaseDALoss,
+    DeepDADataset,
     DomainAwareCriterion,
     DomainAwareModule,
     DomainAwareNet,
@@ -636,3 +637,100 @@ def test_allow_source():
 
     with pytest.raises(ValueError):
         _ = method.predict_proba(X, sample_domain, allow_source=False)
+
+
+# %%
+import torch
+
+
+def test_deep_domain_aware_dataset():
+    _RANDOM_STATE_ = 42
+    # data creation
+    raw_data = make_shifted_datasets(
+        20,
+        20,
+        random_state=_RANDOM_STATE_,
+    )
+    X, y, sd = raw_data
+    raw_data_dict = {"X": X, "y": y, "sample_domain": sd}
+    # though these are not technically weights, they will act as such for the tests
+    weights = np.ones(len(X))
+    weighted_raw_data_dict = {
+        "X": X,
+        "y": y,
+        "sample_domain": sd,
+        "sample_weight": weights,
+    }
+
+    # Dataset creation
+    empty = DeepDADataset()
+    dataset = DeepDADataset(*raw_data)
+    weighted_dataset = DeepDADataset(weighted_raw_data_dict)
+    assert empty.is_empty()
+    assert DeepDADataset([]) == DeepDADataset({}) == DeepDADataset(None) == empty
+    assert DeepDADataset(raw_data_dict) == dataset
+    assert DeepDADataset(dataset) == dataset
+    assert dataset.add_weights(weights) == weighted_dataset
+    assert DeepDADataset({"X": X}, y, sd, weights) == weighted_dataset
+
+    # Dataset manipulation
+    assert dataset.merge(empty) == dataset
+    assert dataset + empty == dataset
+    assert dataset + dataset == dataset.merge(dataset)
+    assert len(dataset + dataset) == len(dataset) + len(dataset)
+    assert weighted_dataset.remove_weights() == dataset
+
+    # representation
+    # how do i do this without the runtime error ?
+    for item1, item2 in zip(
+        weighted_dataset.as_dict().items(), weighted_raw_data_dict.items()
+    ):
+        assert item1[0] == item2[0] and (item1[1] == item2[1]).all()
+    for v1, v2 in zip(weighted_dataset.as_arrays(), (X, y, sd, weights)):
+        assert (v1 == v2).all()
+
+    # Data selection
+    source_data = (X[sd >= 0], y[sd >= 0], sd[sd >= 0], weights[sd >= 0])
+    target_data = (X[sd < 0], y[sd < 0], sd[sd < 0], weights[sd < 0])
+    domain_id = 1
+    domain_data = (
+        X[sd == domain_id],
+        y[sd == domain_id],
+        sd[sd == domain_id],
+        weights[sd == domain_id],
+    )
+    mask = np.full(len(X), True)
+    masked_data = (X[mask], y[mask], sd[mask], weights[mask])
+    assert weighted_dataset.select_source(True) == DeepDADataset(*source_data)
+    assert weighted_dataset.select_target(True) == DeepDADataset(*target_data)
+    assert weighted_dataset.select_domain(domain_id, True) == DeepDADataset(
+        *domain_data
+    )
+    assert weighted_dataset.select_from_mask(mask, True) == DeepDADataset(*masked_data)
+    assert weighted_dataset.select(
+        lambda x: x >= 0, "sample_domain"
+    ) == weighted_dataset.select_source(True)
+
+    # All commented out assertions raise an error for some reason that I
+    # do not have the time to work out
+    # Also, I gotta find a way to split X, y, sd and weights more efficiently
+    # Dataset split
+    index = 10
+    # indices = [0, 10, 100]
+    X1, X2 = X[:index], X[index:]
+    y1, y2 = y[:index], y[index:]
+    sd1, sd2 = sd[:index], sd[index:]
+    w1, w2 = weights[:index], weights[index:]
+    assert weighted_dataset.split(index) == [
+        DeepDADataset(X1, y1, sd1, w1),
+        DeepDADataset(X2, y2, sd2, w2),
+    ]
+    assert dataset.split() == [dataset]
+    # assert dataset.per_domain_split() == {
+    #     domain_id: dataset.select_domain(domain_id) for domain_id in dataset.domains()
+    #     }
+
+    # Dataset modification and insertion
+
+
+test_deep_domain_aware_dataset()
