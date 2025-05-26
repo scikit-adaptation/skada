@@ -1497,17 +1497,16 @@ class DeepDADataset(Dataset):
             else:
                 to_add_dataset.append(DeepDADataset(*dataset, device=self.device))
         split_data = self._index_split(*indices)
-        res = DeepDADataset()
-        if len(to_add_dataset) == 1:
-            dataset = to_add[0]
-            for subset in split_data[:-1]:
-                res += subset + dataset
-        elif len(indices) == 1:
-            res = split_data[0] + sum(to_add_dataset, start=DeepDADataset()) + \
-                                                                split_data[1]
-        else:
-            for original_subset, added_subset in zip(split_data, to_add_dataset):
-                res += original_subset, added_subset
-        return res
 
-        #TODO: add a data removal method
+        if len(to_add_dataset) == 1:
+            dataset = to_add_dataset[0]
+            for indx in range(len(split_data) - 1):
+                split_data.insert(2*indx + 1, dataset)
+        elif len(indices) == 1:
+            for indx in range(1, len(to_add_dataset)+1):
+                split_data.insert(indx, to_add_dataset[indx-1])
+        else:
+            for indx in range(min(len(to_add_dataset), len(split_data))):
+                split_data.insert(2*indx + 1, to_add_dataset[indx])
+        return sum(split_data, start=DeepDADataset())
+

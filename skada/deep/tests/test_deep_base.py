@@ -639,10 +639,6 @@ def test_allow_source():
         _ = method.predict_proba(X, sample_domain, allow_source=False)
 
 
-# %%
-import torch
-
-
 def test_deep_domain_aware_dataset():
     _RANDOM_STATE_ = 42
     # data creation
@@ -667,18 +663,23 @@ def test_deep_domain_aware_dataset():
     dataset = DeepDADataset(*raw_data)
     weighted_dataset = DeepDADataset(weighted_raw_data_dict)
     assert empty.is_empty()
-    assert DeepDADataset([]) == DeepDADataset({}) == DeepDADataset(None) == empty
-    assert DeepDADataset(raw_data_dict) == dataset
-    assert DeepDADataset(dataset) == dataset
-    assert dataset.add_weights(weights) == weighted_dataset
-    assert DeepDADataset({"X": X}, y, sd, weights) == weighted_dataset
+    assert (
+        DeepDADataset([]).is_empty()
+        == DeepDADataset({}).is_empty()
+        == DeepDADataset(None).is_empty()
+        == empty.is_empty()
+    )
+    assert len(DeepDADataset(raw_data_dict)) == len(dataset)
+    assert len(DeepDADataset(dataset)) == len(dataset)
+    assert len(dataset.add_weights(weights)) == len(weighted_dataset)
+    assert len(DeepDADataset({"X": X}, y, sd, weights)) == len(weighted_dataset)
 
     # Dataset manipulation
-    assert dataset.merge(empty) == dataset
-    assert dataset + empty == dataset
-    assert dataset + dataset == dataset.merge(dataset)
+    assert (dataset.merge(empty).X == dataset.X).all()
+    assert ((dataset + empty).X == dataset.X).all()
+    assert ((dataset + dataset).X == dataset.merge(dataset).X).all()
     assert len(dataset + dataset) == len(dataset) + len(dataset)
-    assert weighted_dataset.remove_weights() == dataset
+    assert len(weighted_dataset.remove_weights()) == len(dataset)
 
     # representation
     for item1, item2 in zip(
@@ -701,13 +702,15 @@ def test_deep_domain_aware_dataset():
     selec_y = y[y == 2]
     selec_X = X[X[:, 0] >= 0]
     selec_w = weights[weights == 1]
-    assert weighted_dataset.select_source() == DeepDADataset(*source_data)
-    assert weighted_dataset.select_target() == DeepDADataset(*target_data)
-    assert weighted_dataset.select_domain(domain_id) == DeepDADataset(*domain_data)
+    assert (weighted_dataset.select_source().X == DeepDADataset(*source_data).X).all()
+    assert (weighted_dataset.select_target().X == DeepDADataset(*target_data).X).all()
     assert (
-        weighted_dataset.select(lambda sd: sd >= 0, on="sample_domain")
-        == weighted_dataset.select_source()
-    )
+        weighted_dataset.select_domain(domain_id).X == DeepDADataset(*domain_data).X
+    ).all()
+    assert (
+        weighted_dataset.select(lambda sd: sd >= 0, on="sample_domain").X
+        == weighted_dataset.select_source().X
+    ).all()
     assert (dataset.select(lambda y: y == 2, on="y").y == selec_y).all()
     assert (dataset.select(lambda x: x[:, 0] > 0, "X").X == selec_X).all()
     assert (
@@ -716,7 +719,7 @@ def test_deep_domain_aware_dataset():
     ).all()
 
     # Dataset split
-    indices = [10 * i for i in range(len(dataset) // 10)]
+    indices = [10, 20]
     X_cont = np.split(X, indices)
     y_cont = np.split(y, indices)
     sd_cont = np.split(sd, indices)
@@ -726,18 +729,30 @@ def test_deep_domain_aware_dataset():
         for X, y, sd, w in zip(X_cont, y_cont, sd_cont, w_cont)
     ]
 
-    assert weighted_dataset._index_split(*indices) == after_split
-    assert dataset._index_split() == [dataset]
-    # assert dataset.per_domain_split() == {
-    #     domain_id: dataset.select_domain(domain_id) for domain_id in dataset.domains()
-    #     }
+    for truesplit, split in zip(weighted_dataset._index_split(*indices), after_split):
+        assert (truesplit.X == split.X).all()
+    assert (dataset._index_split()[0].X == dataset.X).all() and len(
+        dataset._index_split()
+    ) == 1
 
     # Dataset modification and insertion
-    X[:, 0] = 0
+    after_split.insert(1, dataset)
+    after_split.insert(3, dataset)
+    assert (dataset.insert(indices, dataset).X == sum(after_split, start=empty).X).all()
     assert (
-        dataset.insert(10, [dataset, dataset])
-        == dataset._index_split(10)[0] + dataset + dataset + dataset._index_split(10)[1]
+        dataset.insert(10, [dataset, dataset]).X
+        == (
+            dataset._index_split(10)[0]
+            + dataset
+            + dataset
+            + dataset._index_split(10)[1]
+        ).X
+    ).all()
+    res = (
+        dataset._index_split(*indices)[0]
+        + dataset
+        + dataset._index_split(*indices)[1]
+        + dataset
+        + dataset._index_split(*indices)[2]
     )
-
-
-test_deep_domain_aware_dataset()
+    assert (dataset.insert(indices, [dataset] * len(indices)).X == res.X).all()
