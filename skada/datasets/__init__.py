@@ -37,6 +37,8 @@ from ._samples_generator import (
     make_shifted_datasets,
     make_dataset_from_moons_distribution,
     make_variable_frequency_dataset,
+    make_multi_source_da_example,
+    make_classification_dataset
 )
 from ._mnist_usps import load_mnist_usps
 
@@ -59,4 +61,6 @@ __all__ = [
     'fetch_amazon_review_all',
     'fetch_office_home',
     'fetch_office_home_all',
+    'make_multi_source_da_example',
+    'make_classification_dataset'
 ]
