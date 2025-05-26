@@ -1184,7 +1184,7 @@ class DeepDADataset(Dataset):
         return rep
 
     def __eq__(self, other: 'DeepDADataset'):
-        if isinstance(self, DeepDADataset) != isinstance(other, DeepDADataset):
+        if not isinstance(other, DeepDADataset):
             return False
         elif self.is_empty() != other.is_empty():
             return False
@@ -1248,7 +1248,7 @@ class DeepDADataset(Dataset):
         """
         return self.sample_domain.unique()
     
-    def select(self, condition, on='X', return_weights=True):
+    def select(self, condition, on, return_weights=True):
         """Selects the data samples validating the condition. 
         The condition must be applicable to a torch tensor so that it returns a mask
         of True or False.
@@ -1258,7 +1258,7 @@ class DeepDADataset(Dataset):
         Args:
             condition (callable): the validation condition.
             on (str, optional): where the condition is applied. 
-                Either X, y, sample_domain or sample_weights. Defaults to 'X'.
+                Either X, y, sample_domain or sample_weight.
             return_weights (bool, optional): whether to return the weights
                 (if any). Defaults to True.
 
@@ -1271,20 +1271,20 @@ class DeepDADataset(Dataset):
         if on == 'X':
             mask = condition(self.X)
         elif on == 'y':
-            mask = self.has_y and condition(self.y)
+            mask = self.has_y & condition(self.y)
         elif on == 'sample_domain':
             mask = condition(self.sample_domain)
-        elif on == 'sample_weights':
+        elif on == 'sample_weight':
             if self.has_weights:
                 mask = condition(self.sample_weight)
         else:
             raise ValueError(
-                "'on' keyword argument must be one of "
+                "'on' argument must be one of "
                 "('X', 'y', 'sample_domain', 'sample_weight')"
                 )
-        return self.select_from_mask(mask, return_weights=return_weights)
+        return self._select_from_mask(mask, return_weights=return_weights)
     
-    def select_from_mask(self, mask, return_weights=False):
+    def _select_from_mask(self, mask, return_weights=True):
         """Returns a DeepDADataset instance of the data corresponding to the mask
         The mask must be a boolean array like of True or False corresponding to PyTorch
         boolean indexing methods.
@@ -1309,7 +1309,7 @@ class DeepDADataset(Dataset):
         dataset = (data[mask] for data in dataset)
         return DeepDADataset(*dataset, device=self.device)
 
-    def select_source(self, return_weights=False):
+    def select_source(self, return_weights=True):
         """Returns a DeepDADataset composed only of the source (marked with 
         sample_domain >= 0)
 
@@ -1321,9 +1321,9 @@ class DeepDADataset(Dataset):
             DeepDADataset: the source domain from the dataset.
         """
         mask = self.sample_domain >= 0
-        return self.select_from_mask(mask, return_weights)
+        return self._select_from_mask(mask, return_weights)
 
-    def select_target(self, return_weights=False):
+    def select_target(self, return_weights=True):
         """Returns a DeepDADataset composed only of the target (marked with 
         sample_domain < 0)
 
@@ -1335,9 +1335,9 @@ class DeepDADataset(Dataset):
             DeepDADataset: the target domain from the dataset.
         """
         mask = self.sample_domain < 0
-        return self.select_from_mask(mask, return_weights)
+        return self._select_from_mask(mask, return_weights)
 
-    def select_domain(self, domain_id, return_weights=False):
+    def select_domain(self, domain_id, return_weights=True):
         """Returns a DeepDADataset composed only of the selected domain
 
         Args:
@@ -1348,9 +1348,9 @@ class DeepDADataset(Dataset):
             DeepDADataset: the selected domain from the dataset.
         """
         mask = self.sample_domain == domain_id
-        return self.select_from_mask(mask, return_weights)
+        return self._select_from_mask(mask, return_weights)
 
-    def select_labels(self, return_weights=False):
+    def select_labels(self, return_weights=True):
         """Returns a DeepDADataset instance composed of the data that is labelled.
 
         Args:
@@ -1361,9 +1361,9 @@ class DeepDADataset(Dataset):
             DeepDADataset: the data with labels.
         """
         mask = self.has_y
-        return self.select_from_mask(mask, return_weights)
+        return self._select_from_mask(mask, return_weights)
 
-    def per_domain_split(self, return_weights=False):
+    def per_domain_split(self, return_weights=True):
         """Splits the data per domain, returning a dict where each key is a domain id
         and value is a DeepDADataset composed of said domain.
 
@@ -1379,7 +1379,7 @@ class DeepDADataset(Dataset):
             dataset[domain_id] = self.select_domain(domain_id, return_weights)
         return dataset
 
-    def split(self, *indices):
+    def _index_split(self, *indices):
         """Splits the dataset into smaller DeepDADatasets, with the first starting at
         index :code:`0` and the others starting at the given indices. If no index is given,
         returns a list containing the original dataset
@@ -1407,48 +1407,6 @@ class DeepDADataset(Dataset):
             stop = index
             res.append(DeepDADataset(*self[start:stop]))
         return res
-
-    def change_X(self, index, value):
-        """Changes the input data of the dataset at given index (or slice).
-
-        Args:
-            index (int, slice, array_like): index at which modify the data.
-                Must be supported by PyTorch indexing methods
-            value: the new value of the data at given index. 
-        """
-        self.X[index] = value
-
-    def change_y(self, index, value):
-        """Changes the label of the dataset at given index (or slice).
-
-        Args:
-            index (int, slice, array_like): index at which modify the label.
-                Must be supported by PyTorch indexing methods
-            value: the new label for the data at given index. 
-        """
-        self.y[index] = value
-
-    def change_domain(self, index, value):
-        """Changes the domain of the dataset at given index (or slice).
-
-        Args:
-            index (int, slice, array_like): index at which modify the domain.
-                Must be supported by PyTorch indexing methods
-            value: the new domain for the data at given index. 
-        """
-        self.sample_domain[index] = value
-
-    def change_weight(self, index, value):
-        """Changes the weight of the dataset at given index (or slice).
-        If the dataset had originally no weights, nothing happens.
-
-        Args:
-            index (int, slice, array_like): index at which modify the weight.
-                Must be supported by PyTorch indexing methods
-            value: the new weight for the data at given index. 
-        """
-        if self.has_weights:
-            self.sample_weight[index] = value
 
     def add_weights(self, sample_weight, out=True):
         """Adds weights to the dataset.
@@ -1538,11 +1496,11 @@ class DeepDADataset(Dataset):
                 to_add_dataset.append(DeepDADataset(dataset, device=self.device))
             else:
                 to_add_dataset.append(DeepDADataset(*dataset, device=self.device))
-        split_data = self.split(*indices)
+        split_data = self._index_split(*indices)
         res = DeepDADataset()
         if len(to_add_dataset) == 1:
             dataset = to_add[0]
-            for subset in split_data:
+            for subset in split_data[:-1]:
                 res += subset + dataset
         elif len(indices) == 1:
             res = split_data[0] + sum(to_add_dataset, start=DeepDADataset()) + \

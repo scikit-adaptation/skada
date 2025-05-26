@@ -681,7 +681,6 @@ def test_deep_domain_aware_dataset():
     assert weighted_dataset.remove_weights() == dataset
 
     # representation
-    # how do i do this without the runtime error ?
     for item1, item2 in zip(
         weighted_dataset.as_dict().items(), weighted_raw_data_dict.items()
     ):
@@ -699,38 +698,46 @@ def test_deep_domain_aware_dataset():
         sd[sd == domain_id],
         weights[sd == domain_id],
     )
-    mask = np.full(len(X), True)
-    masked_data = (X[mask], y[mask], sd[mask], weights[mask])
-    assert weighted_dataset.select_source(True) == DeepDADataset(*source_data)
-    assert weighted_dataset.select_target(True) == DeepDADataset(*target_data)
-    assert weighted_dataset.select_domain(domain_id, True) == DeepDADataset(
-        *domain_data
+    selec_y = y[y == 2]
+    selec_X = X[X[:, 0] >= 0]
+    selec_w = weights[weights == 1]
+    assert weighted_dataset.select_source() == DeepDADataset(*source_data)
+    assert weighted_dataset.select_target() == DeepDADataset(*target_data)
+    assert weighted_dataset.select_domain(domain_id) == DeepDADataset(*domain_data)
+    assert (
+        weighted_dataset.select(lambda sd: sd >= 0, on="sample_domain")
+        == weighted_dataset.select_source()
     )
-    assert weighted_dataset.select_from_mask(mask, True) == DeepDADataset(*masked_data)
-    assert weighted_dataset.select(
-        lambda x: x >= 0, "sample_domain"
-    ) == weighted_dataset.select_source(True)
+    assert (dataset.select(lambda y: y == 2, on="y").y == selec_y).all()
+    assert (dataset.select(lambda x: x[:, 0] > 0, "X").X == selec_X).all()
+    assert (
+        weighted_dataset.select(lambda w: w == 1, on="sample_weight").sample_weight
+        == selec_w
+    ).all()
 
-    # All commented out assertions raise an error for some reason that I
-    # do not have the time to work out
-    # Also, I gotta find a way to split X, y, sd and weights more efficiently
     # Dataset split
-    index = 10
-    # indices = [0, 10, 100]
-    X1, X2 = X[:index], X[index:]
-    y1, y2 = y[:index], y[index:]
-    sd1, sd2 = sd[:index], sd[index:]
-    w1, w2 = weights[:index], weights[index:]
-    assert weighted_dataset.split(index) == [
-        DeepDADataset(X1, y1, sd1, w1),
-        DeepDADataset(X2, y2, sd2, w2),
+    indices = [10 * i for i in range(len(dataset) // 10)]
+    X_cont = np.split(X, indices)
+    y_cont = np.split(y, indices)
+    sd_cont = np.split(sd, indices)
+    w_cont = np.split(weights, indices)
+    after_split = [
+        DeepDADataset(X, y, sd, w)
+        for X, y, sd, w in zip(X_cont, y_cont, sd_cont, w_cont)
     ]
-    assert dataset.split() == [dataset]
+
+    assert weighted_dataset._index_split(*indices) == after_split
+    assert dataset._index_split() == [dataset]
     # assert dataset.per_domain_split() == {
     #     domain_id: dataset.select_domain(domain_id) for domain_id in dataset.domains()
     #     }
 
     # Dataset modification and insertion
+    X[:, 0] = 0
+    assert (
+        dataset.insert(10, [dataset, dataset])
+        == dataset._index_split(10)[0] + dataset + dataset + dataset._index_split(10)[1]
+    )
 
 
 test_deep_domain_aware_dataset()
