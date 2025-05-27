@@ -12,6 +12,7 @@ from functools import partial
 
 import torch
 from torch.utils.data import DataLoader, Sampler, Dataset
+import torch.nn.functional as F
 from sklearn.base import _clone_parametrized
 from sklearn.metrics import accuracy_score
 from skorch import NeuralNetClassifier
@@ -809,25 +810,13 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         ValueError
             If the input format is invalid or missing required information.
         """
-        if isinstance(X, dict):
-            if "X" not in X or "sample_domain" not in X:
-                raise ValueError("X should contain both 'X' and 'sample_domain' keys.")
-            # compute sample_idx per domain
-            if sample_idx is None:
-                sample_idx = self._infer_sample_idx(X["X"], X["sample_domain"])
-
-            X["sample_idx"] = sample_idx
+        try :
+            dataset = DeepDADataset(X, sample_domain=sample_domain, sample_weight=sample_weight)
+            X = dataset.as_dict(sample_indices=True)
             return X, None
-        elif isinstance(X, Dataset):
+        except TypeError:
             return self._process_dataset(X)
-        else:
-            if sample_idx is None:
-                sample_idx = self._infer_sample_idx(X, sample_domain)
-            result = {"X": X, "sample_domain": sample_domain, "sample_idx": sample_idx}
-            if sample_weight is not None:
-                result["sample_weight"] = sample_weight
-            return result, None
-
+        
     def _process_dataset(
         self, dataset: Dataset
     ) -> Union[Dict[str, np.ndarray], np.ndarray]:
@@ -874,22 +863,6 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
             result["sample_weight"] = np.array(sample_weight)
         return result, y
 
-    def _infer_sample_idx(self, X, sample_domain):
-        if sample_domain is None:
-            return None
-        else:
-            source_idx = sample_domain >= 0
-
-            sample_idx_s = torch.arange(len(X[source_idx]))
-            sample_idx_t = torch.arange(len(X[~source_idx]))
-
-            # concat
-            sample_idx = torch.zeros(len(X), dtype=int)
-            sample_idx[source_idx] = sample_idx_s
-            sample_idx[~source_idx] = sample_idx_t
-
-            return sample_idx
-
     def get_loss(self, y_pred, y_true, X, *args, **kwargs):
         """
         Calculate the weighted loss using sample weights.
@@ -926,7 +899,7 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
 
         return loss.mean()
 
-
+# %%
 _EMPTY_ = torch.Tensor()
 _DEFAULT_SAMPLE_DOMAIN_ = 0
 # I don't really like that the _NO_LABEL_ value is torch.nan,
@@ -959,14 +932,13 @@ class DeepDADataset(Dataset):
         sample_weight=None,
         device="cpu",
     ):
-        # I get an issue when the given torch tensor is 0-d because it has no len
         
         self.X = _EMPTY_
         self.y = _EMPTY_
         self.sample_domain = _EMPTY_
         self.sample_weight = _EMPTY_
         self.has_y = self.y != _NO_LABEL_
-        self.has_weights = bool(len(self.sample_weight))
+        self.has_weights = True
         self.device = device
 
         if sample_domain is None:
@@ -980,11 +952,14 @@ class DeepDADataset(Dataset):
                 self.merge(dataset, keep_weights=True, out=False)
             else:
                 try:
+                    if hasattr(dataset, 'shape') and len(dataset.shape) == 0:
+                        dataset = torch.tensor([dataset])
                     X = check_array(
                         dataset,
                         allow_nd=True,
                         ensure_2d=False,
                         ensure_min_samples=False,
+                        dtype=float
                     )
                     X = to_tensor(X, device)
                 except TypeError:
@@ -996,10 +971,16 @@ class DeepDADataset(Dataset):
                         "a data type convertible to a torch Tensor"
                         f"but found {type(dataset)} instead."
                     )
-                if not isinstance(sample_domain, int) and not len(sample_domain):
+                try :
+                    empty = hasattr(sample_domain, '__len__') and not len(sample_domain)
+                except TypeError:
+                    empty = False
+                    sample_domain = torch.tensor([sample_domain])
+                if empty:
                     sample_domain = _DEFAULT_SAMPLE_DOMAIN_
                 self._true_init(X, y, sample_domain, sample_weight)
-
+        
+        self.has_weights = len(self.sample_weight)
         assert self._is_correct(), (
             "Every input data X should have a domain associated, a label (if there is "
             "no label, it must be represented by torch.nan) and, optionally, a weight."
@@ -1030,7 +1011,13 @@ class DeepDADataset(Dataset):
             )
             sample_domain = to_tensor(sample_domain, self.device)
 
-        if y is None or not len(y):
+        try:
+            empty = hasattr(y, "__len__") and not len(y)
+        except TypeError:
+            empty = False
+            y = torch.tensor([y])
+        
+        if empty:
             y = torch.full((len(X),), _NO_LABEL_, dtype=torch.float)
             has_y = torch.full((len(X),), False, dtype=torch.bool)
         else:
@@ -1045,7 +1032,13 @@ class DeepDADataset(Dataset):
             y = to_tensor(y, self.device)
             has_y = y != _NO_LABEL_
 
-        if sample_weight is None or not len(sample_weight):
+        try:
+            empty = hasattr(sample_weight, "__len__") and not len(sample_weight)
+        except TypeError:
+            empty = False
+            sample_weight = torch.tensor([sample_weight])
+        
+        if empty:
             sample_weight = _EMPTY_
             has_weights = False
         else:
@@ -1057,7 +1050,7 @@ class DeepDADataset(Dataset):
                 dtype=float,
             )
             sample_weight = to_tensor(sample_weight, device=self.device)
-            has_weights = bool(len(sample_weight))
+            has_weights = bool(sample_weight.size()[0])
 
         self.X = X
         self.y = y
@@ -1172,7 +1165,7 @@ class DeepDADataset(Dataset):
         rep = "DeepDADataset("
         xrep = "\ndata[" + str(self.X[:max_len])[8:-23] + ", ..."*more + "],"
         yrep = "\n\nlabels[" + str(self.y[:max_len])[8:-23] + ", ..."*more + "],"
-        sdrep = "\n\ndomains[" + str(self.sample_domain[:max_len])[8:-23] +\
+        sdrep = "\n\ndomains[" + str(self.sample_domain[:max_len])[8:-2] +\
                                                                 ", ..."*more + "],"
         if self.has_weights:
             wrep = "\n\nweights[" + str(self.sample_weight[:max_len])[8:-23] +\
@@ -1203,7 +1196,7 @@ class DeepDADataset(Dataset):
     def __ne__(self, other):
         return not self == other
 
-    def as_dict(self, return_weights=True):
+    def as_dict(self, sample_indices=True):
         """Switches to dict representation of the dataset.
         Dictionary representation is of the form
         {'X': input data (torch tensor),
@@ -1216,8 +1209,10 @@ class DeepDADataset(Dataset):
             dict: dictionary representation of the dataset
         """
         dataset = {"X": self.X, "y": self.y, "sample_domain": self.sample_domain}
-        if self.has_weights and return_weights:
+        if self.has_weights:
             dataset["sample_weight"] = self.sample_weight
+        if sample_indices:
+            dataset["sample_idx"] = self._sample_indx()
         return dataset
 
     def as_arrays(self, return_weights=True) -> tuple[
@@ -1244,9 +1239,27 @@ class DeepDADataset(Dataset):
         """return all the domains comprising the dataset
 
         Returns:
-            Tensor: the domains of the dataset, sorted by domain id
+            tuple: the domains of the dataset, sorted by domain id
         """
-        return self.sample_domain.unique()
+        return tuple(int(domain_id) for domain_id in self.sample_domain.unique())
+    
+    def _sample_indx(self):
+        """Returns the indices of each sample in their own domain.
+
+        if self.sample domain is [1, 1, 1, -2, -2, 1, 3, 3, 3, -2, -2],
+        result would be [0, 1, 2, 0, 1, 3, 0, 1, 2, 2, 3]
+
+        Returns:
+            torch.Tensor: the indices of each sample according to their domain
+        """
+        vals, inverse = self.sample_domain.unique(return_inverse=True)
+        U = vals.size(0)
+        oh = F.one_hot(inverse, num_classes=U)
+        cs = oh.cumsum(dim=0)
+        idx = torch.arange(len(self), device=self.device)
+        prior_counts = cs[idx, inverse] - 1
+        
+        return prior_counts
     
     def select(self, condition, on, return_weights=True):
         """Selects the data samples validating the condition. 
@@ -1509,4 +1522,5 @@ class DeepDADataset(Dataset):
             for indx in range(min(len(to_add_dataset), len(split_data))):
                 split_data.insert(2*indx + 1, to_add_dataset[indx])
         return sum(split_data, start=DeepDADataset())
-
+# %%
+DeepDADataset([2], (3,))
