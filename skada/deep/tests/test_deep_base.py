@@ -682,10 +682,11 @@ def test_deep_domain_aware_dataset():
     assert len(weighted_dataset.remove_weights()) == len(dataset)
 
     # representation
-    for item1, item2 in zip(
-        weighted_dataset.as_dict().items(), weighted_raw_data_dict.items()
-    ):
-        assert item1[0] == item2[0] and (item1[1] == item2[1]).all()
+    d1, as_dict_y = weighted_dataset.as_dict(sample_indices=False, return_y=True)
+    assert (as_dict_y == y).all()
+    assert d1.keys() == weighted_raw_data_dict.keys()
+    for key in d1.keys():
+        assert (d1[key] == weighted_raw_data_dict[key]).all()
     for v1, v2 in zip(weighted_dataset.as_arrays(), (X, y, sd, weights)):
         assert (v1 == v2).all()
 

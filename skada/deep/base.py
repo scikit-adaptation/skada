@@ -812,8 +812,10 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         """
         try :
             dataset = DeepDADataset(X, sample_domain=sample_domain, sample_weight=sample_weight)
-            X = dataset.as_dict(sample_indices=True)
-            return X, None
+            X, y = dataset.as_dict(sample_indices=True)
+            if not dataset.has_y.any():
+                y = None
+            return X, y
         except TypeError:
             return self._process_dataset(X)
         
@@ -959,7 +961,6 @@ class DeepDADataset(Dataset):
                         allow_nd=True,
                         ensure_2d=False,
                         ensure_min_samples=False,
-                        dtype=float
                     )
                     X = to_tensor(X, device)
                 except TypeError:
@@ -971,13 +972,6 @@ class DeepDADataset(Dataset):
                         "a data type convertible to a torch Tensor"
                         f"but found {type(dataset)} instead."
                     )
-                try :
-                    empty = hasattr(sample_domain, '__len__') and not len(sample_domain)
-                except TypeError:
-                    empty = False
-                    sample_domain = torch.tensor([sample_domain])
-                if empty:
-                    sample_domain = _DEFAULT_SAMPLE_DOMAIN_
                 self._true_init(X, y, sample_domain, sample_weight)
         
         self.has_weights = len(self.sample_weight)
@@ -988,7 +982,7 @@ class DeepDADataset(Dataset):
 
     def _if_given_dict(self, dataset: dict, y, sample_domain, sample_weight):
         if "X" not in dataset:
-            raise KeyError("dataset represented as dict should contain 'X' key.")
+            raise ValueError("dataset represented as dict should contain 'X' key.")
 
         X = dataset["X"]
         y = dataset.get("y", y)
@@ -999,6 +993,13 @@ class DeepDADataset(Dataset):
         self.merge(dataset, keep_weights=True, out=False)
 
     def _true_init(self, X:torch.Tensor, y, sample_domain, sample_weight):
+        try :
+            empty = hasattr(sample_domain, '__len__') and not len(sample_domain)
+        except TypeError:
+            empty = False
+            sample_domain = torch.tensor([sample_domain])
+        if empty:
+            sample_domain = _DEFAULT_SAMPLE_DOMAIN_
         if isinstance(sample_domain, int):
             sample_domain = torch.full((X.shape[0],), sample_domain)
         else:
@@ -1007,7 +1008,7 @@ class DeepDADataset(Dataset):
                 allow_nd=True,
                 ensure_2d=False,
                 ensure_min_samples=False,
-                dtype=float
+                
             )
             sample_domain = to_tensor(sample_domain, self.device)
 
@@ -1027,7 +1028,7 @@ class DeepDADataset(Dataset):
                 ensure_all_finite="allow-nan",
                 ensure_2d=False,
                 ensure_min_samples=False,
-                dtype=float,
+                
             )
             y = to_tensor(y, self.device)
             has_y = y != _NO_LABEL_
@@ -1048,7 +1049,7 @@ class DeepDADataset(Dataset):
                 allow_nd=True,
                 ensure_min_samples=False,
                 ensure_2d=False,
-                dtype=float,
+                
             )
             sample_weight = to_tensor(sample_weight, device=self.device)
             has_weights = bool(sample_weight.size()[0])
@@ -1197,7 +1198,7 @@ class DeepDADataset(Dataset):
     def __ne__(self, other):
         return not self == other
 
-    def as_dict(self, sample_indices=True):
+    def as_dict(self, sample_indices=True, return_y=False):
         """Switches to dict representation of the dataset.
         Dictionary representation is of the form
         {'X': input data (torch tensor),
@@ -1209,12 +1210,14 @@ class DeepDADataset(Dataset):
         Returns:
             dict: dictionary representation of the dataset
         """
-        dataset = {"X": self.X, "y": self.y, "sample_domain": self.sample_domain}
+        dataset = {"X": self.X,  "sample_domain": self.sample_domain}
         if self.has_weights:
             dataset["sample_weight"] = self.sample_weight
         if sample_indices:
             dataset["sample_idx"] = self._sample_indx()
-        return dataset
+        if return_y:
+            dataset['y'] = self.y
+        return dataset, self.y
 
     def as_arrays(self, return_weights=True) -> tuple[
         torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor
