@@ -899,7 +899,7 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
 
         return loss.mean()
 
-# %%
+
 _EMPTY_ = torch.Tensor()
 _DEFAULT_SAMPLE_DOMAIN_ = 0
 # I don't really like that the _NO_LABEL_ value is torch.nan,
@@ -1012,7 +1012,7 @@ class DeepDADataset(Dataset):
             sample_domain = to_tensor(sample_domain, self.device)
 
         try:
-            empty = hasattr(y, "__len__") and not len(y)
+            empty = y is None or hasattr(y, "__len__") and not len(y)
         except TypeError:
             empty = False
             y = torch.tensor([y])
@@ -1033,7 +1033,8 @@ class DeepDADataset(Dataset):
             has_y = y != _NO_LABEL_
 
         try:
-            empty = hasattr(sample_weight, "__len__") and not len(sample_weight)
+            empty = (sample_weight is None or 
+                     hasattr(sample_weight, "__len__") and not len(sample_weight))
         except TypeError:
             empty = False
             sample_weight = torch.tensor([sample_weight])
@@ -1522,5 +1523,4 @@ class DeepDADataset(Dataset):
             for indx in range(min(len(to_add_dataset), len(split_data))):
                 split_data.insert(2*indx + 1, to_add_dataset[indx])
         return sum(split_data, start=DeepDADataset())
-# %%
-DeepDADataset([2], (3,))
+
