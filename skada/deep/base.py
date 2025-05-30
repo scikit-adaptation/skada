@@ -1163,15 +1163,14 @@ class DeepDADataset(Dataset):
         if self.is_empty():
             return "DeepDADataset(data[], labels[], domains[], weights[])"
         max_len = min(len(self), 10)
-        more = int(len(self) > max_len)
+        more = int(len(self) > max_len)*", ..."
         rep = "DeepDADataset("
-        xrep = "\ndata[" + str(self.X[:max_len])[8:-23] + ", ..."*more + "],"
-        yrep = "\n\nlabels[" + str(self.y[:max_len])[8:-23] + ", ..."*more + "],"
-        sdrep = "\n\ndomains[" + str(self.sample_domain[:max_len])[8:-2] +\
-                                                                ", ..."*more + "],"
+        xrep = "\ndata[" + str(self.X[:max_len]) + more + "],"
+        yrep = "\n\nlabels[" + str(self.y[:max_len]) + more + "],"
+        sdrep = "\n\ndomains[" + str(self.sample_domain[:max_len]) +\
+                                                                more + "],"
         if self.has_weights:
-            wrep = "\n\nweights[" + str(self.sample_weight[:max_len])[8:-23] +\
-                                                                        ", ..."*more
+            wrep = "\n\nweights[" + str(self.sample_weight[:max_len]) + more
         else:
             wrep = "\n\nweights["
         wrep += "]"
