@@ -30,6 +30,11 @@ from skorch.utils import to_tensor
 from skorch.dataset import unpack_data
 from collections.abc import Mapping
 
+_EMPTY_ = torch.Tensor()
+_DEFAULT_SAMPLE_DOMAIN_ = 0
+# I don't really like that the _NO_LABEL_ value is torch.nan,
+# but torch Tensor doesn't support None
+_NO_LABEL_ = torch.nan
 
 class DomainAwareCriterion(torch.nn.Module):
     """Criterion for domain aware loss
@@ -810,14 +815,14 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         ValueError
             If the input format is invalid or missing required information.
         """
-        try :
+        if isinstance(X, Dataset) and not isinstance(X, DeepDADataset):
+            return self._process_dataset(X)
+        else:
             dataset = DeepDADataset(X, sample_domain=sample_domain, sample_weight=sample_weight)
             X, y = dataset.as_dict(sample_indices=True)
-            if not dataset.has_y.any():
+            if not dataset.has_y.all():
                 y = None
             return X, y
-        except TypeError:
-            return self._process_dataset(X)
         
     def _process_dataset(
         self, dataset: Dataset
@@ -902,13 +907,6 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         return loss.mean()
 
 
-_EMPTY_ = torch.Tensor()
-_DEFAULT_SAMPLE_DOMAIN_ = 0
-# I don't really like that the _NO_LABEL_ value is torch.nan,
-# but torch Tensor doesn't support None
-_NO_LABEL_ = torch.nan
-
-
 class DeepDADataset(Dataset):
     """The Domain Aware Dataset class for deep learning.
     This class fills the gap between dictionary representation and array_like
@@ -974,15 +972,16 @@ class DeepDADataset(Dataset):
                     )
                 self._true_init(X, y, sample_domain, sample_weight)
         
-        self.has_weights = len(self.sample_weight)
+        self.has_weights = bool(len(self.sample_weight))
         assert self._is_correct(), (
             "Every input data X should have a domain associated, a label (if there is "
             "no label, it must be represented by torch.nan) and, optionally, a weight."
         )
 
     def _if_given_dict(self, dataset: dict, y, sample_domain, sample_weight):
-        if "X" not in dataset:
-            raise ValueError("dataset represented as dict should contain 'X' key.")
+        if "X" not in dataset or isinstance(dataset["X"], dict):
+            raise ValueError("dataset represented as dict should contain 'X' key" \
+            " associated to a data type convertible to torch Tensor.")
 
         X = dataset["X"]
         y = dataset.get("y", y)
@@ -1177,25 +1176,6 @@ class DeepDADataset(Dataset):
         rep += xrep + yrep + sdrep + wrep + "\n    )"
         return rep
 
-    def __eq__(self, other: 'DeepDADataset'):
-        if not isinstance(other, DeepDADataset):
-            return False
-        elif self.is_empty() != other.is_empty():
-            return False
-        elif self.has_weights != other.has_weights:
-            return False
-        else:
-            attrs = ["X", "y", "sample_domain", "sample_weight", "has_y"]
-            for attr in attrs:
-                v1 = getattr(self, attr)
-                v2 = getattr(other, attr)
-                if v1.size() != v2.size() or not (v1 == v2).all():
-                    return False
-
-        return True
-
-    def __ne__(self, other):
-        return not self == other
 
     def as_dict(self, sample_indices=True, return_y=False):
         """Switches to dict representation of the dataset.
