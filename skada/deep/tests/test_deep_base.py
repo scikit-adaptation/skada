@@ -634,12 +634,45 @@ def test_allow_source():
 
     # without dict
     method.fit(X, y, sample_domain=sample_domain)
-
-    with pytest.raises(ValueError):
-        _ = method.predict_proba(X, sample_domain, allow_source=False)
+    method.predict_proba(X, sample_domain, allow_source=False)
 
 
 def test_deep_domain_aware_dataset():
+    def are_DDAD_equal(a, b):
+        """Helper function to compare two DDADs."""
+        correct = True
+        if not isinstance(a, DeepDADataset) or not isinstance(b, DeepDADataset):
+            print("One of the datasets is not a DeepDADataset.")
+            correct = False
+        elif len(a) != len(b):
+            print(f"Length differs: {len(a)} != {len(b)}")
+            correct = False
+        else:
+            for attr in a.__dict__:
+                if not hasattr(b, attr):
+                    correct = False
+                try:
+                    if a.__dict__[attr] != b.__dict__[attr]:
+                        print(
+                            f"Attribute {attr} differs between datasets: "
+                            f"{a.__dict__[attr]} != {b.__dict__[attr]}"
+                        )
+                except RuntimeError:
+                    try:
+                        if (a.__dict__[attr] != b.__dict__[attr]).any():
+                            print(
+                                f"Attribute {attr} differs between datasets: "
+                                f"{a.__dict__[attr]} != {b.__dict__[attr]}"
+                            )
+                            correct = False
+                    except RuntimeError:
+                        raise RuntimeError(
+                            f"Attribute {attr} cannot be compared: "
+                            f"{a.__dict__[attr]} vs {b.__dict__[attr]}"
+                        )
+
+        return correct
+
     _RANDOM_STATE_ = 42
     # data creation
     raw_data = make_shifted_datasets(
@@ -650,7 +683,7 @@ def test_deep_domain_aware_dataset():
     X, y, sd = raw_data
     raw_data_dict = {"X": X, "y": y, "sample_domain": sd}
     # though these are not technically weights, they will act as such for the tests
-    weights = np.ones(len(X))
+    weights = np.ones_like(y, dtype=np.float32)
     weighted_raw_data_dict = {
         "X": X,
         "y": y,
@@ -669,21 +702,25 @@ def test_deep_domain_aware_dataset():
         == DeepDADataset(None).is_empty()
         == empty.is_empty()
     )
-    assert len(DeepDADataset(raw_data_dict)) == len(dataset)
-    assert len(DeepDADataset(dataset)) == len(dataset)
-    assert len(dataset.add_weights(weights)) == len(weighted_dataset)
-    assert len(DeepDADataset({"X": X}, y, sd, weights)) == len(weighted_dataset)
+    assert are_DDAD_equal(DeepDADataset(raw_data_dict), dataset)
+    assert are_DDAD_equal(DeepDADataset(dataset), dataset)
+    assert are_DDAD_equal(dataset.add_weights(weights), weighted_dataset)
+    assert are_DDAD_equal(dataset.remove_weights(), dataset)
+    assert are_DDAD_equal(DeepDADataset({"X": X}, y, sd, weights), weighted_dataset)
+
+    with pytest.raises(ValueError):
+        DeepDADataset({"bad_name": X})
+
+    with pytest.raises(TypeError):
+        DeepDADataset("incorrect_type")
 
     # Dataset manipulation
-    assert (dataset.merge(empty).X == dataset.X).all()
-    assert ((dataset + empty).X == dataset.X).all()
-    assert ((dataset + dataset).X == dataset.merge(dataset).X).all()
-    assert len(dataset + dataset) == len(dataset) + len(dataset)
-    assert len(weighted_dataset.remove_weights()) == len(dataset)
+    assert are_DDAD_equal(dataset.merge(empty), dataset)
+    assert are_DDAD_equal(empty.merge(dataset), dataset)
+    assert len(dataset.merge(dataset)) == len(dataset) + len(dataset)
 
     # representation
-    d1, as_dict_y = weighted_dataset.as_dict(sample_indices=False, return_y=True)
-    assert (as_dict_y == y).all()
+    d1 = weighted_dataset.as_dict(sample_indices=False)
     assert d1.keys() == weighted_raw_data_dict.keys()
     for key in d1.keys():
         assert (d1[key] == weighted_raw_data_dict[key]).all()
@@ -700,60 +737,27 @@ def test_deep_domain_aware_dataset():
         sd[sd == domain_id],
         weights[sd == domain_id],
     )
-    selec_y = y[y == 2]
-    selec_X = X[X[:, 0] >= 0]
-    selec_w = weights[weights == 1]
-    assert (weighted_dataset.select_source().X == DeepDADataset(*source_data).X).all()
-    assert (weighted_dataset.select_target().X == DeepDADataset(*target_data).X).all()
-    assert (
-        weighted_dataset.select_domain(domain_id).X == DeepDADataset(*domain_data).X
-    ).all()
-    assert (
-        weighted_dataset.select(lambda sd: sd >= 0, on="sample_domain").X
-        == weighted_dataset.select_source().X
-    ).all()
-    assert (dataset.select(lambda y: y == 2, on="y").y == selec_y).all()
-    assert (dataset.select(lambda x: x[:, 0] > 0, "X").X == selec_X).all()
-    assert (
-        weighted_dataset.select(lambda w: w == 1, on="sample_weight").sample_weight
-        == selec_w
-    ).all()
-
-    # Dataset split
-    indices = [10, 20]
-    X_cont = np.split(X, indices)
-    y_cont = np.split(y, indices)
-    sd_cont = np.split(sd, indices)
-    w_cont = np.split(weights, indices)
-    after_split = [
-        DeepDADataset(X, y, sd, w)
-        for X, y, sd, w in zip(X_cont, y_cont, sd_cont, w_cont)
-    ]
-
-    for truesplit, split in zip(weighted_dataset._index_split(*indices), after_split):
-        assert (truesplit.X == split.X).all()
-    assert (dataset._index_split()[0].X == dataset.X).all() and len(
-        dataset._index_split()
-    ) == 1
-
-    # Dataset modification and insertion
-    after_split.insert(1, dataset)
-    after_split.insert(3, dataset)
-    assert (dataset.insert(indices, dataset).X == sum(after_split, start=empty).X).all()
-    assert (
-        dataset.insert(10, [dataset, dataset]).X
-        == (
-            dataset._index_split(10)[0]
-            + dataset
-            + dataset
-            + dataset._index_split(10)[1]
-        ).X
-    ).all()
-    res = (
-        dataset._index_split(*indices)[0]
-        + dataset
-        + dataset._index_split(*indices)[1]
-        + dataset
-        + dataset._index_split(*indices)[2]
+    selec_y = y == 2
+    selec_X = X[:, 0] >= 0
+    selec_w = weights == 1
+    assert are_DDAD_equal(weighted_dataset.select_source(), DeepDADataset(*source_data))
+    assert are_DDAD_equal(weighted_dataset.select_target(), DeepDADataset(*target_data))
+    assert are_DDAD_equal(
+        weighted_dataset.select_domain(domain_id), DeepDADataset(*domain_data)
     )
-    assert (dataset.insert(indices, [dataset] * len(indices)).X == res.X).all()
+    assert are_DDAD_equal(
+        weighted_dataset.select(lambda sd: sd >= 0, on="sample_domain"),
+        weighted_dataset.select_source(),
+    )
+    assert are_DDAD_equal(
+        dataset.select(lambda y: y == 2, on="y"),
+        DeepDADataset(X[selec_y], y[selec_y], sd[selec_y]),
+    )
+    assert are_DDAD_equal(
+        weighted_dataset.select(lambda x: x[:, 0] >= 0, on="X"),
+        DeepDADataset(X[selec_X], y[selec_X], sd[selec_X], weights[selec_X]),
+    )
+    assert are_DDAD_equal(
+        weighted_dataset.select(lambda w: w == 1, on="sample_weight"),
+        DeepDADataset(X[selec_w], y[selec_w], sd[selec_w], weights[selec_w]),
+    )

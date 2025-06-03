@@ -7,6 +7,7 @@ import torch.nn.functional as F
 from skorch.callbacks import Callback
 from skorch.utils import to_tensor
 
+from skada.deep.base import DomainAwareNet
 from skada.deep.utils import SphericalKMeans
 
 
@@ -18,7 +19,7 @@ class ComputeSourceCentroids(Callback):
     in the adaptation criterion of the network for later use.
     """
 
-    def on_epoch_begin(self, net, dataset_train=None, **kwargs):
+    def on_epoch_begin(self, net: DomainAwareNet, dataset_train=None, **kwargs):
         """Compute source centroids at the beginning of each epoch.
 
         Parameters
@@ -30,16 +31,14 @@ class ComputeSourceCentroids(Callback):
         **kwargs : dict
             Additional arguments passed to the callback.
         """
-        X, y = dataset_train.X, dataset_train.y
-
-        X, y_ = net._prepare_input(X)
-        y = y_ if y is None else y
+        X = net._prepare_input(dataset_train)
 
         # Keep only source samples
-        X_s = X["X"][X["sample_domain"] >= 0]
-        y_s = y[X["sample_domain"] >= 0]
+        source = X.select_source()
+        X_s = source.X
+        y_s = source.y
 
-        X_t = X["X"][X["sample_domain"] < 0]
+        X_t = X.select_target().X
 
         # Disable gradient computation for feature extraction
         with torch.no_grad():
@@ -87,7 +86,7 @@ class MemoryBank(Callback):
         super().__init__()
         self.momentum = momentum
 
-    def on_train_begin(self, net, X=None, y=None):
+    def on_train_begin(self, net: DomainAwareNet, X=None, y=None):
         """This method is called at the beginning of training.
 
         Parameters
@@ -98,18 +97,17 @@ class MemoryBank(Callback):
         y (numpy.ndarray or None): The target data used for training. Only passed if
             the `iterator_train` callback is not set.
         """
-        X, y_ = net._prepare_input(X)
-        y = y_ if y is None else y
+        X = net._prepare_input(X, y)
 
-        # Take only first sample
-        X_sample = {key: X[key][0:1] for key in X.keys()}
+        # Take only first sample without its label
+        X_sample = X[0][0]
 
         # Disable gradient computation for feature extraction
         with torch.no_grad():
             features_sample = net.predict_features(X_sample)
             pred_sample = net.predict_proba(X_sample, allow_source=True)
 
-        n_target_samples = X["X"][X["sample_domain"] < 0].shape[0]
+        n_target_samples = len(X.select_target())
         n_features = features_sample.shape[1]
 
         n_classes = pred_sample.shape[1]
