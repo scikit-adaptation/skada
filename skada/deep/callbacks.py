@@ -100,7 +100,7 @@ class MemoryBank(Callback):
         X = net._prepare_input(X, y)
 
         # Take only first sample without its label
-        X_sample = X[0][0]
+        X_sample = X[0:1][0]
 
         # Disable gradient computation for feature extraction
         with torch.no_grad():

@@ -958,6 +958,7 @@ class DeepDADataset(Dataset):
             "Every input data X should have a domain associated, a label (if there is "
             f"no label, it must be represented by {_NO_LABEL_}) and, optionally, a weight."
         )
+        self._sample_idx = self._infer_sample_idx()
 
     def _if_given_dict(self, d: dict, y, sample_domain, sample_weight):
         if "X" not in d or isinstance(d["X"], dict):
@@ -1099,7 +1100,7 @@ class DeepDADataset(Dataset):
 
     def __getitem__(self, index):
         try:
-            X = {"X": self.X[index], "sample_domain": self.sample_domain[index]}
+            X = {"X": self.X[index], "sample_domain": self.sample_domain[index], "sample_idx": self._sample_idx[index]}
             
             if self.has_weights:
                 X["sample_weight"] = self.sample_weight[index]
@@ -1181,7 +1182,7 @@ class DeepDADataset(Dataset):
         if self.has_weights:
             dataset["sample_weight"] = self.sample_weight
         if sample_indices:
-            dataset["sample_idx"] = self._infer_sample_idx()
+            dataset["sample_idx"] = self._sample_idx
         return dataset
 
     def as_arrays(self, return_weights=True) -> tuple[
