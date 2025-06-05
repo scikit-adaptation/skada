@@ -1104,9 +1104,6 @@ class DeepDADataset(Dataset):
             if self.has_weights:
                 X["sample_weight"] = self.sample_weight[index]
             
-            if X["X"].ndim == self.X.ndim - 1:
-                X["X"] = torch.unsqueeze(X["X"], 0)
-
             return X, self.y[index]
         except IndexError:            
             raise IndexError(
