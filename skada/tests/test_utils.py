@@ -430,6 +430,7 @@ def test_check_X_domain_multi_nd():
 def test_check_X_y_domain_multi_nd():
     # Create a 3D array for X (10 samples, 2 features, 3 channels)
     X = np.random.rand(10, 2, 3)
+
     # Create a 2D array for y (10 samples, 2 outputs)
     y = np.random.rand(10, 2)
     sample_domain = np.array([1] * 5 + [-1] * 5)
