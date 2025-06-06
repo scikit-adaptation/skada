@@ -421,7 +421,9 @@ def test_check_X_domain_multi_nd():
     check_X_domain(X, sample_domain=sample_domain, allow_nd=True)
 
     # Test with allow_nd=False (should raise an error)
-    with pytest.raises(ValueError, match="Found array with dim 3. None expected <= 2."):
+    with pytest.raises(
+        ValueError, match="Found array with dim 3, while dim <= 2 is required."
+    ):
         check_X_domain(X, sample_domain=sample_domain, allow_nd=False)
 
 
@@ -436,7 +438,9 @@ def test_check_X_y_domain_multi_nd():
     check_X_y_domain(X, y, sample_domain=sample_domain, allow_nd=True)
 
     # Test with allow_nd=False (should raise an error for X)
-    with pytest.raises(ValueError, match="Found array with dim 3. None expected <= 2."):
+    with pytest.raises(
+        ValueError, match="Found array with dim 3, while dim <= 2 is required."
+    ):
         check_X_y_domain(X, y, sample_domain=sample_domain, allow_nd=False)
 
 
