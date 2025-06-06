@@ -21,7 +21,7 @@ def test_sourceonly():
     dataset = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=n_samples,
-        shift="concept_drift",
+        shift="conditional_shift",
         noise=0.1,
         mean=5,
         sigma=1,
@@ -70,7 +70,7 @@ def test_targetonly():
     dataset = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=n_samples,
-        shift="concept_drift",
+        shift="conditional_shift",
         noise=0.1,
         mean=5,
         sigma=1,

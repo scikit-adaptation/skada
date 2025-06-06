@@ -24,15 +24,15 @@ from skada import (
 from skada.datasets import make_shifted_datasets
 
 # %%
-# Generate concept drift classification dataset and plot it
+# Generate conditional shift classification dataset and plot it
 # -----------------------------------------------------
 #
-# We generate a simple 2D concept drift dataset.
+# We generate a simple 2D conditional shift dataset.
 
 X, y, sample_domain = make_shifted_datasets(
     n_samples_source=20,
     n_samples_target=20,
-    shift="concept_drift",
+    shift="conditional_shift",
     noise=0.2,
     label="multiclass",
     random_state=42,
@@ -136,7 +136,7 @@ def get_multidomain_data(
         n_samples_source=n_samples_source,
         n_samples_target=n_samples_target,
         noise=noise,
-        shift="concept_drift",
+        shift="conditional_shift",
         label="multiclass",
         random_state=random_state,
     )
@@ -145,7 +145,7 @@ def get_multidomain_data(
             n_samples_source=n_samples_source,
             n_samples_target=n_samples_target,
             noise=noise,
-            shift="concept_drift",
+            shift="conditional_shift",
             label="multiclass",
             random_state=random_state + ns,
             mean=np.random.randn(2),
@@ -161,7 +161,7 @@ def get_multidomain_data(
             n_samples_source=n_samples_source,
             n_samples_target=n_samples_target,
             noise=noise,
-            shift="concept_drift",
+            shift="conditional_shift",
             label="multiclass",
             random_state=random_state + nt + 42,
             mean=np.random.randn(2),

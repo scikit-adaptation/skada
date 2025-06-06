@@ -5,7 +5,7 @@ Plot dataset source domain and shifted target domain
 This illustrates the :func:`~skada.datasets.make_shifted_dataset`
 dataset generator. Each method consists of generating source data
 and shifted target data. We illustrate here:
-covariate shift, target shift, concept drift, and sample bias.
+covariate shift, target shift, conditional shift, and sample bias.
 See detailed description of each shift in [1]_.
 
 .. [1] Moreno-Torres, J. G., Raeder, T., Alaiz-Rodriguez,
@@ -32,7 +32,7 @@ def plot_shifted_dataset(shift, random_state=42):
     """Plot source and shifted target data for a given type of shift.
 
     The possible shifts are 'covariate_shift', 'target_shift',
-    'concept_drift' or 'subspace'.
+    'conditional_shift' or 'subspace'.
 
     We use here the same random seed for multiple calls to
     ensure same distributions.
@@ -86,5 +86,5 @@ def plot_shifted_dataset(shift, random_state=42):
 
 # %% Visualize shifted datasets
 
-for shift in ["covariate_shift", "target_shift", "concept_drift", "subspace"]:
+for shift in ["covariate_shift", "target_shift", "conditional_shift", "subspace"]:
     plot_shifted_dataset(shift)

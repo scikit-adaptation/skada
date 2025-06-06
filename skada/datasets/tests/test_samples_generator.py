@@ -168,7 +168,12 @@ def test_make_shifted_blobs(noise):
     "shift, noise",
     [
         (shift, noise)
-        for shift in ["covariate_shift", "target_shift", "concept_drift", "subspace"]
+        for shift in [
+            "covariate_shift",
+            "target_shift",
+            "conditional_shift",
+            "subspace",
+        ]
         for noise in [None, 1, [0, 1]]
     ],
 )
@@ -215,7 +220,7 @@ def test_make_shifted_datasets(shift, noise):
 
 @pytest.mark.parametrize(
     "shift",
-    ["covariate_shift", "target_shift", "concept_drift", "subspace"],
+    ["covariate_shift", "target_shift", "conditional_shift", "subspace"],
 )
 def test_make_multi_source_shifted_datasets(shift):
     # test for multi-source
@@ -262,7 +267,7 @@ def test_make_multi_source_shifted_datasets(shift):
 
 @pytest.mark.parametrize(
     "shift",
-    ["covariate_shift", "target_shift", "concept_drift", "subspace"],
+    ["covariate_shift", "target_shift", "conditional_shift", "subspace"],
 )
 def test_make_shifted_datasets_regression(shift):
     X, y, sample_domain = make_shifted_datasets(

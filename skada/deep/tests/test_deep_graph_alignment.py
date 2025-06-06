@@ -31,7 +31,7 @@ def test_spa(domain_classifier, domain_criterion, num_features):
     dataset = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=n_samples,
-        shift="concept_drift",
+        shift="conditional_shift",
         noise=0.1,
         random_state=42,
         return_dataset=True,

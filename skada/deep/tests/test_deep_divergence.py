@@ -33,7 +33,7 @@ def test_deepcoral(assume_centered):
     dataset = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=n_samples,
-        shift="concept_drift",
+        shift="conditional_shift",
         noise=0.1,
         random_state=42,
         return_dataset=True,
@@ -78,7 +78,7 @@ def test_dan(sigmas):
     dataset = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=n_samples,
-        shift="concept_drift",
+        shift="conditional_shift",
         noise=0.1,
         random_state=42,
         return_dataset=True,
@@ -124,7 +124,7 @@ def test_can(sigmas, distance_threshold, class_threshold):
     dataset = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=n_samples,
-        shift="concept_drift",
+        shift="conditional_shift",
         noise=0.1,
         random_state=42,
         return_dataset=True,
@@ -163,7 +163,7 @@ def test_can_with_custom_callbacks():
     dataset = make_shifted_datasets(
         n_samples_source=n_samples,
         n_samples_target=n_samples,
-        shift="concept_drift",
+        shift="conditional_shift",
         noise=0.1,
         random_state=42,
         return_dataset=True,

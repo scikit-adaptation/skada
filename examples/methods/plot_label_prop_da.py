@@ -7,7 +7,7 @@ domain adaptation. This is done by propagating labels from the source domain to
 the target domain using the OT plan. This was proposed originally in [28]_ for
 semi-supervised learning but can be used for DA.
 
-We illustrate the method on a simple regression and classification concept drift
+We illustrate the method on a simple regression and classification conditional shift
 dataset. We train a simple Kernel Ridge Regression (KRR) and Logistic Regression
 on the source domain and evaluate their performance on the source and target
 domain. We then train the same models with the label propagation method and
@@ -42,15 +42,15 @@ from skada import (
 from skada.datasets import make_shifted_datasets
 
 # %%
-# Generate concept drift regression dataset and plot it
+# Generate conditional shift regression dataset and plot it
 # -----------------------------------------------------
 #
-# We generate a simple 2D concept drift dataset.
+# We generate a simple 2D conditional shift dataset.
 
 X, y, sample_domain = make_shifted_datasets(
     n_samples_source=20,
     n_samples_target=20,
-    shift="concept_drift",
+    shift="conditional_shift",
     noise=0.3,
     label="regression",
     random_state=42,
@@ -177,15 +177,15 @@ plt.axis(ax)
 
 
 # %%
-# Generate concept drift classification dataset and plot it
+# Generate conditional shift classification dataset and plot it
 # -----------------------------------------------------
 #
-# We generate a simple 2D concept drift dataset.
+# We generate a simple 2D conditional shift dataset.
 
 X, y, sample_domain = make_shifted_datasets(
     n_samples_source=20,
     n_samples_target=20,
-    shift="concept_drift",
+    shift="conditional_shift",
     noise=0.2,
     label="multiclass",
     random_state=42,
