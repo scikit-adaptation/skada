@@ -953,7 +953,7 @@ class DeepDADataset(Dataset):
                                     )
                     X = to_tensor(X, device=device)
 
-                except TypeError:
+                except ValueError:
                     raise TypeError(
                         "Invalid dataset representation. Expected a dict of the form "
                         "{'X', 'y'(optional), 'sample_domain'(optional), "
