@@ -10,7 +10,7 @@ This example illustrate some uses of DeepDADatasets.
 # sphinx_gallery_thumbnail_number = 4
 # %%
 
-import torch
+import numpy as np
 
 from skada.datasets import make_shifted_datasets
 from skada.deep.base import DeepDADataset as DDAD
@@ -34,17 +34,23 @@ from skada.deep.base import DeepDADataset as DDAD
 #   On the other hand, it is possible that a sample has no associated label or domain.
 #   In that case, it will be associated to label :code:`-1` and domain :code:`0`.
 #
-# DeepDADatasets can be created from numpy arrays, torch tensors, lists, tuples,
+# DeepDADatasets can be created from numpy arrays, torch tensors, lists,
+# tuples, pandas dataframes,
 # or dictionary of the former.
+#
+# If a dictionary is provided, it must contain the keys :code:`X`, :code:`y` (optional),
+# :code:`sample_domain` (optional) and :code:`sample_weight` (optional).
 #
 # If both dictionary and positional arguments are provided, the dictionary
 # arguments will take precedence over the positional ones.
+#
+# The data is then stored in torch tensors.
 
 # practice dataset
 raw_data = make_shifted_datasets(20, 20, random_state=42)
 X, y, sample_domain = raw_data
 # though these are not technically weights, they will act as such throughout the guide.
-weights = torch.ones(X.shape)
+weights = np.ones_like(y)
 dict_raw_data = {"X": X, "sample_domain": sample_domain, "y": y}
 weighted_dict_raw_data = {
     "X": X,
