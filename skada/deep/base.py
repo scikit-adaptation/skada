@@ -899,6 +899,16 @@ class DeepDADataset(Dataset):
     All passed data will be converted to :code:`torch.Tensor`. Dict representation
     should at least contain an 'X' key containing the input data or be completely empty
 
+    Passed data can be of the following types:
+    - non-scalar :code:`torch.Tensor`
+    - non-scalar :code:`numpy.ndarray`
+    - :code:`pandas.DataFrame`
+    - :code:`list`
+    - :code:`tuple`
+    - :code:`dict` with keys 'X', 'y' (optional), 'sample_domain' (optional)
+      and 'sample_weight' (optional) with values of one of the above types
+    - another :class:`~skada.DeepDADataset` instance
+
     If no sample domain is provided, domain :code:`{_DEFAULT_SAMPLE_DOMAIN_}` is attributed
     to the given data.
 
@@ -925,9 +935,6 @@ class DeepDADataset(Dataset):
         self.has_weights = True
         self.device = device
 
-        if sample_domain is None:
-            sample_domain = _DEFAULT_SAMPLE_DOMAIN_
-
         if X is not None:
             if isinstance(X, dict):
                 if len(X):
@@ -938,10 +945,14 @@ class DeepDADataset(Dataset):
                 try:
                     if hasattr(X, 'shape') and len(X.shape) == 0:
                         X = torch.tensor([X])
-                    X = to_tensor(X, device)
-                    if isinstance(X, (list, tuple)):
-                        X = torch.tensor(X, device=device)
-                    
+                    X = check_array(X, 
+                                    ensure_2d=False,
+                                    allow_nd=True,
+                                    ensure_min_samples=0,
+                                    ensure_min_features=0,
+                                    )
+                    X = to_tensor(X, device=device)
+
                 except TypeError:
                     raise TypeError(
                         "Invalid dataset representation. Expected a dict of the form "
@@ -971,55 +982,53 @@ class DeepDADataset(Dataset):
         sample_weight = d.get("sample_weight", sample_weight)
         if hasattr(X, 'shape') and len(X.shape) == 0:
             X = torch.tensor([X])
+        X = check_array(X, 
+                ensure_2d=False,
+                allow_nd=True,
+                ensure_min_samples=0,
+                ensure_min_features=0,
+                )
         X = to_tensor(X, self.device)
         self._initialize(X, y, sample_domain, sample_weight)
 
     def _initialize(self, X:torch.Tensor, y, sample_domain, sample_weight):
-        try :
-            empty = hasattr(sample_domain, '__len__') and not len(sample_domain)
-        except TypeError:
-            # This error occurs when sample_domain is a 0-d tensor
-            empty = False
-            sample_domain = torch.tensor([sample_domain])
-        if empty:
+        if sample_domain is None or len(sample_domain) == 0:
             sample_domain = _DEFAULT_SAMPLE_DOMAIN_
         if isinstance(sample_domain, int):
             sample_domain = torch.full((X.shape[0],), sample_domain)
         else:
+            sample_domain = check_array(sample_domain, 
+                ensure_2d=False,
+                allow_nd=True,
+                ensure_min_samples=0,
+                ensure_min_features=0,
+                )
             sample_domain = to_tensor(sample_domain, self.device)
-            if isinstance(sample_domain, (list, tuple)):
-                sample_domain = torch.tensor(sample_domain, device=self.device)
-        try:
-            empty = y is None or hasattr(y, "__len__") and not len(y)
-        except TypeError:
-            # This error occurs when y is a 0-d tensor
-            empty = False
-            y = torch.tensor([y])
         
-        if empty:
+        if y is None or len(y) == 0:
             y = torch.full((len(X),), _NO_LABEL_, dtype=torch.float)
             has_y = torch.full((len(X),), False, dtype=torch.bool)
         else:
+            y = check_array(y, 
+                ensure_2d=False,
+                allow_nd=True,
+                ensure_min_samples=0,
+                ensure_min_features=0,
+                )
             y = to_tensor(y, self.device)
-            if isinstance(y, (list, tuple)):
-                y = torch.tensor(y, device=self.device)
             has_y = y != _NO_LABEL_
 
-        try:
-            empty = (sample_weight is None or 
-                     hasattr(sample_weight, "__len__") and not len(sample_weight))
-        except TypeError:
-            # This error occurs when sample_weight is a 0-d tensor
-            empty = False
-            sample_weight = torch.tensor([sample_weight])
-        
-        if empty:
+        if sample_weight is None or len(sample_weight) == 0:
             sample_weight = _EMPTY_
             has_weights = False
         else:
+            sample_weight = check_array(sample_weight, 
+                ensure_2d=False,
+                allow_nd=True,
+                ensure_min_samples=0,
+                ensure_min_features=0,
+                )
             sample_weight = to_tensor(sample_weight, device=self.device)
-            if isinstance(sample_weight, (list, tuple)):
-                sample_weight = torch.tensor(sample_weight, device=self.device)
             has_weights = bool(sample_weight.size()[0])
 
         self.X = X
