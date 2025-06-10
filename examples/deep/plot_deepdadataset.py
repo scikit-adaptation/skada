@@ -67,8 +67,8 @@ dataset_with_weights = DeepDADataset(X, y, sample_domain, weights)
 dataset_with_weights_from_dict = DeepDADataset(weighted_dict_raw_data)
 
 # these methods change the dataset in place and return the dataset itself
-dataset.add_weights(weights)
-dataset.remove_weights()
+dataset = dataset.add_weights(weights)
+dataset = dataset.remove_weights()
 
 # %%
 # It is also possible to create a DeepDADataset from lists, tuples, tensors,
@@ -125,9 +125,11 @@ dataset2 = dataset.merge(dataset)
 # all of which return DeepDADatasets instances.
 
 # indexing methods return a tuple with the data as dict and the label
-dataset[0]  # first sample
-dataset[0:5]  # first five samples
+first_sample = dataset[0]  # first sample
+first_five_samples = dataset[0:5]  # first five samples
 
 # selecting methods return a DeepDADataset with the selected samples
-dataset.select_domain(1)  # all samples from domain 1
-dataset.select(lambda label: label == 1, on="y")  # all samples with label 1
+domain_1_samples = dataset.select_domain(1)  # all samples from domain 1
+label_1_samples = dataset.select(
+    lambda label: label == 1, on="y"
+)  # all samples with label 1
