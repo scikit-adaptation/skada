@@ -26,6 +26,8 @@ from skorch.utils import to_numpy, to_tensor
 from skorch.dataset import unpack_data, Dataset
 from collections.abc import Mapping
 
+from pandas import DataFrame
+
 _EMPTY_ = torch.Tensor()
 _EMPTY_INT_ = torch.tensor([],dtype=torch.int64)
 _DEFAULT_SAMPLE_DOMAIN_ = 0
@@ -893,21 +895,11 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
 
 class DeepDADataset(Dataset):
     f"""The Domain Aware Dataset class for deep learning.
-    This class fills the gap between dictionary representation and array_like
+    This class fills the gap between dictionary representation and array like
     representation by combining them into a single object.
 
     All passed data will be converted to :code:`torch.Tensor`. Dict representation
     should at least contain an 'X' key containing the input data or be completely empty
-
-    Passed data can be of the following types:
-    - non-scalar :code:`torch.Tensor`
-    - non-scalar :code:`numpy.ndarray`
-    - :code:`pandas.DataFrame`
-    - :code:`list`
-    - :code:`tuple`
-    - :code:`dict` with keys 'X', 'y' (optional), 'sample_domain' (optional)
-      and 'sample_weight' (optional) with values of one of the above types
-    - another :class:`~skada.DeepDADataset` instance
 
     If no sample domain is provided, domain :code:`{_DEFAULT_SAMPLE_DOMAIN_}` is attributed
     to the given data.
@@ -926,7 +918,47 @@ class DeepDADataset(Dataset):
         sample_weight=None,
         device="cpu",
     ):
-        
+        """
+        The Domain Aware Dataset class for deep learning.
+
+        Parameters:
+        -----------
+        X : torch.Tensor, numpy.ndarray, list, tuple, dict, DataFrame, DeepDADataset
+            The input data can be of various types:
+            - non-scalar :code:`torch.Tensor`
+            - non-scalar :code:`numpy.ndarray`
+            - :code:`list`
+            - :code:`tuple`
+            - :code:`dict` with keys 'X', 'y' (optional), 'sample_domain' (optional)
+            and 'sample_weight' (optional) with values of one of the above types
+            - :code:`pandas.DataFrame` with same structure as the dictionary
+            - another :code:`~skada.DeepDADataset` instance
+
+        y : 
+            The target labels.
+            If not provided, the dataset will have default labels :code:`{_NO_LABEL_}`.
+
+        sample_domain : 
+            The sample domain information.
+            If not provided, the dataset will have default domain 
+            :code:`{_DEFAULT_SAMPLE_DOMAIN_}`.
+            If provided, it can be of the following types:
+                - :code:`int` (single domain for all samples)
+                - non-scalar :code:`torch.Tensor`
+                - non-scalar :code:`numpy.ndarray`
+                - :code:`list`
+                - :code:`tuple`
+
+        sample_weight :
+            The sample weights.
+        device : 
+            The device to which the tensors should be moved. Defaults to "cpu".
+
+        Raises:
+        -------
+        TypeError
+            If the input data is not of the expected type.
+        """
         self.X = _EMPTY_
         self.y = _EMPTY_INT_
         self.sample_domain = _EMPTY_INT_
@@ -936,7 +968,7 @@ class DeepDADataset(Dataset):
         self.device = device
 
         if X is not None:
-            if isinstance(X, dict):
+            if isinstance(X, (dict, DataFrame)):
                 if len(X):
                     self._if_given_dict(X, y, sample_domain, sample_weight)
             elif isinstance(X, DeepDADataset):
@@ -972,16 +1004,24 @@ class DeepDADataset(Dataset):
         self._sample_idx = self._infer_sample_idx()
 
     def _if_given_dict(self, d: dict, y, sample_domain, sample_weight):
-        if "X" not in d or isinstance(d["X"], dict):
-            raise ValueError("dataset represented as dict should contain 'X' key" \
-            " associated to a data type convertible to torch Tensor.")
+        if "X" not in d:
+            raise ValueError("dataset represented as dict or pandas dataframe " \
+            "should contain 'X' key associated to a data type convertible " \
+            "to torch Tensor.")
 
         X = d["X"]
         y = d.get("y", y)
         sample_domain = d.get("sample_domain", sample_domain)
         sample_weight = d.get("sample_weight", sample_weight)
-        if hasattr(X, 'shape') and len(X.shape) == 0:
-            X = torch.tensor([X])
+        if isinstance(d, DataFrame):
+            X = X.to_list()
+            if "y" in d.columns:
+                y = y.to_list()
+            if "sample_domain" in d.columns:
+                sample_domain = sample_domain.to_list()
+            if "sample_weight" in d.columns:
+                sample_weight = sample_weight.to_list()
+
         X = check_array(X, 
                 ensure_2d=False,
                 allow_nd=True,
@@ -1043,23 +1083,28 @@ class DeepDADataset(Dataset):
         or updates the first one. The merging is done by concatenation of the data.
 
         Parameters:
-            dataset (DeepDADataset): the second dataset to merge.
-            keep_weights (bool, optional): whether to keep the weights (if any).
-                If False, weights become empty. If True, weights are concatenated.
-                Defaults to False.
+        -----------
+        dataset : DeepDADataset
+          The second dataset to merge.
+        keep_weights : bool, optional
+          Whether to keep the weights (if any). If False, weights become empty. If True, weights are concatenated. Defaults to False.
 
-                ..WARNING::
-                    There is no check to ensure weights still form
-                    a probability distribution after merging.
+          ..WARNING::
+              There is no check to ensure weights still form
+              a probability distribution after merging.
 
-            out (bool, optional): whether to return the result instead of 
-                updating first dataset. Defaults to True.
-
-        Raises:
-            TypeError: raises if the other dataset is not a DeepDADataset instance.
+        out : bool, optional
+          Whether to return the result instead of updating first dataset. Defaults to True.
 
         Returns:
-            DeepDADataset (optional): the concatenation of the datasets.
+        --------
+        DeepDADataset
+          the concatenation of the datasets.
+
+        Raises:
+        -------
+        TypeError
+          raises if the other dataset is not a DeepDADataset instance.
         """
         if isinstance(dataset, DeepDADataset):
             X = torch.cat((self.X, dataset.X))
@@ -1092,7 +1137,7 @@ class DeepDADataset(Dataset):
 
     def _is_correct(self):
         """Validates the dataset. Fails if there are not as many labels, domain,
-        or weights (if any) as data samples.
+        or weights (if any) as data samples or if the dimensions are not compatible.
         """
         return (len(self.X) == len(self.y) == len(self.sample_domain)) and (
             len(self.X) == len(self.sample_weight) or not self.has_weights) and (
@@ -1119,11 +1164,14 @@ class DeepDADataset(Dataset):
         """Adds a domain to the dataset.
 
         Parameters:
-            dataset (DeepDADataset, dict, list, tuple(torch.Tensor, np.array)):
-                The domain to add. Should be a data type convertible to DeepDADataset.
+        -----------
+        dataset : DeepDADataset, dict, list, tuple(torch.Tensor, np.array)
+            The domain to add. Should be a data type convertible to DeepDADataset.
         
         Returns:
-            DeepDADataset: the original dataset with the new domain added.
+        --------
+        DeepDADataset
+          the original dataset with the new domain added.
         """
         if isinstance(dataset, dict):    
             dataset = DeepDADataset(dataset)
@@ -1158,11 +1206,14 @@ class DeepDADataset(Dataset):
             (torch tensor, optional)}
 
         Parameters:
-            sample_indices (bool): whether to return the sample indices as key
-            'sample_idx' within the dictionary. Defaults to True.
+        -----------
+        sample_indices : bool
+            whether to return the sample indices as key 'sample_idx' within the dictionary. Defaults to True.
 
         Returns:
-            dict: dictionary representation of the dataset
+        --------
+        dict
+            dictionary representation of the dataset
         """
         dataset = {"X": self.X, 'y':self.y, "sample_domain": self.sample_domain}
         if self.has_weights:
@@ -1177,14 +1228,20 @@ class DeepDADataset(Dataset):
         f"""switches to array representation of the dataset.
 
         Parameters:
-            return_weights (bool, optional): whether to return the sample weights 
-                (if any). Defaults to False.
+        -----------
+        return_weights : bool, optional
+            whether to return the sample weights (if any). Defaults to False.
 
         Returns:
-            X: input data
-            y: corresponding labels (if a sample has no label, {_NO_LABEL_} at its index)
-            sample_domain: corresponding domain of each sample
-            sample_weights (optional): corresponding weight of each sample (if any)
+        --------
+        torch.Tensor
+            input data
+        torch.Tensor
+            corresponding labels (if a sample has no label, {_NO_LABEL_} at its index)
+        torch.Tensor
+            corresponding domain of each sample
+        torch.Tensor (optional)
+            corresponding weight of each sample (if any)
         """
         if self.has_weights and return_weights:
             return self.X, self.y, self.sample_domain, self.sample_weight
@@ -1195,7 +1252,9 @@ class DeepDADataset(Dataset):
         """return all the domains comprising the dataset
 
         Returns:
-            tuple: the domains of the dataset, sorted by domain id
+        --------
+        tuple
+            the domains of the dataset, sorted by domain id
         """
         return tuple(int(domain_id) for domain_id in self.sample_domain.unique())
     
@@ -1206,7 +1265,9 @@ class DeepDADataset(Dataset):
         result would be [0, 1, 2, 0, 1, 3, 0, 1, 2, 2, 3]
 
         Returns:
-            torch.Tensor: the indices of each sample relative to their domain
+        --------
+        torch.Tensor
+            the indices of each sample relative to their domain
         """
         result = torch.zeros_like(self.sample_domain, dtype=torch.int64)
         for domain_id in self.domains():
@@ -1224,17 +1285,23 @@ class DeepDADataset(Dataset):
         Where the condition is applied depends on the `on` argument.
 
         Parameters:
-            condition (callable): the validation condition.
-            on (str, optional): where the condition is applied. 
+        -----------
+            condition : callable
+               the validation condition.
+            on : str, optional
+                where the condition is applied. 
                 Either X, y, sample_domain or sample_weight.
-            return_weights (bool, optional): whether to return the weights
-                (if any). Defaults to True.
+            return_weights : bool, optional
+                whether to return the weights (if any). Defaults to True.
 
         Raises:
+        -------
             ValueError: raises when `on` argument is invalid.
 
         Returns:
-            DeepDADataset: the subset of the dataset validating the condition.
+        --------
+        DeepDADataset
+            the subset of the dataset validating the condition.
         """
         if on == 'X':
             mask = condition(self.X)
@@ -1258,12 +1325,16 @@ class DeepDADataset(Dataset):
         boolean indexing methods.
 
         Parameters:
-            mask (array_like of bools): the mask of the data to get.
-            return_weights (bool, optional): whether to return the sample weights
-                (if any). Defaults to False.
+        -----------
+        mask : array_like of bools
+            the mask of the data to get.
+        return_weights : bool, optional
+            whether to return the sample weights (if any). Defaults to False.
 
         Returns:
-            DeepDADataset: the dataset corresponding to the input mask.
+        --------
+        DeepDADataset
+            the dataset corresponding to the input mask.
         """
         mask = check_array(
                 mask,
@@ -1282,11 +1353,14 @@ class DeepDADataset(Dataset):
         sample_domain >= 0)
 
         Parameters:
-            return_weights (bool, optional): whether to return the sample weights
-                (if any). Defaults to False.
+        -----------
+        return_weights : bool, optional
+            whether to return the sample weights (if any). Defaults to False.
 
         Returns:
-            DeepDADataset: the source domain from the dataset.
+        --------
+        DeepDADataset
+            the source domain from the dataset.
         """
         mask = self.sample_domain >= 0
         return self._select_from_mask(mask, return_weights)
@@ -1296,11 +1370,14 @@ class DeepDADataset(Dataset):
         sample_domain < 0)
 
         Parameters:
-            return_weights (bool, optional): whether to return the sample weights
-                (if any). Defaults to False.
+        -----------
+        return_weights : bool, optional
+            whether to return the sample weights (if any). Defaults to False.
 
         Returns:
-            DeepDADataset: the target domain from the dataset.
+        --------
+        DeepDADataset
+            the target domain from the dataset.
         """
         mask = self.sample_domain < 0
         return self._select_from_mask(mask, return_weights)
@@ -1309,11 +1386,14 @@ class DeepDADataset(Dataset):
         """Returns a DeepDADataset composed only of the selected domain
 
         Parameters:
-            return_weights (bool, optional): whether to return the sample weights
-                (if any). Defaults to False.
+        -----------
+        return_weights : bool, optional
+            whether to return the sample weights (if any). Defaults to False.
 
         Returns:
-            DeepDADataset: the selected domain from the dataset.
+        --------
+        DeepDADataset
+            the selected domain from the dataset.
         """
         mask = self.sample_domain == domain_id
         return self._select_from_mask(mask, return_weights)
@@ -1323,11 +1403,14 @@ class DeepDADataset(Dataset):
         (that is, data with a y associated that is not {_NO_LABEL_}).
 
         Parameters:
-            return_weights (bool, optional): whether to return the sample weights
-                (if any). Defaults to False.
+        -----------
+        return_weights : bool, optional
+            whether to return the sample weights (if any). Defaults to False.
 
         Returns:
-            DeepDADataset: the data with labels.
+        --------
+        DeepDADataset
+            the data with labels.
         """
         mask = self.has_y
         return self._select_from_mask(mask, return_weights)
@@ -1337,11 +1420,14 @@ class DeepDADataset(Dataset):
         and value is a DeepDADataset composed of said domain.
 
         Parameters:
-            return_weights (bool, optional): whether to return the sample weights
-                (if any). Defaults to False.
+        -----------
+        return_weights : bool, optional
+            whether to return the sample weights (if any). Defaults to False.
 
         Returns:
-            dict: the dataset split per domain id
+        --------
+        dict
+            The dataset split per domain id
         """
         dataset = {}
         for domain_id in self.domains():
@@ -1352,11 +1438,14 @@ class DeepDADataset(Dataset):
         """Adds weights to the dataset.
 
         Parameters:
-            sample_weight (array_like): the weights to add to the dataset.
-                Must be convertible to torch Tensor.
+        -----------
+        sample_weight : torch.Tensor or np.ndarray
+            the weights to add to the dataset. Must be convertible to torch Tensor.
 
         Returns:
-            DeepDADataset: the weighted dataset.
+        --------
+        DeepDADataset
+            the weighted dataset.
         """
         sample_weight = check_array(
             sample_weight,
@@ -1370,11 +1459,14 @@ class DeepDADataset(Dataset):
         assert self._is_correct(), "There must be a weight for every sample."
         return self
         
-    def remove_weights(self, out=False):
-        """Removes the weight of the dataset
+    def remove_weights(self):
+        """Removes the weight of the dataset Changes the dataset in place
+        and returns a new dataset without weights.
 
         Returns:
-            DeepDADataset: the unweighted dataset. 
+        --------
+        DeepDADataset
+            The unweighted dataset. 
         """
         self.sample_weight = _EMPTY_
         self.has_weights = False

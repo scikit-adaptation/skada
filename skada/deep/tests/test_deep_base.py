@@ -9,6 +9,7 @@ import pytest
 torch = pytest.importorskip("torch")
 
 import numpy as np
+from pandas import DataFrame
 from skorch.dataset import Dataset
 
 from skada.datasets import make_shifted_datasets
@@ -690,6 +691,14 @@ def test_deep_domain_aware_dataset():
         "sample_domain": sd,
         "sample_weight": weights,
     }
+    df = DataFrame(
+        {
+            "X": list(X),
+            "y": y,
+            "sample_domain": sd,
+            "sample_weight": weights,
+        }
+    )
 
     # Dataset creation
     empty = DeepDADataset()
@@ -707,6 +716,7 @@ def test_deep_domain_aware_dataset():
     assert are_DDAD_equal(dataset.add_weights(weights), weighted_dataset)
     assert are_DDAD_equal(dataset.remove_weights(), dataset)
     assert are_DDAD_equal(DeepDADataset({"X": X}, y, sd, weights), weighted_dataset)
+    assert are_DDAD_equal(DeepDADataset(df), weighted_dataset)
 
     with pytest.raises(ValueError):
         DeepDADataset({"bad_name": X})
