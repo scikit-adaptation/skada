@@ -15,14 +15,12 @@ class TestTimeCriterion(torch.nn.Module):
         reg=1,
         reduction="mean",
         train_on_target=False,
-        mode="finetune",
     ):
         super().__init__()
         self.base_criterion = base_criterion
         self.adapt_criterion = adapt_criterion
         self.reg = reg
         self.train_on_target = train_on_target
-        self.mode = mode
 
         # Update the reduce parameter for both criteria if specified
         if hasattr(self.base_criterion, "reduction"):
@@ -52,51 +50,19 @@ class TestTimeCriterion(torch.nn.Module):
         y_true :
             The true labels. Available for source, masked for target.
         """
-        y_pred, domain_pred, features, sample_domain, sample_idx = y_pred
-        source_idx = sample_domain >= 0
-        y_pred_s = y_pred[source_idx]
-        y_pred_t = y_pred[~source_idx]
-
-        if domain_pred is not None:
-            domain_pred_s = domain_pred[source_idx]
-            domain_pred_t = domain_pred[~source_idx]
-        else:
-            domain_pred_s = None
-            domain_pred_t = None
-
-        if features is not None:
-            features_s = features[source_idx]
-            features_t = features[~source_idx]
-        else:
-            features_s = None
-            features_t = None
-
-        if sample_idx is not None:
-            sample_idx_s = sample_idx[source_idx]
-            sample_idx_t = sample_idx[~source_idx]
-        else:
-            sample_idx_s = None
-            sample_idx_t = None
+        y_pred, domain_pred, features, _, sample_idx = y_pred
 
         if self.train_on_target:
-            base_loss = self.base_criterion(y_pred_t, y_true[~source_idx])
-        else:
-            base_loss = self.base_criterion(y_pred_s, y_true[source_idx])
-
-        if self.mode == "finetune":
             # In finetune mode, we only compute the base loss
-            return base_loss
-        elif self.mode == "adapt":
-            self.adapt_criterion(
-                y_s=y_true[source_idx],
-                y_pred_s=y_pred_s,
-                y_pred_t=y_pred_t,
-                domain_pred_s=domain_pred_s,
-                domain_pred_t=domain_pred_t,
-                features_s=features_s,
-                features_t=features_t,
-                sample_idx_s=sample_idx_s,
-                sample_idx_t=sample_idx_t,
+            return self.base_criterion(y_pred, y_true)
+        else:
+            # In adapt mode, we compute the adaptation loss
+            return self.adapt_criterion(
+                y_s=y_true,
+                y_pred=y_pred,
+                domain_pred=domain_pred,
+                features=features,
+                sample_idx=sample_idx,
             )
 
 
