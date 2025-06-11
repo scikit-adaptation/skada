@@ -2,15 +2,15 @@
 #         Remi Flamary <remi.flamary@polytechnique.edu>
 #         Yanis Lalou <yanis.lalou@polytechnique.edu>
 #         Antoine Collas <contact@antoinecollas.fr>
+#         Maxence Barneche <maxence.barneche@etu-upsaclay.fr>
 #
 # License: BSD 3-Clause
 
 from abc import abstractmethod
 from typing import Dict, Any, Union
-from functools import partial
 
 import torch
-from torch.utils.data import DataLoader, Sampler, Dataset
+from torch.utils.data import DataLoader, Sampler
 from sklearn.base import _clone_parametrized
 from sklearn.metrics import accuracy_score
 from skorch import NeuralNetClassifier
@@ -18,15 +18,20 @@ from skorch import NeuralNetClassifier
 from .utils import _register_forwards_hook, _infer_predict_nonlinearity
 
 from skada.base import _DAMetadataRequesterMixin
-from skada.utils import check_X_domain
+from sklearn.utils.validation import check_array
 
 import numpy as np
 from skorch.utils import to_device
-from skorch.utils import to_numpy
-from skorch.utils import to_tensor
-from skorch.dataset import unpack_data
+from skorch.utils import to_numpy, to_tensor
+from skorch.dataset import unpack_data, Dataset
 from collections.abc import Mapping
 
+from pandas import DataFrame
+
+_EMPTY_ = torch.Tensor()
+_EMPTY_INT_ = torch.tensor([],dtype=torch.int64)
+_DEFAULT_SAMPLE_DOMAIN_ = 0
+_NO_LABEL_ = -1
 
 class DomainAwareCriterion(torch.nn.Module):
     """Criterion for domain aware loss
@@ -527,13 +532,8 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         self : DomainAwareNet
             The fitted model.
         """
-        X, y_ = self._prepare_input(X, sample_domain, sample_weight)
-        y = y_ if y is None else y
-
-        # TODO: check X and y
-        # but it requires to adapt skada.utils.check_X_y_domain
-        # to handle dict, Dataset, torch.Tensor, ...
-        return super().fit(X, y, is_fit=True, **fit_params)
+        X = self._prepare_input(X, y, sample_domain, sample_weight)
+        return super().fit(X, None, is_fit=True, **fit_params)
 
     def predict(
         self,
@@ -625,7 +625,8 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         sample_weight : torch.Tensor or np.ndarray, optional
             The weight of each sample (not used in prediction, but included for consistency).
         allow_source: bool = False,
-            Allow the presence of source domains.
+            Allow the presence of source domains. 
+            If False, only the target are selected for prediction.
         **predict_params : dict
             Additional parameters passed to the predict_proba method of the base class.
 
@@ -634,9 +635,9 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         np.ndarray
             The predicted class probabilities.
         """
-        X, _ = self._prepare_input(X, sample_domain, sample_weight)
-        X['X'], X['sample_domain'] = check_X_domain(X['X'], sample_domain=X['sample_domain'], allow_nd=True, allow_source=allow_source)
-
+        X = self._prepare_input(X, None, sample_domain, sample_weight)
+        if not allow_source:
+            X = X.select_target()
         return super().predict_proba(X, **predict_params)
 
     def predict_features(self, X: Union[Dict, torch.Tensor, np.ndarray, Dataset]):
@@ -656,10 +657,8 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         if not self.initialized_:
             self.initialize()
 
-        X, _ = self._prepare_input(X, None)
-        X, sample_domain = X["X"], X["sample_domain"]
-        X = torch.tensor(X) if not torch.is_tensor(X) else X
-
+        X = self._prepare_input(X)
+        
         features_list = []
         for features in self.feature_iter(X, training=False):
             features = features[0] if isinstance(features, tuple) else features
@@ -698,9 +697,10 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         float
             The mean accuracy score.
         """
-        X, _ = self._prepare_input(X, sample_domain, sample_weight)
-        X['X'], X['sample_domain'] = check_X_domain(X['X'], sample_domain=X['sample_domain'], allow_nd=True, allow_source=allow_source)
-
+        X = self._prepare_input(X, y, sample_domain, sample_weight)
+        if not allow_source:
+            X = X.select_target()
+        
         return accuracy_score(y, self.predict(X, sample_domain, allow_source=allow_source), sample_weight=sample_weight)
 
     def feature_iter(
@@ -776,56 +776,40 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
 
     def _prepare_input(
         self,
-        X: Union[Dict, torch.Tensor, np.ndarray, Dataset],
+        X: Union[Dict, torch.Tensor, np.ndarray, 'DeepDADataset', Dataset],
+        y: Union[torch.Tensor, np.ndarray] = None,
         sample_domain: Union[torch.Tensor, np.ndarray] = None,
-        sample_weight: Union[torch.Tensor, np.ndarray] = None,
-        sample_idx: Union[torch.Tensor, np.ndarray] = None,
-    ) -> Union[Dict[str, Any], np.ndarray]:
-        """
+        sample_weight: Union[torch.Tensor, np.ndarray] = None
+    ) -> 'DeepDADataset':
+        f"""
         Prepare the input data for processing, including sample weights if provided.
 
         Parameters:
         -----------
         X : dict, torch.Tensor, np.ndarray, or torch.utils.data.Dataset
             The input data.
+        y : torch.Tensor or np.ndarray, optional
+            The target labels. If not provided, the dataset will have default
+            labels {_NO_LABEL_}.
         sample_domain : torch.Tensor or np.ndarray, optional
             The domain of each sample.
         sample_weight : torch.Tensor or np.ndarray, optional
             The weight of each sample.
-        sample_idx : torch.Tensor or np.ndarray, optional
-            The index of each sample per domain.
 
         Returns:
         --------
-        dict
-            A dictionary containing 'X', 'sample_domain', 'sample_idx', and optionally 'y' and 'sample_weight' keys.
-        np.ndarray
-            y as a numpy array.
+        DeepDADataset: the input converted if needed
 
-        Raises:
-        -------
-        ValueError
-            If the input format is invalid or missing required information.
         """
-        if isinstance(X, dict):
-            if "X" not in X or "sample_domain" not in X:
-                raise ValueError("X should contain both 'X' and 'sample_domain' keys.")
-            # compute sample_idx per domain
-            if sample_idx is None:
-                sample_idx = self._infer_sample_idx(X["X"], X["sample_domain"])
-
-            X["sample_idx"] = sample_idx
-            return X, None
+        if isinstance(X, DeepDADataset):
+            return X
         elif isinstance(X, Dataset):
-            return self._process_dataset(X)
+            X, y = self._process_dataset(X)
+            return DeepDADataset(X, y, sample_domain, sample_weight, self.device)
         else:
-            if sample_idx is None:
-                sample_idx = self._infer_sample_idx(X, sample_domain)
-            result = {"X": X, "sample_domain": sample_domain, "sample_idx": sample_idx}
-            if sample_weight is not None:
-                result["sample_weight"] = sample_weight
-            return result, None
-
+            dataset = DeepDADataset(X, y, sample_domain, sample_weight, self.device)
+            return dataset
+        
     def _process_dataset(
         self, dataset: Dataset
     ) -> Union[Dict[str, np.ndarray], np.ndarray]:
@@ -872,22 +856,6 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
             result["sample_weight"] = np.array(sample_weight)
         return result, y
 
-    def _infer_sample_idx(self, X, sample_domain):
-        if sample_domain is None:
-            return None
-        else:
-            source_idx = sample_domain >= 0
-
-            sample_idx_s = torch.arange(len(X[source_idx]))
-            sample_idx_t = torch.arange(len(X[~source_idx]))
-
-            # concat
-            sample_idx = torch.zeros(len(X), dtype=int)
-            sample_idx[source_idx] = sample_idx_s
-            sample_idx[~source_idx] = sample_idx_t
-
-            return sample_idx
-
     def get_loss(self, y_pred, y_true, X, *args, **kwargs):
         """
         Calculate the weighted loss using sample weights.
@@ -923,3 +891,584 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
             loss = sample_weight * loss
 
         return loss.mean()
+
+
+class DeepDADataset(Dataset):
+    f"""The Domain Aware Dataset class for deep learning.
+    This class fills the gap between dictionary representation and array like
+    representation by combining them into a single object.
+
+    All passed data will be converted to :code:`torch.Tensor`. Dict representation
+    should at least contain an 'X' key containing the input data or be completely empty
+
+    If no sample domain is provided, domain :code:`{_DEFAULT_SAMPLE_DOMAIN_}` is attributed
+    to the given data.
+
+    If no label is provided, :code:`{_NO_LABEL_}` is attributed to the given data.
+
+    When accessing an item from this dataset, returned is a dict representation
+    of the element and its associated label.
+    """
+
+    def __init__(
+        self,
+        X=None,
+        y=None,
+        sample_domain=None,
+        sample_weight=None,
+        device="cpu",
+    ):
+        """
+        The Domain Aware Dataset class for deep learning.
+
+        Parameters:
+        -----------
+        X : torch.Tensor, numpy.ndarray, list, tuple, dict, DataFrame, DeepDADataset
+            The input data can be of various types:
+            - non-scalar :code:`torch.Tensor`
+            - non-scalar :code:`numpy.ndarray`
+            - :code:`list`
+            - :code:`tuple`
+            - :code:`dict` with keys 'X', 'y' (optional), 'sample_domain' (optional)
+            and 'sample_weight' (optional) with values of one of the above types
+            - :code:`pandas.DataFrame` with same structure as the dictionary
+            - another :code:`~skada.DeepDADataset` instance
+
+        y : 
+            The target labels.
+            If not provided, the dataset will have default labels :code:`{_NO_LABEL_}`.
+
+        sample_domain : 
+            The sample domain information.
+            If not provided, the dataset will have default domain 
+            :code:`{_DEFAULT_SAMPLE_DOMAIN_}`.
+            If provided, it can be of the following types:
+                - :code:`int` (single domain for all samples)
+                - non-scalar :code:`torch.Tensor`
+                - non-scalar :code:`numpy.ndarray`
+                - :code:`list`
+                - :code:`tuple`
+
+        sample_weight :
+            The sample weights.
+        device : 
+            The device to which the tensors should be moved. Defaults to "cpu".
+
+        Raises:
+        -------
+        TypeError
+            If the input data is not of the expected type.
+        """
+        self.X = _EMPTY_
+        self.y = _EMPTY_INT_
+        self.sample_domain = _EMPTY_INT_
+        self.sample_weight = _EMPTY_
+        self.has_y = self.y != _NO_LABEL_
+        self.has_weights = True
+        self.device = device
+
+        if X is not None:
+            if isinstance(X, (dict, DataFrame)):
+                if len(X):
+                    self._if_given_dict(X, y, sample_domain, sample_weight)
+            elif isinstance(X, DeepDADataset):
+                self.merge(X, keep_weights=True, out=False)
+            else:
+                try:
+                    if hasattr(X, 'shape') and len(X.shape) == 0:
+                        X = torch.tensor([X])
+                    X = check_array(X, 
+                                    ensure_2d=False,
+                                    allow_nd=True,
+                                    ensure_min_samples=0,
+                                    ensure_min_features=0,
+                                    )
+                    X = to_tensor(X, device=device)
+
+                except ValueError:
+                    raise TypeError(
+                        "Invalid dataset representation. Expected a dict of the form "
+                        "{'X', 'y'(optional), 'sample_domain'(optional), "
+                        "'sample_weight'(optional)},"
+                        " another DeepDADataset instance or "
+                        "a data type convertible to a torch Tensor"
+                        f" but found {type(X)} instead."
+                    )
+                self._initialize(X, y, sample_domain, sample_weight)
+        
+        self.has_weights = bool(len(self.sample_weight))
+        assert self._is_correct(), (
+            "Every input data X should have a domain associated, a label (if there is "
+            f"no label, it must be represented by {_NO_LABEL_}) and, optionally, a weight."
+        )
+        self._sample_idx = self._infer_sample_idx()
+
+    def _if_given_dict(self, d: dict, y, sample_domain, sample_weight):
+        if "X" not in d:
+            raise ValueError("dataset represented as dict or pandas dataframe " \
+            "should contain 'X' key associated to a data type convertible " \
+            "to torch Tensor.")
+
+        X = d["X"]
+        y = d.get("y", y)
+        sample_domain = d.get("sample_domain", sample_domain)
+        sample_weight = d.get("sample_weight", sample_weight)
+        if isinstance(d, DataFrame):
+            X = X.to_list()
+            if "y" in d.columns:
+                y = y.to_list()
+            if "sample_domain" in d.columns:
+                sample_domain = sample_domain.to_list()
+            if "sample_weight" in d.columns:
+                sample_weight = sample_weight.to_list()
+
+        X = check_array(X, 
+                ensure_2d=False,
+                allow_nd=True,
+                ensure_min_samples=0,
+                ensure_min_features=0,
+                )
+        X = to_tensor(X, self.device)
+        self._initialize(X, y, sample_domain, sample_weight)
+
+    def _initialize(self, X:torch.Tensor, y, sample_domain, sample_weight):
+        if sample_domain is None or len(sample_domain) == 0:
+            sample_domain = _DEFAULT_SAMPLE_DOMAIN_
+        if isinstance(sample_domain, int):
+            sample_domain = torch.full((X.shape[0],), sample_domain)
+        else:
+            sample_domain = check_array(sample_domain, 
+                ensure_2d=False,
+                allow_nd=True,
+                ensure_min_samples=0,
+                ensure_min_features=0,
+                )
+            sample_domain = to_tensor(sample_domain, self.device)
+        
+        if y is None or len(y) == 0:
+            y = torch.full((len(X),), _NO_LABEL_, dtype=torch.float)
+            has_y = torch.full((len(X),), False, dtype=torch.bool)
+        else:
+            y = check_array(y, 
+                ensure_2d=False,
+                allow_nd=True,
+                ensure_min_samples=0,
+                ensure_min_features=0,
+                )
+            y = to_tensor(y, self.device)
+            has_y = y != _NO_LABEL_
+
+        if sample_weight is None or len(sample_weight) == 0:
+            sample_weight = _EMPTY_
+            has_weights = False
+        else:
+            sample_weight = check_array(sample_weight, 
+                ensure_2d=False,
+                allow_nd=True,
+                ensure_min_samples=0,
+                ensure_min_features=0,
+                )
+            sample_weight = to_tensor(sample_weight, device=self.device)
+            has_weights = bool(sample_weight.size()[0])
+
+        self.X = X
+        self.y = y
+        self.sample_domain = sample_domain
+        self.sample_weight = sample_weight
+        self.has_y = has_y
+        self.has_weights = has_weights
+
+    def merge(self, dataset: "DeepDADataset", keep_weights=False, out=True):
+        """Merges to instances of DeepDADataset and either returns the result
+        or updates the first one. The merging is done by concatenation of the data.
+
+        Parameters:
+        -----------
+        dataset : DeepDADataset
+          The second dataset to merge.
+        keep_weights : bool, optional
+          Whether to keep the weights (if any). If False, weights become empty. If True, weights are concatenated. Defaults to False.
+
+          ..WARNING::
+              There is no check to ensure weights still form
+              a probability distribution after merging.
+
+        out : bool, optional
+          Whether to return the result instead of updating first dataset. Defaults to True.
+
+        Returns:
+        --------
+        DeepDADataset
+          the concatenation of the datasets.
+
+        Raises:
+        -------
+        TypeError
+          raises if the other dataset is not a DeepDADataset instance.
+        """
+        if isinstance(dataset, DeepDADataset):
+            X = torch.cat((self.X, dataset.X))
+            y = torch.cat((self.y, dataset.y))
+            sample_domain = torch.cat((self.sample_domain, dataset.sample_domain))
+            if keep_weights:
+                sample_weight = torch.cat((self.sample_weight, dataset.sample_weight))
+            else:
+                sample_weight = _EMPTY_
+            if out:
+                return DeepDADataset(X, y, sample_domain, sample_weight, str(X.device))
+            else:
+                self.X = X
+                self.y = y
+                self.sample_domain = sample_domain
+                self.sample_weight = sample_weight
+                self.has_y = torch.cat((self.has_y, dataset.has_y))
+                self.has_weights = bool(len(self.sample_weight))
+                self.device = str(X.device)
+                assert self._is_correct(), (
+            "Every input data X should have a domain associated, a label (if there is "
+            f"no label, it must be represented by {_NO_LABEL_}) and, "
+            "optionally, a weight."
+        )
+        else:
+            raise TypeError("Can only merge two instances of DeepDADataset")
+
+    def is_empty(self):
+        return not bool(len(self))
+
+    def _is_correct(self):
+        """Validates the dataset. Fails if there are not as many labels, domain,
+        or weights (if any) as data samples or if the dimensions are not compatible.
+        """
+        return (len(self.X) == len(self.y) == len(self.sample_domain)) and (
+            len(self.X) == len(self.sample_weight) or not self.has_weights) and (
+            self.y.ndim == self.sample_domain.ndim == 1) and (
+            not self.has_weights or self.sample_weight.ndim == 1)
+
+    def __len__(self):
+        assert self._is_correct(), (
+            "Every input data X should have a domain associated, a label "
+            f"(if there is no label, it must be represented by {_NO_LABEL_}) and,"
+            " optionally, a weight."
+        )
+        return len(self.X)
+
+    def __getitem__(self, index):
+        X = {"X": self.X[index], "sample_domain": self.sample_domain[index], "sample_idx": self._sample_idx[index]}
+        
+        if self.has_weights:
+            X["sample_weight"] = self.sample_weight[index]
+        
+        return X, self.y[index]
+
+    def add_domain(self, dataset):
+        """Adds a domain to the dataset.
+
+        Parameters:
+        -----------
+        dataset : DeepDADataset, dict, list, tuple(torch.Tensor, np.array)
+            The domain to add. Should be a data type convertible to DeepDADataset.
+        
+        Returns:
+        --------
+        DeepDADataset
+          the original dataset with the new domain added.
+        """
+        if isinstance(dataset, dict):    
+            dataset = DeepDADataset(dataset)
+        elif not isinstance(dataset, DeepDADataset):
+            dataset = DeepDADataset(*dataset)
+        return self.merge(dataset)
+
+    def __repr__(self):
+        if self.is_empty():
+            return "DeepDADataset(data[], labels[], domains[], weights[])"
+        rep = "DeepDADataset("
+        xrep = "\nx[" + str(self.X) + "],"
+        yrep = "\n\ny[" + str(self.y) + "],"
+        sdrep = "\n\ndomains[" + str(self.sample_domain) + "],"
+        if self.has_weights:
+            wrep = "\n\nweights[" + str(self.sample_weight) + "],"
+        else:
+            wrep = "\n\nweights["
+        wrep += "]"
+        rep += xrep + yrep + sdrep + wrep + "\n    )"
+        return rep
+
+
+    def as_dict(self, sample_indices=True):
+        """Switches to dict representation of the dataset.
+        Dictionary representation is of the form
+        {'X': input data (torch tensor),
+        'y': corresponding label (torch tensor),
+        'sample_domain': corresponding domains (torch tensor),
+        'sample_weight': corresponding weights if any (torch tensor),
+        'sample_idx': the indices of the data relative to their domain 
+            (torch tensor, optional)}
+
+        Parameters:
+        -----------
+        sample_indices : bool
+            whether to return the sample indices as key 'sample_idx' within the dictionary. Defaults to True.
+
+        Returns:
+        --------
+        dict
+            dictionary representation of the dataset
+        """
+        dataset = {"X": self.X, 'y':self.y, "sample_domain": self.sample_domain}
+        if self.has_weights:
+            dataset["sample_weight"] = self.sample_weight
+        if sample_indices:
+            dataset["sample_idx"] = self._sample_idx
+        return dataset
+
+    def as_arrays(self, return_weights=True) -> tuple[
+        torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor
+        ]:
+        f"""switches to array representation of the dataset.
+
+        Parameters:
+        -----------
+        return_weights : bool, optional
+            whether to return the sample weights (if any). Defaults to False.
+
+        Returns:
+        --------
+        torch.Tensor
+            input data
+        torch.Tensor
+            corresponding labels (if a sample has no label, {_NO_LABEL_} at its index)
+        torch.Tensor
+            corresponding domain of each sample
+        torch.Tensor (optional)
+            corresponding weight of each sample (if any)
+        """
+        if self.has_weights and return_weights:
+            return self.X, self.y, self.sample_domain, self.sample_weight
+        else:
+            return self.X, self.y, self.sample_domain
+
+    def domains(self):
+        """return all the domains comprising the dataset
+
+        Returns:
+        --------
+        tuple
+            the domains of the dataset, sorted by domain id
+        """
+        return tuple(int(domain_id) for domain_id in self.sample_domain.unique())
+    
+    def _infer_sample_idx(self):
+        """Returns the indices of each sample relative to their own domain.
+
+        if self.sample domain is [1, 1, 1, -2, -2, 1, 3, 3, 3, -2, -2],
+        result would be [0, 1, 2, 0, 1, 3, 0, 1, 2, 2, 3]
+
+        Returns:
+        --------
+        torch.Tensor
+            the indices of each sample relative to their domain
+        """
+        result = torch.zeros_like(self.sample_domain, dtype=torch.int64)
+        for domain_id in self.domains():
+            mask = self.sample_domain == domain_id
+            indices = torch.arange(mask.sum(), device=self.device)
+            result[mask] = indices
+        
+        return result
+    
+    def select(self, condition, on, return_weights=True):
+        """Selects the data samples validating the condition. 
+        The condition must be applicable to a torch tensor so that it returns a mask
+        of True or False.
+
+        Where the condition is applied depends on the `on` argument.
+
+        Parameters:
+        -----------
+            condition : callable
+               the validation condition.
+            on : str, optional
+                where the condition is applied. 
+                Either X, y, sample_domain or sample_weight.
+            return_weights : bool, optional
+                whether to return the weights (if any). Defaults to True.
+
+        Raises:
+        -------
+            ValueError: raises when `on` argument is invalid.
+
+        Returns:
+        --------
+        DeepDADataset
+            the subset of the dataset validating the condition.
+        """
+        if on == 'X':
+            mask = condition(self.X)
+        elif on == 'y':
+            mask = self.has_y & condition(self.y)
+        elif on == 'sample_domain':
+            mask = condition(self.sample_domain)
+        elif on == 'sample_weight':
+            if self.has_weights:
+                mask = condition(self.sample_weight)
+        else:
+            raise ValueError(
+                "'on' argument must be one of "
+                "('X', 'y', 'sample_domain', 'sample_weight')"
+                )
+        return self._select_from_mask(mask, return_weights=return_weights)
+    
+    def _select_from_mask(self, mask, return_weights=True):
+        """Returns a DeepDADataset instance of the data corresponding to the mask
+        The mask must be a boolean array like of True or False corresponding to PyTorch
+        boolean indexing methods.
+
+        Parameters:
+        -----------
+        mask : array_like of bools
+            the mask of the data to get.
+        return_weights : bool, optional
+            whether to return the sample weights (if any). Defaults to False.
+
+        Returns:
+        --------
+        DeepDADataset
+            the dataset corresponding to the input mask.
+        """
+        mask = check_array(
+                mask,
+                allow_nd=True,
+                ensure_2d=False,
+                ensure_min_samples=False,
+                dtype=bool
+            )
+        mask = to_tensor(mask, device=self.device)
+        dataset = self.as_arrays(return_weights=return_weights)
+        dataset = (data[mask] for data in dataset)
+        return DeepDADataset(*dataset, device=self.device)
+
+    def select_source(self, return_weights=True):
+        """Returns a DeepDADataset composed only of the source (marked with 
+        sample_domain >= 0)
+
+        Parameters:
+        -----------
+        return_weights : bool, optional
+            whether to return the sample weights (if any). Defaults to False.
+
+        Returns:
+        --------
+        DeepDADataset
+            the source domain from the dataset.
+        """
+        mask = self.sample_domain >= 0
+        return self._select_from_mask(mask, return_weights)
+
+    def select_target(self, return_weights=True):
+        """Returns a DeepDADataset composed only of the target (marked with 
+        sample_domain < 0)
+
+        Parameters:
+        -----------
+        return_weights : bool, optional
+            whether to return the sample weights (if any). Defaults to False.
+
+        Returns:
+        --------
+        DeepDADataset
+            the target domain from the dataset.
+        """
+        mask = self.sample_domain < 0
+        return self._select_from_mask(mask, return_weights)
+
+    def select_domain(self, domain_id, return_weights=True):
+        """Returns a DeepDADataset composed only of the selected domain
+
+        Parameters:
+        -----------
+        return_weights : bool, optional
+            whether to return the sample weights (if any). Defaults to False.
+
+        Returns:
+        --------
+        DeepDADataset
+            the selected domain from the dataset.
+        """
+        mask = self.sample_domain == domain_id
+        return self._select_from_mask(mask, return_weights)
+
+    def select_with_labels(self, return_weights=True):
+        f"""Returns a DeepDADataset instance composed of the data that is labelled
+        (that is, data with a y associated that is not {_NO_LABEL_}).
+
+        Parameters:
+        -----------
+        return_weights : bool, optional
+            whether to return the sample weights (if any). Defaults to False.
+
+        Returns:
+        --------
+        DeepDADataset
+            the data with labels.
+        """
+        mask = self.has_y
+        return self._select_from_mask(mask, return_weights)
+
+    def per_domain_split(self, return_weights=True):
+        """Splits the data per domain, returning a dict where each key is a domain id
+        and value is a DeepDADataset composed of said domain.
+
+        Parameters:
+        -----------
+        return_weights : bool, optional
+            whether to return the sample weights (if any). Defaults to False.
+
+        Returns:
+        --------
+        dict
+            The dataset split per domain id
+        """
+        dataset = {}
+        for domain_id in self.domains():
+            dataset[domain_id] = self.select_domain(domain_id, return_weights)
+        return dataset
+
+    def add_weights(self, sample_weight):
+        """Adds weights to the dataset.
+
+        Parameters:
+        -----------
+        sample_weight : torch.Tensor or np.ndarray
+            the weights to add to the dataset. Must be convertible to torch Tensor.
+
+        Returns:
+        --------
+        DeepDADataset
+            the weighted dataset.
+        """
+        sample_weight = check_array(
+            sample_weight,
+            allow_nd=True,
+            ensure_2d=False,
+            ensure_min_samples=False,
+            dtype=float
+        )
+        self.sample_weight = to_tensor(sample_weight, device=self.device)
+        self.has_weights = bool(len(self.sample_weight))
+        assert self._is_correct(), "There must be a weight for every sample."
+        return self
+        
+    def remove_weights(self):
+        """Removes the weight of the dataset Changes the dataset in place
+        and returns a new dataset without weights.
+
+        Returns:
+        --------
+        DeepDADataset
+            The unweighted dataset. 
+        """
+        self.sample_weight = _EMPTY_
+        self.has_weights = False
+        return self
+
