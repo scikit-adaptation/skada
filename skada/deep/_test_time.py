@@ -78,10 +78,8 @@ class TestTimeNet(DomainAwareNet):
         self.partial_fit(X, None, **fit_params)
         return self
 
-    def fit_adapt(self, X, sample_domain=None, sample_weight=None, **fit_params):
+    def fit_adapt(self, X, sample_domain, sample_weight=None, **fit_params):
         print("Adapting model to target domain...")
-        if sample_domain is None:
-            sample_domain = -1
         if self.optimizer_adapt is not None:
             self.initialize_adapt_optimizer()
         X = self._prepare_input(X, None, sample_domain, sample_weight)

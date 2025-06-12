@@ -18,10 +18,14 @@ from skada.deep.modules import ToyModule2D
 
 
 @pytest.mark.parametrize(
-    "sd, epochs_adapt, optimizer_adapt",
-    [(True, 3, Adam), (False, None, None)],
+    "epochs_adapt, optimizer_adapt",
+    [
+        (None, None),  # Default test
+        (3, None),  # Test with specific adaptation epochs given
+        (None, Adam),
+    ],  # Test with Adam optimizer for adaptation
 )
-def test_test_time_criterion(sd, epochs_adapt, optimizer_adapt):
+def test_test_time_criterion(epochs_adapt, optimizer_adapt):
     num_features = 10
     module = ToyModule2D(num_features=num_features)
     criterion = TestTimeCriterion(torch.nn.CrossEntropyLoss(), TestLoss())
@@ -36,7 +40,6 @@ def test_test_time_criterion(sd, epochs_adapt, optimizer_adapt):
     )
     X, y, sample_domain = dataset
     X = X.astype(np.float32)
-    sample_domain = sample_domain if sd else None
 
     method = TestTimeNet(
         DomainAwareModule(module, "dropout"),
