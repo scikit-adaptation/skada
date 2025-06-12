@@ -6,9 +6,11 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
+from torch.utils.data import DataLoader
+
 from skada.datasets import make_shifted_datasets
 from skada.deep._test_time import TestTimeCriterion, TestTimeNet
-from skada.deep.base import DomainAwareModule, DomainBalancedDataLoader
+from skada.deep.base import DomainAwareModule
 from skada.deep.losses import TestLoss
 from skada.deep.modules import ToyModule2D
 
@@ -29,7 +31,7 @@ def test_test_time_criterion():
     X, y, sample_domain = dataset
     method = TestTimeNet(
         DomainAwareModule(module, "dropout"),
-        iterator_train=DomainBalancedDataLoader,
+        iterator_train=DataLoader,
         criterion=criterion,
         batch_size=10,
         max_epochs=2,
