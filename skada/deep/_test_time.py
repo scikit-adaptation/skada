@@ -39,61 +39,66 @@ class TestTimeCriterion(torch.nn.Module):
         """
         Parameters
         ----------
-        y_pred : tuple
-            This tuple comprises all the different data
-            needed to compute DA loss:
-                - y_pred : prediction of the source and target domains
-                - domain_pred : prediction of domain classifier if given
-                - features :  features of the chosen layer
-                  of source and target domains
-                - sample_domain : giving the domain of each samples
+        y_pred :
+            Prediction of the labels.
         y_true :
             The true labels. Available for source, masked for target.
         """
-        y_pred, domain_pred, features, _, sample_idx = y_pred
-
         if self.train_on_target:
             # In finetune mode, we only compute the base loss
-            return self.base_criterion(y_pred, y_true)
-        else:
-            # In adapt mode, we compute the adaptation loss
             return self.adapt_criterion(
                 y_s=y_true,
                 y_pred=y_pred,
-                domain_pred=domain_pred,
-                features=features,
-                sample_idx=sample_idx,
             )
+        else:
+            # In adapt mode, we compute the adaptation loss
+            return self.base_criterion(y_pred, y_true)
 
 
 class TestTimeNet(DomainAwareNet):
-    def __init__(self, module, criterion: "TestTimeCriterion", **kwargs):
+    def __init__(
+        self,
+        module,
+        criterion: "TestTimeCriterion",
+        optimizer_adapt=None,
+        epochs_adapt=None,
+        **kwargs,
+    ):
         super().__init__(module, criterion=criterion, **kwargs)
+        self.optimizer_adapt = optimizer_adapt
+        self.epochs_adapt = epochs_adapt
 
-    def fit_prepare(
+    def fit_source(
         self, X, y=None, sample_domain=None, sample_weight=None, **fit_params
     ):
+        print("Training model on source domain...")
         X = self._prepare_input(X, y, sample_domain, sample_weight)
         X = X.select_source()
-        temp = self.criterion.train_on_target
         self.criterion.train_on_target = False
         self.partial_fit(X, None, **fit_params)
-        self.criterion.train_on_target = temp
         return self
 
     def fit_adapt(self, X, sample_domain=None, sample_weight=None, **fit_params):
+        print("Adapting model to target domain...")
         if sample_domain is None:
             sample_domain = -1
+        if self.optimizer_adapt is not None:
+            self.initialize_adapt_optimizer()
         X = self._prepare_input(X, None, sample_domain, sample_weight)
         X = X.select_target()
-        temp = self.criterion.train_on_target
         self.criterion.train_on_target = True
-        self.partial_fit(X, None, **fit_params)
-        self.criterion.train_on_target = temp
+        self.partial_fit(X, None, epochs=self.epochs_adapt, **fit_params)
         return self
 
     def fit(self, X, y=None, sample_domain=None, sample_weight=None, **fit_params):
-        X = self._prepare_input(X, y, sample_domain, sample_weight)
-        self.fit_prepare(X, **fit_params)
-        self.fit_adapt(X, **fit_params)
+        self.fit_source(X, y, sample_domain, sample_weight, **fit_params)
+        self.fit_adapt(X, sample_domain, sample_weight, **fit_params)
+        return self
+
+    def initialize_adapt_optimizer(self):
+        named_parameters = self.get_all_learnable_params()
+        args, kwargs = self.get_params_for_optimizer(
+            "adapt_optimizer", named_parameters
+        )
+        self.optimizer_ = self.optimizer_adapt(*args, **kwargs)
         return self

@@ -346,7 +346,9 @@ class TestLoss(BaseDALoss):
         **kwargs,
     ):
         """Compute the domain adaptation loss"""
-        return 0
+        res = torch.tensor(0, dtype=torch.float32)
+        res.requires_grad = True
+        return res
 
 
 def probability_scaling(logits, temperature=1):
