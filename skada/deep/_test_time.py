@@ -75,7 +75,10 @@ class TestTimeNet(DomainAwareNet):
     ):
         X = self._prepare_input(X, y, sample_domain, sample_weight)
         X = X.select_source()
+        temp = self.criterion.train_on_target
+        self.criterion.train_on_target = False
         self.partial_fit(X, None, **fit_params)
+        self.criterion.train_on_target = temp
         return self
 
     def fit_adapt(self, X, sample_domain=None, sample_weight=None, **fit_params):
@@ -83,9 +86,11 @@ class TestTimeNet(DomainAwareNet):
             sample_domain = -1
         X = self._prepare_input(X, None, sample_domain, sample_weight)
         X = X.select_target()
-        self.criterion.mode = "adapt"
+        temp = self.criterion.train_on_target
+        self.criterion.train_on_target = True
         self.partial_fit(X, None, **fit_params)
-        # here should be a partial fit call with criterion_adapt
+        self.criterion.train_on_target = temp
+        return self
 
     def fit(self, X, y=None, sample_domain=None, sample_weight=None, **fit_params):
         X = self._prepare_input(X, y, sample_domain, sample_weight)
