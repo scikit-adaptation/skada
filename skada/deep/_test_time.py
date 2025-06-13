@@ -4,7 +4,7 @@
 
 import torch
 
-from skada.deep.base import DomainAwareNet
+from skada.deep.base import BaseDALoss, DomainAwareModule, DomainAwareNet
 
 
 class TestTimeCriterion(torch.nn.Module):
@@ -100,3 +100,56 @@ class TestTimeNet(DomainAwareNet):
         )
         self.optimizer_ = self.optimizer_adapt(*args, **kwargs)
         return self
+
+
+class TentNet(TestTimeNet):
+    def __init__(self, module, criterion, **kwargs):
+        super().__init__(module, criterion=criterion, **kwargs)
+
+    def forward(self, X, sample_domain=None, sample_weight=None):
+        """Forward pass of the model."""
+        X = self._prepare_input(X, None, sample_domain, sample_weight)
+        # Note: we are supposed to freeze some attributes of the model
+        # during the adaptation phase, but we do not do it here.
+        return self.module(X)
+
+
+class TentLoss(BaseDALoss):
+    def __init__(
+        self, reg_dist=1, reg_cl=1, base_criterion=None, target_criterion=None
+    ):
+        super().__init__()
+        self.reg_dist = reg_dist
+        self.reg_cl = reg_cl
+        self.base_criterion = base_criterion
+        self.target_criterion = target_criterion
+
+    def forward(self, y_s, y_t):
+        loss = self.target_criterion(y_t, y_s)
+        return loss + self.reg_dist * torch.mean(y_t) + self.reg_cl * torch.mean(y_s)
+
+
+def Tent(
+    module,
+    layer_name,
+    reg_dist=1,
+    reg_cl=1,
+    base_criterion=None,
+    target_criterion=None,
+    **kwargs,
+):
+    if base_criterion is None:
+        base_criterion = torch.nn.CrossEntropyLoss()
+
+    net = TentNet(
+        module=DomainAwareModule,
+        module__base_module=module,
+        module__layer_name=layer_name,
+        criterion=TestTimeCriterion,
+        criterion__base_criterion=base_criterion,
+        criterion__adapt_criterion=TentLoss(reg_dist, reg_cl, target_criterion),
+        criterion__reg=1,
+        **kwargs,
+    )
+
+    return net

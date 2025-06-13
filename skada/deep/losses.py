@@ -515,3 +515,9 @@ def nap_loss(features_t, y_pred_t, memory_features, memory_outputs, sample_idx_t
     classifier_loss = torch.sum(weight_ * loss_) / (torch.sum(weight_).item() + 1e-7)
 
     return classifier_loss
+
+
+def softmax_entropy(x: torch.Tensor):
+    """Compute the entropy of the softmax probabilities."""
+    loss = x.softmax(1) * x.log_softmax(1)
+    return -torch.sum(loss, axis=1)
