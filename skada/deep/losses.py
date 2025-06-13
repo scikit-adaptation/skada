@@ -346,7 +346,9 @@ class TestLoss(BaseDALoss):
         **kwargs,
     ):
         """Compute the domain adaptation loss"""
-        return 0
+        res = torch.tensor(0, dtype=torch.float32)
+        res.requires_grad = True
+        return res
 
 
 def probability_scaling(logits, temperature=1):
@@ -513,3 +515,9 @@ def nap_loss(features_t, y_pred_t, memory_features, memory_outputs, sample_idx_t
     classifier_loss = torch.sum(weight_ * loss_) / (torch.sum(weight_).item() + 1e-7)
 
     return classifier_loss
+
+
+def softmax_entropy(x: torch.Tensor):
+    """Compute the entropy of the softmax probabilities."""
+    loss = x.softmax(1) * x.log_softmax(1)
+    return -torch.sum(loss, axis=1)
