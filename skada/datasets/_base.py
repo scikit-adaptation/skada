@@ -62,6 +62,26 @@ def get_data_home(data_home: Union[str, os.PathLike, None]) -> str:
 
 
 class DomainAwareDataset:
+    """
+    Container carrying all dataset domains.
+
+    This class allows to store and manipulate datasets from multiple domains,
+    keeping track of the domain information for each sample.
+
+    Parameters
+    ----------
+    domains : list of tuple or dict of tuple or None, optional
+        List or dictionary of domains to add at initialization.
+        Each domain can be a tuple (X, y) or (name, X, y).
+
+    Attributes
+    ----------
+    domains_ : list
+        List of domains added, each as a tuple (X, y) or (X,).
+    domain_names_ : dict
+        Dictionary mapping each domain name to its internal identifier.
+    """
+
     def __init__(
         self,
         # xxx(okachaiev): not sure if dictionary is a good format :thinking:
