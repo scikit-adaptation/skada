@@ -72,7 +72,7 @@ class DomainAwareDataset:
     ----------
     domains : list of tuple or dict of tuple or None, optional
         List or dictionary of domains to add at initialization.
-        Each domain can be a tuple (X, y) or (name, X, y).
+        Each domain can be a tuple (X, y) or (X, y, name).
 
     Attributes
     ----------
