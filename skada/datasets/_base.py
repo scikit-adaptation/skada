@@ -81,6 +81,7 @@ class DomainAwareDataset:
     domain_names_ : dict
         Dictionary mapping each domain name to its internal identifier.
     """
+
     def __init__(
         self,
         # xxx(okachaiev): not sure if dictionary is a good format :thinking:
