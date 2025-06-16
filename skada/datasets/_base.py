@@ -318,10 +318,33 @@ class DomainAwareDataset:
         return_X_y: bool = True,
         mask: Union[None, int, float] = None,
     ) -> PackedDatasetType:
-        """Same as `pack`.
+        """
+        Aggregate source and target domains for training.
 
-        Masks labels for target domains with -1 so they are not available
-        at training time.
+        This method is equivalent to :meth:`pack` with ``train=True``.
+        It masks the labels for target domains (with -1 or a custom mask value)
+        so that they are not available during training, as required for
+        domain adaptation scenarios.
+
+        Parameters
+        ----------
+        as_sources : list of str
+            List of domain names to be used as sources.
+        as_targets : list of str
+            List of domain names to be used as targets.
+        return_X_y : bool, default=True
+            If True, returns a tuple (X, y, sample_domain). Otherwise,
+            returns a :class:`sklearn.utils.Bunch` object.
+        mask : int or float, optional
+            Value to mask labels at training time. If None, uses -1 for integers
+            and np.nan for floats.
+
+        Returns
+        -------
+        data : :class:`sklearn.utils.Bunch`
+            Dictionary-like object with attributes X, y, sample_domain, domain_names.
+        (X, y, sample_domain) : tuple if `return_X_y=True`
+            Tuple of (data, target, sample_domain).
         """
         return self.pack(
             as_sources=as_sources,
@@ -336,6 +359,34 @@ class DomainAwareDataset:
         as_targets: List[str],
         return_X_y: bool = True,
     ) -> PackedDatasetType:
+        """
+        Aggregate source and target domains for training.
+
+        This method is equivalent to :meth:`pack` with ``train=True``.
+        It masks the labels for target domains (with -1 or a custom mask value)
+        so that they are not available during training, as required for
+        domain adaptation scenarios.
+
+        Parameters
+        ----------
+        as_sources : list of str
+            List of domain names to be used as sources.
+        as_targets : list of str
+            List of domain names to be used as targets.
+        return_X_y : bool, default=True
+            If True, returns a tuple (X, y, sample_domain). Otherwise,
+            returns a :class:`sklearn.utils.Bunch` object.
+        mask : int or float, optional
+            Value to mask labels at training time. If None, uses -1 for integers
+            and np.nan for floats.
+
+        Returns
+        -------
+        data : :class:`sklearn.utils.Bunch`
+            Dictionary-like object with attributes X, y, sample_domain, domain_names.
+        (X, y, sample_domain) : tuple if `return_X_y=True`
+            Tuple of (data, target, sample_domain).
+        """
         return self.pack(
             as_sources=[],
             as_targets=as_targets,
