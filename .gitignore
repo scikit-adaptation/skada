@@ -134,4 +134,5 @@ docs/source/gen_modules/
 .vscode
 
 datasets
-
+docs/source/sg_execution_times.rst 
+examples/skada_logo*

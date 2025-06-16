@@ -244,6 +244,12 @@ Datasets :py:mod:`skada.datasets`
 
 .. autosummary::
    :toctree: gen_modules/
+   :template: class.rst
+
+   DomainAwareDataset
+   
+.. autosummary::
+   :toctree: gen_modules/
    :template: function.rst
 
    make_shifted_blobs
