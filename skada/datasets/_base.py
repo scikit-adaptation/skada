@@ -360,25 +360,18 @@ class DomainAwareDataset:
         return_X_y: bool = True,
     ) -> PackedDatasetType:
         """
-        Aggregate source and target domains for training.
+        Aggregate target domains for testing.
 
-        This method is equivalent to :meth:`pack` with ``train=True``.
-        It masks the labels for target domains (with -1 or a custom mask value)
-        so that they are not available during training, as required for
-        domain adaptation scenarios.
+        This method is equivalent to :meth:`pack` with only target domains
+        and ``train=False``. Labels are not masked.
 
         Parameters
         ----------
-        as_sources : list of str
-            List of domain names to be used as sources.
         as_targets : list of str
             List of domain names to be used as targets.
         return_X_y : bool, default=True
             If True, returns a tuple (X, y, sample_domain). Otherwise,
             returns a :class:`sklearn.utils.Bunch` object.
-        mask : int or float, optional
-            Value to mask labels at training time. If None, uses -1 for integers
-            and np.nan for floats.
 
         Returns
         -------
