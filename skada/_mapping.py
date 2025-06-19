@@ -8,7 +8,7 @@
 from abc import abstractmethod
 
 import numpy as np
-from ot import da
+from ot import da, emd, sinkhorn
 from ot.gaussian import bures_wasserstein_barycenter, bures_wasserstein_mapping
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics.pairwise import pairwise_distances
@@ -26,6 +26,168 @@ from .utils import (
     source_target_split,
     torch_minimize,
 )
+
+
+def joint_wasserstein_barycenter(
+    Xs,
+    Ys,
+    mus=None,
+    XB=None,
+    YB=None,
+    muB=None,
+    measure_weights=None,
+    n_samples=None,
+    reg_e=0.0,
+    label_weight=None,
+    n_iter_max=100,
+    tol=1e-4,
+    verbose=False,
+    log=False,
+):
+    r"""Computes the Wasserstein Barycenter [1] for a list of distributions
+    :math:`\mathcal{P}`, containing :math:`\hat{P}_{1}, \cdots ,\hat{P}_{K}`
+    and weights :math:`\alpha \in \Delta_{K}`. Each distribution is
+    parametrized through their support
+    :math:`\mathbf{X}^{( P_{k} )}, k=1, \cdots ,K`. This consists on a
+    implementation of the Free-Support Wasserstien Barycenter of [2]. Our
+    implementation relies on the fixed-point iteration of [3],
+
+    .. math::
+        \hat{B}^{(it+1)} = \psi( \hat{B}^{(it)} ),
+
+    where :math:`\psi(\hat{P}) = T_{it,\sharp}\hat{P}`,
+    :math:`T_{it} = \sum_{k}\alpha_{k}T_{k,it}`, for :math:`T_{k,it}`,
+    the  barycentric mapping between :math:`\hat{P}_{k}` and
+    :math:`\hat{B}^{(it)}`.
+
+    Parameters
+    ----------
+    Xs : List of tensors
+        List of tensors of shape (nk, d) with the features of the support of
+        each distribution Pk.
+    Ys : List of tensors, optional (default=None)
+        List of tensors of shape (nk, nc) with the labels of the support of
+        each distribution Pk.
+    XB : tensor, optional (default=None)
+        Tensor of shape (n, d) with the initialization for the features of
+        the barycenter support.
+    YB : tensor, optional (default=None)
+        Tensor of shape (n, d) with the initialization for the labels of
+        the barycenter support.
+    weights : tensor, optional (default=None)
+        Weight of each distribution in (XP, YP). It is a tensor of shape
+        (K,), whose components are all positive and it sums to one.
+    n_samples : int, optional (default=None)
+        Number of samples in the barycenter support. Only used if (XB, YB)
+        were not given.
+    reg_e : float, optional (default=0.0)
+        Entropic regularization. If reg_e > 0.0 uses the Sinkhorn algorithm
+        for computing the OT plans.
+    label_weight : float, optional (default=None)
+        Weight for the label metric. It is described as beta in the main paper.
+        If None is given, uses beta as the maximum pairwise distance between
+        samples of P and Q.
+    n_iter_max : int, optional (default=100)
+        Maximum number of iterations of the Barycenter algorithm.
+    n_iter_sinkhorn : int, optional (default=1000)
+        Maximum number of iterations of the Sinkhorn algorithm. Only used for
+        reg_e > 0.0.
+    n_iter_emd : int, optional (default=1000000)
+        Maximum number of iterations for Linear Programming. Only used if
+        reg_e = 0.0.
+    tol : float, optional (default=1e-4)
+        Tolerance for the iterations of the Wasserstein barycenter algorithm.
+        If a given update does not change the objective function by a value
+        superior to tol, the algorithm halts.
+    """
+    assert len(Xs) == len(Ys), (
+        "Expected same number of domains for"
+        f" features and labels, but got {len(Xs)=} and {len(Ys)=}"
+    )
+
+    n_dim = Xs[0].shape[1]
+    n_classes = Ys[0].shape[1]
+
+    if mus is None:
+        mus = [np.ones(len(Xsk)) / len(Xsk) for Xsk in Xs]
+
+    if n_samples is None and XB is None:
+        # If number of points is not provided,
+        # assume that the support of the barycenter
+        # has sum(nsi) where si is the i-th source
+        # domain.
+        n_samples = int(np.sum([len(Xs_k) for Xs_k in Xs]))
+
+    if measure_weights is None:
+        measure_weights = np.ones(len(Xs)) / len(Xs)
+
+    if XB is None:
+        XB = np.random.randn(n_samples, n_dim)
+
+    if YB is None:
+        YB = np.random.rand(n_samples, n_classes)
+        YB = YB / YB.sum(axis=1)[:, None]
+
+    if muB is None:
+        muB = np.ones(len(XB)) / len(XB)
+
+    it = 0
+    delta = tol + 1
+    last_loss = np.inf
+
+    if verbose:
+        vmessage = "|{:^25}|{:^25}|{:^25}|".format("Iteration", "Loss", "dLoss")
+        print("-" * len(vmessage))
+        print(vmessage)
+        print("-" * len(vmessage))
+
+    if log:
+        extra_ret = {"loss_hist": [], "d_loss": []}
+
+    while delta > tol and it < n_iter_max:
+        ground_costs, ot_plans = [], []
+
+        for k in range(len(Xs)):
+            C_k = pairwise_distances(XB, Xs[k], metric="sqeuclidean")
+            _lw = C_k.max() if label_weight is None else label_weight
+            C_k += _lw * pairwise_distances(YB, Ys[k], metric="sqeuclidean")
+            ground_costs.append(C_k)
+            if reg_e > 0.0:
+                plan_k = sinkhorn(muB, mus[k], C_k / C_k.max(), reg_e=reg_e)
+            else:
+                plan_k = emd(muB, mus[k], C_k)
+            ot_plans.append(plan_k)
+
+        loss, _XB, _YB = 0.0, np.zeros_like(XB), np.zeros_like(YB)
+        for k, (Xsk, Ysk, pi_k, C_k, alpha_k) in enumerate(
+            zip(Xs, Ys, ot_plans, ground_costs, measure_weights)
+        ):
+            _loss_k = (C_k * plan_k).sum()
+            loss += alpha_k * _loss_k
+            _XB += alpha_k * XB.shape[0] * (pi_k @ Xsk)
+            _YB += alpha_k * YB.shape[0] * (pi_k @ Ysk)
+        XB = _XB.copy()
+        YB = _YB.copy()
+
+        delta = abs(loss - last_loss)
+        last_loss = loss
+
+        if verbose:
+            vmessage = f"|{it:^25}|{loss:^25}|{delta:^25}|"
+            print(vmessage)
+
+        if log:
+            extra_ret["loss_hist"].append(loss)
+            extra_ret["d_loss"].append(delta)
+
+        it += 1
+    if verbose:
+        print("-" * len(vmessage))
+
+    if log:
+        extra_ret["transport_plans"] = ot_plans
+        return XB, YB, extra_ret
+    return XB, YB
 
 
 class BaseOTMappingAdapter(BaseAdapter):
@@ -554,7 +716,7 @@ class MultiLinearMongeAlignmentAdapter(BaseAdapter):
 
     The method is a simplified extension of [29] using the Bures-Wasserstein
     distance and mapping of [7] to align multiple source domains to a
-    barycenter. The sued of barycenter alignment with gaussien assumption was
+    barycenter. The sued of barycenter alignment with gaussian assumption was
     proposed in [30].
 
     Parameters
@@ -748,6 +910,284 @@ def MultiLinearMongeAlignment(
 
     return make_da_pipeline(
         MultiLinearMongeAlignmentAdapter(reg=reg, bias=bias, test_time=test_time),
+        base_estimator,
+    )
+
+
+class WassersteinBarycenterTransportAdapter(BaseAdapter):
+    """Maps the source domain data to the target domain data through
+    the Wasserstein barycenter of source domains. This class performs
+    a 2-step adaptation strategy proposed in [29]_, by first computing
+    the Wasserstein barycenter of empirical source domain measures using
+    the algorithm of [39]_, then applying the Barycentric mapping of [6]_
+
+    Parameters
+    ----------
+    reg_e : float, default=0.0
+        Entropic regularization parameter for the Sinkhorn algorithm.
+    n_samples : int, optional
+        Number of samples to use for the barycenter computation.
+    label_weight : float, optional
+        Weight for the label regularization term in the barycenter computation.
+    n_iter_max : int, default=100
+        Maximum number of iterations for the barycenter computation.
+    tol : float, default=1e-4
+        Tolerance for the convergence of the barycenter computation.
+    verbose : bool, default=False
+        If True, print progress messages during computation.
+    use_labels_target : bool, default=False
+        If True, use target labels during the mapping to the target domain.
+
+    Attributes
+    ----------
+    source_domains : dict
+        A dictionary containing the source domain data, labels, and weights.
+    target_domains : dict
+        A dictionary containing the target domain data, labels, and weights.
+    transport_plans : dict
+        A dictionary containing the optimal transport plans for each source domain.
+    barycenter_ : dict
+        A dictionary containing the features and labels of the computed barycenter.
+    mappings : dict
+        A dictionary containing the EMDTransport objects for mapping source domains
+        to the barycenter.
+    mapping_target : dict
+        A dictionary containing the EMDTransport or SinkhornTransport objects for
+        mapping the barycenter to target domains.
+    log : dict
+        A dictionary containing logs from the barycenter computation and
+        target mappings.
+
+    References
+    ----------
+    .. [6] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
+           Optimal Transport for Domain Adaptation, in IEEE
+           Transactions on Pattern Analysis and Machine Intelligence
+
+    .. [29] Montesuma, Eduardo Fernandes, and Fred Maurice Ngole Mboula.
+        "Wasserstein barycenter for multi-source domain adaptation." In Proceedings
+        of the IEEE/CVF conference on computer vision and pattern recognition, pp.
+        16785-16793. 2021.
+
+    .. [39] Montesuma, Eduardo, Fred Maurice Ngole Mboula, and Antoine Souloumiac.
+        "Multi-source domain adaptation through dataset dictionary learning in
+        wasserstein space." ECAI 2023. IOS Press, 2023. 1739-1746.
+    """
+
+    def __init__(
+        self,
+        reg_e=0.0,
+        n_samples=None,
+        label_weight=None,
+        n_iter_max=100,
+        tol=1e-4,
+        verbose=False,
+        use_labels_target=False,
+    ):
+        super().__init__()
+        self.reg_e = reg_e
+        self.n_samples = n_samples
+        self.label_weight = label_weight
+        self.n_iter_max = n_iter_max
+        self.tol = tol
+        self.verbose = verbose
+        self.use_labels_target = use_labels_target
+        self.log = {}
+
+    def fit(self, X, y=None, w=None, *, sample_domain=None):
+        """Fit adaptation parameters.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        w : array-like, shape (n_samples,)
+            The source sample importances
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
+        X, sample_domain = check_X_domain(X, sample_domain)
+        self.source_domains, self.target_domains = per_domain_split(
+            X, y, w, sample_domain=sample_domain
+        )
+
+        Xs = [
+            self.source_domains[domain_index][0] for domain_index in self.source_domains
+        ]
+        Ys = [
+            self.source_domains[domain_index][1] for domain_index in self.source_domains
+        ]
+        mus = [
+            self.source_domains[domain_index][2] for domain_index in self.source_domains
+        ]
+        if any([mu is None for mu in mus]):
+            mus = None
+
+        XB, YB, log = joint_wasserstein_barycenter(
+            Xs=Xs,
+            Ys=Ys,
+            mus=mus,
+            measure_weights=None,
+            n_samples=self.n_samples,
+            reg_e=self.reg_e,
+            label_weight=self.label_weight,
+            n_iter_max=self.n_iter_max,
+            tol=self.tol,
+            verbose=self.verbose,
+            log=True,
+        )
+        self.log["barycenter_computation"] = log
+
+        self.transport_plans = {
+            domain_index: log["transport_plans"][i]
+            for i, domain_index in enumerate(self.source_domains)
+        }
+
+        self.barycenter_ = {"features": XB, "labels": YB}
+
+        self.mappings = {}
+        for i, domain_index in enumerate(self.source_domains):
+            self.mappings[domain_index] = da.EMDTransport()
+            self.mappings[domain_index].coupling_ = self.transport_plans[i]
+            self.mappings[domain_index].mu_s = self.source_domains[domain_index][2]
+            self.mappings[domain_index].xs_ = self.source_domains[domain_index][0]
+            self.mappings[domain_index].xt_ = self.barycenter_["features"]
+
+        self.mapping_target = {
+            domain: (
+                da.EMDTransport(log=True).fit(
+                    Xs=XB,
+                    ys=YB.argmax(axis=1),
+                    Xt=self.target_domains[domain][0],
+                    yt=self.target_domains[domain][1]
+                    if self.use_labels_target
+                    else None,
+                )
+                if self.reg_e == 0.0
+                else da.SinkhornTransport(
+                    Xs=XB,
+                    ys=YB.argmax(axis=1),
+                    Xt=self.target_domains[domain][0],
+                    yt=self.target_domains[domain][1]
+                    if self.use_labels_target
+                    else None,
+                    reg_e=self.reg_e,
+                    norm="max",
+                    log=True,
+                )
+            )
+            for domain in self.target_domains
+        }
+        self.log["mapping_targets"] = {
+            domain: self.mapping_target[domain].log_ for domain in self.mapping_target
+        }
+
+        return self
+
+    def fit_transform(self, X, y=None, sample_domain=None, **params):
+        """Predict adaptation (weights, sample or labels).
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        X_t : array-like, shape (n_samples, n_components)
+            The data (same as X).
+        """
+        self.fit(X, y, sample_domain=sample_domain)
+        return self.transform(X, sample_domain=sample_domain, allow_source=True)
+
+    def transform(
+        self, X, y=None, w=None, *, sample_domain=None, allow_source=False, **params
+    ) -> np.ndarray:
+        source_domains, target_domains = per_domain_split(
+            X, y, w, sample_domain=sample_domain
+        )
+
+        # Checks if the arrays on each domain are the same
+        new_source = not any(
+            np.array_equal(self.source_domains[domain][0], source_domains[domain][0])
+            for domain in self.source_domains
+            if domain in source_domains
+        )
+
+        # NOTE: Contrary to MultiLinearMongeAlignment and GaussianMixtureMultiAlignment,
+        # WassersteinBarycenterTransport works on empirical measures. This means
+        # that the mapping is only defined on the support of the original measures
+        # it was trained on. We can, however, extend this mapping to new samples,
+        # through for instance what is called the "Ferradans mapping" in [7].
+        if not new_source:
+            # If all arrays are the same as the ones used for training, we
+            # don't need to recompute OT. We simply map the barycenter to
+            # the target.
+            return {
+                domain: (
+                    self.mapping_target[domain].transform(
+                        Xs=self.barycenter_["features"],
+                        ys=self.barycenter_["labels"].argmax(axis=1),
+                        Xt=target_domains[domain],
+                        yt=target_domains[domain],
+                    ),
+                    self.barycenter_["labels"].argmax(axis=1),
+                )
+                for domain in self.target_domains
+            }
+        else:
+            # Otherwise, we re-estimate the barycenter support using the new
+            # provided samples. This new support is obtained through Ferradans
+            # mappings, for instance.
+            est_XB = 0.0
+            for domain in source_domains:
+                est_XB += self.mappings[domain].transform(
+                    Xs=source_domains[domain][0]
+                ) / len(source_domains)
+
+            # We then map the estimated barycenter support to the target domain
+            return {
+                domain: self.mapping_target[domain].transform(
+                    Xs=est_XB, ys=None, Xt=target_domains[domain]
+                )
+                for domain in target_domains
+            }
+
+
+def WassersteinBarycenterTransport(
+    base_estimator=None,
+    reg_e=0.0,
+    n_samples=None,
+    label_weight=None,
+    n_iter_max=100,
+    tol=1e-4,
+    verbose=False,
+    use_labels_target=False,
+):
+    if base_estimator is None:
+        base_estimator = LogisticRegression()
+
+    return make_da_pipeline(
+        WassersteinBarycenterTransportAdapter(
+            reg_e=reg_e,
+            n_samples=n_samples,
+            label_weight=label_weight,
+            n_iter_max=n_iter_max,
+            tol=tol,
+            verbose=verbose,
+            use_labels_target=use_labels_target,
+        ),
         base_estimator,
     )
 
