@@ -626,7 +626,9 @@ class CircularValidation(_BaseDomainAwareScorer):
                 except ValueError:
                     # Find which labels are valid
                     valid_mask = np.isin(y_pred_source, np.arange(len(le.classes_)))
-                    y_pred_source_decoded = np.full_like(y_pred_source, fill_value=-9999)
+                    y_pred_source_decoded = np.full_like(
+                        y_pred_source, fill_value=-9999
+                    )
                     y_pred_source_decoded[valid_mask] = le.inverse_transform(
                         y_pred_source[valid_mask]
                     )

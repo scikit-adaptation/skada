@@ -256,8 +256,9 @@ def test_circular_validation_unseen_labels():
         def predict(self, X, sample_domain=None):
             # Predict label 63 for all samples (unseen label)
             return np.full(X.shape[0], 63, dtype=int)
-        
+
     import skada.metrics
+
     orig_deepcopy = skada.metrics.deepcopy
     orig_clone = skada.metrics.clone
     skada.metrics.deepcopy = lambda est: DummyEstimator()
