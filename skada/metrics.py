@@ -590,14 +590,7 @@ class CircularValidation(_BaseDomainAwareScorer):
         )
 
         if len(np.unique(y_pred_target)) == 1:
-            # Otherwise, we can get ValueError exceptions
-            # when fitting the backward estimator
-            # (happened with SVC)
-            warnings.warn("The predicted target domain labels" "are all the same. ")
-
-            # Here we assume that the backward_estimator trained on
-            # the target domain will predict the same label for all
-            # the source domain samples
+            warnings.warn("The predicted target domain labels are all the same. ")
             score = self.source_scorer(
                 y[source_idx],
                 np.ones_like(y[source_idx]) * y_pred_target[0],
@@ -606,10 +599,6 @@ class CircularValidation(_BaseDomainAwareScorer):
             y_type = _find_y_type(y[source_idx])
 
             if y_type == Y_Type.DISCRETE:
-                # We need to re-encode the target labels
-                # since some estimator like XGBoost
-                # only supports labels in [0, num_classes-1]
-                # and y_pred_target may not be in this range
                 le = LabelEncoder()
                 le.fit(y_pred_target)
                 y_pred_target = le.transform(y_pred_target)
@@ -630,11 +619,25 @@ class CircularValidation(_BaseDomainAwareScorer):
             )
 
             if y_type == Y_Type.DISCRETE:
-                # We go back to the original labels
-                y_pred_source = le.inverse_transform(y_pred_source)
+                # Inverse transform, but ignores unseen labels
+                try:
+                    y_pred_source_decoded = le.inverse_transform(y_pred_source)
+                    mask_valid = np.ones_like(y_pred_source, dtype=bool)
+                except ValueError:
+                    # Find which labels are valid
+                    valid_mask = np.isin(y_pred_source, np.arange(len(le.classes_)))
+                    y_pred_source_decoded = np.full_like(y_pred_source, fill_value=-9999)
+                    y_pred_source_decoded[valid_mask] = le.inverse_transform(
+                        y_pred_source[valid_mask]
+                    )
+                    mask_valid = valid_mask
 
-            # We can now compute the score
-            score = self.source_scorer(y[source_idx], y_pred_source)
+                # Only compute the score on valid predictions
+                score = self.source_scorer(
+                    y[source_idx][mask_valid], y_pred_source_decoded[mask_valid]
+                )
+            else:
+                score = self.source_scorer(y[source_idx], y_pred_source)
 
         return self._sign * score
 
