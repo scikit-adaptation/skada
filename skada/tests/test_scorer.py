@@ -232,6 +232,47 @@ def test_circular_validation(da_dataset):
     assert ~np.isnan(score), "the score is computed"
 
 
+def test_circular_validation_unseen_labels():
+    X, y, sample_domain = make_shifted_datasets(
+        n_samples_source=50, n_samples_target=50, label="binary", return_X_y=True
+    )
+
+    # Identify source indices
+    unique_domains = np.unique(sample_domain)
+    source_val = unique_domains[0]
+    source_idx = sample_domain == source_val
+
+    y_masked = np.copy(y)
+    y_masked[~source_idx] = -1  # Mask target labels
+
+    estimator = make_da_pipeline(LogisticRegression())
+    estimator.fit(X, y_masked, sample_domain=sample_domain)
+
+    # Patch the backward estimator to predict an unseen label on the sources
+    class DummyEstimator:
+        def fit(self, X, y, sample_domain=None):
+            return self
+
+        def predict(self, X, sample_domain=None):
+            # Predict label 63 for all samples (unseen label)
+            return np.full(X.shape[0], 63, dtype=int)
+        
+    import skada.metrics
+    orig_deepcopy = skada.metrics.deepcopy
+    orig_clone = skada.metrics.clone
+    skada.metrics.deepcopy = lambda est: DummyEstimator()
+    skada.metrics.clone = lambda est: DummyEstimator()
+
+    scorer = CircularValidation()
+
+    try:
+        # The scorer should ignore unseen labels and compute a score
+        score = scorer._score(estimator, X, y_masked, sample_domain=sample_domain)
+    finally:
+        skada.metrics.deepcopy = orig_deepcopy
+        skada.metrics.clone = orig_clone
+
+
 def test_deep_embedding_validation_no_transform(da_dataset):
     # Test that the scorer runs
     # even if the adapter does not have a `transform` method
