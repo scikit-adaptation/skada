@@ -61,6 +61,11 @@ from ._ot import (
     OTLabelProp,
     JCPOTLabelPropAdapter,
     JCPOTLabelProp)
+
+from ._dipls import (
+    DIPLS)
+
+
 from .transformers import Subsampler, DomainSubsampler, StratifiedDomainSubsampler
 from ._self_labeling import DASVMClassifier
 from ._pipeline import make_da_pipeline
