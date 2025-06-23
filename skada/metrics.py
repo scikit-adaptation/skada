@@ -590,7 +590,14 @@ class CircularValidation(_BaseDomainAwareScorer):
         )
 
         if len(np.unique(y_pred_target)) == 1:
-            warnings.warn("The predicted target domain labels are all the same. ")
+            # Otherwise, we can get ValueError exceptions
+            # when fitting the backward estimator
+            # (happened with SVC)
+            warnings.warn("The predicted target domain labels" "are all the same. ")
+
+            # Here we assume that the backward_estimator trained on
+            # the target domain will predict the same label for all
+            # the source domain samples
             score = self.source_scorer(
                 y[source_idx],
                 np.ones_like(y[source_idx]) * y_pred_target[0],
@@ -599,6 +606,10 @@ class CircularValidation(_BaseDomainAwareScorer):
             y_type = _find_y_type(y[source_idx])
 
             if y_type == Y_Type.DISCRETE:
+                # We need to re-encode the target labels
+                # since some estimator like XGBoost
+                # only supports labels in [0, num_classes-1]
+                # and y_pred_target may not be in this range
                 le = LabelEncoder()
                 le.fit(y_pred_target)
                 y_pred_target = le.transform(y_pred_target)
