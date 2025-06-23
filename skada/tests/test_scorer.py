@@ -269,7 +269,8 @@ def test_circular_validation_unseen_labels():
 
         with pytest.raises(
             ValueError,
-            match="CircularValidation: predicted source labels contain unknown labels",
+            match="CircularValidation: predicted source labels contain "
+            "unknown labels not seen during label encoding.",
         ):
             scorer._score(estimator, X, y_masked, sample_domain=sample_domain)
     finally:

@@ -635,9 +635,8 @@ class CircularValidation(_BaseDomainAwareScorer):
                     y_pred_source = le.inverse_transform(y_pred_source)
                 except ValueError as e:
                     raise ValueError(
-                        "CircularValidation: predicted source labels contain"
+                        "CircularValidation: predicted source labels contain "
                         "unknown labels not seen during label encoding."
-                        f"Original error: {e}"
                     ) from e
 
             # We can now compute the score
