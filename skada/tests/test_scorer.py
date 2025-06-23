@@ -264,12 +264,14 @@ def test_circular_validation_unseen_labels():
     skada.metrics.deepcopy = lambda est: DummyEstimator()
     skada.metrics.clone = lambda est: DummyEstimator()
 
-    scorer = CircularValidation()
-
     try:
-        # The scorer should ignore unseen labels and compute a score
-        score = scorer._score(estimator, X, y_masked, sample_domain=sample_domain)
-        assert score is not None  # Use the variable to avoid F841
+        scorer = CircularValidation()
+
+        with pytest.raises(
+            ValueError,
+            match="CircularValidation: predicted source labels contain unknown labels",
+        ):
+            scorer._score(estimator, X, y_masked, sample_domain=sample_domain)
     finally:
         skada.metrics.deepcopy = orig_deepcopy
         skada.metrics.clone = orig_clone

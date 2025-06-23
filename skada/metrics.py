@@ -630,27 +630,18 @@ class CircularValidation(_BaseDomainAwareScorer):
             )
 
             if y_type == Y_Type.DISCRETE:
-                # Inverse transform, but ignores unseen labels
+                # We go back to the original labels
                 try:
-                    y_pred_source_decoded = le.inverse_transform(y_pred_source)
-                    mask_valid = np.ones_like(y_pred_source, dtype=bool)
-                except ValueError:
-                    # Find which labels are valid
-                    valid_mask = np.isin(y_pred_source, np.arange(len(le.classes_)))
-                    y_pred_source_decoded = np.full_like(
-                        y_pred_source, fill_value=-9999
-                    )
-                    y_pred_source_decoded[valid_mask] = le.inverse_transform(
-                        y_pred_source[valid_mask]
-                    )
-                    mask_valid = valid_mask
+                    y_pred_source = le.inverse_transform(y_pred_source)
+                except ValueError as e:
+                    raise ValueError(
+                        "CircularValidation: predicted source labels contain"
+                        "unknown labels not seen during label encoding."
+                        f"Original error: {e}"
+                    ) from e
 
-                # Only compute the score on valid predictions
-                score = self.source_scorer(
-                    y[source_idx][mask_valid], y_pred_source_decoded[mask_valid]
-                )
-            else:
-                score = self.source_scorer(y[source_idx], y_pred_source)
+            # We can now compute the score
+            score = self.source_scorer(y[source_idx], y_pred_source)
 
         return self._sign * score
 
