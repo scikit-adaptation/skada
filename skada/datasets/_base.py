@@ -370,7 +370,7 @@ class DomainAwareDataset:
             as_sources=as_sources,
             as_targets=as_targets,
             return_X_y=return_X_y,
-            train=True,
+            mask_target_labels=True,
             mask=mask,
         )
 
@@ -405,7 +405,7 @@ class DomainAwareDataset:
             as_sources=[],
             as_targets=as_targets,
             return_X_y=return_X_y,
-            train=False,
+            mask_target_labels=False,
         )
 
     def pack_lodo(self, return_X_y: bool = True) -> PackedDatasetType:
@@ -448,7 +448,7 @@ class DomainAwareDataset:
             as_sources=list(self.domain_names_.keys()),
             as_targets=list(self.domain_names_.keys()),
             return_X_y=return_X_y,
-            train=True,
+            mask_target_labels=True,
         )
 
     def __str__(self) -> str:
