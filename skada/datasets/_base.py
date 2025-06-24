@@ -246,7 +246,7 @@ class DomainAwareDataset:
         """
         Xs, ys, sample_domains = [], [], []
         domain_labels = {}
-        if as_sources is None:
+        if as_sources is None or train is False:
             as_sources = []
         if as_targets is None:
             as_targets = []
