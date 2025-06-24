@@ -788,20 +788,20 @@ class MixValScorer(_BaseDomainAwareScorer):
 
 class MaNoScorer(_BaseDomainAwareScorer):
     """
-    MaNo scorer inspired by [37]_, an approach for unsupervised accuracy estimation.
+    MaNo scorer inspired by [38]_, an approach for unsupervised accuracy estimation.
 
     This scorer used the model's predictions on target data to estimate
-    the accuracy of the model. The original implementation in [37]_ is
+    the accuracy of the model. The original implementation in [38]_ is
     tailored to neural networks and consist of three steps:
     1) Recover target logits (inference step),
     2) Normalize them as probabilities (e.g., with softmax),
     3) Aggregate by averaging the p-norms of the target normalized logits.
 
     To ensure compatibility with any estimator, we adapt the original implementation.
-    If the estimator is a neural network, follow 1) --> 2) --> 3) like in [37]_.
+    If the estimator is a neural network, follow 1) --> 2) --> 3) like in [38]_.
     Else, directly use the probabilities predicted by the estimator and then do 3).
 
-    See [37]_ for details.
+    See [38]_ for details.
 
     Parameters
     ----------
@@ -821,7 +821,7 @@ class MaNoScorer(_BaseDomainAwareScorer):
 
     References
     ----------
-    .. [37] Renchunzi Xie et al. MaNo: Matrix Norm for Unsupervised Accuracy Estimation
+    .. [38] Renchunzi Xie et al. MaNo: Matrix Norm for Unsupervised Accuracy Estimation
             under Distribution Shifts.
             In NeurIPS, 2024.
     """
