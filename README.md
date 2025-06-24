@@ -170,9 +170,8 @@ This toolbox has been created and is maintained by the SKADA team that includes 
 SKADA has benefited from the financing or manpower from the following partners:
 
 <img src="https://scikit-adaptation.github.io/dev/_static/images/logo_anr.jpg" alt="ANR" style="height:60px;"/>
-<img src="scikit-adaptation.github.io/dev/_static/images/logo_hiparis.png" alt="Hi!PARIS" style="height:60px;"/>
-<img src="scikit-adaptation.github.io/dev/_static/images/logo_elias.png"
-alt="ELIAS European project" style="height:60px;"/>
+<img src="https://scikit-adaptation.github.io/dev/_static/images/logo_hiparis.png" alt="Hi!PARIS" style="height:60px;"/>
+<img src="https://scikit-adaptation.github.io/dev/_static/images/logo_elias.png" alt="ELIAS European project" style="height:60px;"/>
 
 ## License
 
