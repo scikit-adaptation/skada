@@ -6,9 +6,6 @@
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.12666838.svg)](https://doi.org/10.5281/zenodo.12666838)
 
-> [!WARNING]
-> This library is currently in a phase of active development. All features are subject to change without prior notice. If you are interested in collaborating, please feel free to reach out by opening an issue or starting a discussion.
-
 SKADA is a library for domain adaptation (DA) with a scikit-learn and PyTorch/skorch
 compatible API with the following features:
 
@@ -166,6 +163,12 @@ This toolbox has been created and is maintained by the SKADA team that includes 
 * [Yanis Lalou](https://github.com/YanisLalou)
 * [Antoine de Mathelin](https://scholar.google.com/citations?user=h79bffAAAAAJ&hl=fr)
 * [Ruben Bueno]()
+
+SKADA has benefited from the financing or manpower from the following partners:
+
+<img src="https://scikit-adaptation.github.io/dev/_static/images/logo_anr.jpg" alt="ANR" style="height:60px;"/>
+<img src="https://scikit-adaptation.github.io/dev/_static/images/logo_hiparis.png" alt="Hi!PARIS" style="height:60px;"/>
+<img src="https://scikit-adaptation.github.io/dev/_static/images/logo_elias.png" alt="ELIAS European project" style="height:60px;"/>
 
 ## License
 
