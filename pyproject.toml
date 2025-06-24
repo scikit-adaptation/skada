@@ -38,15 +38,15 @@ dependencies = [
     "numpy >= 1.24",
     "scipy >= 1.10",
     "scikit-learn >= 1.5.0",
-    "POT >= 0.9.3",           # optimal transport
-    "pandas>=2.3.0",          # plots
+    "POT >= 0.9.3",
+    "pandas>=2.3.0",
 ]
 
 [project.optional-dependencies]
 subspace = ["torch"]
 
 deep = [
-    "skada[subspace]",
+    "torch",
     "torchvision",
     "skorch",
 ]
@@ -58,15 +58,17 @@ test = [
 ]
 
 doc = [
-    "sphinx",            # doc
-    "sphinx_gallery",    # doc
-    "sphinx_rtd_theme",  # doc
-    "numpydoc",          # doc
-    "memory_profiler",   # doc
-    "myst-parser",       # doc
-    "ipython",           # visualization
-    "matplotlib",        # visualization
-    "skada[deep]",       # deep dependencies
+    "sphinx",
+    "sphinx_gallery",
+    "sphinx_rtd_theme",
+    "numpydoc",
+    "memory_profiler",
+    "myst-parser",
+    "ipython",
+    "matplotlib",
+    "torch",
+    "torchvision",
+    "skorch",
 ]
 
 [project.urls]
