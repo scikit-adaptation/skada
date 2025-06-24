@@ -6,6 +6,7 @@
 import os
 from functools import reduce
 from typing import Dict, Iterable, List, Mapping, Optional, Tuple, Union
+import warnings
 
 import numpy as np
 from sklearn.utils import Bunch
@@ -202,7 +203,8 @@ class DomainAwareDataset:
         as_sources: List[str] = None,
         as_targets: List[str] = None,
         return_X_y: bool = True,
-        train: bool = False,
+        mask_target_labels: bool = True,
+        train: Optional[bool] = None,
         mask: Union[None, int, float] = None,
     ) -> PackedDatasetType:
         """Aggregates datasets from all domains into a unified domain-aware
@@ -246,7 +248,14 @@ class DomainAwareDataset:
         """
         Xs, ys, sample_domains = [], [], []
         domain_labels = {}
-        if as_sources is None or train is False:
+        if train is not None:
+            warnings.warn(
+                "The `train` parameter is deprecated and will be removed in future versions. "
+                "Use `mask_target_labels` instead.",
+                DeprecationWarning,
+            )
+            mask_target_labels = train
+        if as_sources is None or mask_target_labels is False:
             as_sources = []
         if as_targets is None:
             as_targets = []
@@ -279,7 +288,7 @@ class DomainAwareDataset:
                 X, y = target
             else:
                 raise ValueError("Invalid definition for domain data")
-            if train:
+            if mask_target_labels:
                 if mask is not None:
                     y = np.array([mask] * X.shape[0], dtype=dtype)
                 elif y.dtype in (np.int32, np.int64):
