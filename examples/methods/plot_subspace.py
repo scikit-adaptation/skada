@@ -71,9 +71,7 @@ dataset = make_shifted_datasets(
 )
 
 X_train, y_train, sample_domain_train = dataset.pack(
-    as_sources=["s"],
-    as_targets=["t"], 
-    mask_target_labels=True
+    as_sources=["s"], as_targets=["t"], mask_target_labels=True
 )
 X, y, sample_domain = dataset.pack(
     as_sources=["s"],

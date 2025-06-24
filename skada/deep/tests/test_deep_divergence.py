@@ -49,10 +49,14 @@ def test_deepcoral(assume_centered):
         assume_centered=assume_centered,
     )
 
-    X, y, sample_domain = dataset.pack(as_sources=["s"], as_targets=["t"], mask_target_labels=True)
+    X, y, sample_domain = dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
+    )
     method.fit(X.astype(np.float32), y, sample_domain)
 
-    X_test, y_test, sample_domain_test = dataset.pack(as_targets=["t"], mask_target_labels=False)
+    X_test, y_test, sample_domain_test = dataset.pack(
+        as_targets=["t"], mask_target_labels=False
+    )
 
     y_pred = method.predict(X_test.astype(np.float32), sample_domain_test)
 
@@ -94,10 +98,14 @@ def test_dan(sigmas):
         train_split=None,
     )
 
-    X, y, sample_domain = dataset.pack(as_sources=["s"], as_targets=["t"], mask_target_labels=True)
+    X, y, sample_domain = dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
+    )
     method.fit(X.astype(np.float32), y, sample_domain)
 
-    X_test, y_test, sample_domain_test = dataset.pack(as_targets=["t"], mask_target_labels=False)
+    X_test, y_test, sample_domain_test = dataset.pack(
+        as_targets=["t"], mask_target_labels=False
+    )
 
     y_pred = method.predict(X_test.astype(np.float32), sample_domain_test)
 
@@ -142,10 +150,14 @@ def test_can(sigmas, distance_threshold, class_threshold):
         train_split=None,
     )
 
-    X, y, sample_domain = dataset.pack(as_sources=["s"], as_targets=["t"], mask_target_labels=True)
+    X, y, sample_domain = dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
+    )
     method.fit(X.astype(np.float32), y, sample_domain)
 
-    X_test, y_test, sample_domain_test = dataset.pack(as_targets=["t"], mask_target_labels=False)
+    X_test, y_test, sample_domain_test = dataset.pack(
+        as_targets=["t"], mask_target_labels=False
+    )
 
     y_pred = method.predict(X_test.astype(np.float32), sample_domain_test)
 
@@ -182,10 +194,14 @@ def test_can_with_custom_callbacks():
         callbacks=[custom_callback],  # Pass the custom callback
     )
 
-    X, y, sample_domain = dataset.pack(as_sources=["s"], as_targets=["t"], mask_target_labels=True)
+    X, y, sample_domain = dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
+    )
     method.fit(X.astype(np.float32), y, sample_domain)
 
-    X_test, y_test, sample_domain_test = dataset.pack(as_targets=["t"], mask_target_labels=False)
+    X_test, y_test, sample_domain_test = dataset.pack(
+        as_targets=["t"], mask_target_labels=False
+    )
 
     y_pred = method.predict(X_test.astype(np.float32), sample_domain_test)
 

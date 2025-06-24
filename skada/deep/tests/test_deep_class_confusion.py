@@ -45,9 +45,13 @@ def test_mcc(T):
         T=T,
     )
 
-    X, y, sample_domain = dataset.pack(as_sources=["s"], as_targets=["t"], mask_target_labels=True)
+    X, y, sample_domain = dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
+    )
     method.fit(X.astype(np.float32), y, sample_domain)
-    X_test, y_test, sample_domain_test = dataset.pack(as_targets=["t"], mask_target_labels=False)
+    X_test, y_test, sample_domain_test = dataset.pack(
+        as_targets=["t"], mask_target_labels=False
+    )
 
     y_pred = method.predict(X_test.astype(np.float32), sample_domain_test)
 

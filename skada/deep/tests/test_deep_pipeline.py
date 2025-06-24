@@ -40,7 +40,9 @@ def test_pipeline(da_dataset, method):
     module = ToyModule2D()
     module.eval()
 
-    X, y, sample_domain = da_dataset.pack(as_sources=["s"], as_targets=["t"], mask_target_labels=True)
+    X, y, sample_domain = da_dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
+    )
 
     pipe = make_da_pipeline(StandardScaler(), method)
     pipe.fit(X.astype(np.float32), y, sample_domain=sample_domain)

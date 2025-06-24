@@ -36,7 +36,9 @@ def test_spa(domain_classifier, domain_criterion, num_features):
         random_state=42,
         return_dataset=True,
     )
-    X, y, sample_domain = dataset.pack(as_sources=["s"], as_targets=["t"], mask_target_labels=True)
+    X, y, sample_domain = dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
+    )
     method = SPA(
         ToyModule2D(),
         reg_adv=1,
@@ -53,7 +55,9 @@ def test_spa(domain_classifier, domain_criterion, num_features):
 
     method.fit(X.astype(np.float32), y, sample_domain)
 
-    X_test, y_test, sample_domain_test = dataset.pack(as_targets=["t"], mask_target_labels=False)
+    X_test, y_test, sample_domain_test = dataset.pack(
+        as_targets=["t"], mask_target_labels=False
+    )
 
     y_pred = method.predict(X_test.astype(np.float32), sample_domain_test)
 

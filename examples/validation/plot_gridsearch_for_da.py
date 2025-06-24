@@ -33,7 +33,9 @@ dataset = make_shifted_datasets(
     random_state=RANDOM_SEED,
     return_dataset=True,
 )
-X, y, sample_domain = dataset.pack(as_sources=["s"], as_targets=["t"], mask_target_labels=True)
+X, y, sample_domain = dataset.pack(
+    as_sources=["s"], as_targets=["t"], mask_target_labels=True
+)
 X_target, y_target, _ = dataset.pack(as_targets=["t"], mask_target_labels=False)
 
 estimator = EntropicOTMapping(base_estimator=SVC(probability=True))
