@@ -1,0 +1,81 @@
+# Management of the action do made during a pull request
+
+name: 'Main_workflow'
+on:
+  pull_request_target:
+    # Using 'pull_request_target' instead of 'pull_request':
+    # 1. Uses configuration from the main branch
+    # 2. Provides access to secrets from the main repository
+    # 3. Prevents using potentially malicious workflow from forked PRs
+    branches: main
+  # allows to push on branches
+  push:
+    branches: main
+
+# disable all the permission for the workflow
+permissions: {}
+
+# Cancel existing runs 
+concurrency:
+  group: ${{ github.workflow }}-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  get_information:
+    name: Get Information
+    # information is: commit message for PR
+    runs-on: ubuntu-latest
+    outputs:
+      COMMIT_MSG: ${{ steps.get_commit_message.outputs.COMMIT_MSG }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 3 
+          # require to get the previous commit for getting their messages
+          # in a PR the last commit is the commit merge with main
+
+      - name: Get commit message
+        id: get_commit_message
+        # return an empty message when the event is not from a PR
+        run: |
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "COMMIT_MSG<<$EOF" >> $GITHUB_OUTPUT
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "COMMIT_MSG=$(git log -1 --pretty=%B ${{ github.event.pull_request.head.sha }})" # use for debugging
+            echo "$(git log -1 --pretty=%B ${{ github.event.pull_request.head.sha }})" >> $GITHUB_OUTPUT
+            echo "$EOF" >> $GITHUB_OUTPUT
+          else
+            echo "$EOF" >> $GITHUB_OUTPUT
+          fi
+
+  linter:
+    name: Linter
+    needs: [get_information]
+    uses: ./.github/workflows/linter.yml
+  
+  tests_minimal:
+    name: tests
+    needs: [linter, get_information]
+    uses: ./.github/workflows/testing_minimal.yml
+    with: 
+      skip_test: ${{ contains(needs.get_information.outputs.COMMIT_MSG, '[skip tests]') }}
+
+
+  tests:
+    name: tests
+    needs: [linter, get_information]
+    uses: ./.github/workflows/testing.yml
+    with: 
+      skip_test: ${{ contains(needs.get_information.outputs.COMMIT_MSG, '[skip tests]') }}
+
+ # debugger:
+  #   needs: linter 
+  #   env: 
+  #     STATE_LINTER: ${{ needs.linter.result }}
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: print output
+  #       run: 
+  #         echo "Linter "$STATE_LINTER
+  #   if: ${{ always() }} 
