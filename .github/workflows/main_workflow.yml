@@ -2,7 +2,7 @@
 
 name: 'Main_workflow'
 on:
-  pull_request_target:
+  pull_request:
     # Using 'pull_request_target' instead of 'pull_request':
     # 1. Uses configuration from the main branch
     # 2. Provides access to secrets from the main repository
