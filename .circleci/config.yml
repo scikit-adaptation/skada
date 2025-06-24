@@ -38,20 +38,18 @@ jobs:
         - run:
             name: Install ffmpeg
             command: |
-              sudo apt update 
+              sudo apt update
               sudo apt install ffmpeg
         - run:
             name: Install latex (for logo)
             command: |
               sudo apt install texlive-latex-base texlive-fonts-recommended texlive-latex-extra cm-super dvipng
-              
+
         - run:
             name: Get Python running
             command: |
               python -m pip install --user --upgrade --progress-bar off pip
-              python -m pip install --user --progress-bar off -r requirements.txt
-              python -m pip install --user --upgrade --progress-bar off -r docs/requirements.txt     
-              python -m pip install --user --upgrade --progress-bar off .
+              python -m pip install --user --upgrade --progress-bar off .[doc]
           # python -m pip install --user --upgrade --progress-bar off ipython "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" memory_profiler
         - save_cache:
             key: pip-cache
@@ -176,7 +174,7 @@ workflows:
       - build_docs:
           filters:
             tags:
-              only: /[0-9]+(\.[0-9]+)*$/  
+              only: /[0-9]+(\.[0-9]+)*$/
       - deploy_main:
           requires:
             - build_docs
