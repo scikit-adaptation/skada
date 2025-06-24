@@ -16,7 +16,7 @@ from skada.transformers import (
 
 
 def test_Subsampler(da_dataset):
-    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = da_dataset.pack(as_sources=["s"], as_targets=["t"], mask_target_labels=True)
     sample_weight = np.ones_like(y)
 
     train_size = 10
@@ -34,7 +34,7 @@ def test_Subsampler(da_dataset):
     assert params["sample_weight"].shape[0] == train_size
 
     # test size of output on transform
-    X_target, y_target, sample_domain_target = da_dataset.pack_test(as_targets=["t"])
+    X_target, y_target, sample_domain_target = da_dataset.pack(as_targets=["t"], mask_target_labels=False)
 
     X_target_subsampled = transformer.transform(
         X_target, y_target, sample_domain=sample_domain_target
@@ -56,7 +56,7 @@ def test_Subsampler(da_dataset):
 
 
 def test_DomainSubsampler(da_dataset):
-    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = da_dataset.pack(as_sources=["s"], as_targets=["t"], mask_target_labels=True)
     sample_weight = np.ones_like(y)
 
     train_size = 10
@@ -76,7 +76,7 @@ def test_DomainSubsampler(da_dataset):
     assert sum(params["sample_domain"] == 1) == train_size // 2
 
     # test size of output on transform
-    X_target, y_target, sample_domain_target = da_dataset.pack_test(as_targets=["t"])
+    X_target, y_target, sample_domain_target = da_dataset.pack(as_targets=["t"], mask_target_labels=False)
 
     X_target_subsampled = transformer.transform(
         X_target, y_target, sample_domain=sample_domain_target
@@ -98,7 +98,7 @@ def test_DomainSubsampler(da_dataset):
 
 
 def test_StratifiedDomainSubsampler(da_dataset):
-    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = da_dataset.pack(as_sources=["s"], as_targets=["t"], mask_target_labels=True)
     sample_weight = np.ones_like(y)
 
     train_size = 10
@@ -127,7 +127,7 @@ def test_StratifiedDomainSubsampler(da_dataset):
         ), f"Stratification not preserved for {key}"
 
     # test size of output on transform
-    X_target, y_target, sample_domain_target = da_dataset.pack_test(as_targets=["t"])
+    X_target, y_target, sample_domain_target = da_dataset.pack(as_targets=["t"], mask_target_labels=False)
 
     X_target_subsampled = transformer.transform(
         X_target, y_target, sample_domain=sample_domain_target

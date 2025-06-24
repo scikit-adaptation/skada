@@ -44,7 +44,7 @@ from skada.metrics import (
     ],
 )
 def test_generic_scorer(scorer, da_dataset):
-    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = da_dataset.pack(as_sources=["s"], as_targets=["t"], mask_target_labels=True)
     estimator = make_da_pipeline(
         DensityReweightAdapter(),
         LogisticRegression()
@@ -66,7 +66,7 @@ def test_generic_scorer(scorer, da_dataset):
 
 def test_supervised_scorer(da_dataset):
     """`SupervisedScorer` requires unmasked target label to be available."""
-    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = da_dataset.pack(as_sources=["s"], as_targets=["t"], mask_target_labels=True)
     estimator = make_da_pipeline(
         DensityReweightAdapter(),
         LogisticRegression()
@@ -99,7 +99,7 @@ def test_supervised_scorer(da_dataset):
     ],
 )
 def test_scorer_with_entropy_requires_predict_proba(scorer, da_dataset):
-    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = da_dataset.pack(as_sources=["s"], as_targets=["t"], mask_target_labels=True)
     estimator = make_da_pipeline(
         DensityReweightAdapter(), SVC().set_fit_request(sample_weight=True)
     )
@@ -121,7 +121,7 @@ def test_scorer_with_log_proba():
             (rng.standard_normal((n_samples, n_features)), None, "t"),
         ]
     )
-    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = dataset.pack(as_sources=["s"], as_targets=["t"], mask_target_labels=True)
     estimator = make_da_pipeline(
         SubspaceAlignmentAdapter(n_components=2), LogisticRegression()
     )
@@ -140,7 +140,7 @@ def test_scorer_with_log_proba():
 
 
 def test_prediction_entropy_scorer_reduction(da_dataset):
-    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = da_dataset.pack(as_sources=["s"], as_targets=["t"], mask_target_labels=True)
     estimator = make_da_pipeline(
         DensityReweightAdapter(),
         LogisticRegression().set_fit_request(sample_weight=True),
@@ -173,8 +173,8 @@ def test_prediction_entropy_scorer_reduction(da_dataset):
 
 
 def test_circular_validation(da_dataset):
-    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
-    _, unmasked_y, _ = da_dataset.pack_test(as_targets=["t"])
+    X, y, sample_domain = da_dataset.pack(as_sources=["s"], as_targets=["t"], mask_target_labels=True)
+    _, unmasked_y, _ = da_dataset.pack(as_targets=["t"], mask_target_labels=False)
     estimator = make_da_pipeline(
         DensityReweightAdapter(),
         LogisticRegression().set_fit_request(sample_weight=True),
@@ -212,8 +212,8 @@ def test_circular_validation(da_dataset):
         return_dataset=True,
     )
 
-    X, y, sample_domain = dataset_reg.pack_train(as_sources=["s"], as_targets=["t"])
-    _, unmasked_y, _ = dataset_reg.pack_test(as_targets=["t"])
+    X, y, sample_domain = dataset_reg.pack(as_sources=["s"], as_targets=["t"], mask_target_labels=True)
+    _, unmasked_y, _ = dataset_reg.pack(as_targets=["t"], mask_target_labels=False)
 
     estimator_regression = make_da_pipeline(
         DensityReweightAdapter(),
@@ -237,7 +237,7 @@ def test_deep_embedding_validation_no_transform(da_dataset):
     # even if the adapter does not have a `transform` method
 
     scorer = DeepEmbeddedValidation()
-    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = da_dataset.pack(as_sources=["s"], as_targets=["t"], mask_target_labels=True)
     estimator = make_da_pipeline(LogisticRegression())
 
     cv = ShuffleSplit(n_splits=3, test_size=0.3, random_state=0)
@@ -254,7 +254,7 @@ def test_deep_embedding_validation_no_transform(da_dataset):
 
 
 def test_mixval_scorer(da_dataset):
-    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = da_dataset.pack(as_sources=["s"], as_targets=["t"], mask_target_labels=True)
     estimator = make_da_pipeline(
         DensityReweightAdapter(),
         LogisticRegression()
@@ -356,7 +356,7 @@ def test_mixval_scorer_regression(da_reg_dataset):
 
 
 def test_mano_scorer(da_dataset):
-    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = da_dataset.pack(as_sources=["s"], as_targets=["t"], mask_target_labels=True)
     estimator = make_da_pipeline(
         DensityReweightAdapter(),
         LogisticRegression().set_fit_request(sample_weight=True),
@@ -413,7 +413,7 @@ def test_mano_scorer_regression(da_reg_dataset):
     ],
 )
 def test_scorer_with_nd_input(scorer, da_dataset):
-    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = da_dataset.pack(as_sources=["s"], as_targets=["t"], mask_target_labels=True)
 
     # Repeat data to have a 3D input
     X_3d = np.repeat(X[:, :, None], repeats=3, axis=2)

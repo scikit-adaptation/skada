@@ -90,7 +90,7 @@ def test_base_selector_remove_masked(step):
         random_state=42,
         return_dataset=True,
     )
-    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = dataset.pack(as_sources=["s"], as_targets=["t"], mask_target_labels=True)
 
     pipe = make_da_pipeline(step)
     # no ValueError is raised
@@ -106,8 +106,8 @@ def test_base_selector_no_filtering_transformer():
         random_state=42,
         return_dataset=True,
     )
-    X_train, y_train, sample_domain = dataset.pack_train(
-        as_sources=["s"], as_targets=["t"]
+    X_train, y_train, sample_domain = dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
     )
 
     output = {}

@@ -78,20 +78,20 @@ This is mostly to cover use cases where you need access to `'domain_names'` labe
 
 Considering different scenarios, the dataset provides the following helpers:
 
-* `pack_train` masks labels for domains designated for being used as targets
-* `pack_test` packs requested targets
+* `pack` masks labels for domains designated for being used as targets (default argument `mask_target_labels=True`)
+* `pack` with argument `mask_target_labels=False` packs requested targets
 
 Working with an estimator with a new API would look like the following:
 
 ```python
 office31 = fetch_office31_surf_all()
-X_train, y_train, sample_domain = office31.pack_train(as_sources=['amazon', 'dslr'], as_targets=['webcam'])
+X_train, y_train, sample_domain = office31.pack(as_sources=['amazon', 'dslr'], as_targets=['webcam'], mask_target_labels=True)
 
 estimator = make_da_pipeline(CORALAdapter(),LogisticRegression())
 estimator.fit(X_train, y_train, sample_domain=sample_domain)
 
 # predict and score on target domain
-X_test, y_test, sample_domain = office31.pack_test(as_targets=['webcam'])
+X_test, y_test, sample_domain = office31.pack(as_targets=['webcam'], mask_target_labels=False)
 webcam_idx = office31.select_domain(sample_domain, 'webcam')
 y_target = estimator.predict(X_test,[webcam_idx], sample_domain=sample_domain[webcam_idx])
 score = estimator.score(X_test[webcam_idx], y=y_test[webcam_idx], sample_domain=sample_domain[webcam_idx])
@@ -193,13 +193,13 @@ See API usage examples in `skada/tests/test_scorer.py`.
 The `SupervisedScorer` is a unique scorer that necessitates special consideration. Since it requires access to target labels, which are masked during the dataset packing process for training, this scorer mandates an additional key to be passed within the `params`. The usage is as follows:
 
 ```python
-X, y, sample_domain = da_dataset.pack_train(as_sources=['s'], as_targets=['t'])
+X, y, sample_domain = da_dataset.pack(as_sources=['s'], as_targets=['t'], mask_target_labels=True)
 estimator = make_da_pipeline(
     DensityReweightAdapter(),
     LogisticRegression().set_score_request(sample_weight=True),
 )
 cv = ShuffleSplit(n_splits=3, test_size=0.3, random_state=0)
-_, target_labels, _ = da_dataset.pack(as_sources=['s'], as_targets=['t'], train=False)
+_, target_labels, _ = da_dataset.pack(as_sources=['s'], as_targets=['t'], , mask_target_labels=False)
 scoring = SupervisedScorer()
 scores = cross_validate(
     estimator,
@@ -220,7 +220,7 @@ The library includes a range of splitters designed specifically for domain adapt
 `skada.model_selection.SourceTargetShuffleSplit`: This splitter functions similarly to the standard `ShuffleSplit` but takes into account the distinct separation between source and target domains. It follows the standard API structure:
 
 ```python
-X, y, sample_domain = da_dataset.pack_train(as_sources=['s', 's2'], as_targets=['t', 't2'])
+X, y, sample_domain = da_dataset.pack(as_sources=['s', 's2'], as_targets=['t', 't2'], mask_target_labels=True)
 pipe = make_da_pipeline(
     SubspaceAlignmentAdapter(n_components=2),
     LogisticRegression(),

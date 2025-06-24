@@ -29,7 +29,7 @@ from skada.datasets import DomainAwareDataset
 
 def test_pipeline(da_dataset):
     # single source, single target, target labels are masked
-    X, y, sample_domain = da_dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = da_dataset.pack(as_sources=["s"], as_targets=["t"], mask_target_labels=True)
     # by default, each estimator in the pipeline is wrapped into `Shared` selector
     pipe = make_da_pipeline(
         StandardScaler(),
@@ -46,7 +46,7 @@ def test_pipeline(da_dataset):
     with pytest.raises(ValueError):
         pipe.score(X, y, sample_domain=sample_domain)
     # target only, no label masking
-    X_target, y_target, sample_domain = da_dataset.pack_test(as_targets=["t"])
+    X_target, y_target, sample_domain = da_dataset.pack(as_targets=["t"], mask_target_labels=False)
     y_pred = pipe.predict(X_target, sample_domain=sample_domain)
     assert np.mean(y_pred == y_target) > 0.9
     # automatically derives as a single target domain when sample_domain is `None`
@@ -206,8 +206,8 @@ def test_allow_nd_x(_fit_transform):
     dataset.add_domain(Xs, ys, "source")
     dataset.add_domain(Xt, yt, "target")
 
-    X, y, sample_domain = dataset.pack_train(
-        as_sources=["source"], as_targets=["target"]
+    X, y, sample_domain = dataset.pack(
+        as_sources=["source"], as_targets=["target"], mask_target_labels=True
     )
     pipe.fit(X, y, sample_domain=sample_domain)
 

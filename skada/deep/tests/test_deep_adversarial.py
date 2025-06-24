@@ -50,10 +50,10 @@ def test_dann(domain_classifier, domain_criterion, num_features):
         train_split=None,
     )
 
-    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = dataset.pack(as_sources=["s"], as_targets=["t"], mask_target_labels=True)
     method.fit(X.astype(np.float32), y, sample_domain)
 
-    X_test, y_test, sample_domain_test = dataset.pack_test(as_targets=["t"])
+    X_test, y_test, sample_domain_test = dataset.pack(as_targets=["t"], mask_target_labels=False)
 
     y_pred = method.predict(X_test.astype(np.float32), sample_domain_test)
 
@@ -102,10 +102,10 @@ def test_cdan(domain_classifier, domain_criterion, num_feature, max_feature, n_c
         train_split=None,
     )
 
-    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = dataset.pack(as_sources=["s"], as_targets=["t"], mask_target_labels=True)
     method.fit(X.astype(np.float32), y, sample_domain)
 
-    X_test, y_test, sample_domain_test = dataset.pack_test(as_targets=["t"])
+    X_test, y_test, sample_domain_test = dataset.pack(as_targets=["t"], mask_target_labels=False)
 
     y_pred = method.predict(X_test.astype(np.float32), sample_domain_test)
 
@@ -156,10 +156,10 @@ def test_mdd(disc_classifier, num_features, n_classes):
         train_split=None,
     )
 
-    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = dataset.pack(as_sources=["s"], as_targets=["t"], mask_target_labels=True)
     method.fit(X.astype(np.float32), y, sample_domain)
 
-    X_test, y_test, sample_domain_test = dataset.pack_test(as_targets=["t"])
+    X_test, y_test, sample_domain_test = dataset.pack(as_targets=["t"], mask_target_labels=False)
 
     y_pred = method.predict(X_test.astype(np.float32), sample_domain_test)
 
@@ -243,7 +243,7 @@ def test_return_features():
         train_split=None,
     )
 
-    X_test, _, _ = dataset.pack_test(as_targets=["t"])
+    X_test, _, _ = dataset.pack(as_targets=["t"], mask_target_labels=False)
     X_test = X_test.astype(np.float32)
 
     # without dict

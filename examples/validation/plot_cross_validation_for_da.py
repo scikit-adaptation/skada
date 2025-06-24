@@ -64,9 +64,9 @@ dataset2 = make_shifted_datasets(
 )
 dataset.merge(dataset2, names_mapping={"s": "s2", "t": "t2"})
 
-X, y, sample_domain = dataset.pack_train(as_sources=["s", "s2"], as_targets=["t", "t2"])
+X, y, sample_domain = dataset.pack(as_sources=["s", "s2"], as_targets=["t", "t2"], mask_target_labels=True)
 _, target_labels, _ = dataset.pack(
-    as_sources=["s", "s2"], as_targets=["t", "t2"], train=False
+    as_sources=["s", "s2"], as_targets=["t", "t2"], mask_target_labels=False
 )
 
 # Sort by sample_domain first then by target_labels
@@ -277,11 +277,11 @@ def plot_st_shuffle_indices(cv, X, y, target_labels, sample_domain, ax, n_splits
 # :class:`~skada.model_selection.SourceTargetShuffleSplit`.
 # The left plot shows the indices of the training and
 # testing sets for each split and with the datased packed with
-# :func:`~skada.datasets._base.DomainAwareDataset.pack_train`
+# :func:`~skada.datasets._base.DomainAwareDataset.pack`
 # (the target domains labels are masked (=-1)).
 # While the right plot shows the indices of the training and
 # testing sets for each split and with the datased packed with
-# :func:`~skada.datasets._base.DomainAwareDataset.pack_test`.
+# :func:`~skada.datasets._base.DomainAwareDataset.pack` and argument mask_target_labels=False
 
 
 cvs = [SourceTargetShuffleSplit]

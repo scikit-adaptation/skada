@@ -52,7 +52,7 @@ def test_sourceonly():
 
     # Check accuracy is better on source domain than on target domain
     X_source, y_source, sample_domain_source = dataset.pack(as_sources=["s"])
-    X_target, y_target, sample_domain_target = dataset.pack(as_targets=["t"])
+    X_target, y_target, sample_domain_target = dataset.pack(as_targets=["t"], mask_target_labels=False)
     y_pred_source = method.predict(
         X_source.astype(np.float32), sample_domain_source, allow_source=True
     )
@@ -101,7 +101,7 @@ def test_targetonly():
 
     # Check accuracy is better on target domain than on source domain
     X_source, y_source, sample_domain_source = dataset.pack(as_sources=["s"])
-    X_target, y_target, sample_domain_target = dataset.pack(as_targets=["t"])
+    X_target, y_target, sample_domain_target = dataset.pack(as_targets=["t"], mask_target_labels=False)
     y_pred_source = method.predict(
         X_source.astype(np.float32), sample_domain_source, allow_source=True
     )
