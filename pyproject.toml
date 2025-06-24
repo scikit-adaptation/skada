@@ -145,7 +145,7 @@ skip = [
     "./doc/modules/generated"
 ]
 
-ignore-words-list = ["embedd","ot","OT","repid","ist","vor","fro"]# "ignore-words.txt"
+ignore-words = "ignore-words.txt"
 
 [tool.rstcheck]
 report_level = "WARNING"
