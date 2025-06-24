@@ -19,11 +19,11 @@ from skada.deep.utils import SphericalKMeans
 
 
 class CrossEntropyLabelSmooth(Module):
-    """Estimate the cross-entropy label smooth loss for SHOT method [?]_.
+    """Estimate the cross-entropy label smooth loss for SHOT method [38]_.
 
     References
     ----------
-    .. [?] 	https://doi.org/10.48550/arXiv.2002.08546
+    .. [38] 	https://doi.org/10.48550/arXiv.2002.08546
     """
 
     def __init__(self, num_classes, epsilon=0.1, size_average=True):
@@ -35,7 +35,7 @@ class CrossEntropyLabelSmooth(Module):
         self.logsoftmax = LogSoftmax(dim=1)
 
     def forward(self, y_pred_s, y_s):
-        """Estimate the cross-entropy label smooth loss for SHOT method [?]_.
+        """Estimate the cross-entropy label smooth loss for SHOT method [38]_.
 
         Parameters
         ----------
@@ -66,7 +66,7 @@ def cross_entropy_label_smooth_loss(
     epsilon: float = 0.1,
     size_average: bool = True,
 ) -> float:
-    """Estimate the crpss-entropy label smooth loss loss for SHOT method [?]_.
+    """Estimate the crpss-entropy label smooth loss loss for SHOT method [38]_.
 
     Parameters
     ----------
@@ -96,7 +96,7 @@ def cross_entropy_label_smooth_loss(
 
 
 def entropy_loss(y_pred_t_softmax: torch.Tensor) -> float:
-    """Estimate the entropy loss for SHOT method [?]_.
+    """Estimate the entropy loss for SHOT method [38]_.
 
     Parameters
     ----------
@@ -110,14 +110,14 @@ def entropy_loss(y_pred_t_softmax: torch.Tensor) -> float:
 
     References
     ----------
-    .. [?] 	https://doi.org/10.48550/arXiv.2002.08546
+    .. [38] 	https://doi.org/10.48550/arXiv.2002.08546
     """
     entropy = -y_pred_t_softmax * torch.log(y_pred_t_softmax + 1e-5)
     return torch.mean(torch.sum(entropy, axis=1))
 
 
 def diversity_promoting_loss(y_pred_t_softmax: torch.Tensor) -> float:
-    """Estimate the diversity promoting loss for SHOT method [?]_.
+    """Estimate the diversity promoting loss for SHOT method [38]_.
 
     Parameters
     ----------
@@ -131,7 +131,7 @@ def diversity_promoting_loss(y_pred_t_softmax: torch.Tensor) -> float:
 
     References
     ----------
-    .. [?] 	https://doi.org/10.48550/arXiv.2002.08546
+    .. [38] 	https://doi.org/10.48550/arXiv.2002.08546
     """
     msoftmax = y_pred_t_softmax.mean(dim=0)
     return torch.sum(msoftmax * torch.log(msoftmax + 1e-5))
@@ -144,7 +144,7 @@ def shot_full_loss(
     div_weight: float = 1,
     class_weight: float = 0.1,
 ) -> float:
-    """Estimate the full loss for SHOT method [?]_.
+    """Estimate the full loss for SHOT method [38]_.
 
     Parameters
     ----------
@@ -161,7 +161,7 @@ def shot_full_loss(
 
     References
     ----------
-    .. [?] 	https://doi.org/10.48550/arXiv.2002.08546
+    .. [38] 	https://doi.org/10.48550/arXiv.2002.08546
     """
     softmax_y_pred_t = Softmax(dim=1)(y_pred_t)
     entropy = entropy_loss(softmax_y_pred_t)
