@@ -1,9 +1,6 @@
-
-
 [build-system]
 requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
-
 
 [project]
 dynamic = ["version"]
@@ -14,13 +11,8 @@ authors = [
         ]
 license = {file = "COPYING"}
 readme = "README.md"
-dependencies = [
-    "numpy >= 1.24",
-    "scipy >= 1.10",
-    "scikit-learn >= 1.5.0",
-    "POT >= 0.9.3",
-]
-keywords = ["domain-adaptation", "scikit-learn", "pytorch", 
+requires-python = ">= 3.9"
+keywords = ["domain-adaptation", "scikit-learn", "pytorch",
             "machine learning", "deep learning"]
 classifiers=[
   "Intended Audience :: Science/Research",
@@ -42,19 +34,166 @@ classifiers=[
   "Programming Language :: Python :: 3.12",
 ]
 
+dependencies = [
+    "numpy >= 1.24",
+    "scipy >= 1.10",
+    "scikit-learn >= 1.5.0",
+    "POT >= 0.9.3",           # optimal transport
+    "pandas>=2.3.0",          # plots
+]
+
+[project.optional-dependencies]
+subspace = ["torch"]
+
+deep = [
+    "skada[subspace]",
+    "torchvision",
+    "skorch",
+]
+
+test = [
+    "pytest",
+    "pytest-cov",
+    "codecov"
+]
+
+doc = [
+    "sphinx",            # doc
+    "sphinx_gallery",    # doc
+    "sphinx_rtd_theme",  # doc
+    "numpydoc",          # doc
+    "memory_profiler",   # doc
+    "myst-parser",       # doc
+    "ipython",           # visualization
+    "matplotlib",        # visualization
+    "skada[deep]",       # deep dependencies
+]
+
 [project.urls]
 homepage = "https://scikit-adaptation.github.io/"
 documentation = "https://scikit-adaptation.github.io/"
 repository = "https://github.com/scikit-adaptation/skada/"
 
-# Optional dependencies
-[project.optional-dependencies]
-all = ["torch", "torchvision", "skorch"]
-deep = ["torch", "torchvision", "skorch"]
-subspace = ["torch"]
-
-[tool.setuptools]
-packages = ["skada"]
+[tool.setuptools.packages.find]
+where = ["skada"]
 
 [tool.setuptools.dynamic]
 version = {attr = "skada.version.__version__"}
+
+[tool.pytest.ini_options]
+
+# disable-pytest-warnings should be removed once we rewrite tests
+# using yield with parametrize
+doctest_optionflags = "NORMALIZE_WHITESPACE ELLIPSIS"
+testpaths = "skada"
+addopts = [
+    "--doctest-modules",
+    "--disable-pytest-warnings",
+    "--color=yes",
+    "-rN",
+]
+
+[tool.ruff]
+
+exclude = [
+    "__init__.py",
+    "base.py",  # XXX to fix
+    "utils.py",  # XXX to fix
+    "conftest.py",
+]
+
+[tool.ruff.lint]
+select = ["A", "B006", "D", "E", "F", "I", "W", "UP"]
+ignore = [
+    "A001", # Variable `copyright` is shadowing a Python builtin
+    "A002", # Argument `input` is shadowing a Python builtin
+    "D100", # Missing docstring in public module
+    "D104", # Missing docstring in public package
+    "D105", # Missing docstring in magic method
+    "D205", # 1 blank line required between summary line and description
+    "D400", # First line should end with a period
+    "D401", # First line of docstring should be in imperative mood
+    "D404", # First word of the docstring should not be "This"
+    "D413", # Missing blank line after last section
+    "UP031", # Use format specifiers instead of percent format
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+ignore-decorators = [
+    "property",
+    "setter",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"skada/**/test_*.py" = [
+    "D103", # Missing docstring in public function
+]
+
+"examples/*/*.py" = [
+    "D205", # 1 blank line required between summary line and description
+]
+"skada/deep/tests/test_*.py" = [
+    "E402", # Module level import not at top of file
+]
+
+[tool.codespell]
+skip = [
+    "./.git",
+    "./doc/_build",
+    "./doc/auto_examples",
+    "./doc/modules/generated"
+]
+
+[tool.rstcheck]
+report_level = "WARNING"
+ignore_roles = [
+    "attr",
+    "class",
+    "doc",
+    "eq",
+    "exc",
+    "file",
+    "footcite",
+    "footcite:t",
+    "func",
+    "gh",
+    "kbd",
+    "meth",
+    "mod",
+    "newcontrib",
+    "py:mod",
+    "ref",
+    "samp",
+    "term"
+]
+
+ignore_directives = [
+    "autoclass",
+    "autofunction",
+    "automodule",
+    "autosummary",
+    "bibliography",
+    "cssclass",
+    "currentmodule",
+    "dropdown",
+    "footbibliography",
+    "glossary",
+    "graphviz",
+    "grid",
+    "highlight",
+    "minigallery",
+    "tabularcolumns",
+    "toctree",
+    "rst-class",
+    "tab-set",
+    "towncrier-draft-entries",
+    "include"
+]
+
+ignore_messages = "^.*(Unknown target name|Undefined substitution referenced)[^`]*$"
+
+
+
+
+
