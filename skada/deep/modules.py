@@ -8,6 +8,7 @@
 import torch
 from torch import nn
 from torch.autograd import Function
+import torch.nn.utils.weight_norm as weightNorm
 
 
 class ToyModule2D(torch.nn.Module):
@@ -226,3 +227,93 @@ class MNISTtoUSPSNet(nn.Module):
         x = self.dropout2(x)
         output = self.fc2(x)
         return output
+
+class SHOTNet(nn.Module):
+    """SHOT Network.
+    This network consists of a feature extractor, a bottleneck,
+    and a classifier. The feature extractor is a LeNetBase architecture.
+    """
+
+    def __init__(self, class_num, feature_dim=256, type="ori"):
+        super(SHOTNet, self).__init__()
+        self.feature_extractor = ShotFeatureExtractor()
+        self.bottleneck = FeatBottleneck(
+            feature_dim=self.feature_extractor.in_features,
+            bottleneck_dim=feature_dim,
+            type=type,
+        )
+        self.classifier = FeatClassifier(
+            class_num=class_num, bottleneck_dim=feature_dim, type="linear"
+        )
+
+    def forward(self, x):
+        x = self.feature_extractor(x)
+        x = self.bottleneck(x)
+        x = self.classifier(x)
+        return x
+    
+class ShotFeatureExtractor(nn.Module):
+    """
+    Feature extractor for SHOT.
+    LeNetBase architecture with two convolutional layers,
+    followed by two max pooling layers and a dropout layer.
+    The output is flattened to a vector.
+    """
+    def __init__(self):
+        super(ShotFeatureExtractor, self).__init__()
+        self.conv_params = nn.Sequential(
+                nn.Conv2d(1, 20, kernel_size=5),
+                nn.MaxPool2d(2),
+                nn.ReLU(),
+                nn.Conv2d(20, 50, kernel_size=5),
+                nn.Dropout2d(p=0.5),
+                nn.MaxPool2d(2),
+                nn.ReLU(),
+                )
+        self.in_features = 50*4*4
+
+    def forward(self, x):
+        x = self.conv_params(x)
+        x = x.view(x.size(0), -1)
+        return x
+    
+def init_weights(m):
+    classname = m.__class__.__name__
+    if classname.find('Conv2d') != -1 or classname.find('ConvTranspose2d') != -1:
+        nn.init.kaiming_uniform_(m.weight)
+        nn.init.zeros_(m.bias)
+    elif classname.find('BatchNorm') != -1:
+        nn.init.normal_(m.weight, 1.0, 0.02)
+        nn.init.zeros_(m.bias)
+    elif classname.find('Linear') != -1:
+        nn.init.xavier_normal_(m.weight)
+        nn.init.zeros_(m.bias)
+        
+class FeatBottleneck(nn.Module):
+    def __init__(self, feature_dim, bottleneck_dim=256, type="ori"):
+        super(FeatBottleneck, self).__init__()
+        self.bn = nn.BatchNorm1d(bottleneck_dim, affine=True)
+        self.dropout = nn.Dropout(p=0.5)
+        self.bottleneck = nn.Linear(feature_dim, bottleneck_dim)
+        self.bottleneck.apply(init_weights)
+        self.type = type
+
+    def forward(self, x):
+        x = self.bottleneck(x)
+        if self.type == "bn":
+            x = self.bn(x)
+            x = self.dropout(x)
+        return x
+    
+class FeatClassifier(nn.Module):
+    def __init__(self, class_num, bottleneck_dim=256, type="linear"):
+        super(FeatClassifier, self).__init__()
+        if type == "linear":
+            self.fc = nn.Linear(bottleneck_dim, class_num)
+        else:
+            self.fc = weightNorm(nn.Linear(bottleneck_dim, class_num), name="weight")
+        self.fc.apply(init_weights)
+
+    def forward(self, x):
+        x = self.fc(x)
+        return x
