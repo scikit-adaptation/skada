@@ -74,8 +74,8 @@ homepage = "https://scikit-adaptation.github.io/"
 documentation = "https://scikit-adaptation.github.io/"
 repository = "https://github.com/scikit-adaptation/skada/"
 
-[tool.setuptools.packages.find]
-where = ["skada"]
+[tool.setuptools]
+packages = ["skada"]
 
 [tool.setuptools.dynamic]
 version = {attr = "skada.version.__version__"}
@@ -143,6 +143,16 @@ skip = [
     "./doc/_build",
     "./doc/auto_examples",
     "./doc/modules/generated"
+]
+
+ignore-words-list = [
+    "embedd",
+    "ot",
+    "OT",
+    "repid",
+    "ist",
+    "vor",
+    "fro",
 ]
 
 [tool.rstcheck]
