@@ -55,21 +55,21 @@ datasets = DomainAwareDataset()
 datasets.add_domain(X_subj1, y_subj1, domain_name="subj_1")
 datasets.add_domain(X_subj3, y_subj3, domain_name="subj_3")
 datasets.add_domain(X_subj12, y_subj12, domain_name="subj_12")
-X, y, sample_domain = datasets.pack(as_sources=['subj_12', 'subj_1'], as_targets=['subj_3'])
+X, y, sample_domain = datasets.pack(as_sources=['subj_12', 'subj_1'], as_targets=['subj_3'], mask_target_labels=False)
 ```
 
 should be also compatible for fetchers, like
 
 ```python
 office31 = fetch_office31_surf_all()
-X, y, sample_domain = office31.pack(as_sources=['amazon', 'dslr'], as_targets=['webcam'])
+X, y, sample_domain = office31.pack(as_sources=['amazon', 'dslr'], as_targets=['webcam'], mask_target_labels=False)
 ```
 
 Method `pack` also accepts optional `return_X_y` argument (defaults to `True`). When this argument is set to `False`, the method returns `Bunch` object with the following set of keys: 
 
 ```python
 >>> office31 = fetch_all_office31_surf()
->>> data = office31.pack(as_sources=['amazon', 'dslr'], as_targets=['webcam'], return_X_y=False)
+>>> data = office31.pack(as_sources=['amazon', 'dslr'], as_targets=['webcam'], return_X_y=False, mask_target_labels=False)
 >>> data.keys()
 dict_keys(['X', 'y', 'sample_domain', 'domain_names'])
 ```
@@ -199,7 +199,7 @@ estimator = make_da_pipeline(
     LogisticRegression().set_score_request(sample_weight=True),
 )
 cv = ShuffleSplit(n_splits=3, test_size=0.3, random_state=0)
-_, target_labels, _ = da_dataset.pack(as_sources=['s'], as_targets=['t'], , mask_target_labels=False)
+_, target_labels, _ = da_dataset.pack(as_sources=['s'], as_targets=['t'], mask_target_labels=False)
 scoring = SupervisedScorer()
 scores = cross_validate(
     estimator,
