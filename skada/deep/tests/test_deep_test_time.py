@@ -24,6 +24,7 @@ from skada.deep.modules import ToyModule2D
         (3, None, None, None),  # Test with specific adaptation epochs given
         (None, Adam, None, None),
         (None, None, ["weight"], ["dropout"]),
+        (None, None, "all", "all"),
     ],  # Test with Adam optimizer for adaptation
 )
 def test_test_time_net(epochs_adapt, optimizer_adapt, params_to_adapt, layers_to_adapt):
