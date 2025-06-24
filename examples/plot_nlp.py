@@ -1,83 +1,91 @@
-"""
-How to use SKADA with SentenceTransformers
-====================================================
+r"""
+Sentence-Transformers + SKADA on 20 Newsgroups
+=============================================
 
-This is a short example to perform domain adaptation (DA)
-using SKADA on a natural language processing (NLP) classfication task
-with SentenceTransformers from Hugging Face.
+This example shows how to perform unsupervised DA
+from **talk.\*** topics to **rec.\*** topics in the
+*20_newsgroups* dataset.
+
+Steps
+-----
+
+1.  Load the dataset and keep only articles whose topics are
+    talk (source) or rec (target).
+2.  Embed each article with Sentence-Transformers from HuggingFace
+3.  Fit a SKADA pipeline: PCA → Linear OT mapping → LogisticRegression
 """
 
-# Author: Antoine Collas
-#
-# License: BSD 3-Clause
+# Author: Antoine Collas <contact@antoinecollas.fr>
+# Licence: BSD 3-Clause
 # sphinx_gallery_thumbnail_number = 1
 
 # %% imports
-import matplotlib.pyplot as plt
+import re
+
 import numpy as np
+from sentence_transformers import SentenceTransformer
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import cross_validate
 
-from sentence_transformers import SentenceTransformer
-
-from skada import (
-    LinearOTMappingAdapter,
-    make_da_pipeline,
-)
-from skada.datasets import (
-    fetch_amazon_review,
-    get_data_home,
-)
+from datasets import concatenate_datasets, load_dataset
+from skada import LinearOTMappingAdapter, make_da_pipeline
 from skada.model_selection import SourceTargetShuffleSplit
-from skada.utils import source_target_merge
+
+# %% --------------------------------------------------------------------------
+# 1. Load 20 Newsgroups and talk / rect domains
+talk_re = re.compile(r"^talk\.")
+rec_re = re.compile(r"^rec\.")
+
+ds = load_dataset("SetFit/20_newsgroups", split="train")
 
 
-data_home = get_data_home(None)
-
-# %%
-# Get Amazon Review dataset
-# ----------
-#
-# We get the Amazon Review DA dataset
-# are organized as follows:
-#
-# * :code:`X` is the input data, including the source and the target samples
-# * :code:`y` is the output data to be predicted (labels on target samples are not
-#   used when fitting the DA estimator)
-# * :code:`sample_domain` encodes the domain of each sample (integer >=0 for
-#   source and <0 for target)
-
-# Get DA dataset
-Xs, ys = fetch_amazon_review(domain="books", return_X_y=True)
-Xt, yt = fetch_amazon_review(domain="dvd", return_X_y=True)
-X, y, sample_domain = source_target_merge(Xs, Xt, ys, yt)
-
-# Print a few examples of data
-print(Xs[:5], ys[:5])
+def mark_domain(example):
+    label = example["label_text"]
+    if talk_re.match(label):
+        example["domain"] = 0  # source
+    elif rec_re.match(label):
+        example["domain"] = -1  # target
+    else:
+        example["domain"] = -2  # discard
+    return example
 
 
-# %%
-# Encode the data with SentenceTransformers
-data_raw = data_home / "amazon_review_raw"
-model = SentenceTransformer("paraphrase-TinyBERT-L6-v2", device="cpu")
-X = model.encode(X, batch_size=32, show_progress_bar=True)
+ds = ds.map(mark_domain).filter(lambda x: x["domain"] != -2)
 
-# %%
-# Domain adaptation pipeline
+talk = ds.filter(lambda x: x["domain"] == 0).select(range(200))
+rec = ds.filter(lambda x: x["domain"] == -1).select(range(200))
+ds = concatenate_datasets([talk, rec])
+
+texts = ds["text"]
+y = np.asarray(ds["label"])
+sample_domain = np.asarray(ds["domain"])
+
+# %% --------------------------------------------------------------------------
+# 2. Embed texts with a tiny Sentence-Transformer
+encoder = SentenceTransformer("paraphrase-TinyBERT-L6-v2", device="cpu")
+X = encoder.encode(texts, batch_size=32, show_progress_bar=False)
+
+# %% --------------------------------------------------------------------------
+# 3. Build and fit a SKADA pipeline
 pipe = make_da_pipeline(
-        PCA(n_components=50),
-        LinearOTMappingAdapter(),
-        LogisticRegression(),
+    PCA(n_components=50, random_state=0),
+    LinearOTMappingAdapter(),
+    LogisticRegression(max_iter=1000),
 )
 
-# %%
-# Evaluation
+# %% --------------------------------------------------------------------------
+# 4. Evaluate with a source–target split
 cv = SourceTargetShuffleSplit(n_splits=3, test_size=0.3, random_state=0)
 scores = cross_validate(
     pipe,
     X,
     y,
     cv=cv,
-    params={'sample_domain': sample_domain},
-    scoring=PredictionEntropyScorer(),
+    params={"sample_domain": sample_domain},
+)
+
+print(
+    "Mean ± std: %.3f ± %.3f"
+    % (scores["test_score"].mean(), scores["test_score"].std())
 )
