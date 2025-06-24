@@ -99,12 +99,16 @@ def test_surf_all_fetcher(tmp_folder, load_all, load_domain):
     X_amazon, y_amazon = load_domain("amazon", data_home=tmp_folder, return_X_y=True)
     assert np.array_equal(X, X_amazon), "single domain samples"
     assert np.array_equal(y, y_amazon), "single domain labels"
-    X, y, sample_domain = dataset.pack(as_sources=["amazon"], as_targets=["webcam"])
+    X, y, sample_domain = dataset.pack(
+        as_sources=["amazon"], as_targets=["webcam"], mask_target_labels=False
+    )
     X_webcam, y_webcam = load_domain("webcam", data_home=tmp_folder, return_X_y=True)
     assert np.array_equal(X[sample_domain > 0], X_amazon), "correct sources"
     assert np.array_equal(X[sample_domain < 0], X_webcam), "correct targets"
     assert y.shape[0] == y_amazon.shape[0] + y_webcam.shape[0], "correct selection size"
-    _, _, sample_domain_rev = dataset.pack(as_sources=["webcam"], as_targets=["amazon"])
+    _, _, sample_domain_rev = dataset.pack(
+        as_sources=["webcam"], as_targets=["amazon"], mask_target_labels=False
+    )
     uniq_domain = np.unique(sample_domain)
     rev_uniq_domain = -1 * np.unique(sample_domain_rev)
     assert set(uniq_domain) == set(rev_uniq_domain), "same domain labels"
