@@ -4,9 +4,9 @@
 # License: BSD 3-Clause
 
 import os
+import warnings
 from functools import reduce
 from typing import Dict, Iterable, List, Mapping, Optional, Tuple, Union
-import warnings
 
 import numpy as np
 from sklearn.utils import Bunch
@@ -205,7 +205,7 @@ class DomainAwareDataset:
         as_sources: List[str] = None,
         as_targets: List[str] = None,
         return_X_y: bool = True,
-        mask_target_labels: bool = True,
+        mask_target_labels: bool = None,
         train: Optional[bool] = None,
         mask: Union[None, int, float] = None,
     ) -> PackedDatasetType:
@@ -223,7 +223,8 @@ class DomainAwareDataset:
             When set to True, returns a tuple (X, y, sample_domain). Otherwise
             returns :class:`~sklearn.utils.Bunch` object with the structure
             described below.
-        mask_target_labels : bool, default=True
+        mask_target_labels : bool, default=None
+            This parameter should be set to True for training and False for testing.
             When set to True, masks labels for target domains with -1
             (or a `mask` given), so they are not available at train time.
         train: Optional[bool], default=None
@@ -254,11 +255,16 @@ class DomainAwareDataset:
         domain_labels = {}
         if train is not None:
             warnings.warn(
-                "The `train` parameter is deprecated and will be removed in future versions. "
-                "Use `mask_target_labels` instead.",
+                "The `train` parameter is deprecated and will be removed in"
+                "future versions. Use `mask_target_labels` instead.",
                 DeprecationWarning,
             )
             mask_target_labels = train
+        if mask_target_labels is None:
+            raise ValueError(
+                "The `mask_target_labels` parameter must be set to True for"
+                "training or False for testing."
+            )
         if as_sources is None or mask_target_labels is False:
             as_sources = []
         if as_targets is None:
