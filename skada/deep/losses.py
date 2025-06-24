@@ -7,15 +7,56 @@
 
 from functools import partial
 
+import numpy as np
 import ot
 import skorch  # noqa: F401
 import torch  # noqa: F401
 import torch.nn.functional as F
+from scipy.spatial.distance import cdist
 from torch.nn import CrossEntropyLoss, LogSoftmax, Module, Softmax
 from torch.nn.functional import mse_loss
 
 from skada.deep.base import BaseDALoss
 from skada.deep.utils import SphericalKMeans
+
+
+def get_estimated_label(y_pred_t: torch.Tensor, y_features_t: torch.Tensor) -> int:
+    """Estimate the entropy loss for SHOT method [38]_.
+
+    Parameters
+    ----------
+    y_pred_t : tensor
+        predictions of the target data. Shape (n_samples, n_classes).
+    y_features_t : tensor
+        output of the model just before the classifier. Shape (n_samples, n_classes).
+
+    Returns
+    -------
+    y_estimate_t : int
+        The estimated target prediction.
+
+    References
+    ----------
+    .. [38] 	https://doi.org/10.48550/arXiv.2002.08546
+    """
+    softmax_y_pred_t = Softmax(dim=1)(y_pred_t)
+    n_features = y_pred_t.size(1)
+
+    pred_label = 0
+    for round in range(1):
+        if round == 0:
+            y_estimate_t = (
+                softmax_y_pred_t.float().cpu().numpy()
+                if round == 0
+                else np.eye(n_features)[pred_label]
+            )
+        centroids = y_estimate_t.transpose().dot(y_features_t) / (
+            1e-8 + y_estimate_t.sum(axis=0)[:, None]
+        )
+        cosine_distance = cdist(y_features_t, centroids, "cosine")
+        pred_label = cosine_distance.argmin(axis=1)
+
+    return int(pred_label)
 
 
 class CrossEntropyLabelSmooth(Module):
