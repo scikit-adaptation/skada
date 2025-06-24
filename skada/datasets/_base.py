@@ -265,7 +265,7 @@ class DomainAwareDataset:
                 "The `mask_target_labels` parameter must be set to True for"
                 "training or False for testing."
             )
-        if as_sources is None or mask_target_labels is False:
+        if as_sources is None:
             as_sources = []
         if as_targets is None:
             as_targets = []
