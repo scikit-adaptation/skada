@@ -94,7 +94,7 @@ def test_targetonly():
 
     # Get full dataset without masking target
     X, y, sample_domain = dataset.pack(
-        as_sources=["s"], as_targets=["t"], mask_target_labels=True
+        as_sources=["s"], as_targets=["t"], mask_target_labels=False
     )
 
     # Fit and predict
