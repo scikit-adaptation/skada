@@ -11,6 +11,8 @@ import warnings
 import numpy as np
 from sklearn.utils import Bunch
 
+from skada.utils import deprecated
+
 _DEFAULT_HOME_FOLDER_KEY = "SKADA_DATA_FOLDER"
 _DEFAULT_HOME_FOLDER = "~/skada_datasets"
 
@@ -320,6 +322,7 @@ class DomainAwareDataset:
             )
         )
 
+    @deprecated()
     def pack_train(
         self,
         as_sources: List[str],
@@ -363,6 +366,7 @@ class DomainAwareDataset:
             mask=mask,
         )
 
+    @deprecated()
     def pack_test(
         self,
         as_targets: List[str],
