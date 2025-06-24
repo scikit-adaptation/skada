@@ -223,9 +223,11 @@ class DomainAwareDataset:
             When set to True, returns a tuple (X, y, sample_domain). Otherwise
             returns :class:`~sklearn.utils.Bunch` object with the structure
             described below.
-        train: bool, default=False
+        mask_target_labels : bool, default=True
             When set to True, masks labels for target domains with -1
             (or a `mask` given), so they are not available at train time.
+        train: Optional[bool], default=None
+            [DEPRECATED] Use `mask_target_labels`instead.
         mask: int | float (optional), default=None
             Value to mask labels at training time.
 
