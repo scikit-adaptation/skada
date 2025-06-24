@@ -135,7 +135,7 @@ figure, axes = plt.subplots(len(classifiers) + 2, len(datasets), figsize=(9, 27)
 # iterate over datasets
 for ds_cnt, ds in enumerate(datasets):
     # preprocess dataset, split into training and test part
-    X, y, sample_domain = ds.pack(as_sources=["s"], as_targets=["t"], train=True)
+    X, y, sample_domain = ds.pack(as_sources=["s"], as_targets=["t"], mask_target_labels=True)
     Xs, ys = ds.get_domain("s")
     Xt, yt = ds.get_domain("t")
 
