@@ -2,7 +2,7 @@ Contributing to SKADA
 =====================
 
 
-First off, thank you for considering contributing to SKADA. 
+First off, thank you for considering contributing to SKADA.
 
 How to contribute
 -----------------
@@ -31,6 +31,13 @@ GitHub, clone, and develop on a branch. Steps:
    ```
 
    This will install the pre-commit hooks that will run on every commit. If the hooks fail, the commit will be aborted.
+
+3. Install the dependencies:
+
+   ```bash
+   $ pip install -e .
+   ```
+To install an optional dependency (see pyproject.toml), swap the previous command with ```pip install -e .[dependency_name]```.
 
 3. Create a ``feature`` branch to hold your development changes:
 
@@ -95,7 +102,7 @@ following rules before you submit a pull request:
    to other methods available in SKADA.
 
 -  Documentation and high-coverage tests are necessary for enhancements to be
-   accepted. Bug-fixes or new features should be provided with 
+   accepted. Bug-fixes or new features should be provided with
    [non-regression tests](https://en.wikipedia.org/wiki/Non-regression_testing).
    These tests verify the correct behavior of the fix or feature. In this
    manner, further modifications on the code base are granted to be consistent
@@ -122,7 +129,7 @@ tools:
 
   ```bash
    $ pytest skada
-  ```   
+  ```
 
 Bonus points for contributions that include a performance analysis with
 a benchmark script and profiling output (please report on the mailing
