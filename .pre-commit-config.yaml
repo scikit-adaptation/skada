@@ -5,7 +5,7 @@ repos:
     hooks:
       - id: ruff
         name: ruff lint skada
-        args: ["--fix"]
+        args: ["--fix", "--pyproject.tml"]
         files: ^skada/
       - id: ruff
         name: ruff lint skada preview
