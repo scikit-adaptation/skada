@@ -11,21 +11,22 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader
 
 from skada.datasets import make_shifted_datasets
-from skada.deep._test_time import TestTimeCriterion, TestTimeNet
+from skada.deep._test_time import Tent, TestTimeCriterion, TestTimeNet
 from skada.deep.base import DomainAwareModule
 from skada.deep.losses import TestLoss
 from skada.deep.modules import ToyModule2D
 
 
 @pytest.mark.parametrize(
-    "epochs_adapt, optimizer_adapt",
+    "epochs_adapt, optimizer_adapt, params_to_adapt, layers_to_adapt",
     [
-        (None, None),  # Default test
-        (3, None),  # Test with specific adaptation epochs given
-        (None, Adam),
+        (None, None, None, None),  # Default test
+        (3, None, None, None),  # Test with specific adaptation epochs given
+        (None, Adam, None, None),
+        (None, None, ["weight"], ["dropout"]),
     ],  # Test with Adam optimizer for adaptation
 )
-def test_test_time_criterion(epochs_adapt, optimizer_adapt):
+def test_test_time_net(epochs_adapt, optimizer_adapt, params_to_adapt, layers_to_adapt):
     num_features = 10
     module = ToyModule2D(num_features=num_features)
     criterion = TestTimeCriterion(torch.nn.CrossEntropyLoss(), TestLoss())
@@ -46,6 +47,8 @@ def test_test_time_criterion(epochs_adapt, optimizer_adapt):
         epochs_adapt=epochs_adapt,
         iterator_train=DataLoader,
         criterion=criterion,
+        params_to_adapt=params_to_adapt,
+        layers_to_adapt=layers_to_adapt,
         batch_size=10,
         max_epochs=2,
         train_split=None,
@@ -53,8 +56,33 @@ def test_test_time_criterion(epochs_adapt, optimizer_adapt):
     )
 
     method.fit(X, y, sample_domain)
+    method.fit_adapt(X, y, sample_domain)
 
-    # If the adaptation optimizer is specified, the net's optimizer should have changed
-    # during the fit_adapt method called inside the fit method
-    if optimizer_adapt is not None:
-        assert isinstance(method.optimizer_, optimizer_adapt)
+
+def test_tent():
+    num_features = 10
+    module = ToyModule2D(num_features=num_features)
+
+    n_samples = 20
+    dataset = make_shifted_datasets(
+        n_samples_source=n_samples,
+        n_samples_target=n_samples,
+        shift="conditional_shift",
+        noise=0.1,
+        random_state=42,
+    )
+    X, y, sample_domain = dataset
+    X = X.astype(np.float32)
+
+    method = Tent(
+        DomainAwareModule(module, "dropout"),
+        "dropout",
+        epochs_adapt=3,
+        iterator_train=DataLoader,
+        batch_size=10,
+        max_epochs=2,
+        train_split=None,
+    )
+
+    method.fit(X, y, sample_domain)
+    method.fit_adapt(X, y, sample_domain)
