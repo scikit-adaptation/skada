@@ -70,8 +70,12 @@ X = encoder.encode(texts, batch_size=32, show_progress_bar=False)
 print(f"Encoded {X.shape[0]} articles with {X.shape[1]} features each.")
 
 # %% --------------------------------------------------------------------------
-# 3. Build and fit a SKADA pipeline
+# 3. Build and fit two SKADA pipelines: one with DA and one without
 pipe = make_da_pipeline(
+    PCA(n_components=50, random_state=0),
+    LogisticRegression(max_iter=1000),
+)
+pipe_da = make_da_pipeline(
     PCA(n_components=50, random_state=0),
     LinearOTMappingAdapter(),
     LogisticRegression(max_iter=1000),
@@ -80,15 +84,16 @@ pipe = make_da_pipeline(
 # %% --------------------------------------------------------------------------
 # 4. Evaluate with a source–target split
 cv = SourceTargetShuffleSplit(n_splits=3, test_size=0.3, random_state=0)
-scores = cross_validate(
-    pipe,
-    X,
-    y,
-    cv=cv,
-    params={"sample_domain": sample_domain},
+scores = cross_validate(pipe, X, y, cv=cv, params={"sample_domain": sample_domain})
+scores_da = cross_validate(
+    pipe_da, X, y, cv=cv, params={"sample_domain": sample_domain}
 )
 
 print(
-    "Mean ± std: %.3f ± %.3f"
-    % (scores["test_score"].mean(), scores["test_score"].std())
+    f"Base accuracy: {scores['test_score'].mean():.3f}"
+    f"± {scores['test_score'].std():.3f}"
+)
+print(
+    f"DA accuracy: {scores_da['test_score'].mean():.3f}"
+    f"± {scores_da['test_score'].std():.3f}"
 )
