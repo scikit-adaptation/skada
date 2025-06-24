@@ -27,10 +27,6 @@ repos:
       - id: codespell
         additional_dependencies:
           - tomli
-        # args: [
-        #   "--ignore-words",
-        #   "ignore-words.txt",
-        # ]
         files: ^skada/|^docs/|^examples/
         types_or: [python, bib, rst, inc]
 
