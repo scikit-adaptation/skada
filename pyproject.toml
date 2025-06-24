@@ -145,16 +145,6 @@ skip = [
     "./doc/modules/generated"
 ]
 
-ignore-words-list = [
-    "embedd",
-    "ot",
-    "OT",
-    "repid",
-    "ist",
-    "vor",
-    "fro",
-]
-
 [tool.rstcheck]
 report_level = "WARNING"
 ignore_roles = [
