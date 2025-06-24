@@ -116,6 +116,7 @@ ignore = [
     "D404", # First word of the docstring should not be "This"
     "D413", # Missing blank line after last section
     "UP031", # Use format specifiers instead of percent format
+    "UP006", #Use `tuple` instead of `Tuple` for type annotation
 ]
 
 [tool.ruff.lint.pydocstyle]
