@@ -4,7 +4,7 @@ on: # yamllint disable-line rule:truthy
   workflow_call:
     inputs:
       skip_test:
-        description: 'check if the tests are skkiped or not'
+        description: 'check if the tests are skipped or not'
         required: true
         type: boolean
         default: false
@@ -15,7 +15,7 @@ permissions: {}
 
 jobs:
   Test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
@@ -23,7 +23,8 @@ jobs:
         os: [ubuntu-latest]
     # name for files
     env:
-      REPORT_NAME: ${{ matrix.python-version }}-os-${{ matrix.os }}
+      OS: ${{ matrix.os }}
+      PYTHON: ${{ matrix.python-version }}
     defaults:
       run:
         shell: bash -l {0}
@@ -49,6 +50,9 @@ jobs:
       run: pytest skada/ --verbose --cov=skada --cov-report term
     # Codecov
     - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v5
       env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        token: ${{ secrets.CODECOV_TOKEN }}
+        verbose: true
+        env_vars: OS,PYTHON
+        fail_ci_if_error: true

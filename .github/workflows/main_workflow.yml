@@ -61,7 +61,6 @@ jobs:
     with: 
       skip_test: ${{ contains(needs.get_information.outputs.COMMIT_MSG, '[skip tests]') }}
 
-
   tests:
     name: tests
     needs: [linter, get_information]
