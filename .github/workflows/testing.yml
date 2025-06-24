@@ -35,7 +35,7 @@ jobs:
         path: ~/skada_datasets
         key: ${{ runner.os }}-v3
     # Install Python & Packages
-    - uses: actions/setup-python@v4
+    - uses: actions/setup-python@v5
       with:
         python-version: "3.10"
     - run: which python
@@ -67,7 +67,7 @@ jobs:
         path: ~/skada_datasets
         key: ${{ runner.os }}-v3
     # Install Python & Packages
-    - uses: actions/setup-python@v4
+    - uses: actions/setup-python@v5
       with:
         python-version: "3.10"
     - run: which python
@@ -81,7 +81,7 @@ jobs:
       run: pytest skada/ --verbose --cov=skada --cov-report term
     # Codecov
     - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v5
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
@@ -106,7 +106,7 @@ jobs:
         path: ~/skada_datasets
         key: ${{ runner.os }}-v3
     # Install Python & Packages
-    - uses: actions/setup-python@v4
+    - uses: actions/setup-python@v5
       with:
         python-version: "3.10"
     - run: which python
@@ -119,6 +119,6 @@ jobs:
       run: pytest skada/ --verbose --cov=skada --cov-report term
     # Codecov
     - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v5
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
