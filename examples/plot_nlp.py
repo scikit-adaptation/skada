@@ -61,10 +61,13 @@ texts = ds["text"]
 y = np.asarray(ds["label"])
 sample_domain = np.asarray(ds["domain"])
 
+print(texts[10][:40], "…")
+
 # %% --------------------------------------------------------------------------
 # 2. Embed texts with a tiny Sentence-Transformer
 encoder = SentenceTransformer("paraphrase-TinyBERT-L6-v2", device="cpu")
 X = encoder.encode(texts, batch_size=32, show_progress_bar=False)
+print(f"Encoded {X.shape[0]} articles with {X.shape[1]} features each.")
 
 # %% --------------------------------------------------------------------------
 # 3. Build and fit a SKADA pipeline
