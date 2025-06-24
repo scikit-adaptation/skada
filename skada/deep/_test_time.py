@@ -111,11 +111,14 @@ class TestTimeNet(DomainAwareNet):
         ----------
         param_name : str, list(str), optional
             The name of the parameter to unfreeze.
-            If None, unfreeze all parameters of the module.
+            If 'all', unfreeze all parameters of the module.
+            If None, unfreeze no parameter of the module.
             If a list, unfreeze all parameters from the list.
         """
         # Pseudocode for freezing parameters of a specific layer
         if param_name is None:
+            param_name = []
+        if param_name == "all":
             param_name = [name for name, _ in module.named_parameters()]
         elif isinstance(param_name, str):
             param_name = [param_name]
@@ -136,7 +139,8 @@ class TestTimeNet(DomainAwareNet):
         ----------
         layer_name : str, list(str), optional
             The name of the layer to unfreeze.
-            If None, unfreeze params from all layers.
+            If 'all', unfreeze all layers of the module.
+            If None, unfreeze params from no layers.
             If a list, unfreeze all layers in the list.
         param_name : str, list(str), list(list(str)) optional
             The name of the parameter to unfreeze.
@@ -147,6 +151,8 @@ class TestTimeNet(DomainAwareNet):
         """
         # if None, freeze parameters from all layers of the net
         if layer_name is None:
+            layer_name = []
+        elif layer_name == "all":
             layer_name = [name for name, _ in self.module.named_modules()]
         elif isinstance(layer_name, str):
             layer_name = [layer_name]
@@ -188,6 +194,7 @@ def Tent(
     net = TestTimeNet(
         module=DomainAwareModule(module, layer_name),
         params_to_adapt=["weight", "bias"],
+        layers_to_adapt="all",
         criterion=TestTimeCriterion,
         criterion__base_criterion=base_criterion,
         criterion__adapt_criterion=TentLoss(),
