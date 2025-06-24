@@ -246,3 +246,7 @@ The library is distributed under the 3-Clause BSD license.
 [36] Xiao, Zhiqing, Wang, Haobo, Jin, Ying, Feng, Lei, Chen, Gang, Huang, Fei, Zhao, Junbo.[SPA: A Graph Spectral Alignment Perspective for Domain Adaptation](https://arxiv.org/pdf/2310.17594). In Neurips, 2023.
 
 [37] Xie, Renchunzi, Odonnat, Ambroise, Feofanov, Vasilii, Deng, Weijian, Zhang, Jianfeng and An, Bo. [MaNo: Exploiting Matrix Norm for Unsupervised Accuracy Estimation Under Distribution Shifts](https://arxiv.org/pdf/2405.18979). In NeurIPS, 2024.
+
+[38] Álvarez-Esteban, Pedro C., et al. [A fixed-point approach to barycenters in Wasserstein space.](https://arxiv.org/abs/1511.05355) Journal of Mathematical Analysis and Applications 441.2 (2016): 744-762
+
+[39] Montesuma, Eduardo, Fred Maurice Ngole Mboula, and Antoine Souloumiac. [Multi-source domain adaptation through dataset dictionary learning in wasserstein space.](https://arxiv.org/pdf/2307.14953) ECAI 2023. IOS Press, 2023. 1739-1746.
