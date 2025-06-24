@@ -39,7 +39,7 @@ GitHub, clone, and develop on a branch. Steps:
    ```
 To install an optional dependency (see pyproject.toml), swap the previous command with ```pip install -e .[dependency_name]```.
 
-3. Create a ``feature`` branch to hold your development changes:
+4. Create a ``feature`` branch to hold your development changes:
 
    ```bash
    $ git checkout -b my-feature
@@ -47,7 +47,7 @@ To install an optional dependency (see pyproject.toml), swap the previous comman
 
    Always use a ``feature`` branch. It's good practice to never work on the ``main`` branch!
 
-4. Develop the feature on your feature branch. Add changed files using ``git add`` and then ``git commit`` files:
+5. Develop the feature on your feature branch. Add changed files using ``git add`` and then ``git commit`` files:
 
    ```bash
    $ git add modified_files
@@ -60,7 +60,7 @@ To install an optional dependency (see pyproject.toml), swap the previous comman
    $ git push -u origin my-feature
    ```
 
-5. Follow [these instructions](https://help.github.com/articles/creating-a-pull-request-from-a-fork)
+6. Follow [these instructions](https://help.github.com/articles/creating-a-pull-request-from-a-fork)
 to create a pull request from your fork. This will send an email to the committers.
 
 (If any of the above seems like magic to you, please look up the
