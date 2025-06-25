@@ -33,7 +33,7 @@ _OFFICE_HOME_LOADER = FileLoaderSpec(
     extract_root=False,
     remote=RemoteFileMetadata(
         filename="OfficeHomeResnet50.zip",
-        url="https://figshare.com/ndownloader/files/46093947?private_link=682e4eb7cfef7e179719",
+        url="https://figshare.com/ndownloader/files/46093947",
         checksum="be46195bd8737e997ade333341a6c943139f974211bbbf726d760c990124f749",
     ),
 )
