@@ -229,45 +229,6 @@ class MNISTtoUSPSNet(nn.Module):
         return output
 
 
-class SHOTNet(nn.Module):
-    """
-    SHOT Network.
-    This network consists of a feature extractor, a bottleneck,
-    and a classifier. The feature extractor is a LeNetBase architecture.
-    """
-
-    def __init__(self, class_num, feature_dim=256, type="ori"):
-        super().__init__()
-        self.feature_extractor = ShotFeatureExtractor()
-        self.bottleneck = FeatBottleneck(
-            feature_dim=self.feature_extractor.in_features,
-            bottleneck_dim=feature_dim,
-            type=type,
-        )
-        self.classifier = FeatClassifier(
-            class_num=class_num, bottleneck_dim=feature_dim, type="linear"
-        )
-
-    def forward(self, x):
-        """
-        Forward pass of the SHOTNet.
-
-        Parameters
-        ----------
-        x : torch.Tensor
-            Input tensor.
-
-        Returns
-        -------
-        torch.Tensor
-            Output tensor after feature extraction, bottleneck, and classification.
-        """
-        x = self.feature_extractor(x)
-        x = self.bottleneck(x)
-        x = self.classifier(x)
-        return x
-
-
 class ShotFeatureExtractor(nn.Module):
     """
     Feature extractor for SHOT.
@@ -350,4 +311,30 @@ class FeatClassifier(nn.Module):
     def forward(self, x):
         """Forward pass through the classifier layer."""
         x = self.fc(x)
+        return x
+
+
+class SHOTNet(nn.Module):
+    """SHOT Network.
+    This network consists of a feature extractor, a bottleneck,
+    and a classifier. The feature extractor is a LeNetBase architecture.
+    """
+
+    def __init__(self, class_num, feature_dim=256, type="ori"):
+        super().__init__()
+        self.feature_extractor = ShotFeatureExtractor()
+        self.bottleneck = FeatBottleneck(
+            feature_dim=self.feature_extractor.in_features,
+            bottleneck_dim=feature_dim,
+            type=type,
+        )
+        self.classifier = FeatClassifier(
+            class_num=class_num, bottleneck_dim=feature_dim, type="linear"
+        )
+
+    def forward(self, x):
+        """XXX add docstring here."""
+        x = self.feature_extractor(x)
+        x = self.bottleneck(x)
+        x = self.classifier(x)
         return x
