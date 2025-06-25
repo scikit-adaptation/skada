@@ -88,7 +88,6 @@ class BaseOTMappingAdapter(BaseAdapter):
         *,
         sample_domain=None,
         allow_source=False,
-        alpha: float = 1.0,
         **params,
     ) -> np.ndarray:
         # xxx(okachaiev): implement auto-infer for sample_domain
@@ -107,7 +106,7 @@ class BaseOTMappingAdapter(BaseAdapter):
         X_adapt, _ = source_target_merge(
             X_source, X_target, sample_domain=sample_domain
         )
-        X_adapt = alpha * X_adapt + (1 - alpha) * X
+        X_adapt = self.alpha * X_adapt + (1 - self.alpha) * X
         return X_adapt
 
     @abstractmethod
@@ -149,11 +148,13 @@ class OTMappingAdapter(BaseOTMappingAdapter):
         metric="sqeuclidean",
         norm=None,
         max_iter=100_000,
+        alpha=1.0,
     ):
         super().__init__()
         self.metric = metric
         self.norm = norm
         self.max_iter = max_iter
+        self.alpha = alpha
 
     def _create_transport_estimator(self):
         return da.EMDTransport(
@@ -244,6 +245,7 @@ class EntropicOTMappingAdapter(BaseOTMappingAdapter):
         norm=None,
         max_iter=1000,
         tol=10e-9,
+        alpha=1.0,
     ):
         super().__init__()
         self.reg_e = reg_e
@@ -251,6 +253,7 @@ class EntropicOTMappingAdapter(BaseOTMappingAdapter):
         self.norm = norm
         self.max_iter = max_iter
         self.tol = tol
+        self.alpha = alpha
 
     def _create_transport_estimator(self):
         return da.SinkhornTransport(
@@ -623,7 +626,6 @@ class MultiLinearMongeAlignmentAdapter(BaseAdapter):
         self.reg = reg
         self.bias = bias
         self.test_time = test_time
-        self.alpha = alpha
 
     def fit(self, X, y=None, *, sample_domain=None):
         """Fit adaptation parameters.
@@ -715,7 +717,6 @@ class MultiLinearMongeAlignmentAdapter(BaseAdapter):
         *,
         sample_domain=None,
         allow_source=False,
-        alpha: float = 1.0,
         **params,
     ) -> np.ndarray:
         X, sample_domain = check_X_domain(
@@ -728,7 +729,7 @@ class MultiLinearMongeAlignmentAdapter(BaseAdapter):
             A, b = self.mappings_[domain]
             X_adapt[sel] = X[sel].dot(A) + b
 
-        X_adapt = alpha * X_adapt + (1 - alpha) * X
+        X_adapt = self.alpha * X_adapt + (1 - self.alpha) * X
 
         return X_adapt
 
