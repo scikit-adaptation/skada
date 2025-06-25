@@ -73,8 +73,8 @@ jobs:
     - run: which python
     - name: Install 'skada' package
       run: |
-        python -m pip install --user --upgrade --progress-bar off pip
-        python -m pip install --user -e .[test]
+        python -m pip install --upgrade --progress-bar off pip
+        python -m pip install -e .[test]
     # Run Tests
     - name: Run Tests without torch
       run: pytest skada --verbose --cov=skada --cov-report term -m="not dataset"
@@ -115,8 +115,8 @@ jobs:
     - run: which python
     - name: Install 'skada' package
       run: |
-        python -m pip install --user --upgrade --progress-bar off pip
-        python -m pip install --user -e .[deep,test]
+        python -m pip install --upgrade --progress-bar off pip
+        python -m pip install -e .[deep,test]
     # Run Tests
     - name: Run Tests with torch
       run: pytest skada --verbose --cov=skada --cov-report term -m="not dataset"
