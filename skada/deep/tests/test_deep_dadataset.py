@@ -7,6 +7,7 @@ pytest.importorskip("torch")
 
 import numpy as np
 import torch
+from sklearn.utils import Bunch
 
 from skada.datasets import DomainAwareDataset
 from skada.deep.base import DeepDADataset
@@ -46,3 +47,21 @@ def test_dataset_return_types():
     assert isinstance(X, np.ndarray)
     assert isinstance(y, np.ndarray)
     assert isinstance(sample_domain, np.ndarray)
+
+    bunch = dataset.pack(
+        as_sources=["s1"],
+        as_targets=["t1"],
+        mask_target_labels=False,
+        return_type="Bunch",
+    )
+
+    assert isinstance(bunch, Bunch)
+
+    pytest.raises(
+        ValueError,
+        dataset.pack,
+        as_sources=["s1"],
+        as_targets=["t1"],
+        mask_target_labels=False,
+        return_type="invalid_type",
+    )
