@@ -9,3 +9,4 @@ torch
 torchvision
 skorch
 matplotlib
+fairlearn
