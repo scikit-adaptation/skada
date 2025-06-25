@@ -9,9 +9,7 @@ from functools import reduce
 from typing import Dict, Iterable, List, Mapping, Optional, Tuple, Union
 
 import numpy as np
-from sklearn.utils import Bunch
-
-from skada.utils import deprecated
+from sklearn.utils import Bunch, deprecated
 
 _DEFAULT_HOME_FOLDER_KEY = "SKADA_DATA_FOLDER"
 _DEFAULT_HOME_FOLDER = "~/skada_datasets"
