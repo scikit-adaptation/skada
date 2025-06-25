@@ -122,6 +122,7 @@ DA pipeline
    PerDomain
    SelectSource
    SelectTarget
+   SelectSourceTarget
 
 Utilities
 ^^^^^^^^^
@@ -155,11 +156,13 @@ Deep learning DA methods
 
    DeepCoral
    DeepJDOT
+   DAN
    DANN
    CDAN
    MCC
    CAN
    MDD
+   SPA
 
 
 SKADA deep learning DA losses
@@ -172,10 +175,12 @@ SKADA deep learning DA losses
    DeepCoralLoss
    DeepJDOTLoss
    DANLoss
+   DANNLoss
    CDANLoss
    MCCLoss
    CANLoss
    MDDLoss
+   SPALoss
 
 Torch compatible DA losses in :py:mod:`skada.deep.losses`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
