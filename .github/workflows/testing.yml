@@ -77,15 +77,6 @@ jobs:
     # Run Tests
     - name: Run Tests without torch
       run: pytest skada --verbose --cov=skada --cov-report term -m="not dataset"
-    # Codecov
-    - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v5
-      with:
-        verbose: true
-        fail_ci_if_error: true
-        gcov_ignore: "skada/datasets"
-      env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
 
   All:
