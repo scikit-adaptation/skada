@@ -25,7 +25,7 @@ jobs:
     steps:
 
     # Install skada
-    - name: Checking Out Repository
+    - name: Checking Out Repository  # yamllint disable-line rule:indentation
       uses: actions/checkout@v4
     # Cache 'skada' datasets
     - name: Create/Restore Skada Data Cache
@@ -35,7 +35,7 @@ jobs:
         path: ~/skada_datasets
         key: ${{ runner.os }}-v3
     # Install Python & Packages
-    - uses: actions/setup-python@v4
+    - uses: actions/setup-python@v5
       with:
         python-version: "3.10"
     - run: which python
@@ -44,7 +44,6 @@ jobs:
         pip install pre-commit
         pre-commit install --install-hooks
         pre-commit run --all-files
-
 
 
   Test-minimal:
@@ -57,7 +56,7 @@ jobs:
     steps:
 
     # Install skada
-    - name: Checking Out Repository
+    - name: Checking Out Repository  # yamllint disable-line rule:indentation
       uses: actions/checkout@v4
     # Cache 'skada' datasets
     - name: Create/Restore Skada Data Cache
@@ -67,7 +66,7 @@ jobs:
         path: ~/skada_datasets
         key: ${{ runner.os }}-v3
     # Install Python & Packages
-    - uses: actions/setup-python@v4
+    - uses: actions/setup-python@v5
       with:
         python-version: "3.10"
     - run: which python
@@ -81,7 +80,10 @@ jobs:
       run: pytest skada/ --verbose --cov=skada --cov-report term
     # Codecov
     - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v5
+      with:
+        verbose: true
+        fail_ci_if_error: true
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
@@ -96,7 +98,7 @@ jobs:
     steps:
 
     # Install skada
-    - name: Checking Out Repository
+    - name: Checking Out Repository  # yamllint disable-line rule:indentation
       uses: actions/checkout@v4
     # Cache 'skada' datasets
     - name: Create/Restore Skada Data Cache
@@ -106,7 +108,7 @@ jobs:
         path: ~/skada_datasets
         key: ${{ runner.os }}-v3
     # Install Python & Packages
-    - uses: actions/setup-python@v4
+    - uses: actions/setup-python@v5
       with:
         python-version: "3.10"
     - run: which python
@@ -119,6 +121,9 @@ jobs:
       run: pytest skada/ --verbose --cov=skada --cov-report term
     # Codecov
     - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v5
+      with:
+        verbose: true
+        fail_ci_if_error: true
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
