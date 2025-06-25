@@ -1,0 +1,50 @@
+name: Testing Dataset Loader
+on:  # yamllint disable-line rule:truthy
+  schedule:
+    - cron: '0 0 * * 0'  # Runs every week on Sunday at midnight UTC
+  pull_request:  # for running on PR with name contains '[dataset]'
+    branches:
+      - 'main'
+  workflow_dispatch:  # Allows manual triggering
+
+jobs:
+  Test-dataset:
+    if: contains(github.event.pull_request.title, '[dataset]') || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12"]
+        os: [ubuntu-latest]
+    env:
+      OS: ${{ matrix.os }}
+      PYTHON: ${{ matrix.python-version }}
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+
+    # Install skada
+    - name: Checking Out Repository  # yamllint disable-line rule:indentation
+      uses: actions/checkout@v4
+    # Install Python & Packages
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'  # caching pip dependencies
+    - run: which python
+    - name: Install 'skada' package
+      run: |
+        python -m pip install --upgrade --progress-bar off pip
+        python -m pip install -e .[deep,test]
+    # Run Tests
+    - name: Run Tests without torch
+      run: pytest skada --verbose --cov=skada --cov-report term
+    # Codecov
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        verbose: true
+        fail_ci_if_error: true
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
