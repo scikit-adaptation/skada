@@ -679,9 +679,6 @@ class SelectSourceTarget(BaseSelector):
         return self
         
     def _fit(self, method_name, X_container, y=None, **params):
-        if self.mask_target_labels:
-            y = self._auto_mask_target_labels(y, params)
-
         X, y, params = X_container.merge_out(y, **params)
         if y is not None:
             X, y, sample_domain = check_X_y_domain(X, y, sample_domain=params.get('sample_domain'))
