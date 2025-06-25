@@ -1,10 +1,10 @@
 # %%
 import matplotlib.pyplot as plt
 import numpy as np
-import ot
 from fairlearn.datasets import fetch_acs_income
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
 from skada import LinearOTMapping, source_target_split
@@ -19,11 +19,10 @@ sample_domain = X_df["SEX"].to_numpy()  # 1: male, 2: female
 # Drop target and sensitive attribute to get feature matrix
 X = X_df.drop(columns=["PINCP", "SEX"]).to_numpy()
 
-# take 10% of data
-n_samples = int(0.1 * X.shape[0])
-X = X[:n_samples]
-y = y[:n_samples]
-sample_domain = sample_domain[:n_samples]
+# Take 10% of data while preserving the distribution
+X, _, y, _, sample_domain, _ = train_test_split(
+    X, y, sample_domain, test_size=0.9, stratify=sample_domain, random_state=42
+)
 
 # Normalize features
 X = StandardScaler().fit_transform(X)
@@ -55,17 +54,15 @@ plt.xlabel("PINCP")
 
 clf = RandomForestRegressor(n_estimators=5, random_state=31415)
 clf.fit(X_source, y_source)
-
 # Evaluate performance using MAE
-mae_source = mean_absolute_error(y_source, clf.predict(X_source))
-mae_target = mean_absolute_error(y_target, clf.predict(X_target))
+mae_source = mean_absolute_error(y_source, clf.predict(X_source)) / y_source.mean()
+mae_target = mean_absolute_error(y_target, clf.predict(X_target)) / y_target.mean()
 
 # Scatterplot of predicted vs true (no decision boundary in regression)
 y_pred_source = clf.predict(X_source)
 y_pred_target = clf.predict(X_target)
 
 plt.figure(2, figsize=(10, 4))
-
 plt.subplot(1, 2, 1)
 plt.scatter(y_source, y_pred_source, alpha=0.5, label="Source")
 plt.plot([y_source.min(), y_source.max()], [y_source.min(), y_source.max()], "k--")
@@ -86,29 +83,6 @@ plt.tight_layout()
 plt.show()
 
 # %%
-
-clf = RandomForestRegressor(n_estimators=5, random_state=31415)
-clf.fit(X_source, y_source)
-
-A, b = ot.gaussian.empirical_bures_wasserstein_mapping(X_target, X_source)
-
-X_target_ot = X_target.dot(A) + b
-
-print(
-    f"MAE on source before OT: "
-    f"{mean_absolute_error(y_target, clf.predict(X_target)):.2f}"
-)
-print(
-    f"MAE on target after OT: "
-    f"{mean_absolute_error(y_target, clf.predict(X_target_ot)):.2f}"
-)
-
-print(
-    f"Demographic parity difference before OT: "
-    f"{np.abs(y_source.mean() - y_target.mean()):.2f}"
-)
-
-# %%
 # ----------------------------------
 # Build OTDA pipeline for regression
 clf_otda = LinearOTMapping(RandomForestRegressor(n_estimators=5, random_state=31415))
@@ -117,10 +91,10 @@ clf_otda = LinearOTMapping(RandomForestRegressor(n_estimators=5, random_state=31
 y_for_fit = np.where(sample_domain == 1, y, np.nan)
 clf_otda.fit(X, y_for_fit, sample_domain=sample_domain)
 
-# Evaluate Mean Absolute Error (MAE) scores
 
-mae_source = mean_absolute_error(y_source, clf_otda.predict(X_source))
-mae_target = mean_absolute_error(y_target, clf_otda.predict(X_target))
+# Evaluate Mean Absolute Error (MAE) scores
+mae_source = mean_absolute_error(y_source, clf_otda.predict(X_source)) / y_source.mean()
+mae_target = mean_absolute_error(y_target, clf_otda.predict(X_target)) / y_target.mean()
 
 print(f"Mean Absolute Error (MAE) - Source: {mae_source:.2f}")
 print(f"Mean Absolute Error (MAE) - Target: {mae_target:.2f}")
@@ -162,6 +136,7 @@ def compute_demographic_parity_difference(y_pred, sensitive_attr):
     p1 = np.mean(group_1)
     p2 = np.mean(group_2)
 
+    # Scale the difference by the overall mean prediction
     return np.abs(p1 - p2)
 
 
@@ -179,9 +154,10 @@ def compute_error_difference(y_pred, y_true, sensitive_attr):
 
 
 # %%
-# concatenate source prediction before OT with target prediction after ot
+# Concatenate source predictions (before OTDA) with target predictions (before OTDA)
 y_stacked_no_ot = np.concatenate([y_pred_source, y_pred_target])
-# concatenatre source prediction and target prediction before ot
+
+# Concatenate source predictions (before OTDA) with target predictions (after OTDA)
 y_stacked_ot = np.concatenate([y_pred_source, y_pred_target_ot])
 
 # %%
@@ -197,6 +173,13 @@ print(
     compute_demographic_parity_difference(y_stacked_ot, sensitive_attr=sample_domain),
 )
 
+# compute percrentage improvement in demographic parity difference
+improvement_dp = (
+    compute_demographic_parity_difference(y_stacked_no_ot, sensitive_attr=sample_domain)
+    - compute_demographic_parity_difference(y_stacked_ot, sensitive_attr=sample_domain)
+) / compute_demographic_parity_difference(y_stacked_no_ot, sensitive_attr=sample_domain)
+
+print(f"Percentage improvement in demographic parity difference: {improvement_dp:.2%}")
 # %%
 
 print(

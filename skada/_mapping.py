@@ -82,7 +82,14 @@ class BaseOTMappingAdapter(BaseAdapter):
         return self.transform(X, sample_domain=sample_domain, allow_source=True)
 
     def transform(
-        self, X, y=None, *, sample_domain=None, allow_source=False, **params
+        self,
+        X,
+        y=None,
+        *,
+        sample_domain=None,
+        allow_source=False,
+        alpha: float = 1.0,
+        **params,
     ) -> np.ndarray:
         # xxx(okachaiev): implement auto-infer for sample_domain
         X, sample_domain = check_X_domain(
@@ -100,6 +107,7 @@ class BaseOTMappingAdapter(BaseAdapter):
         X_adapt, _ = source_target_merge(
             X_source, X_target, sample_domain=sample_domain
         )
+        X_adapt = alpha * X_adapt + (1 - alpha) * X
         return X_adapt
 
     @abstractmethod
@@ -685,7 +693,14 @@ class MultiLinearMongeAlignmentAdapter(BaseAdapter):
         return self.transform(X, sample_domain=sample_domain, allow_source=True)
 
     def transform(
-        self, X, y=None, *, sample_domain=None, allow_source=False, **params
+        self,
+        X,
+        y=None,
+        *,
+        sample_domain=None,
+        allow_source=False,
+        alpha: float = 1.0,
+        **params,
     ) -> np.ndarray:
         X, sample_domain = check_X_domain(
             X, sample_domain, allow_multi_source=True, allow_multi_target=True
@@ -696,6 +711,8 @@ class MultiLinearMongeAlignmentAdapter(BaseAdapter):
         for domain, sel in idx.items():
             A, b = self.mappings_[domain]
             X_adapt[sel] = X[sel].dot(A) + b
+
+        X_adapt = alpha * X_adapt + (1 - alpha) * X
 
         return X_adapt
 
@@ -897,7 +914,14 @@ class CORALAdapter(BaseAdapter):
         return self.transform(X, sample_domain=sample_domain, allow_source=True)
 
     def transform(
-        self, X, y=None, *, sample_domain=None, allow_source=False, **params
+        self,
+        X,
+        y=None,
+        *,
+        sample_domain=None,
+        allow_source=False,
+        alpha: float = 1.0,
+        **params,
     ) -> np.ndarray:
         X, sample_domain = check_X_domain(
             X,
@@ -927,6 +951,8 @@ class CORALAdapter(BaseAdapter):
         X_adapt, _ = source_target_merge(
             X_source_adapt, X_target_adapt, sample_domain=sample_domain
         )
+        X_adapt = alpha * X_adapt + (1 - alpha) * X
+
         return X_adapt
 
 
@@ -1149,7 +1175,14 @@ class MMDLSConSMappingAdapter(BaseAdapter):
         return self.transform(X, sample_domain=sample_domain, allow_source=True)
 
     def transform(
-        self, X, y=None, *, sample_domain=None, allow_source=False, **params
+        self,
+        X,
+        y=None,
+        *,
+        sample_domain=None,
+        allow_source=False,
+        alpha: float = 1.0,
+        **params,
     ) -> np.ndarray:
         X, sample_domain = check_X_domain(X, sample_domain, allow_source=allow_source)
 
@@ -1180,6 +1213,7 @@ class MMDLSConSMappingAdapter(BaseAdapter):
         X_adapt, _ = source_target_merge(
             X_source_adapt, X_target, sample_domain=sample_domain
         )
+        X_adapt = alpha * X_adapt + (1 - alpha) * X
         return X_adapt
 
 
