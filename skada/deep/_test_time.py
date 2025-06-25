@@ -5,7 +5,7 @@
 import torch
 
 from skada.deep.base import BaseDALoss, DomainAwareModule, DomainAwareNet
-from skada.deep.losses import softmax_entropy
+from skada.deep.losses import CrossEntropyLabelSmooth, shot_full_loss, softmax_entropy
 
 
 class TestTimeCriterion(torch.nn.Module):
@@ -81,12 +81,15 @@ class TestTimeNet(DomainAwareNet):
         self.partial_fit(X, None, **fit_params)
         return self
 
-    def fit_adapt(self, X, sample_domain, sample_weight=None, **fit_params):
+    def fit_adapt(
+        self, X, sample_domain, sample_weight=None, pseudo_labels=None, **fit_params
+    ):
         print("Adapting model to target domain...")
         if self.optimizer_adapt is not None:
             self.initialize_adapt_optimizer()
         X = self._prepare_input(X, None, sample_domain, sample_weight)
         X = X.select_target()
+        X.y = pseudo_labels if pseudo_labels is not None else X.y
         self.criterion.train_on_target = True
         self.freeze_all_params()
         self.parameters_to_adapt(
@@ -198,6 +201,38 @@ def Tent(
         criterion=TestTimeCriterion,
         criterion__base_criterion=base_criterion,
         criterion__adapt_criterion=TentLoss(),
+        criterion__reg=1,
+        **kwargs,
+    )
+
+    return net
+
+
+class ShotLoss(BaseDALoss):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, y_pred, pred_label):
+        loss = shot_full_loss(y_estimate_t=y_pred, y_pred_t=pred_label)
+        return loss
+
+
+def Shot(
+    module,
+    layer_name,
+    base_criterion=CrossEntropyLabelSmooth,
+    **kwargs,
+):
+    if base_criterion is None:
+        base_criterion = torch.nn.CrossEntropyLoss()
+
+    net = TestTimeNet(
+        module=DomainAwareModule(module, layer_name),
+        params_to_adapt=["weight", "bias"],
+        layers_to_adapt="all",
+        criterion=TestTimeCriterion,
+        criterion__base_criterion=base_criterion,
+        criterion__adapt_criterion=ShotLoss(),
         criterion__reg=1,
         **kwargs,
     )
