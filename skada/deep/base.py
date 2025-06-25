@@ -512,7 +512,11 @@ class _DomainAwareNet(NeuralNet, _DAMetadataRequesterMixin):
         iterator_train = (
             DomainBalancedDataLoader if iterator_train is None else iterator_train
         )
-        super().__init__(module, iterator_train=iterator_train, **kwargs)
+        super().__init__(
+            module,
+            iterator_train=iterator_train,
+            **kwargs
+            )
 
     def fit(
         self,
@@ -824,9 +828,21 @@ class DomainAwareNetClassifier(_DomainAwareNet, NeuralNetClassifier):
         The PyTorch module to be used as the core of the classifier.
     iterator_train : torch.utils.data.DataLoader, optional
         Custom data loader for training. If None, DomainBalancedDataLoader is used.
+    criterion: torch.nn.Module, default=torch.nn.NLLLoss
+        The loss function used for training. It should be compatible with
+        domain adaptation tasks.
     **kwargs : dict
         Additional keyword arguments passed to the skorch NeuralNetClassifier.
     """
+
+    def __init__(self, module, iterator_train=None, criterion=torch.nn.NLLLoss,
+                 **kwargs):
+        super().__init__(
+            module=module,
+            iterator_train=iterator_train,
+            criterion=criterion,
+            **kwargs
+        )
 
     def predict_proba(
         self,
@@ -972,10 +988,23 @@ class DomainAwareNetRegressor(_DomainAwareNet, NeuralNetRegressor):
     module : torch.nn.Module
         The PyTorch module to be used as the core of the regressor.
     iterator_train : torch.utils.data.DataLoader, optional
-        Custom data loader for training. If None, DomainBalancedDataLoader is used.
+        Custom data loader for training. If None, DomainBalancedDataLoader is
+        used.
+    criterion: torch.nn.Module, default=torch.nn.MSELoss
+        The loss function used for training the regressor.
+        Defaults to Mean Squared Error Loss.
     **kwargs : dict
         Additional keyword arguments passed to the skorch NeuralNetRegressor.
     """
+
+    def __init__(self, module, iterator_train=None, criterion=torch.nn.MSELoss,
+                 **kwargs):
+        super().__init__(
+            module,
+            iterator_train=iterator_train,
+            criterion=criterion,
+            **kwargs
+        )
 
     def predict_proba(
         self,
