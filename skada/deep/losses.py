@@ -40,6 +40,7 @@ def get_estimated_label(y_pred_t: torch.Tensor, y_features_t: torch.Tensor) -> i
     .. [38] 	https://doi.org/10.48550/arXiv.2002.08546
     """
     softmax_y_pred_t = Softmax(dim=1)(y_pred_t)
+    y_features_t_numpy = y_features_t.cpu().numpy()
     n_features = y_pred_t.size(1)
 
     pred_label = 0
@@ -50,13 +51,13 @@ def get_estimated_label(y_pred_t: torch.Tensor, y_features_t: torch.Tensor) -> i
                 if round == 0
                 else np.eye(n_features)[pred_label]
             )
-        centroids = y_estimate_t.transpose().dot(y_features_t) / (
+        centroids = y_estimate_t.transpose().dot(y_features_t_numpy) / (
             1e-8 + y_estimate_t.sum(axis=0)[:, None]
         )
-        cosine_distance = cdist(y_features_t, centroids, "cosine")
+        cosine_distance = cdist(y_features_t_numpy, centroids, "cosine")
         pred_label = cosine_distance.argmin(axis=1)
 
-    return int(pred_label)
+    return torch.LongTensor(pred_label.astype(int)).to(y_pred_t.device)
 
 
 class CrossEntropyLabelSmooth(Module):
@@ -91,7 +92,9 @@ class CrossEntropyLabelSmooth(Module):
         The loss of the method.
         """
         log_probs = self.logsoftmax(y_pred_s)
-        y_s = torch.zeros(log_probs.size()).scatter_(1, y_s.unsqueeze(1), 1)
+        y_s = torch.zeros(log_probs.size(), device=y_s.device).scatter_(
+            1, y_s.unsqueeze(1), 1
+        )
         y_s = (1 - self.epsilon) * y_s + self.epsilon / self.num_classes
         if self.size_average:
             loss = (-y_s * log_probs).mean(0).sum()
@@ -175,7 +178,7 @@ def diversity_promoting_loss(y_pred_t_softmax: torch.Tensor) -> float:
     .. [38] 	https://doi.org/10.48550/arXiv.2002.08546
     """
     msoftmax = y_pred_t_softmax.mean(dim=0)
-    return torch.sum(msoftmax * torch.log(msoftmax + 1e-5))
+    return -torch.sum(msoftmax * torch.log(msoftmax + 1e-5))
 
 
 def shot_full_loss(
