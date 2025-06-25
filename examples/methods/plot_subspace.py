@@ -70,14 +70,13 @@ dataset = make_shifted_datasets(
     return_dataset=True,
 )
 
-X_train, y_train, sample_domain_train = dataset.pack_train(
-    as_sources=["s"],
-    as_targets=["t"],
+X_train, y_train, sample_domain_train = dataset.pack(
+    as_sources=["s"], as_targets=["t"], mask_target_labels=True
 )
 X, y, sample_domain = dataset.pack(
     as_sources=["s"],
     as_targets=["t"],
-    train=False,
+    mask_target_labels=False,
 )
 Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 
