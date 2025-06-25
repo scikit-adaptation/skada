@@ -4,11 +4,12 @@
 # License: BSD 3-Clause
 
 import os
+import warnings
 from functools import reduce
 from typing import Dict, Iterable, List, Mapping, Optional, Tuple, Union
 
 import numpy as np
-from sklearn.utils import Bunch
+from sklearn.utils import Bunch, deprecated
 
 _DEFAULT_HOME_FOLDER_KEY = "SKADA_DATA_FOLDER"
 _DEFAULT_HOME_FOLDER = "~/skada_datasets"
@@ -199,10 +200,11 @@ class DomainAwareDataset:
     # we should not autogenerate them... otherwise it might be not obvious at all
     def pack(
         self,
-        as_sources: List[str] = None,
-        as_targets: List[str] = None,
+        as_sources: List[str],
+        as_targets: List[str],
+        mask_target_labels: bool,
         return_X_y: bool = True,
-        train: bool = False,
+        train: Optional[bool] = None,
         mask: Union[None, int, float] = None,
     ) -> PackedDatasetType:
         """Aggregates datasets from all domains into a unified domain-aware
@@ -212,16 +214,21 @@ class DomainAwareDataset:
         Parameters
         ----------
         as_sources : list
-            List of domain names to be used as sources.
+            List of domain names to be used as sources. An empty list
+            indicates that no source domains are used.
         as_targets : list
-            List of domain names to be used as targets.
+            List of domain names to be used as targets. An empty list
+            indicates that no target domains are used.
+        mask_target_labels : bool
+            This parameter should be set to True for training and False for testing.
+            When set to True, masks labels for target domains with -1 for classification
+            tasks of nan for regression tasks, so they are not available at train time.
         return_X_y : bool, default=True
             When set to True, returns a tuple (X, y, sample_domain). Otherwise
             returns :class:`~sklearn.utils.Bunch` object with the structure
             described below.
-        train: bool, default=False
-            When set to True, masks labels for target domains with -1
-            (or a `mask` given), so they are not available at train time.
+        train: Optional[bool], default=None
+            [DEPRECATED] Use `mask_target_labels`instead.
         mask: int | float (optional), default=None
             Value to mask labels at training time.
 
@@ -246,10 +253,13 @@ class DomainAwareDataset:
         """
         Xs, ys, sample_domains = [], [], []
         domain_labels = {}
-        if as_sources is None:
-            as_sources = []
-        if as_targets is None:
-            as_targets = []
+        if train is not None:
+            warnings.warn(
+                "The `train` parameter is deprecated and will be removed in"
+                "future versions. Use `mask_target_labels` instead.",
+                DeprecationWarning,
+            )
+            mask_target_labels = train
         for domain_name in as_sources:
             domain_id = self.domain_names_[domain_name]
             source = self.get_domain(domain_name)
@@ -279,7 +289,7 @@ class DomainAwareDataset:
                 X, y = target
             else:
                 raise ValueError("Invalid definition for domain data")
-            if train:
+            if mask_target_labels:
                 if mask is not None:
                     y = np.array([mask] * X.shape[0], dtype=dtype)
                 elif y.dtype in (np.int32, np.int64):
@@ -311,6 +321,7 @@ class DomainAwareDataset:
             )
         )
 
+    @deprecated()
     def pack_train(
         self,
         as_sources: List[str],
@@ -319,6 +330,9 @@ class DomainAwareDataset:
         mask: Union[None, int, float] = None,
     ) -> PackedDatasetType:
         """
+        [Warning] This method is deprecated and will be removed in future versions.
+        Please use :meth:`pack` with `mask_target_labels=True` instead.
+
         Aggregate source and target domains for training.
 
         This method is equivalent to :meth:`pack` with ``train=True``.
@@ -350,16 +364,20 @@ class DomainAwareDataset:
             as_sources=as_sources,
             as_targets=as_targets,
             return_X_y=return_X_y,
-            train=True,
+            mask_target_labels=True,
             mask=mask,
         )
 
+    @deprecated()
     def pack_test(
         self,
         as_targets: List[str],
         return_X_y: bool = True,
     ) -> PackedDatasetType:
         """
+        [Warning] This method is deprecated and will be removed in future versions.
+        Please use :meth:`pack` with `mask_target_labels=False` instead.
+
         Aggregate target domains for testing.
 
         This method is equivalent to :meth:`pack` with only target domains
@@ -384,7 +402,7 @@ class DomainAwareDataset:
             as_sources=[],
             as_targets=as_targets,
             return_X_y=return_X_y,
-            train=False,
+            mask_target_labels=False,
         )
 
     def pack_lodo(self, return_X_y: bool = True) -> PackedDatasetType:
@@ -427,7 +445,7 @@ class DomainAwareDataset:
             as_sources=list(self.domain_names_.keys()),
             as_targets=list(self.domain_names_.keys()),
             return_X_y=return_X_y,
-            train=True,
+            mask_target_labels=True,
         )
 
     def __str__(self) -> str:
