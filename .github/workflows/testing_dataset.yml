@@ -1,4 +1,4 @@
-name: Testing Dataset
+name: Testing
 on:  # yamllint disable-line rule:truthy
   schedule:
     - cron: '0 0 * * 0'  # Runs every week on Sunday at midnight UTC
@@ -8,7 +8,7 @@ on:  # yamllint disable-line rule:truthy
   workflow_dispatch:  # Allows manual triggering
 
 jobs:
-  Test-dataset:
+  dataset:
     if: contains(github.event.pull_request.title, '[dataset]') || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ${{ matrix.os }}
     strategy:
