@@ -6,8 +6,8 @@ This example illustrates the use of deep test timeS methods in Skada.
 on a simple image classification task.
 """
 
-# Author: Théo Gnassounou
-#         Marion Pavaux
+# Author: Marion Pavaux
+#         Théo Gnassounou
 #
 # License: BSD 3-Clause
 # sphinx_gallery_thumbnail_number = 4
@@ -34,13 +34,13 @@ NUM_CLASSES = 2
 sub_dataset = load_mnist_usps(n_classes=NUM_CLASSES, n_samples=0.5)
 dataset = DeepDADataset(*sub_dataset)
 source_dataset = dataset.select_source()
-target_dataset = dataset.select_target()  # TensorDataset(dataset.get_domain("usps"))
+target_dataset = dataset.select_target()
 
 # %%
 # Training parameters
 # ----------------------------------------------------------------------------
 
-max_epochs = 100
+max_epochs = 10
 batch_size = 256
 lr = 1e-4
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -107,7 +107,7 @@ for epoch in range(max_epochs):
         if batch_idx % interval_iter == 0:
             with torch.no_grad():
                 features_full = model.bottleneck(
-                    model.feature_extractor(target_dataset.X.to(device))  # inputs
+                    model.feature_extractor(target_dataset.X.to(device))
                 )
                 outputs_full = model.classifier(features_full)
             estimated_labels = get_estimated_label(outputs_full, features_full)
