@@ -626,6 +626,7 @@ class MultiLinearMongeAlignmentAdapter(BaseAdapter):
         self.reg = reg
         self.bias = bias
         self.test_time = test_time
+        self.alpha = alpha
 
     def fit(self, X, y=None, *, sample_domain=None):
         """Fit adaptation parameters.
