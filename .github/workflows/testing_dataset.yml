@@ -46,5 +46,6 @@ jobs:
       with:
         verbose: true
         fail_ci_if_error: true
+        env_vars: OS,PYTHON
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
