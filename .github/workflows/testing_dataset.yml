@@ -8,7 +8,7 @@ on:  # yamllint disable-line rule:truthy
   workflow_dispatch:  # Allows manual triggering
 
 jobs:
-  dataset:
+  Dataset:
     if: contains(github.event.pull_request.title, '[dataset]') || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ${{ matrix.os }}
     strategy:
