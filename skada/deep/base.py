@@ -12,7 +12,7 @@ from typing import Dict, Any, Union
 import torch
 from torch.utils.data import DataLoader, Sampler
 from sklearn.base import _clone_parametrized
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, r2_score
 from skorch import NeuralNetClassifier, NeuralNetRegressor, NeuralNet
 
 from .utils import _register_forwards_hook, _infer_predict_nonlinearity
@@ -856,7 +856,13 @@ class DomainAwareNetClassifier(_DomainAwareNet, NeuralNetClassifier):
         np.ndarray
             The predicted classes.
         """
-        return self.predict_proba(X, sample_domain, sample_weight, allow_source, **predict_params).argmax(axis=1)
+        return super(self, _DomainAwareNet).predict_proba(
+            X,
+            sample_domain,
+            sample_weight,
+            allow_source,
+            **predict_params
+        ).argmax(axis=1)
 
     def score(
         self,
@@ -954,14 +960,11 @@ class DomainAwareNetRegressor(_DomainAwareNet, NeuralNetRegressor):
         Additional keyword arguments passed to the skorch NeuralNetRegressor.
     """
 
-    def predict(
-        self,
-        X: Union[Dict, torch.Tensor, np.ndarray, Dataset],
-        sample_domain: Union[torch.Tensor, np.ndarray] = None,
-        sample_weight: Union[torch.Tensor, np.ndarray] = None,
-        allow_source: bool = False,
-        **predict_params
-    ):
+    def predict(self, X: Union[Dict, torch.Tensor, np.ndarray, Dataset],
+                sample_domain: Union[torch.Tensor, np.ndarray] = None,
+                sample_weight: Union[torch.Tensor, np.ndarray] = None,
+                allow_source: bool = False,
+                **predict_params):
         """
         Make predictions on the provided data.
 
@@ -972,18 +975,26 @@ class DomainAwareNetRegressor(_DomainAwareNet, NeuralNetRegressor):
         sample_domain : torch.Tensor or np.ndarray, optional
             The domain of each sample (if not provided in X).
         sample_weight : torch.Tensor or np.ndarray, optional
-            The weight of each sample (not used in prediction, but included for consistency).
+            The weight of each sample (not used in prediction, but included
+            for consistency).
         allow_source: bool = False,
             Allow the presence of source domains.
         **predict_params : dict
-            Additional parameters passed to the predict method of the base class.
+            Additional parameters passed to the predict method of the base
+            class.
 
         Returns:
         --------
         np.ndarray
-            The predicted classes.
+            The predictions.
         """
-    # TODO
+        return super(self, _DomainAwareNet).predict_proba(
+            X,
+            sample_domain,
+            sample_weight,
+            allow_source,
+            **predict_params
+        )
 
     def score(
         self,
@@ -994,12 +1005,13 @@ class DomainAwareNetRegressor(_DomainAwareNet, NeuralNetRegressor):
         allow_source: bool = False,
         **score_params
     ):
-    # TODO 
         X = self._prepare_input(X, y, sample_domain, sample_weight)
         if not allow_source:
             X = X.select_target()
-
-        return ## accuracy_score(y, self.predict(X, sample_domain, allow_source=allow_source), sample_weight=sample_weight)
+        y_pred = self.predict(
+            X, sample_domain, sample_weight, allow_source=allow_source
+        )
+        return r2_score(y, y_pred, sample_weight=sample_weight)
 
     def get_loss(self, y_pred, y_true, X, *args, **kwargs):
         """
@@ -1023,7 +1035,7 @@ class DomainAwareNetRegressor(_DomainAwareNet, NeuralNetRegressor):
         torch.Tensor
             The calculated loss, weighted by sample weights if provided.
         """
-        loss = super().get_loss(y_pred, y_true, X, *args, **kwargs)
+        loss = super(self, NeuralNetRegressor).get_loss(y_pred, y_true, X, *args, **kwargs)
 
         if "sample_weight" in X and X["sample_weight"] is not None:
             sample_weight = to_tensor(X["sample_weight"], device=self.device)
