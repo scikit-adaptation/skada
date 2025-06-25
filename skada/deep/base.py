@@ -3,6 +3,7 @@
 #         Yanis Lalou <yanis.lalou@polytechnique.edu>
 #         Antoine Collas <contact@antoinecollas.fr>
 #         Maxence Barneche <maxence.barneche@etu-upsaclay.fr>
+#         Virginie Loison <virginie.loison@inria.fr>
 #
 # License: BSD 3-Clause
 

@@ -14,7 +14,7 @@ from skada.deep.base import (
     BaseDALoss,
     DomainAwareCriterion,
     DomainAwareModule,
-    DomainAwareNet,
+    DomainAwareNetClassifier,
     DomainBalancedDataLoader,
 )
 
@@ -133,7 +133,7 @@ def DANN(
     if base_criterion is None:
         base_criterion = torch.nn.CrossEntropyLoss()
 
-    net = DomainAwareNet(
+    net = DomainAwareNetClassifier(
         module=DomainAwareModule,
         module__base_module=module,
         module__layer_name=layer_name,
@@ -357,7 +357,7 @@ def CDAN(
     if base_criterion is None:
         base_criterion = torch.nn.CrossEntropyLoss()
 
-    net = DomainAwareNet(
+    net = DomainAwareNetClassifier(
         module=CDANModule,
         module__base_module=module,
         module__layer_name=layer_name,
@@ -374,7 +374,8 @@ def CDAN(
 
 
 class ModifiedCrossEntropyLoss(torch.nn.Module):
-    """Modified CrossEntropyLoss as described in (29) from [35]_ with label smoothing.
+    """Modified CrossEntropyLoss as described in (29) from [35]_ with label
+    smoothing.
 
     Parameters
     ----------
@@ -401,7 +402,8 @@ class ModifiedCrossEntropyLoss(torch.nn.Module):
         Returns
         -------
         loss : torch.Tensor
-            The modified CrossEntropyLoss with label smoothing applied to predictions.
+            The modified CrossEntropyLoss with label smoothing applied to
+            predictions.
         """
         # Compute probabilities
         prob = F.softmax(input, dim=-1)
@@ -536,7 +538,7 @@ def MDD(
     if base_criterion is None:
         base_criterion = torch.nn.CrossEntropyLoss()
 
-    net = DomainAwareNet(
+    net = DomainAwareNetClassifier(
         module=DomainAwareModule,
         module__base_module=module,
         module__layer_name=layer_name,
