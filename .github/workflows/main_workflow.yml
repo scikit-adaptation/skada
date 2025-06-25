@@ -50,19 +50,19 @@ jobs:
           fi
 
   linter:
-    name: ' '
+    name: ''
     needs: [get_information]
     uses: ./.github/workflows/linter.yml
 
   tests_minimal:
-    name: ' '
+    name: ''
     needs: [linter, get_information]
     uses: ./.github/workflows/testing_minimal.yml
     with:
       skip_test: ${{ contains(needs.get_information.outputs.COMMIT_MSG, '[skip tests]') }}
 
   tests:
-    name: ' '
+    name: ''
     needs: [linter, get_information]
     uses: ./.github/workflows/testing.yml
     with:
