@@ -47,9 +47,16 @@ jobs:
 
 
   Test-minimal:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
+      matrix:
+        # CHECK: Not forget to add new version of python
+        python-version: ["3.13", "3.12"]
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    env:
+      OS: ${{ matrix.os }}
+      PYTHON: ${{ matrix.python-version }}
     defaults:
       run:
         shell: bash -l {0}
@@ -58,39 +65,40 @@ jobs:
     # Install skada
     - name: Checking Out Repository  # yamllint disable-line rule:indentation
       uses: actions/checkout@v4
-    # Cache 'skada' datasets
-    - name: Create/Restore Skada Data Cache
-      id: cache-skada_datasets
-      uses: actions/cache@v4
-      with:
-        path: ~/skada_datasets
-        key: ${{ runner.os }}-v3
     # Install Python & Packages
     - uses: actions/setup-python@v5
       with:
-        python-version: "3.10"
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'  # caching pip dependencies
     - run: which python
-
     - name: Install 'skada' package
       run: |
         python -m pip install --user --upgrade --progress-bar off pip
         python -m pip install --user -e .[test]
     # Run Tests
     - name: Run Tests without torch
-      run: pytest skada/ --verbose --cov=skada --cov-report term
+      run: pytest skada/ --verbose --cov=skada --cov-report term -m "no dataset"
     # Codecov
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v5
       env:
         token: ${{ secrets.CODECOV_TOKEN }}
+        env_vars: OS,PYTHON
         verbose: true
         fail_ci_if_error: true
 
 
   Test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
+      matrix:
+        # CHECK: Not forget to add new version of python
+        python-version: ["3.13", "3.12"]
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    env:
+      OS: ${{ matrix.os }}
+      PYTHON: ${{ matrix.python-version }}
     defaults:
       run:
         shell: bash -l {0}
@@ -99,17 +107,11 @@ jobs:
     # Install skada
     - name: Checking Out Repository  # yamllint disable-line rule:indentation
       uses: actions/checkout@v4
-    # Cache 'skada' datasets
-    - name: Create/Restore Skada Data Cache
-      id: cache-skada_datasets
-      uses: actions/cache@v4
-      with:
-        path: ~/skada_datasets
-        key: ${{ runner.os }}-v3
     # Install Python & Packages
     - uses: actions/setup-python@v5
       with:
-        python-version: "3.10"
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'  # caching pip dependencies
     - run: which python
     - name: Install 'skada' package
       run: |
@@ -117,11 +119,12 @@ jobs:
         python -m pip install --user -e .[deep,test]
     # Run Tests
     - name: Run Tests with torch
-      run: pytest skada/ --verbose --cov=skada --cov-report term
+      run: pytest skada/ --verbose --cov=skada --cov-report term -m "no dataset"
     # Codecov
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v5
       env:
         token: ${{ secrets.CODECOV_TOKEN }}
+        env_vars: OS,PYTHON
         verbose: true
         fail_ci_if_error: true
