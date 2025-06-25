@@ -602,12 +602,16 @@ class SelectTarget(_BaseSelectDomain):
 
 class SelectSourceTarget(BaseSelector):
 
-    def __init__(self, source_estimator: BaseEstimator, target_estimator: Optional[BaseEstimator] = None):
+    def __init__(self, source_estimator: BaseEstimator, target_estimator: Optional[BaseEstimator] = None, mask_target_labels: bool = False, **kwargs):
         if target_estimator is not None \
                 and hasattr(source_estimator, 'transform') \
                 and not hasattr(target_estimator, 'transform'):
             raise TypeError("The provided source and target estimators must "
                             "both be transformers, or neither should be.")
+        
+        if mask_target_labels:
+            raise ValueError("Target labels cannot be masked for SelectSourceTarget.")
+        
         self.source_estimator = source_estimator
         self.target_estimator = target_estimator
         # xxx(okachaiev): the fact that we need to put those variables

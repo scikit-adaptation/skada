@@ -387,3 +387,14 @@ def test_select_target_raises_error_on_masking():
         ValueError, match="Target labels cannot be masked for SelectTarget."
     ):
         SelectTarget(LogisticRegression(), mask_target_labels=True)
+
+
+def test_select_source_target_raises_error_on_masking():
+    """
+    Check that SelectSourceTarget raises a ValueError
+    when mask_target_labels is True.
+    """
+    with pytest.raises(
+        ValueError, match="Target labels cannot be masked for SelectSourceTarget."
+    ):
+        SelectSourceTarget(LogisticRegression(), mask_target_labels=True)
