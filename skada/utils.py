@@ -3,7 +3,6 @@
 #
 # License: BSD 3-Clause
 
-import sys
 import warnings
 from itertools import chain
 from typing import Optional, Sequence, Set
