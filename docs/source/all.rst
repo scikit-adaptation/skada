@@ -72,6 +72,7 @@ DAEstimators with adapters (Pipeline):
       ClassRegularizerOTMapping
       LinearOTMapping
       MMDLSConSMapping
+      MultiLinearMongeAlignment
 
 Adapters:
    .. autosummary::
@@ -88,6 +89,7 @@ Adapters:
       ClassRegularizerOTMappingAdapter
       LinearOTMappingAdapter
       MMDLSConSMappingAdapter
+      MultiLinearMongeAlignmentAdapter
 
 
 Other DA methods
@@ -97,8 +99,11 @@ Other DA methods
    :toctree: gen_modules/
    :template: function.rst
 
+   JDOTClassifier
    JDOTRegressor
    DASVMClassifier
+   OTLabelProp
+   JCPOTLabelProp
 
 DA pipeline
 ^^^^^^^^^^^
