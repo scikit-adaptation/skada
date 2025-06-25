@@ -17,7 +17,9 @@ def test_dataset_train_label_masking():
     dataset = DomainAwareDataset()
     dataset.add_domain(np.array([1.0, 2.0]), np.array([1, 2]), "s1")
     dataset.add_domain(np.array([10.0, 20.0, 30.0]), np.array([10, 20, 30]), "t1")
-    X, y, sample_domain = dataset.pack_train(as_sources=["s1"], as_targets=["t1"])
+    X, y, sample_domain = dataset.pack(
+        as_sources=["s1"], as_targets=["t1"], mask_target_labels=True
+    )
 
     # test shape of the output
     assert X.shape == (5,)
@@ -31,13 +33,15 @@ def test_dataset_train_label_masking():
     assert np.all(y[sample_domain > 0] > 0)
 
     # custom mask
-    X, y, sample_domain = dataset.pack_train(
-        as_sources=["s1"], as_targets=["t1"], mask=-10
+    X, y, sample_domain = dataset.pack(
+        as_sources=["s1"], as_targets=["t1"], mask_target_labels=True, mask=-10
     )
     assert_array_equal(y[sample_domain < 0], np.array([-10, -10, -10]))
 
     # test packing does not perform masking
-    X, y, sample_domain = dataset.pack_test(as_targets=["t1"])
+    X, y, sample_domain = dataset.pack(
+        as_sources=[], as_targets=["t1"], mask_target_labels=False
+    )
     assert X.shape == (3,)
     assert y.shape == (3,)
     assert sample_domain.shape == (3,)
@@ -74,6 +78,10 @@ def test_dataset_y_string():
     dataset.add_domain(np.array([1.0, 2.0]), np.array(["a", "b"]), "s1")
     dataset.add_domain(np.array([10.0, 20.0, 30.0]), np.array(["a", "a", "b"]), "t1")
 
-    X, y, sample_domain = dataset.pack_train(as_sources=["s1"], as_targets=["t1"])
+    X, y, sample_domain = dataset.pack(
+        as_sources=["s1"], as_targets=["t1"], mask_target_labels=True
+    )
 
-    X, y, sample_domain = dataset.pack_test(as_targets=["t1"])
+    X, y, sample_domain = dataset.pack(
+        as_sources=[], as_targets=["t1"], mask_target_labels=False
+    )

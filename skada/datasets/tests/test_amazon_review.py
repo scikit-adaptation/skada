@@ -48,12 +48,16 @@ def test_books_review_all_fetcher(tmp_folder):
     )
     assert np.array_equal(X, X_books), "single domain samples"
     assert np.array_equal(y, y_books), "single domain labels"
-    X, y, sample_domain = dataset.pack(as_sources=["books"], as_targets=["dvd"])
+    X, y, sample_domain = dataset.pack(
+        as_sources=["books"], as_targets=["dvd"], mask_target_labels=False
+    )
     X_dvd, y_dvd = fetch_amazon_review("dvd", data_home=tmp_folder, return_X_y=True)
     assert np.array_equal(X[sample_domain > 0], X_books), "correct sources"
     assert np.array_equal(X[sample_domain < 0], X_dvd), "correct targets"
     assert y.shape[0] == y_books.shape[0] + y_dvd.shape[0], "correct selection size"
-    _, _, sample_domain_rev = dataset.pack(as_sources=["dvd"], as_targets=["books"])
+    _, _, sample_domain_rev = dataset.pack(
+        as_sources=["dvd"], as_targets=["books"], mask_target_labels=False
+    )
     uniq_domain = np.unique(sample_domain)
     rev_uniq_domain = -1 * np.unique(sample_domain_rev)
     assert set(uniq_domain) == set(rev_uniq_domain), "same domain labels"
