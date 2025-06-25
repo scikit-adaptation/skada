@@ -828,6 +828,22 @@ class DomainAwareNetClassifier(_DomainAwareNet, NeuralNetClassifier):
         Additional keyword arguments passed to the skorch NeuralNetClassifier.
     """
 
+    def predict_proba(
+        self,
+        X: Union[Dict, torch.Tensor, np.ndarray, Dataset],
+        sample_domain: Union[torch.Tensor, np.ndarray] = None,
+        sample_weight: Union[torch.Tensor, np.ndarray] = None,
+        allow_source: bool = False,
+        **predict_params
+    ):
+        return super().predict_DA_proba(
+            X,
+            sample_domain,
+            sample_weight,
+            allow_source,
+            **predict_params
+        )
+
     def predict(
         self,
         X: Union[Dict, torch.Tensor, np.ndarray, Dataset],
@@ -857,7 +873,7 @@ class DomainAwareNetClassifier(_DomainAwareNet, NeuralNetClassifier):
         np.ndarray
             The predicted classes.
         """
-        return super().predict_DA_proba(
+        return self.predict_proba(
             X,
             sample_domain,
             sample_weight,
@@ -961,6 +977,22 @@ class DomainAwareNetRegressor(_DomainAwareNet, NeuralNetRegressor):
         Additional keyword arguments passed to the skorch NeuralNetRegressor.
     """
 
+    def predict_proba(
+        self,
+        X: Union[Dict, torch.Tensor, np.ndarray, Dataset],
+        sample_domain: Union[torch.Tensor, np.ndarray] = None,
+        sample_weight: Union[torch.Tensor, np.ndarray] = None,
+        allow_source: bool = False,
+        **predict_params
+    ):
+        return super().predict_DA_proba(
+            X,
+            sample_domain,
+            sample_weight,
+            allow_source,
+            **predict_params
+        )
+
     def predict(self, X: Union[Dict, torch.Tensor, np.ndarray, Dataset],
                 sample_domain: Union[torch.Tensor, np.ndarray] = None,
                 sample_weight: Union[torch.Tensor, np.ndarray] = None,
@@ -989,7 +1021,7 @@ class DomainAwareNetRegressor(_DomainAwareNet, NeuralNetRegressor):
         np.ndarray
             The predictions.
         """
-        return super().predict_DA_proba(
+        return self().predict_proba(
             X,
             sample_domain,
             sample_weight,
