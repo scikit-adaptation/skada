@@ -13,7 +13,7 @@ import torch
 from torch.utils.data import DataLoader, Sampler
 from sklearn.base import _clone_parametrized
 from sklearn.metrics import accuracy_score
-from skorch import NeuralNetClassifier
+from skorch import NeuralNetClassifier, NeuralNetRegressor, NeuralNet
 
 from .utils import _register_forwards_hook, _infer_predict_nonlinearity
 
@@ -469,16 +469,21 @@ class DomainAwareModule(torch.nn.Module):
                 return self.base_module_(X, sample_weight=sample_weight)
 
 
-class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
+class _DomainAwareNet(NeuralNet, _DAMetadataRequesterMixin):
     __metadata_request__fit = {"sample_weight": True}
     __metadata_request__score = {'sample_weight': True, 'sample_domain': True, 'allow_source': True}
     """
-    A domain-aware neural network classifier with sample weight support.
+    Base class for a domain-aware neural network with sample weight support.
 
-    This class extends NeuralNetClassifier to handle domain-specific input data
+    This class extends NeuralNet to handle domain-specific input data
     and sample weights. It supports various input formats and provides methods
     for training, prediction, and feature extraction while considering domain
     information and sample weights.
+
+    This class should hardly, if ever, be used directly. Instead, use
+    DomainAwareNetClassifier, DomainAwareNetDualClassifier or DomainAwareNetRegressor,
+    which are specialized for classification, binary classification and
+    regression tasks, respectively.
 
     Parameters:
     -----------
@@ -534,37 +539,6 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         """
         X = self._prepare_input(X, y, sample_domain, sample_weight)
         return super().fit(X, None, is_fit=True, **fit_params)
-
-    def predict(
-        self,
-        X: Union[Dict, torch.Tensor, np.ndarray, Dataset],
-        sample_domain: Union[torch.Tensor, np.ndarray] = None,
-        sample_weight: Union[torch.Tensor, np.ndarray] = None,
-        allow_source: bool = False,
-        **predict_params
-    ):
-        """
-        Make predictions on the provided data.
-
-        Parameters:
-        -----------
-        X : dict, torch.Tensor, np.ndarray, or torch.utils.data.Dataset
-            The input data for prediction.
-        sample_domain : torch.Tensor or np.ndarray, optional
-            The domain of each sample (if not provided in X).
-        sample_weight : torch.Tensor or np.ndarray, optional
-            The weight of each sample (not used in prediction, but included for consistency).
-        allow_source: bool = False,
-            Allow the presence of source domains.
-        **predict_params : dict
-            Additional parameters passed to the predict method of the base class.
-
-        Returns:
-        --------
-        np.ndarray
-            The predicted classes.
-        """
-        return self.predict_proba(X, sample_domain, sample_weight, allow_source, **predict_params).argmax(axis=1)
 
     def _get_predict_nonlinearity(self):
         """Return the nonlinearity to be applied to the prediction
@@ -664,44 +638,6 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
             features = features[0] if isinstance(features, tuple) else features
             features_list.append(to_numpy(features))
         return np.concatenate(features_list, 0)
-
-    def score(
-        self,
-        X: Union[Dict, torch.Tensor, np.ndarray],
-        y: Union[torch.Tensor, np.ndarray],
-        sample_domain: Union[torch.Tensor, np.ndarray] = None,
-        sample_weight: Union[torch.Tensor, np.ndarray] = None,
-        allow_source: bool = False,
-        **score_params
-    ):
-        """
-        Compute the mean accuracy on the provided data and labels.
-
-        Parameters:
-        -----------
-        X : dict, torch.Tensor, or np.ndarray
-            The input data for scoring.
-        y : torch.Tensor or np.ndarray
-            The true labels.
-        sample_domain : torch.Tensor or np.ndarray, optional
-            The domain of each sample (if not provided in X).
-        sample_weight : torch.Tensor or np.ndarray, optional
-            The weight of each sample (not used in scoring, but included for consistency).
-        allow_source: bool = False,
-            Allow the presence of source domains.
-        **score_params : dict
-            Additional parameters passed to the score method of the base class.
-
-        Returns:
-        --------
-        float
-            The mean accuracy score.
-        """
-        X = self._prepare_input(X, y, sample_domain, sample_weight)
-        if not allow_source:
-            X = X.select_target()
-        
-        return accuracy_score(y, self.predict(X, sample_domain, allow_source=allow_source), sample_weight=sample_weight)
 
     def feature_iter(
         self, X: torch.Tensor, training: bool = False, device: str = "cpu"
@@ -834,6 +770,7 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
             If the dataset samples are not in the expected format.
         """
         X, y, sample_domain, sample_weight = [], [], [], []
+        # TODO: remove has_y or add in l744?
         has_y, has_sample_weight = False, False
         for sample in dataset:
             # Sample is a tuple (X, y) from skorch.dataset.Dataset
@@ -855,6 +792,200 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
         if has_sample_weight:
             result["sample_weight"] = np.array(sample_weight)
         return result, y
+
+class DomainAwareNetClassifier(_DomainAwareNet, NeuralNetClassifier):
+    __metadata_request__fit = {"sample_weight": True}
+    __metadata_request__score = {'sample_weight': True, 'sample_domain': True, 'allow_source': True}
+    """
+    A domain-aware neural network classifier with sample weight support.
+
+    This class extends NeuralNetClassifier to handle domain-specific input data
+    and sample weights. It supports various input formats and provides methods
+    for training, prediction, and feature extraction while considering domain
+    information and sample weights.
+
+    Parameters:
+    -----------
+    module : torch.nn.Module
+        The PyTorch module to be used as the core of the classifier.
+    iterator_train : torch.utils.data.DataLoader, optional
+        Custom data loader for training. If None, DomainBalancedDataLoader is used.
+    **kwargs : dict
+        Additional keyword arguments passed to the skorch NeuralNetClassifier.
+    """
+
+    def predict(
+        self,
+        X: Union[Dict, torch.Tensor, np.ndarray, Dataset],
+        sample_domain: Union[torch.Tensor, np.ndarray] = None,
+        sample_weight: Union[torch.Tensor, np.ndarray] = None,
+        allow_source: bool = False,
+        **predict_params
+    ):
+        """
+        Make predictions on the provided data.
+
+        Parameters:
+        -----------
+        X : dict, torch.Tensor, np.ndarray, or torch.utils.data.Dataset
+            The input data for prediction.
+        sample_domain : torch.Tensor or np.ndarray, optional
+            The domain of each sample (if not provided in X).
+        sample_weight : torch.Tensor or np.ndarray, optional
+            The weight of each sample (not used in prediction, but included for consistency).
+        allow_source: bool = False,
+            Allow the presence of source domains.
+        **predict_params : dict
+            Additional parameters passed to the predict method of the base class.
+
+        Returns:
+        --------
+        np.ndarray
+            The predicted classes.
+        """
+        return self.predict_proba(X, sample_domain, sample_weight, allow_source, **predict_params).argmax(axis=1)
+
+    def score(
+        self,
+        X: Union[Dict, torch.Tensor, np.ndarray],
+        y: Union[torch.Tensor, np.ndarray],
+        sample_domain: Union[torch.Tensor, np.ndarray] = None,
+        sample_weight: Union[torch.Tensor, np.ndarray] = None,
+        allow_source: bool = False,
+        **score_params
+    ):
+        """
+        Compute the mean accuracy on the provided data and labels.
+
+        Parameters:
+        -----------
+        X : dict, torch.Tensor, or np.ndarray
+            The input data for scoring.
+        y : torch.Tensor or np.ndarray
+            The true labels.
+        sample_domain : torch.Tensor or np.ndarray, optional
+            The domain of each sample (if not provided in X).
+        sample_weight : torch.Tensor or np.ndarray, optional
+            The weight of each sample (not used in scoring, but included for consistency).
+        allow_source: bool = False,
+            Allow the presence of source domains.
+        **score_params : dict
+            Additional parameters passed to the score method of the base class.
+
+        Returns:
+        --------
+        float
+            The mean accuracy score.
+        """
+        X = self._prepare_input(X, y, sample_domain, sample_weight)
+        if not allow_source:
+            X = X.select_target()
+        
+        return accuracy_score(y, self.predict(X, sample_domain, allow_source=allow_source), sample_weight=sample_weight)
+
+    def get_loss(self, y_pred, y_true, X, *args, **kwargs):
+        """
+        Calculate the weighted loss using sample weights.
+
+        Parameters:
+        -----------
+        y_pred : torch.Tensor
+            The predicted values.
+        y_true : torch.Tensor
+            The true values.
+        X : dict
+            The input data dictionary, which may contain 'sample_weight'.
+        *args : tuple
+            Additional positional arguments.
+        **kwargs : dict
+            Additional keyword arguments.
+
+        Returns:
+        --------
+        torch.Tensor
+            The calculated loss, weighted by sample weights if provided.
+        """
+        loss = super().get_loss(y_pred, y_true, X, *args, **kwargs)
+
+        if "sample_weight" in X and X["sample_weight"] is not None:
+            sample_weight = to_tensor(X["sample_weight"], device=self.device)
+            sample_weight = sample_weight[X["sample_domain"] > 0]
+            if loss.dim() == 0 and len(sample_weight) > 1:
+                raise ValueError(
+                    "You are using a criterion function that returns a scalar loss value, but sample weights are provided."
+                )
+
+            loss = sample_weight * loss
+
+        return loss.mean() 
+
+class DomainAwareNetRegressor(_DomainAwareNet, NeuralNetRegressor):
+    __metadata_request__fit = {"sample_weight": True}
+    __metadata_request__score = {'sample_weight': True, 'sample_domain': True, 'allow_source': True}
+    """
+    A domain-aware neural network regressor with sample weight support.
+
+    This class extends NeuralNetRegressor to handle domain-specific input data
+    and sample weights. It supports various input formats and provides methods
+    for training, prediction, and feature extraction while considering domain
+    information and sample weights.
+
+    Parameters:
+    -----------
+    module : torch.nn.Module
+        The PyTorch module to be used as the core of the regressor.
+    iterator_train : torch.utils.data.DataLoader, optional
+        Custom data loader for training. If None, DomainBalancedDataLoader is used.
+    **kwargs : dict
+        Additional keyword arguments passed to the skorch NeuralNetRegressor.
+    """
+
+    def predict(
+        self,
+        X: Union[Dict, torch.Tensor, np.ndarray, Dataset],
+        sample_domain: Union[torch.Tensor, np.ndarray] = None,
+        sample_weight: Union[torch.Tensor, np.ndarray] = None,
+        allow_source: bool = False,
+        **predict_params
+    ):
+        """
+        Make predictions on the provided data.
+
+        Parameters:
+        -----------
+        X : dict, torch.Tensor, np.ndarray, or torch.utils.data.Dataset
+            The input data for prediction.
+        sample_domain : torch.Tensor or np.ndarray, optional
+            The domain of each sample (if not provided in X).
+        sample_weight : torch.Tensor or np.ndarray, optional
+            The weight of each sample (not used in prediction, but included for consistency).
+        allow_source: bool = False,
+            Allow the presence of source domains.
+        **predict_params : dict
+            Additional parameters passed to the predict method of the base class.
+
+        Returns:
+        --------
+        np.ndarray
+            The predicted classes.
+        """
+    # TODO
+
+    def score(
+        self,
+        X: Union[Dict, torch.Tensor, np.ndarray],
+        y: Union[torch.Tensor, np.ndarray],
+        sample_domain: Union[torch.Tensor, np.ndarray] = None,
+        sample_weight: Union[torch.Tensor, np.ndarray] = None,
+        allow_source: bool = False,
+        **score_params
+    ):
+    # TODO 
+        X = self._prepare_input(X, y, sample_domain, sample_weight)
+        if not allow_source:
+            X = X.select_target()
+        
+        return ## accuracy_score(y, self.predict(X, sample_domain, allow_source=allow_source), sample_weight=sample_weight)
 
     def get_loss(self, y_pred, y_true, X, *args, **kwargs):
         """
