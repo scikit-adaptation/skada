@@ -45,7 +45,7 @@ jobs:
         pre-commit run --all-files
 
 
-  Test-minimal:
+  Minimal:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -83,12 +83,12 @@ jobs:
       with:
         verbose: true
         fail_ci_if_error: true
-        gcov_ignore: "skada/dataset"
+        gcov_ignore: "skada/datasets"
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
 
-  Test:
+  All:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -125,6 +125,6 @@ jobs:
       with:
         verbose: true
         fail_ci_if_error: true
-        gcov_ignore: "skada/dataset"
+        gcov_ignore: "skada/datasets"
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

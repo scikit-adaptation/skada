@@ -1,4 +1,4 @@
-name: Testing Dataset Loader
+name: Testing Dataset
 on:  # yamllint disable-line rule:truthy
   schedule:
     - cron: '0 0 * * 0'  # Runs every week on Sunday at midnight UTC
