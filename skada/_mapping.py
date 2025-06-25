@@ -196,7 +196,7 @@ def OTMapping(base_estimator=None, metric="sqeuclidean", norm=None, max_iter=100
         base_estimator = SVC(kernel="rbf")
 
     return make_da_pipeline(
-        OTMappingAdapter(metric=metric, norm=norm, max_iter=max_iter),
+        OTMappingAdapter(metric=metric, norm=norm, max_iter=max_iter, alpha=1.0),
         base_estimator,
     )
 
@@ -306,7 +306,12 @@ def EntropicOTMapping(
 
     return make_da_pipeline(
         EntropicOTMappingAdapter(
-            metric=metric, norm=norm, max_iter=max_iter, reg_e=reg_e, tol=tol
+            metric=metric,
+            norm=norm,
+            max_iter=max_iter,
+            reg_e=reg_e,
+            tol=tol,
+            alpha=1.0,
         ),
         base_estimator,
     )
@@ -443,6 +448,7 @@ def ClassRegularizerOTMapping(
             reg_e=reg_e,
             reg_cl=reg_cl,
             tol=tol,
+            alpha=1.0,
         ),
         base_estimator,
     )
@@ -522,6 +528,7 @@ def LinearOTMapping(
         LinearOTMappingAdapter(
             reg=reg,
             bias=bias,
+            alpha=1.0,
         ),
         base_estimator,
     )
@@ -764,7 +771,9 @@ def MultiLinearMongeAlignment(
         base_estimator = LogisticRegression()
 
     return make_da_pipeline(
-        MultiLinearMongeAlignmentAdapter(reg=reg, bias=bias, test_time=test_time),
+        MultiLinearMongeAlignmentAdapter(
+            reg=reg, bias=bias, test_time=test_time, alpha=1.0
+        ),
         base_estimator,
     )
 
@@ -994,7 +1003,7 @@ def CORAL(
         base_estimator = SVC(kernel="rbf")
 
     return make_da_pipeline(
-        CORALAdapter(reg=reg, assume_centered=assume_centered),
+        CORALAdapter(reg=reg, assume_centered=assume_centered, alpha=1.0),
         base_estimator,
     )
 
@@ -1254,7 +1263,7 @@ def MMDLSConSMapping(
 
     return make_da_pipeline(
         MMDLSConSMappingAdapter(
-            gamma=gamma, reg_k=reg_k, reg_m=reg_m, tol=tol, max_iter=max_iter
+            gamma=gamma, reg_k=reg_k, reg_m=reg_m, tol=tol, max_iter=max_iter, alpha=1.0
         ),
         base_estimator,
     )

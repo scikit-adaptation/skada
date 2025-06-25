@@ -85,7 +85,9 @@ plt.show()
 # %%
 # ----------------------------------
 # Build OTDA pipeline for regression
-clf_otda = LinearOTMapping(RandomForestRegressor(n_estimators=5, random_state=31415))
+clf_otda = LinearOTMapping(
+    RandomForestRegressor(n_estimators=100, random_state=31415, alpha=0.5)
+)
 
 # modify y such that for the target domain there are only nan
 y_for_fit = np.where(sample_domain == 1, y, np.nan)
