@@ -161,11 +161,15 @@ def _remove_masked(X, y, params):
     params : dict
         Additional parameters declared in the routing
     """
-    y_type = _find_y_type(y)
-    if y_type == Y_Type.DISCRETE:
-        unmasked_idx = y != _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
-    elif y_type == Y_Type.CONTINUOUS:
-        unmasked_idx = np.isfinite(y)
+    if "sample_domain" in params:
+        unmasked_idx = params["sample_domain"] >= 0
+    else:
+        y_type = _find_y_type(y)
+        if y_type == Y_Type.DISCRETE:
+            unmasked_idx = y != _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
+        elif y_type == Y_Type.CONTINUOUS:
+            unmasked_idx = np.isfinite(y)
+
     X, y, params = _apply_domain_masks(X, y, params, masks=unmasked_idx)
     return X, y, params
 

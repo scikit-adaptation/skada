@@ -24,7 +24,11 @@ from skada._utils import (
     _apply_domain_masks,
     _merge_domain_outputs,
     _remove_masked,
-    _route_params
+    _route_params,
+    _find_y_type,
+    Y_Type,
+    _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
+    _DEFAULT_MASKED_TARGET_REGRESSION_LABEL,
 )
 from skada.utils import check_X_domain, check_X_y_domain, extract_source_indices
 
@@ -202,12 +206,13 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
 
     __metadata_request__transform = {'sample_domain': True}
 
-    def __init__(self, base_estimator: BaseEstimator, **kwargs):
+    def __init__(self, base_estimator: BaseEstimator, mask_target_labels: bool = True, **kwargs):
         super().__init__()
         self.base_estimator = base_estimator
         self.base_estimator.set_params(**kwargs)
         self._is_final = False
         self._is_transformer = hasattr(base_estimator, 'transform')
+        self.mask_target_labels = mask_target_labels
 
     def get_metadata_routing(self):
         return (
@@ -342,6 +347,16 @@ class BaseSelector(BaseEstimator, _DAMetadataRequesterMixin):
             routed_params = {k: params[k] for k in routing_request._consumes(params=params)}
         return routed_params
 
+    def _auto_mask_target_labels(self, y, routed_params):
+        if y is not None and routed_params.get('sample_domain') is not None:
+            y_type = _find_y_type(y)
+            source_idx = extract_source_indices(routed_params['sample_domain'])
+            if y_type == Y_Type.DISCRETE:
+                y[~source_idx] = _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
+            elif y_type == Y_Type.CONTINUOUS:
+                y[~source_idx] = _DEFAULT_MASKED_TARGET_REGRESSION_LABEL
+        return y
+
     def _remove_masked(self, X, y, routed_params):
         """Removes masked inputs before passing them to a downstream (base) estimator,
         ensuring their compatibility with the DA pipeline, particularly for estimators
@@ -409,6 +424,9 @@ class Shared(BaseSelector):
 
     # xxx(okachaiev): solve the problem with parameter renaming
     def _fit(self, routing_method, X_container, y=None, **params):
+        if self.mask_target_labels:
+            y = self._auto_mask_target_labels(y, params)
+
         X, y, params = X_container.merge_out(y, **params)
         routing = get_routing_for_object(self.base_estimator)
         routing_request = getattr(routing, routing_method)
@@ -446,6 +464,9 @@ class PerDomain(BaseSelector):
         return self
 
     def _fit(self, method_name, X_container, y, **params):
+        if self.mask_target_labels:
+            y = self._auto_mask_target_labels(y, params)
+
         X, y, params = X_container.merge_out(y, **params)
         sample_domain = params['sample_domain']
         routing = get_routing_for_object(self.base_estimator)
@@ -473,6 +494,9 @@ class PerDomain(BaseSelector):
             domain_outputs = self._fit('fit_transform', X_container, y=y, **params)
             output = _merge_domain_outputs(len(X_container), domain_outputs, allow_containers=True)
         else:
+            if self.mask_target_labels:
+                y = self._auto_mask_target_labels(y, params)
+
             self._fit(X_container, y, **params)
             X, y, method_params = X_container.merge_out(y, **params)
             transform_params = _route_params(self.routing_.transform, method_params, self)
@@ -655,6 +679,9 @@ class SelectSourceTarget(BaseSelector):
         return self
         
     def _fit(self, method_name, X_container, y=None, **params):
+        if self.mask_target_labels:
+            y = self._auto_mask_target_labels(y, params)
+
         X, y, params = X_container.merge_out(y, **params)
         if y is not None:
             X, y, sample_domain = check_X_y_domain(X, y, sample_domain=params.get('sample_domain'))
