@@ -585,7 +585,7 @@ class _DomainAwareNet(NeuralNet, _DAMetadataRequesterMixin):
             raise TypeError("predict_nonlinearity has to be a callable, 'auto' or None")
         return nonlin
 
-    def predict_proba(
+    def predict_DA_proba(
         self,
         X: Union[Dict, torch.Tensor, np.ndarray, Dataset],
         sample_domain: Union[torch.Tensor, np.ndarray] = None,
@@ -857,7 +857,7 @@ class DomainAwareNetClassifier(_DomainAwareNet, NeuralNetClassifier):
         np.ndarray
             The predicted classes.
         """
-        return super(self, _DomainAwareNet).predict_proba(
+        return super().predict_DA_proba(
             X,
             sample_domain,
             sample_weight,
@@ -989,7 +989,7 @@ class DomainAwareNetRegressor(_DomainAwareNet, NeuralNetRegressor):
         np.ndarray
             The predictions.
         """
-        return super(self, _DomainAwareNet).predict_proba(
+        return super().predict_DA_proba(
             X,
             sample_domain,
             sample_weight,
@@ -1036,7 +1036,7 @@ class DomainAwareNetRegressor(_DomainAwareNet, NeuralNetRegressor):
         torch.Tensor
             The calculated loss, weighted by sample weights if provided.
         """
-        loss = super(self, NeuralNetRegressor).get_loss(y_pred, y_true, X, *args, **kwargs)
+        loss = super().get_loss(y_pred, y_true, X, *args, **kwargs)
 
         if "sample_weight" in X and X["sample_weight"] is not None:
             sample_weight = to_tensor(X["sample_weight"], device=self.device)
