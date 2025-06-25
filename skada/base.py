@@ -587,6 +587,15 @@ class SelectSource(_BaseSelectDomain):
 class SelectTarget(_BaseSelectDomain):
     """Selects only target domains for fitting base estimator."""
 
+    def __init__(self, base_estimator: BaseEstimator, mask_target_labels: bool = False, **kwargs):
+        # We do not mask target labels
+        # Because we want to be able to pass the target labels to the base estimator
+        
+        if mask_target_labels:
+            raise ValueError("Target labels cannot be masked for SelectTarget.")
+
+        super().__init__(base_estimator, mask_target_labels=mask_target_labels, **kwargs)
+
     def _select_indices(self, sample_domain):
         return ~extract_source_indices(sample_domain)
 

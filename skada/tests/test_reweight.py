@@ -34,6 +34,7 @@ from skada.base import (
     SelectSource,
     SelectSourceTarget,
     SelectTarget,
+    Shared,
 )
 from skada.datasets import make_shifted_datasets
 from skada.utils import source_target_split
@@ -301,7 +302,11 @@ def test_adaptation_output_propagation_multiple_steps(da_reg_dataset, mediator):
             assert sample_weight is None
             return X
 
-    clf = make_da_pipeline(DensityReweightAdapter(), mediator, FakeEstimator())
+    clf = make_da_pipeline(
+        Shared(DensityReweightAdapter(), mask_target_labels=False),
+        mediator,
+        FakeEstimator(),
+    )
 
     # check no errors are raised
     clf.fit(X, y, sample_domain=sample_domain)

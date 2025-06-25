@@ -376,3 +376,14 @@ def test_source_target_selector_fails_on_missing_domain(da_multiclass_dataset):
 def test_source_target_selector_non_transformers():
     with pytest.raises(TypeError):
         SelectSourceTarget(StandardScaler(), SVC())
+
+
+def test_select_target_raises_error_on_masking():
+    """
+    Check that SelectTarget raises a ValueError
+    when mask_target_labels is True.
+    """
+    with pytest.raises(
+        ValueError, match="Target labels cannot be masked for SelectTarget."
+    ):
+        SelectTarget(LogisticRegression(), mask_target_labels=True)
