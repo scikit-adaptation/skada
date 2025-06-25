@@ -1,7 +1,7 @@
 name: Lint
 run-name: Lint
 
-on: 
+on:  # yamllint disable-line rule:truthy
   # Allows you to run this workflow from another workflow
   workflow_call
 
@@ -16,19 +16,18 @@ jobs:
         shell: bash -l {0}
     steps:
     # Install skada
-    - name: Checking Out Repository
+    - name: Checking Out Repository  # yamllint disable-line rule:indentation
       uses: actions/checkout@v4
       with:
-          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+        ref: ${{ github.event.pull_request.head.sha || github.ref }}
     # Install Python & Packages
     - uses: actions/setup-python@v5
       with:
         python-version: "3.13"
-        cache: 'pip' # caching pip dependencies
+        cache: 'pip'  # caching pip dependencies
     - run: which python
     - run: pip install pre-commit
     - name: Lint with pre-commit
       run: |
         pre-commit install --install-hooks
         pre-commit run --all-files
-

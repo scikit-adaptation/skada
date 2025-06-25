@@ -1,7 +1,7 @@
 # Management of the action do made during a pull request
 
 name: 'Main_workflow'
-on:
+on:  # yamllint disable-line rule:truthy
   pull_request:
     # Using 'pull_request_target' instead of 'pull_request':
     # 1. Uses configuration from the main branch
@@ -15,7 +15,7 @@ on:
 # disable all the permission for the workflow
 permissions: {}
 
-# Cancel existing runs 
+# Cancel existing runs
 concurrency:
   group: ${{ github.workflow }}-pr-${{ github.event.pull_request.number }}
   cancel-in-progress: true
@@ -31,7 +31,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 3 
+          fetch-depth: 3
           # require to get the previous commit for getting their messages
           # in a PR the last commit is the commit merge with main
 
@@ -53,28 +53,28 @@ jobs:
     name: Linter
     needs: [get_information]
     uses: ./.github/workflows/linter.yml
-  
+
   tests_minimal:
     name: tests
     needs: [linter, get_information]
     uses: ./.github/workflows/testing_minimal.yml
-    with: 
+    with:
       skip_test: ${{ contains(needs.get_information.outputs.COMMIT_MSG, '[skip tests]') }}
 
   tests:
     name: tests
     needs: [linter, get_information]
     uses: ./.github/workflows/testing.yml
-    with: 
+    with:
       skip_test: ${{ contains(needs.get_information.outputs.COMMIT_MSG, '[skip tests]') }}
 
- # debugger:
-  #   needs: linter 
-  #   env: 
-  #     STATE_LINTER: ${{ needs.linter.result }}
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: print output
-  #       run: 
-  #         echo "Linter "$STATE_LINTER
-  #   if: ${{ always() }} 
+# debugger:
+#   needs: linter
+#   env:
+#     STATE_LINTER: ${{ needs.linter.result }}
+#   runs-on: ubuntu-latest
+#   steps:
+#     - name: print output
+#       run:
+#         echo "Linter "$STATE_LINTER
+#   if: ${{ always() }}

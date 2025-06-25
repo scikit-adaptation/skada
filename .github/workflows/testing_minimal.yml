@@ -1,7 +1,7 @@
 name: Tests minimal
 run-name: Test minimal
 
-on:
+on:   # yamllint disable-line rule:truthy
   # Allows you to run this workflow from another workflow
   workflow_call:
     inputs:
@@ -21,7 +21,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.13", "3.12"] #CHECK: not forget to add new version of python
+        # CHECK: Not forget to add new version of python
+        python-version: ["3.13", "3.12"]
         os: [macos-latest, ubuntu-latest, windows-latest]
     # name for files
     env:
@@ -33,7 +34,7 @@ jobs:
     steps:
 
     # Install skada
-    - name: Checking Out Repository
+    - name: Checking Out Repository  # yamllint disable-line rule:indentation
       uses: actions/checkout@v4
       with:
         ref: ${{ github.event.pull_request.head.sha || github.ref }}
@@ -41,7 +42,7 @@ jobs:
     - uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-        cache: 'pip' # caching pip dependencies
+        cache: 'pip'  # caching pip dependencies
     - run: which python
     - name: Install dependencies
       run: |
@@ -50,7 +51,7 @@ jobs:
     # Run Tests
     - name: Run Tests without torch
       run: pytest skada/ --verbose --cov=skada --cov-report term
-    # Codecov 
+    # Codecov
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v5
       with:
