@@ -1,4 +1,6 @@
 name: Testing
+run-name: Testing
+
 on: # yamllint disable-line rule:truthy
   # Allows you to run this workflow from another workflow
   workflow_call:
