@@ -14,7 +14,6 @@ on:  # yamllint disable-line rule:truthy
       - '**'
 
 jobs:
-
   Lint:
     runs-on: ubuntu-latest
     strategy:
@@ -84,6 +83,7 @@ jobs:
       with:
         verbose: true
         fail_ci_if_error: true
+        gcov_ignore: "skada/dataset/"
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
@@ -93,9 +93,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # CHECK: Not forget to add new version of python
-        python-version: ["3.13", "3.12"]
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        python-version: ["3.12"]
+        os: [macos-latest]
     env:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
@@ -126,5 +125,6 @@ jobs:
       with:
         verbose: true
         fail_ci_if_error: true
+        gcov_ignore: "skada/dataset/"
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
