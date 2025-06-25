@@ -4,13 +4,11 @@
 
 import torch
 import torch.nn.functional as F
-from scipy.spatial.distance import cdist
 from skorch.callbacks import Callback
 from skorch.utils import to_tensor
-from torch.nn import Softmax
 
 from skada.deep.base import DomainAwareNet
-from skada.deep.utils import SphericalKMeans
+from skada.deep.utils import SphericalKMeans, get_estimated_label_from_centroids
 
 
 class PseudoLabeling(Callback):
@@ -22,47 +20,15 @@ class PseudoLabeling(Callback):
 
     """
 
-    def get_estimated_label(y_pred_t: torch.Tensor, y_features_t: torch.Tensor) -> int:
-        """Estimate the entropy loss for SHOT method [38]_.
-
-        Parameters
-        ----------
-        y_pred_t : tensor
-            predictions of the target data. Shape (n_samples, n_classes).
-        y_features_t : tensor
-            output of the model just before the classifier.
-            Shape (n_samples, n_classes).
-
-        Returns
-        -------
-        y_estimate_t : int
-            The estimated target prediction.
-
-        References
-        ----------
-        .. [38] 	https://doi.org/10.48550/arXiv.2002.08546
-        """
-        softmax_y_pred_t = Softmax(dim=1)(y_pred_t)
-        n_features = y_pred_t.size(1)
-
-        pred_label = 0
-        for round in range(1):
-            if round == 0:
-                y_estimate_t = (
-                    softmax_y_pred_t.float().cpu().numpy()
-                    if round == 0
-                    else torch.eye(n_features)[pred_label]
-                )
-            centroids = y_estimate_t.transpose().dot(y_features_t) / (
-                1e-8 + y_estimate_t.sum(axis=0)[:, None]
-            )
-            cosine_distance = cdist(y_features_t, centroids, "cosine")
-            pred_label = cosine_distance.argmin(axis=1)
-
-        return int(pred_label)
-
-    def on_epoch_end(self, net: DomainAwareNet, dataset_train=None, **kwargs):
-        """Compute pseudo-labels at the end of each epoch.
+    def on_epoch_end(
+        self,
+        net: DomainAwareNet,
+        fc_layer: str,
+        dataset_target=None,
+        every_n_epochs: int = 1,
+        **kwargs,
+    ):
+        """TODO Work in progress: Compute pseudo-labels at the end of each epoch.
 
         Parameters
         ----------
@@ -73,20 +39,20 @@ class PseudoLabeling(Callback):
         **kwargs : dict
             Additional arguments passed to the callback.
         """
-        X = net._prepare_input(dataset_train)
+        X = net._prepare_input(dataset_target)
 
         # Keep only target samples
         target = X.select_target()
         X_t = target.X
 
-        # Disable gradient computation for feature extraction
-        with torch.no_grad():
-            features_t = net.predict_features(X_t)
-            features_t = torch.tensor(features_t, device=net.device)
+        if net.criterion__adapt_criterion.n_epochs % every_n_epochs == 0:
+            with torch.no_grad():
+                features_t = net.predict_features(X_t)
+                features_t = torch.tensor(features_t, device=net.device)
+                outputs_t = eval(f"net.{fc_layer}")(features_t)
 
             # Compute pseudo-labels using get_estimated_label
-            memory_outputs = net.criterion__adapt_criterion.memory_outputs
-            pseudo_labels = self.get_estimated_label(memory_outputs, features_t)
+            pseudo_labels = get_estimated_label_from_centroids(outputs_t, features_t)
 
         # Store pseudo-labels in the adaptation criterion
         net.criterion__adapt_criterion.pseudo_labels = pseudo_labels

@@ -20,10 +20,10 @@ from skada.datasets import load_mnist_usps
 from skada.deep.base import DeepDADataset
 from skada.deep.losses import (
     CrossEntropyLabelSmooth,
-    get_estimated_label,
     shot_full_loss,
 )
 from skada.deep.modules import SHOTNet
+from skada.deep.utils import get_estimated_label_from_centroids
 
 NUM_CLASSES = 2
 
@@ -110,7 +110,9 @@ for epoch in range(max_epochs):
                     model.feature_extractor(target_dataset.X.to(device))
                 )
                 outputs_full = model.classifier(features_full)
-            estimated_labels = get_estimated_label(outputs_full, features_full)
+            estimated_labels = get_estimated_label_from_centroids(
+                outputs_full, features_full
+            )
 
         # Forward pass
         outputs = model(inputs["X"].to(device))
