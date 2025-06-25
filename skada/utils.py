@@ -1124,14 +1124,3 @@ class deprecated(object):
         return newdoc
 
 
-def _is_deprecated(func):
-    r"""Helper to check if func is wrapped by our deprecated decorator"""
-    if sys.version_info < (3, 5):
-        raise NotImplementedError("This is only available for python3.5 or above")
-    closures = getattr(func, "__closure__", [])
-    if closures is None:
-        closures = []
-    is_deprecated = "deprecated" in "".join(
-        [c.cell_contents for c in closures if isinstance(c.cell_contents, str)]
-    )
-    return is_deprecated
