@@ -11,6 +11,9 @@ from skada.datasets import (
     fetch_amazon_review_all,
 )
 
+# mark all the test with the marker dataset
+pytestmark = pytest.mark.dataset
+
 
 @pytest.mark.parametrize(
     "domain, X_shape, y_shape",
