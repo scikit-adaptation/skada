@@ -16,84 +16,87 @@ Steps
 """
 
 # Author: Antoine Collas <contact@antoinecollas.fr>
-# Licence: BSD 3-Clause
+# License: BSD-3-Clause
 # sphinx_gallery_thumbnail_number = 1
 
 # %% imports
-import re
+import os
 
 import numpy as np
 from sentence_transformers import SentenceTransformer
+from sklearn.datasets import fetch_20newsgroups
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import cross_validate
 
-from datasets import concatenate_datasets, load_dataset
-from skada import LinearOTMappingAdapter, make_da_pipeline
-from skada.model_selection import SourceTargetShuffleSplit
+from skada import LinearOTMappingAdapter, SelectSource, make_da_pipeline
+from skada.model_selection import StratifiedDomainShuffleSplit
+from skada.utils import source_target_merge
 
-# %% --------------------------------------------------------------------------
-# 1. Load 20 Newsgroups and talk / rect domains
-talk_re = re.compile(r"^talk\.")
-rec_re = re.compile(r"^rec\.")
+# -------------------------------------------------------------------------
+# 1. Fetch 20 Newsgroups & define categories                           -----
+print("Fetching 20 Newsgroups …")
+raw = fetch_20newsgroups(subset="all", download_if_missing=True)
 
-ds = load_dataset("SetFit/20_newsgroups", split="train")
-
-
-def mark_domain(example):
-    label = example["label_text"]
-    if talk_re.match(label):
-        example["domain"] = 0  # source
-    elif rec_re.match(label):
-        example["domain"] = -1  # target
-    else:
-        example["domain"] = -2  # discard
-    return example
+SRC_POS = {"talk.politics.guns", "talk.politics.misc"}
+SRC_NEG = {"rec.autos", "rec.motorcycles"}
+TGT_POS = {"talk.religion.misc", "talk.politics.mideast"}
+TGT_NEG = {"rec.sport.baseball", "rec.sport.hockey"}
 
 
-ds = ds.map(mark_domain).filter(lambda x: x["domain"] != -2)
+def idx(names) -> list[int]:
+    """Return integer category indices for given fine names."""
+    return [raw.target_names.index(c) for c in names]
 
-talk = ds.filter(lambda x: x["domain"] == 0).select(range(200))
-rec = ds.filter(lambda x: x["domain"] == -1).select(range(200))
-ds = concatenate_datasets([talk, rec])
 
-texts = ds["text"]
-y = np.asarray(ds["label"])
-sample_domain = np.asarray(ds["domain"])
+src_idx = np.isin(raw.target, idx(SRC_POS | SRC_NEG))
+tgt_idx = np.isin(raw.target, idx(TGT_POS | TGT_NEG))
 
-print(texts[10][:40], "…")
+Xs = np.array(raw.data, dtype=object)[src_idx]
+Xt = np.array(raw.data, dtype=object)[tgt_idx]
 
-# %% --------------------------------------------------------------------------
-# 2. Embed texts with a tiny Sentence-Transformer
-encoder = SentenceTransformer("paraphrase-TinyBERT-L6-v2", device="cpu")
-X = encoder.encode(texts, batch_size=32, show_progress_bar=False)
-print(f"Encoded {X.shape[0]} articles with {X.shape[1]} features each.")
+ys = np.isin(raw.target[src_idx], idx(SRC_POS)).astype(int)
+yt = np.isin(raw.target[tgt_idx], idx(TGT_POS)).astype(int)
 
-# %% --------------------------------------------------------------------------
-# 3. Build and fit two SKADA pipelines: one with DA and one without
-pipe = make_da_pipeline(
-    PCA(n_components=50, random_state=0),
-    LogisticRegression(max_iter=1000),
+sample_domain = np.concatenate([np.ones_like(ys), -2 * np.ones_like(yt)])
+
+# Merge for SKADA API
+X, y, sample_domain = source_target_merge(Xs, Xt, ys, yt, sample_domain=sample_domain)
+print(f"Total samples: {len(y)}  (source={src_idx.sum()}, target={tgt_idx.sum()})")
+
+# -------------------------------------------------------------------------
+# 2. Sentence-Transformers embeddings                                 -----
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+print("Encoding texts with Sentence-Transformers …")
+encoder = SentenceTransformer(
+    "sentence-transformers/paraphrase-MiniLM-L3-v2", device="cpu"
 )
-pipe_da = make_da_pipeline(
+X = encoder.encode(X, batch_size=32, show_progress_bar=True)
+print(f"Embeddings shape: {X.shape}")
+
+# -------------------------------------------------------------------------
+# 3. Build pipelines                                                   -----
+baseline = make_da_pipeline(
+    PCA(n_components=50, random_state=0),
+    SelectSource(LogisticRegression()),
+)
+
+adapted = make_da_pipeline(
     PCA(n_components=50, random_state=0),
     LinearOTMappingAdapter(),
-    LogisticRegression(max_iter=1000),
+    SelectSource(LogisticRegression()),
 )
 
-# %% --------------------------------------------------------------------------
-# 4. Evaluate with a source–target split
-cv = SourceTargetShuffleSplit(n_splits=3, test_size=0.3, random_state=0)
-scores = cross_validate(pipe, X, y, cv=cv, params={"sample_domain": sample_domain})
-scores_da = cross_validate(
-    pipe_da, X, y, cv=cv, params={"sample_domain": sample_domain}
-)
+# 4 ─── evaluate on the target only ------------------------------
+cv = StratifiedDomainShuffleSplit(n_splits=5, test_size=0.2, random_state=0)
+scores_base = []
+scores_da = []
+for tr, test in cv.split(X, y, sample_domain=sample_domain):
+    baseline.fit(X[tr], y[tr], sample_domain=sample_domain[tr])
+    adapted.fit(X[tr], y[tr], sample_domain=sample_domain[tr])
 
-print(
-    f"Base accuracy: {scores['test_score'].mean():.3f}"
-    f"± {scores['test_score'].std():.3f}"
-)
-print(
-    f"DA accuracy: {scores_da['test_score'].mean():.3f}"
-    f"± {scores_da['test_score'].std():.3f}"
-)
+    tgt = test[sample_domain[test] == -2]
+    scores_base.append(baseline.score(X[tgt], y[tgt]))
+    scores_da.append(adapted.score(X[tgt], y[tgt]))
+
+print(f"baseline : {np.mean(scores_base):.3f} ± {np.std(scores_base):.3f}")
+print(f"lin-OT   : {np.mean(scores_da)  :.3f} ± {np.std(scores_da)  :.3f}")
