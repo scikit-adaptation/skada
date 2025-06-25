@@ -118,7 +118,7 @@ def test_domainawaretraining():
         as_sources=["s"], as_targets=["t"], mask_target_labels=True
     )
     X_test, y_test, sample_domain_test = dataset.pack(
-        as_targets=["t"], mask_target_labels=False
+        as_sources=[], as_targets=["t"], mask_target_labels=False
     )
     X = X.astype(np.float32)
     X_test = X_test.astype(np.float32)
@@ -284,7 +284,9 @@ def test_return_features():
         train_split=None,
     )
 
-    X_test, _, _ = dataset.pack(as_targets=["t"], mask_target_labels=False)
+    X_test, _, _ = dataset.pack(
+        as_sources=[], as_targets=["t"], mask_target_labels=False
+    )
     X_test = X_test.astype(np.float32)
 
     # without dict
@@ -518,7 +520,7 @@ def test_sample_weight():
 
     # Prepare the test data
     X_test, y_test, sample_domain_test = dataset.pack(
-        as_targets=["t"], mask_target_labels=False
+        as_sources=[], as_targets=["t"], mask_target_labels=False
     )
     X_test = X_test.astype(np.float32)
     sample_weight_test = np.ones_like(y_test, dtype=np.float32)
@@ -624,7 +626,7 @@ def test_predict_proba(da_dataset, base_criterion):
 
     # Predict probabilities
     X_test, y_test, sample_domain_test = da_dataset.pack(
-        as_targets=["t"], mask_target_labels=False
+        as_sources=[], as_targets=["t"], mask_target_labels=False
     )
     X_test = X_test.astype(np.float32)
     y_proba = method.predict_proba(X_test, sample_domain=sample_domain_test)
@@ -660,7 +662,7 @@ def test_allow_source():
         as_sources=["s"], as_targets=["t"], mask_target_labels=True
     )
     X_test, y_test, sample_domain_test = dataset.pack(
-        as_targets=["t"], mask_target_labels=False
+        as_sources=[], as_targets=["t"], mask_target_labels=False
     )
     X = X.astype(np.float32)
     X_test = X_test.astype(np.float32)

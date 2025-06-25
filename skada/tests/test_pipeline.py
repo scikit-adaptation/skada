@@ -49,7 +49,7 @@ def test_pipeline(da_dataset):
         pipe.score(X, y, sample_domain=sample_domain)
     # target only, no label masking
     X_target, y_target, sample_domain = da_dataset.pack(
-        as_targets=["t"], mask_target_labels=False
+        as_sources=[], as_targets=["t"], mask_target_labels=False
     )
     y_pred = pipe.predict(X_target, sample_domain=sample_domain)
     assert np.mean(y_pred == y_target) > 0.9

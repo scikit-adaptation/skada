@@ -41,7 +41,7 @@ def test_generic_scorer_on_deepmodel(scorer, da_dataset):
         as_sources=["s"], as_targets=["t"], mask_target_labels=True
     )
     X_test, y_test, sample_domain_test = da_dataset.pack(
-        as_targets=["t"], mask_target_labels=False
+        as_sources=[], as_targets=["t"], mask_target_labels=False
     )
 
     estimator = DeepCoral(
@@ -161,7 +161,7 @@ def test_dev_scorer_on_target_only(da_dataset):
         as_sources=["s"], as_targets=["t"], mask_target_labels=True
     )
     X_test, y_test, sample_domain_test = da_dataset.pack(
-        as_targets=["t"], mask_target_labels=False
+        as_sources=[], as_targets=["t"], mask_target_labels=False
     )
     unmasked_y = np.copy(y)
     unmasked_y[sample_domain < 0] = y_test
@@ -190,7 +190,7 @@ def test_dev_scorer_on_source_only(da_dataset):
         as_sources=["s"], as_targets=["t"], mask_target_labels=True
     )
     X_test, y_test, sample_domain_test = da_dataset.pack(
-        as_targets=["t"], mask_target_labels=False
+        as_sources=[], as_targets=["t"], mask_target_labels=False
     )
 
     estimator = SourceOnly(
@@ -224,7 +224,7 @@ def test_exception_layer_name(scorer, da_dataset):
         as_sources=["s"], as_targets=["t"], mask_target_labels=True
     )
     X_test, y_test, sample_domain_test = da_dataset.pack(
-        as_targets=["t"], mask_target_labels=False
+        as_sources=[], as_targets=["t"], mask_target_labels=False
     )
 
     estimator = SourceOnly(
@@ -249,7 +249,7 @@ def test_mano_softmax(da_dataset):
         as_sources=["s"], as_targets=["t"], mask_target_labels=True
     )
     X_test, y_test, sample_domain_test = da_dataset.pack(
-        as_targets=["t"], mask_target_labels=False
+        as_sources=[], as_targets=["t"], mask_target_labels=False
     )
 
     estimator = DeepCoral(
@@ -283,7 +283,7 @@ def test_mano_taylor(da_dataset):
         as_sources=["s"], as_targets=["t"], mask_target_labels=True
     )
     X_test, y_test, sample_domain_test = da_dataset.pack(
-        as_targets=["t"], mask_target_labels=False
+        as_sources=[], as_targets=["t"], mask_target_labels=False
     )
 
     estimator = DeepCoral(
@@ -316,7 +316,7 @@ def test_mano_output_range(da_dataset):
         as_sources=["s"], as_targets=["t"], mask_target_labels=True
     )
     X_test, y_test, sample_domain_test = da_dataset.pack(
-        as_targets=["t"], mask_target_labels=False
+        as_sources=[], as_targets=["t"], mask_target_labels=False
     )
 
     estimator = DeepCoral(

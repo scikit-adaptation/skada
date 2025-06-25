@@ -55,7 +55,7 @@ def test_deepcoral(assume_centered):
     method.fit(X.astype(np.float32), y, sample_domain)
 
     X_test, y_test, sample_domain_test = dataset.pack(
-        as_targets=["t"], mask_target_labels=False
+        as_sources=[], as_targets=["t"], mask_target_labels=False
     )
 
     y_pred = method.predict(X_test.astype(np.float32), sample_domain_test)
@@ -104,7 +104,7 @@ def test_dan(sigmas):
     method.fit(X.astype(np.float32), y, sample_domain)
 
     X_test, y_test, sample_domain_test = dataset.pack(
-        as_targets=["t"], mask_target_labels=False
+        as_sources=[], as_targets=["t"], mask_target_labels=False
     )
 
     y_pred = method.predict(X_test.astype(np.float32), sample_domain_test)
@@ -156,7 +156,7 @@ def test_can(sigmas, distance_threshold, class_threshold):
     method.fit(X.astype(np.float32), y, sample_domain)
 
     X_test, y_test, sample_domain_test = dataset.pack(
-        as_targets=["t"], mask_target_labels=False
+        as_sources=[], as_targets=["t"], mask_target_labels=False
     )
 
     y_pred = method.predict(X_test.astype(np.float32), sample_domain_test)
@@ -200,7 +200,7 @@ def test_can_with_custom_callbacks():
     method.fit(X.astype(np.float32), y, sample_domain)
 
     X_test, y_test, sample_domain_test = dataset.pack(
-        as_targets=["t"], mask_target_labels=False
+        as_sources=[], as_targets=["t"], mask_target_labels=False
     )
 
     y_pred = method.predict(X_test.astype(np.float32), sample_domain_test)

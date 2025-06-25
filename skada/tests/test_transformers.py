@@ -37,7 +37,7 @@ def test_Subsampler(da_dataset):
 
     # test size of output on transform
     X_target, y_target, sample_domain_target = da_dataset.pack(
-        as_targets=["t"], mask_target_labels=False
+        as_sources=[], as_targets=["t"], mask_target_labels=False
     )
 
     X_target_subsampled = transformer.transform(
@@ -83,7 +83,7 @@ def test_DomainSubsampler(da_dataset):
 
     # test size of output on transform
     X_target, y_target, sample_domain_target = da_dataset.pack(
-        as_targets=["t"], mask_target_labels=False
+        as_sources=[], as_targets=["t"], mask_target_labels=False
     )
 
     X_target_subsampled = transformer.transform(
@@ -138,7 +138,7 @@ def test_StratifiedDomainSubsampler(da_dataset):
 
     # test size of output on transform
     X_target, y_target, sample_domain_target = da_dataset.pack(
-        as_targets=["t"], mask_target_labels=False
+        as_sources=[], as_targets=["t"], mask_target_labels=False
     )
 
     X_target_subsampled = transformer.transform(

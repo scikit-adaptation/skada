@@ -27,7 +27,7 @@ X, y, sample_domain = dataset.pack(
     as_sources=["mnist"], as_targets=["usps"], mask_target_labels=True
 )
 X_test, y_test, sample_domain_test = dataset.pack(
-    as_targets=["usps"], mask_target_labels=False
+    as_sources=[], as_targets=["usps"], mask_target_labels=False
 )
 
 # %%

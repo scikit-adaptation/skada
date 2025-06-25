@@ -56,7 +56,7 @@ def test_label_prop_estimator(estimator, da_blobs_dataset):
     )
     estimator.fit(X_train, y_train, sample_domain=sample_domain)
     X_test, y_test, sample_domain = dataset.pack(
-        as_targets=["t"], mask_target_labels=False
+        as_sources=[], as_targets=["t"], mask_target_labels=False
     )
     y_pred = estimator.predict(X_test, sample_domain=sample_domain)
     assert np.mean(y_pred == y_test) > 0.9

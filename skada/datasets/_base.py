@@ -200,10 +200,10 @@ class DomainAwareDataset:
     # we should not autogenerate them... otherwise it might be not obvious at all
     def pack(
         self,
-        as_sources: List[str] = None,
-        as_targets: List[str] = None,
+        as_sources: List[str],
+        as_targets: List[str],
+        mask_target_labels: bool,
         return_X_y: bool = True,
-        mask_target_labels: bool = None,
         train: Optional[bool] = None,
         mask: Union[None, int, float] = None,
     ) -> PackedDatasetType:
@@ -214,17 +214,19 @@ class DomainAwareDataset:
         Parameters
         ----------
         as_sources : list
-            List of domain names to be used as sources.
+            List of domain names to be used as sources. An empty list
+            indicates that no source domains are used.
         as_targets : list
-            List of domain names to be used as targets.
+            List of domain names to be used as targets. An empty list
+            indicates that no target domains are used.
+        mask_target_labels : bool
+            This parameter should be set to True for training and False for testing.
+            When set to True, masks labels for target domains with -1 for classification
+            tasks of nan for regression tasks, so they are not available at train time.
         return_X_y : bool, default=True
             When set to True, returns a tuple (X, y, sample_domain). Otherwise
             returns :class:`~sklearn.utils.Bunch` object with the structure
             described below.
-        mask_target_labels : bool, default=None
-            This parameter should be set to True for training and False for testing.
-            When set to True, masks labels for target domains with -1
-            (or a `mask` given), so they are not available at train time.
         train: Optional[bool], default=None
             [DEPRECATED] Use `mask_target_labels`instead.
         mask: int | float (optional), default=None
@@ -258,15 +260,6 @@ class DomainAwareDataset:
                 DeprecationWarning,
             )
             mask_target_labels = train
-        if mask_target_labels is None:
-            raise ValueError(
-                "The `mask_target_labels` parameter must be set to True for"
-                "training or False for testing."
-            )
-        if as_sources is None:
-            as_sources = []
-        if as_targets is None:
-            as_targets = []
         for domain_name in as_sources:
             domain_id = self.domain_names_[domain_name]
             source = self.get_domain(domain_name)

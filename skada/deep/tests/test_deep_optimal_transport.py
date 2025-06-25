@@ -43,7 +43,7 @@ def test_deepjdot():
     method.fit(X.astype(np.float32), y, sample_domain)
 
     X_test, y_test, sample_domain_test = dataset.pack(
-        as_targets=["t"], mask_target_labels=False
+        as_sources=[], as_targets=["t"], mask_target_labels=False
     )
 
     y_pred = method.predict(X_test.astype(np.float32), sample_domain_test)

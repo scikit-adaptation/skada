@@ -186,7 +186,9 @@ def test_circular_validation(da_dataset):
     X, y, sample_domain = da_dataset.pack(
         as_sources=["s"], as_targets=["t"], mask_target_labels=True
     )
-    _, unmasked_y, _ = da_dataset.pack(as_targets=["t"], mask_target_labels=False)
+    _, unmasked_y, _ = da_dataset.pack(
+        as_sources=[], as_targets=["t"], mask_target_labels=False
+    )
     estimator = make_da_pipeline(
         DensityReweightAdapter(),
         LogisticRegression().set_fit_request(sample_weight=True),
@@ -227,7 +229,9 @@ def test_circular_validation(da_dataset):
     X, y, sample_domain = dataset_reg.pack(
         as_sources=["s"], as_targets=["t"], mask_target_labels=True
     )
-    _, unmasked_y, _ = dataset_reg.pack(as_targets=["t"], mask_target_labels=False)
+    _, unmasked_y, _ = dataset_reg.pack(
+        as_sources=[], as_targets=["t"], mask_target_labels=False
+    )
 
     estimator_regression = make_da_pipeline(
         DensityReweightAdapter(),
