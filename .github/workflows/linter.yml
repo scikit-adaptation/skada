@@ -1,5 +1,4 @@
 name: Lint
-run-name: Lint
 
 on:  # yamllint disable-line rule:truthy
   # Allows you to run this workflow from another workflow
