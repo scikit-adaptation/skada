@@ -398,3 +398,16 @@ def test_select_source_target_raises_error_on_masking():
         ValueError, match="Target labels cannot be masked for SelectSourceTarget."
     ):
         SelectSourceTarget(LogisticRegression(), mask_target_labels=True)
+
+
+def test_make_da_pipeline_with_select_source_target():
+    """
+    Check that make_da_pipeline can be instantiated
+    with SelectSourceTarget.
+    """
+    make_da_pipeline(
+        StandardScaler(),
+        SelectSource(SVC()),
+        default_selector=SelectSourceTarget,
+        mask_target_labels=False,
+    )
