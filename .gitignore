@@ -133,6 +133,5 @@ docs/source/gen_modules/
 .DS_Store
 .vscode
 
-datasets
 docs/source/sg_execution_times.rst 
 examples/skada_logo*

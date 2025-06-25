@@ -368,7 +368,12 @@ def make_shifted_blobs(
     if return_dataset:
         return dataset
     else:
-        return dataset.pack(as_sources=["s"], as_targets=["t"], return_X_y=return_X_y)
+        return dataset.pack(
+            as_sources=["s"],
+            as_targets=["t"],
+            return_X_y=return_X_y,
+            mask_target_labels=False,
+        )
 
 
 def make_shifted_datasets(
@@ -601,7 +606,12 @@ def make_shifted_datasets(
     if return_dataset:
         return dataset
     else:
-        return dataset.pack(as_sources=["s"], as_targets=["t"], return_X_y=return_X_y)
+        return dataset.pack(
+            as_sources=["s"],
+            as_targets=["t"],
+            return_X_y=return_X_y,
+            mask_target_labels=False,
+        )
 
 
 def make_dataset_from_moons_distribution(
@@ -720,7 +730,10 @@ def make_dataset_from_moons_distribution(
         return dataset
     else:
         return dataset.pack(
-            as_sources=sources, as_targets=targets, return_X_y=return_X_y
+            as_sources=sources,
+            as_targets=targets,
+            return_X_y=return_X_y,
+            mask_target_labels=False,
         )
 
 
@@ -847,4 +860,9 @@ def make_variable_frequency_dataset(
     if return_dataset:
         return dataset
     else:
-        return dataset.pack(as_sources=["s"], as_targets=["t"], return_X_y=return_X_y)
+        return dataset.pack(
+            as_sources=["s"],
+            as_targets=["t"],
+            return_X_y=return_X_y,
+            mask_target_labels=False,
+        )

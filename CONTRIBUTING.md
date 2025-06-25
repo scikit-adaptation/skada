@@ -37,7 +37,7 @@ GitHub, clone, and develop on a branch. Steps:
    ```bash
    $ pip install -e .
    ```
-To install an optional dependency (see pyproject.toml), swap the previous command with ```pip install -e .[dependency_name]```.
+To install an optional dependency (see pyproject.toml), swap the previous command with ```pip install -e ."[dependency_name]"```.
 
 4. Create a ``feature`` branch to hold your development changes:
 

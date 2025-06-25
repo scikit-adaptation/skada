@@ -33,7 +33,9 @@ dataset = make_shifted_datasets(
 base_estimator = SVC()
 estimator = EntropicOTMapping(base_estimator=base_estimator, reg_e=0.5, tol=1e-3)
 
-X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+X, y, sample_domain = dataset.pack(
+    as_sources=["s"], as_targets=["t"], mask_target_labels=True
+)
 X_source, X_target, y_source, y_target = source_target_split(
     X, y, sample_domain=sample_domain
 )
@@ -48,7 +50,9 @@ cv = ShuffleSplit(n_splits=5, test_size=0.3, random_state=RANDOM_SEED)
 # by the DA pipeline thanks to :code:`sample_domain`. The :code:`target_labels`
 # are only used by the :code:`SupervisedScorer`.
 
-_, target_labels, _ = dataset.pack(as_sources=["s"], as_targets=["t"], train=False)
+_, target_labels, _ = dataset.pack(
+    as_sources=["s"], as_targets=["t"], mask_target_labels=False
+)
 scores_sup = cross_val_score(
     estimator,
     X,

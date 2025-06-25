@@ -15,7 +15,9 @@ from skada.utils import source_target_split
 
 
 def test_JDOTRegressor(da_reg_dataset):
-    X, y, sample_domain = da_reg_dataset.pack(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = da_reg_dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=False
+    )
     rng = np.random.default_rng(42)
     w = rng.uniform(size=(X.shape[0],))
 
@@ -42,7 +44,9 @@ def test_JDOTRegressor(da_reg_dataset):
 
 
 def test_JDOTRegressor_pipeline(da_reg_dataset):
-    X, y, sample_domain = da_reg_dataset.pack(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = da_reg_dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=False
+    )
     Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 
     jdot = make_da_pipeline(
@@ -60,7 +64,9 @@ def test_JDOTRegressor_pipeline(da_reg_dataset):
 def test_JDOTClassifier(da_multiclass_dataset, da_binary_dataset):
     rng = np.random.default_rng(43)
     for dataset in [da_multiclass_dataset, da_binary_dataset]:
-        X, y, sample_domain = dataset.pack(as_sources=["s"], as_targets=["t"])
+        X, y, sample_domain = dataset.pack(
+            as_sources=["s"], as_targets=["t"], mask_target_labels=False
+        )
         w = rng.uniform(size=(X.shape[0],))
         Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 
@@ -123,7 +129,9 @@ def test_JDOTClassifier(da_multiclass_dataset, da_binary_dataset):
 
 
 def test_jdot_class_cost_matrix(da_multiclass_dataset):
-    X, y, sample_domain = da_multiclass_dataset.pack(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = da_multiclass_dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=False
+    )
 
     Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 
@@ -157,7 +165,9 @@ def test_jdot_class_cost_matrix(da_multiclass_dataset):
 
 
 def test_jdot_class_tgt_loss(da_multiclass_dataset):
-    X, y, sample_domain = da_multiclass_dataset.pack(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = da_multiclass_dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=False
+    )
 
     Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 

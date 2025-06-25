@@ -37,10 +37,14 @@ def test_deepjdot():
         train_split=None,
     )
 
-    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
+    )
     method.fit(X.astype(np.float32), y, sample_domain)
 
-    X_test, y_test, sample_domain_test = dataset.pack_test(as_targets=["t"])
+    X_test, y_test, sample_domain_test = dataset.pack(
+        as_sources=[], as_targets=["t"], mask_target_labels=False
+    )
 
     y_pred = method.predict(X_test.astype(np.float32), sample_domain_test)
 

@@ -44,7 +44,9 @@ def test_domainawaremodule_features_differ_between_domains():
     )
 
     # Prepare data
-    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
+    )
     X = X.astype(np.float32)
     sample_domain = np.array(sample_domain)
 
@@ -112,8 +114,12 @@ def test_domainawaretraining():
         train_split=None,
     )
 
-    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
-    X_test, y_test, sample_domain_test = dataset.pack_test(as_targets=["t"])
+    X, y, sample_domain = dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
+    )
+    X_test, y_test, sample_domain_test = dataset.pack(
+        as_sources=[], as_targets=["t"], mask_target_labels=False
+    )
     X = X.astype(np.float32)
     X_test = X_test.astype(np.float32)
 
@@ -182,7 +188,9 @@ def test_domainawaretraining():
         )
 
     # Test keys name in the dict
-    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
+    )
     X_dict = {"bad_name": X.astype(np.float32), "sample_domain": sample_domain}
     with pytest.raises(ValueError):
         method.fit(
@@ -276,7 +284,9 @@ def test_return_features():
         train_split=None,
     )
 
-    X_test, _, _ = dataset.pack_test(as_targets=["t"])
+    X_test, _, _ = dataset.pack(
+        as_sources=[], as_targets=["t"], mask_target_labels=False
+    )
     X_test = X_test.astype(np.float32)
 
     # without dict
@@ -313,7 +323,9 @@ def test_domain_balanced_sampler(max_samples):
         random_state=42,
         return_dataset=True,
     )
-    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
+    )
     X_dict = {"X": X.astype(np.float32), "sample_domain": sample_domain}
 
     n_samples_source = np.sum(sample_domain > 0)
@@ -342,7 +354,9 @@ def test_domain_balanced_dataloader():
         random_state=42,
         return_dataset=True,
     )
-    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
+    )
     X_dict = {"X": X.astype(np.float32), "sample_domain": sample_domain}
 
     dataset = Dataset(X_dict, y)
@@ -363,7 +377,9 @@ def test_domain_balanced_dataloader():
         random_state=42,
         return_dataset=True,
     )
-    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
+    )
     X_dict = {"X": X.astype(np.float32), "sample_domain": sample_domain}
 
     dataset = Dataset(X_dict, y)
@@ -384,7 +400,9 @@ def test_domain_balanced_dataloader():
         random_state=42,
         return_dataset=True,
     )
-    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
+    )
     X_dict = {"X": X.astype(np.float32), "sample_domain": sample_domain}
 
     dataset = Dataset(X_dict, y)
@@ -414,7 +432,9 @@ def test_domain_only_sampler(domain_used):
         random_state=42,
         return_dataset=True,
     )
-    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
+    )
     X_dict = {"X": X.astype(np.float32), "sample_domain": sample_domain}
 
     dataset = Dataset(X_dict, y)
@@ -444,7 +464,9 @@ def test_domain_only_dataloader(domain_used):
         random_state=42,
         return_dataset=True,
     )
-    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
+    )
     X_dict = {"X": X.astype(np.float32), "sample_domain": sample_domain}
 
     dataset = Dataset(X_dict, y)
@@ -490,12 +512,16 @@ def test_sample_weight():
     )
 
     # Prepare the training data
-    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
+    )
     X = X.astype(np.float32)
     sample_weight = np.ones_like(y, dtype=np.float32)
 
     # Prepare the test data
-    X_test, y_test, sample_domain_test = dataset.pack_test(as_targets=["t"])
+    X_test, y_test, sample_domain_test = dataset.pack(
+        as_sources=[], as_targets=["t"], mask_target_labels=False
+    )
     X_test = X_test.astype(np.float32)
     sample_weight_test = np.ones_like(y_test, dtype=np.float32)
 
@@ -559,7 +585,9 @@ def test_sample_weight_error_with_reduction_none():
     )
 
     # Prepare the training data
-    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
+    )
     X = X.astype(np.float32)
     sample_weight = np.ones_like(y, dtype=np.float32)
 
@@ -575,8 +603,8 @@ def test_sample_weight_error_with_reduction_none():
     ],
 )
 def test_predict_proba(da_dataset, base_criterion):
-    X_train, y_train, sample_domain_train = da_dataset.pack_train(
-        as_sources=["s"], as_targets=["t"]
+    X_train, y_train, sample_domain_train = da_dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
     )
     X_train = X_train.astype(np.float32)
     n_classes = len(np.unique(y_train))
@@ -597,7 +625,9 @@ def test_predict_proba(da_dataset, base_criterion):
     method.fit(X_train, y_train, sample_domain=sample_domain_train)
 
     # Predict probabilities
-    X_test, y_test, sample_domain_test = da_dataset.pack_test(as_targets=["t"])
+    X_test, y_test, sample_domain_test = da_dataset.pack(
+        as_sources=[], as_targets=["t"], mask_target_labels=False
+    )
     X_test = X_test.astype(np.float32)
     y_proba = method.predict_proba(X_test, sample_domain=sample_domain_test)
 
@@ -628,8 +658,12 @@ def test_allow_source():
         train_split=None,
     )
 
-    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
-    X_test, y_test, sample_domain_test = dataset.pack_test(as_targets=["t"])
+    X, y, sample_domain = dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
+    )
+    X_test, y_test, sample_domain_test = dataset.pack(
+        as_sources=[], as_targets=["t"], mask_target_labels=False
+    )
     X = X.astype(np.float32)
     X_test = X_test.astype(np.float32)
 

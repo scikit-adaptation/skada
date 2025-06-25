@@ -28,8 +28,12 @@ from skada.deep.modules import MNISTtoUSPSNet
 # ----------------------------------------------------------------------------
 
 dataset = load_mnist_usps(n_classes=2, n_samples=0.5, return_dataset=True)
-X, y, sample_domain = dataset.pack_train(as_sources=["mnist"], as_targets=["usps"])
-X_test, y_test, sample_domain_test = dataset.pack_test(as_targets=["usps"])
+X, y, sample_domain = dataset.pack(
+    as_sources=["mnist"], as_targets=["usps"], mask_target_labels=True
+)
+X_test, y_test, sample_domain_test = dataset.pack(
+    as_sources=[], as_targets=["usps"], mask_target_labels=False
+)
 
 # %%
 # Training parameters

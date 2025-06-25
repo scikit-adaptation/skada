@@ -77,7 +77,7 @@ def check_X_y_domain(
         Array specifying the domain labels for each sample.
     """
     X = check_array(X, input_name='X', allow_nd=allow_nd)
-    y = check_array(y, force_all_finite=not allow_label_masks, ensure_2d=False, input_name='y')
+    y = check_array(y, ensure_all_finite=not allow_label_masks, ensure_2d=False, input_name='y')
     check_consistent_length(X, y)
 
     if sample_domain is None and not allow_auto_sample_domain:

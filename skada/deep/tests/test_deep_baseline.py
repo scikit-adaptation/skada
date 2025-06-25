@@ -38,7 +38,9 @@ def test_sourceonly():
     )
 
     # Get full dataset without masking target
-    X, y, sample_domain = dataset.pack(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=False
+    )
 
     # Fit and predict
     method.fit(X.astype(np.float32), y, sample_domain)
@@ -51,8 +53,12 @@ def test_sourceonly():
     assert history[0]["train_loss"] > history[-1]["train_loss"]
 
     # Check accuracy is better on source domain than on target domain
-    X_source, y_source, sample_domain_source = dataset.pack(as_sources=["s"])
-    X_target, y_target, sample_domain_target = dataset.pack(as_targets=["t"])
+    X_source, y_source, sample_domain_source = dataset.pack(
+        as_sources=["s"], as_targets=[], mask_target_labels=True
+    )
+    X_target, y_target, sample_domain_target = dataset.pack(
+        as_sources=[], as_targets=["t"], mask_target_labels=False
+    )
     y_pred_source = method.predict(
         X_source.astype(np.float32), sample_domain_source, allow_source=True
     )
@@ -87,7 +93,9 @@ def test_targetonly():
     )
 
     # Get full dataset without masking target
-    X, y, sample_domain = dataset.pack(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=False
+    )
 
     # Fit and predict
     method.fit(X.astype(np.float32), y, sample_domain)
@@ -100,8 +108,12 @@ def test_targetonly():
     assert history[0]["train_loss"] > history[-1]["train_loss"]
 
     # Check accuracy is better on target domain than on source domain
-    X_source, y_source, sample_domain_source = dataset.pack(as_sources=["s"])
-    X_target, y_target, sample_domain_target = dataset.pack(as_targets=["t"])
+    X_source, y_source, sample_domain_source = dataset.pack(
+        as_sources=["s"], as_targets=[], mask_target_labels=True
+    )
+    X_target, y_target, sample_domain_target = dataset.pack(
+        as_sources=[], as_targets=["t"], mask_target_labels=False
+    )
     y_pred_source = method.predict(
         X_source.astype(np.float32), sample_domain_source, allow_source=True
     )

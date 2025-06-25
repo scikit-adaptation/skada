@@ -32,7 +32,7 @@ _AMAZON_REVIEW_LOADER = FileLoaderSpec(
     extract_root=False,
     remote=RemoteFileMetadata(
         filename="amazon_review.zip",
-        url="https://figshare.com/ndownloader/files/46003500?private_link=c3df61a88bce4760911a",
+        url="https://figshare.com/ndownloader/files/46003500",
         checksum="a37a9702d44edcc5b6c6a8060f6f61b36f32d9127233ee6951eaf691c08ee4fb",
     ),
 )

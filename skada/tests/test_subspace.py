@@ -71,11 +71,13 @@ from skada.datasets import DomainAwareDataset
     ],
 )
 def test_subspace_estimator(estimator, da_dataset):
-    X_train, y_train, sample_domain = da_dataset.pack_train(
-        as_sources=["s"], as_targets=["t"]
+    X_train, y_train, sample_domain = da_dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
     )
     estimator.fit(X_train, y_train, sample_domain=sample_domain)
-    X_test, y_test, sample_domain = da_dataset.pack_test(as_targets=["t"])
+    X_test, y_test, sample_domain = da_dataset.pack(
+        as_sources=[], as_targets=["t"], mask_target_labels=False
+    )
     y_pred = estimator.predict(X_test, sample_domain=sample_domain)
     assert np.mean(y_pred == y_test) > 0.75
     score = estimator.score(X_test, y_test, sample_domain=sample_domain)
@@ -131,11 +133,13 @@ def test_subspace_default_n_components(adapter, n_samples, n_features, n_compone
         ]
     )
 
-    X_train, y_train, sample_domain = dataset.pack_train(
-        as_sources=["s"], as_targets=["t"]
+    X_train, y_train, sample_domain = dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
     )
     adapter.fit_transform(X_train, y_train, sample_domain=sample_domain)
-    X_test, _, sample_domain = dataset.pack_test(as_targets=["t"])
+    X_test, _, sample_domain = dataset.pack(
+        as_sources=[], as_targets=["t"], mask_target_labels=False
+    )
     output = adapter.transform(X_test, sample_domain=sample_domain)
     assert output.shape[1] == n_components
 
