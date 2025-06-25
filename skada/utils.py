@@ -1035,4 +1035,3 @@ def torch_minimize(loss, x0, tol=1e-6, max_iter=1000, verbose=False):
     loss_val = loss(*x0).item()
 
     return solution, loss_val
-
