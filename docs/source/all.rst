@@ -200,6 +200,8 @@ Torch compatible DA losses in :py:mod:`skada.deep.losses`
    deepjdot_loss
    mcc_loss
    cdd_loss
+   gda_loss
+   nap_loss
 
 
 DA metrics :py:mod:`skada.metrics`
