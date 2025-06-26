@@ -423,6 +423,10 @@ class DomainAwareDataset:
         """
         Aggregate source and target domains for training.
 
+        .. warning::
+            This method is deprecated and will be removed in future versions.
+            Use :meth:`pack` with ``mask_target_labels=True`` instead.
+
         This method is equivalent to :meth:`pack` with ``train=True``.
         It masks the labels for target domains (with -1 or a custom mask value)
         so that they are not available during training, as required for
@@ -464,6 +468,10 @@ class DomainAwareDataset:
     ) -> PackedDatasetType:
         """
         Aggregate target domains for testing.
+
+        .. warning::
+            This method is deprecated and will be removed in future versions.
+            Use :meth:`pack` with ``mask_target_labels=False`` instead.
 
         This method is equivalent to :meth:`pack` with only target domains
         and ``train=False``. Labels are not masked.
