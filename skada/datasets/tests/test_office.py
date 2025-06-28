@@ -20,6 +20,10 @@ _CALTECH256 = Office31CategoriesPreset.CALTECH256
 _ALL = Office31CategoriesPreset.ALL
 
 
+# mark all the test with the marker dataset
+pytestmark = pytest.mark.dataset
+
+
 @pytest.mark.parametrize(
     "domain, X_shape, y_shape, categories, n_categories",
     [
