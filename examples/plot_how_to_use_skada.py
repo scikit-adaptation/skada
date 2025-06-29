@@ -263,6 +263,7 @@ pipe_perdomain = make_da_pipeline(
     PCA(n_components=2),
     SelectSource(SVC()),
     default_selector=SelectSourceTarget,
+    mask_target_labels=False,
 )
 
 pipe_perdomain.fit(X, y, sample_domain=sample_domain)
