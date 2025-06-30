@@ -11,10 +11,167 @@ import ot
 import skorch  # noqa: F401
 import torch  # noqa: F401
 import torch.nn.functional as F
+
+# from scipy.spatial.distance import cdist
+from torch.nn import CrossEntropyLoss, LogSoftmax, Module, Softmax
 from torch.nn.functional import mse_loss
 
 from skada.deep.base import BaseDALoss
 from skada.deep.utils import SphericalKMeans
+
+
+class CrossEntropyLabelSmooth(Module):
+    """Estimate the cross-entropy label smooth loss for SHOT method [38]_.
+
+    References
+    ----------
+    .. [38] 	https://doi.org/10.48550/arXiv.2002.08546
+    """
+
+    def __init__(self, num_classes, epsilon=0.1, size_average=True):
+        """Init method"""
+        super().__init__()
+        self.num_classes = num_classes
+        self.epsilon = epsilon
+        self.size_average = size_average
+        self.logsoftmax = LogSoftmax(dim=1)
+
+    def forward(self, y_pred_s, y_s):
+        """Estimate the cross-entropy label smooth loss for SHOT method [38]_.
+
+        Parameters
+        ----------
+        y_s : tensor
+        labels of the source data. Shape (n_samples, n_classes).
+        y_pred_s : tensor
+        predictions of the source data. Shape (n_samples, n_classes).
+
+        Returns
+        -------
+        loss : float
+        The loss of the method.
+        """
+        log_probs = self.logsoftmax(y_pred_s)
+        y_s = torch.zeros(log_probs.size(), device=y_s.device).scatter_(
+            1, y_s.unsqueeze(1), 1
+        )
+        y_s = (1 - self.epsilon) * y_s + self.epsilon / self.num_classes
+        if self.size_average:
+            loss = (-y_s * log_probs).mean(0).sum()
+        else:
+            loss = (-y_s * log_probs).sum(1)
+        return loss
+
+
+def cross_entropy_label_smooth_loss(
+    y_s: torch.Tensor,
+    y_pred_s: torch.Tensor,
+    num_classes: int,
+    epsilon: float = 0.1,
+    size_average: bool = True,
+) -> float:
+    """Estimate the crpss-entropy label smooth loss loss for SHOT method [38]_.
+
+    Parameters
+    ----------
+    y_s : tensor
+    labels of the source data. Shape (n_samples, n_classes).
+    y_pred_s : tensor
+    predictions of the source data. Shape (n_samples, n_classes).
+    num_classes: int
+    number of classes to predict.
+    epsilon: float
+    smoothing parameter
+    size_average: bool
+
+    Returns
+    -------
+    loss : float
+    The loss of the method.
+    """
+    log_probs = LogSoftmax(dim=1)(y_pred_s)
+    y_s = torch.zeros(log_probs.size()).scatter_(1, y_s.unsqueeze(1), 1)
+    y_s = (1 - epsilon) * y_s + epsilon / num_classes
+    if size_average:
+        loss = (-y_s * log_probs).mean(0).sum()
+    else:
+        loss = (-y_s * log_probs).sum(1)
+    return loss
+
+
+def entropy_loss(y_pred_t_softmax: torch.Tensor) -> float:
+    """Estimate the entropy loss for SHOT method [38]_.
+
+    Parameters
+    ----------
+    y_pred_t_softmax : tensor
+        softmaxed predictions of the target data. Shape (n_samples, n_classes).
+
+    Returns
+    -------
+    loss : float
+        The loss of the method.
+
+    References
+    ----------
+    .. [38] 	https://doi.org/10.48550/arXiv.2002.08546
+    """
+    entropy = -y_pred_t_softmax * torch.log(y_pred_t_softmax + 1e-5)
+    return torch.mean(torch.sum(entropy, axis=1))
+
+
+def diversity_promoting_loss(y_pred_t_softmax: torch.Tensor) -> float:
+    """Estimate the diversity promoting loss for SHOT method [38]_.
+
+    Parameters
+    ----------
+    y_pred_t_softmax : tensor
+        softmaxed predictions of the target data. Shape (n_samples, n_classes).
+
+    Returns
+    -------
+    loss : float
+        The loss of the method.
+
+    References
+    ----------
+    .. [38] 	https://doi.org/10.48550/arXiv.2002.08546
+    """
+    msoftmax = y_pred_t_softmax.mean(dim=0)
+    return -torch.sum(msoftmax * torch.log(msoftmax + 1e-5))
+
+
+def shot_full_loss(
+    y_estimate_t: torch.Tensor,
+    y_pred_t: torch.Tensor,
+    entropy_weight: float = 1,
+    div_weight: float = 1,
+    class_weight: float = 0.1,
+) -> float:
+    """Estimate the full loss for SHOT method [38]_.
+
+    Parameters
+    ----------
+    y_estimate_t : tensor
+        estimated labels of the target data, obtained from self-supervised
+        pseudo-labeling strategy. Shape (n_samples, n_classes).
+    y_pred_t : tensor
+        predictions of the target data. Shape (n_samples, n_classes).
+
+    Returns
+    -------
+    loss : float
+        The loss of the method.
+
+    References
+    ----------
+    .. [38] 	https://doi.org/10.48550/arXiv.2002.08546
+    """
+    softmax_y_pred_t = Softmax(dim=1)(y_pred_t)
+    entropy = entropy_loss(softmax_y_pred_t)
+    div = diversity_promoting_loss(softmax_y_pred_t)
+    class_term = CrossEntropyLoss()(y_pred_t, y_estimate_t)
+    return entropy_weight * entropy + div_weight * div + class_term * class_weight
 
 
 def deepcoral_loss(features, features_target, assume_centered=False):
@@ -346,7 +503,9 @@ class TestLoss(BaseDALoss):
         **kwargs,
     ):
         """Compute the domain adaptation loss"""
-        return 0
+        res = torch.tensor(0, dtype=torch.float32)
+        res.requires_grad = True
+        return res
 
 
 def probability_scaling(logits, temperature=1):
@@ -513,3 +672,9 @@ def nap_loss(features_t, y_pred_t, memory_features, memory_outputs, sample_idx_t
     classifier_loss = torch.sum(weight_ * loss_) / (torch.sum(weight_).item() + 1e-7)
 
     return classifier_loss
+
+
+def softmax_entropy(x: torch.Tensor):
+    """Compute the entropy of the softmax probabilities."""
+    loss = x.softmax(1) * x.log_softmax(1)
+    return -torch.sum(loss, axis=1)

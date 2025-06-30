@@ -8,7 +8,54 @@ from skorch.callbacks import Callback
 from skorch.utils import to_tensor
 
 from skada.deep.base import DomainAwareNet
-from skada.deep.utils import SphericalKMeans
+from skada.deep.utils import SphericalKMeans, get_estimated_label_from_centroids
+
+
+class PseudoLabeling(Callback):
+    """Callback to compute pseudo-labels for target domain samples.
+
+    This callback computes pseudo-labels for the target domain samples at the end of
+    each epoch. The pseudo-labels are computed using the memory features and outputs
+    stored in the adaptation criterion.
+
+    """
+
+    def on_epoch_end(
+        self,
+        net: DomainAwareNet,
+        fc_layer: str,
+        dataset_target=None,
+        every_n_epochs: int = 1,
+        **kwargs,
+    ):
+        """TODO Work in progress: Compute pseudo-labels at the end of each epoch.
+
+        Parameters
+        ----------
+        net : NeuralNet
+            The neural network being trained.
+        dataset_train : Dataset, optional
+            The training dataset.
+        **kwargs : dict
+            Additional arguments passed to the callback.
+        """
+        X = net._prepare_input(dataset_target)
+
+        # Keep only target samples
+        target = X.select_target()
+        X_t = target.X
+
+        if net.criterion__adapt_criterion.n_epochs % every_n_epochs == 0:
+            with torch.no_grad():
+                features_t = net.predict_features(X_t)
+                features_t = torch.tensor(features_t, device=net.device)
+                outputs_t = eval(f"net.{fc_layer}")(features_t)
+
+            # Compute pseudo-labels using get_estimated_label
+            pseudo_labels = get_estimated_label_from_centroids(outputs_t, features_t)
+
+        # Store pseudo-labels in the adaptation criterion
+        net.criterion__adapt_criterion.pseudo_labels = pseudo_labels
 
 
 class ComputeSourceCentroids(Callback):
