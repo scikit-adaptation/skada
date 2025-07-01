@@ -4,9 +4,13 @@
 # License: BSD 3-Clause
 
 import numpy as np
+import pytest
 from numpy.testing import assert_array_equal
 
 from skada.datasets import DomainAwareDataset
+
+# mark all the test with the marker dataset
+pytestmark = pytest.mark.dataset
 
 
 def test_dataset_train_label_masking():
