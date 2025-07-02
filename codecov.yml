@@ -9,22 +9,37 @@ codecov:
   notify:
     wait_for_ci: yes       # yamllint disable-line rule:truthy
 
+# https://docs.codecov.com/docs/commit-status
 coverage:
   precision: 2
   round: down
   range: "90...100"
   status:
+    default_rules:        # this behavior will be applied to all checks by default
+      flag_coverage_not_uploaded_behavior: exclude
+      # don't send status checks that don't have flag coverage uploaded
     project:
       default:
-        base: auto         # target to compare against
-        target: auto       # target "X%" coverage to hit on project
-        threshold: 0.5%    # allow this much decrease from base
-        if_ci_failed: error
+        flags:
+          - code
+          - datasets
+      code:
+        flags:
+          - code
+      datasets:
+        flags:
+          - datasets
     patch:
       default:
-        base: auto         # target to compare against
-        target: 50%        # target "X%" coverage to hit on patch
-        # threshold: 50%   # allow this much decrease on patch
+        flags:
+          - code
+          - datasets
+      code:
+        flags:
+          - code
+      datasets:
+        flags:
+          - datasets
     changes: false
 
 parsers:
@@ -44,3 +59,26 @@ comment:
   layout: header, diff, sunburst, uncovered
   behavior: default
   require_changes: true    # if true: only post the comment if coverage changes
+
+
+# https://docs.codecov.com/docs/flags
+flag_management:
+  default_rules:           # the rules that will be followed for any flag added, generally
+    # https://docs.codecov.com/docs/carryforward-flags
+    carryforward: true     # Reference of past coverage for tests
+    statuses:
+      - type: project
+        target: auto       # target "X%" coverage to hit on project
+        threshold: 0.5%    # allow this much decrease from base
+        if_ci_failed: error
+      - type: patch
+        base: auto         # target to compare against
+        target: 50%        # target "X%" coverage to hit on patch
+        # threshold: 50%   # allow this much decrease on patch
+  individual_flags:        # exceptions to the default rules above, stated flag by flag
+    - name: code
+      paths:
+        - "!skada/datasets/"  # remove all files in "datasets/"
+    - name: datasets
+      paths:
+        - "skada/datasets/"   # only dataset
