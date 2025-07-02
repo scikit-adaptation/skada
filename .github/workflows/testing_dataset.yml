@@ -5,11 +5,14 @@ on:  # yamllint disable-line rule:truthy
   pull_request:  # for running on PR with name contains '[dataset]'
     branches:
       - 'main'
+  push:
+    branches:
+      - 'main'
   workflow_dispatch:  # Allows manual triggering
 
 jobs:
   Dataset:
-    if: contains(github.event.pull_request.title, '[dataset]') || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: contains(github.event.pull_request.title, '[dataset]') || github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
