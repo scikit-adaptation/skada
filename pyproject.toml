@@ -94,6 +94,9 @@ addopts = [
     "--color=yes",
     "-rN",
 ]
+markers = [
+    "dataset: Tests a dataset."
+]
 
 [tool.codespell]
 skip = [

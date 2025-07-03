@@ -92,11 +92,13 @@ from skada.utils import source_target_split
     ],
 )
 def test_reweight_estimator(estimator, da_dataset):
-    X_train, y_train, sample_domain = da_dataset.pack_train(
-        as_sources=["s"], as_targets=["t"]
+    X_train, y_train, sample_domain = da_dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
     )
     estimator.fit(X_train, y_train, sample_domain=sample_domain)
-    X_test, y_test, sample_domain = da_dataset.pack_test(as_targets=["t"])
+    X_test, y_test, sample_domain = da_dataset.pack(
+        as_sources=[], as_targets=["t"], mask_target_labels=False
+    )
     y_pred = estimator.predict(X_test, sample_domain=sample_domain)
     assert np.mean(y_pred == y_test) > 0.9
     score = estimator.score(X_test, y_test, sample_domain=sample_domain)
@@ -151,18 +153,20 @@ def test_reg_reweight_estimator(estimator):
         random_state=43,
         return_dataset=True,
     )
-    X_train, y_train, sample_domain_train = dataset.pack_train(
-        as_sources=["s"], as_targets=["t"]
+    X_train, y_train, sample_domain_train = dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
     )
     estimator.fit(X_train, y_train, sample_domain=sample_domain_train)
-    X_test, y_test, _ = dataset.pack_test(as_targets=["t"])
+    X_test, y_test, _ = dataset.pack(
+        as_sources=[], as_targets=["t"], mask_target_labels=False
+    )
     score = estimator.score(X_test, y_test)
     assert score >= 0
 
 
 def _base_test_new_X_adapt(estimator, da_dataset):
-    X_train, y_train, sample_domain = da_dataset.pack_train(
-        as_sources=["s"], as_targets=["t"]
+    X_train, y_train, sample_domain = da_dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
     )
 
     # fit works with no errors
@@ -239,8 +243,8 @@ def test_reg_new_X_adapt(estimator, da_reg_dataset):
 
 
 def test_reweight_warning(da_dataset):
-    X_train, y_train, sample_domain = da_dataset.pack_train(
-        as_sources=["s"], as_targets=["t"]
+    X_train, y_train, sample_domain = da_dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
     )
     estimator = KLIEPReweightAdapter(gamma=0.1, max_iter=0)
     estimator.fit(X_train, y_train, sample_domain=sample_domain)
@@ -259,8 +263,8 @@ def test_KMMReweight_kernel_error():
 # KMMReweight.adapt behavior should be the same when smooth weights is True or
 # when X_source differs between fit and adapt.
 def test_KMMReweight_new_X_adapt(da_dataset):
-    X_train, y_train, sample_domain = da_dataset.pack_train(
-        as_sources=["s"], as_targets=["t"]
+    X_train, y_train, sample_domain = da_dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
     )
     estimator = KMMReweightAdapter(smooth_weights=True)
     _, res1 = estimator.fit_transform(X_train, sample_domain=sample_domain)
@@ -283,7 +287,9 @@ def test_KMMReweight_new_X_adapt(da_dataset):
     ],
 )
 def test_adaptation_output_propagation_multiple_steps(da_reg_dataset, mediator):
-    X, y, sample_domain = da_reg_dataset.pack(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = da_reg_dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=False
+    )
     _, X_target, _, target_domain = source_target_split(
         X, sample_domain, sample_domain=sample_domain
     )
@@ -309,7 +315,9 @@ def test_adaptation_output_propagation_multiple_steps(da_reg_dataset, mediator):
 
 
 def test_select_source_target_output_merge(da_reg_dataset):
-    X, y, sample_domain = da_reg_dataset.pack(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = da_reg_dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=False
+    )
     _, X_target, _, target_domain = source_target_split(
         X, sample_domain, sample_domain=sample_domain
     )
