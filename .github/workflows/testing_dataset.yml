@@ -50,6 +50,7 @@ jobs:
         verbose: true
         fail_ci_if_error: true
         env_vars: OS,PYTHON
+        gcov_include: "skada/datasets"
         flags: dataset
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
