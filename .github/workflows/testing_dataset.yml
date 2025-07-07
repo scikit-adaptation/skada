@@ -1,7 +1,7 @@
 name: Testing
 on:  # yamllint disable-line rule:truthy
   schedule:
-    - cron: '0 0 * * 0'  # Runs every week on Sunday at midnight UTC
+    - cron: '10 * * * *'  # Runs every week on Sunday at midnight UTC
   pull_request:  # for running on PR with name contains '[dataset]'
     branches:
       - 'main'
