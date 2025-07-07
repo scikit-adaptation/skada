@@ -41,8 +41,8 @@ jobs:
         python -m pip install --upgrade --progress-bar off pip
         python -m pip install -e .[test]
     # Run Tests
-    - name: Run Tests without torch
-      run: pytest skada --verbose --cov=skada_dataset --cov-report term -m="dataset"
+    - name: Run Tests for dataset
+      run: pytest skada --verbose --cov=skada --cov-report term -m="dataset"
     # Codecov
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v5
