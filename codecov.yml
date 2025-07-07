@@ -81,4 +81,5 @@ flag_management:
         - "!skada/datasets/"  # remove all files in "datasets/"
     - name: datasets
       paths:
+        - "!skada/"   # only dataset
         - "skada/datasets/"   # only dataset
