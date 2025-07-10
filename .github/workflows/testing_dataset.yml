@@ -42,7 +42,7 @@ jobs:
         python -m pip install -e .[deep,test]
     # Run Tests
     - name: Run Tests for dataset
-      run: pytest skada --verbose --cov=skada --cov-report term -m="dataset"
+      run: pytest skada/datasets --verbose --cov=skada --cov-report term -m="dataset"
     # Codecov
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v5
