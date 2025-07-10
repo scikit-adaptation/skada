@@ -295,3 +295,60 @@ def test_mapping_source_samples(estimator, da_blobs_dataset):
         X_train[idx], sample_domain=sample_domain[idx], allow_source=True
     )
     assert y_pred.shape[0] == len(idx)
+
+
+def test_multilinearotmapping_at_test_time(da_blobs_dataset):
+    dataset = make_shifted_datasets(
+        n_samples_source=5,
+        n_samples_target=10,
+        shift="conditional_shift",
+        mean=0.5,
+        noise=0.3,
+        label="regression",
+        random_state=42,
+        return_dataset=True,
+    )
+
+    X, y, sample_domain = da_blobs_dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
+    )
+    X_source, X_target, y_source, y_target = source_target_split(
+        X, y, sample_domain=sample_domain
+    )
+
+    # Just scale some feature to avoid having an identity cov matrix
+    X_scaled = np.copy(X_source)
+    X_target_scaled = np.copy(X_target)
+    X_scaled[:, 0] *= 2
+    X_target_scaled[:, 1] *= 3
+    dataset = DomainAwareDataset(
+        [
+            (X_scaled, y_source, "s"),
+            (X_target_scaled, y_target, "t"),
+        ]
+    )
+
+    X_train, y_train, sample_domain = dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
+    )
+    estimator = MultiLinearMongeAlignment()
+    estimator.fit(X_train, y_train, sample_domain=sample_domain)
+
+    X_new, y_new, sample_domain_new = dataset.pack(
+        as_sources=[], as_targets=["t"], mask_target_labels=False
+    )
+
+    sample_domain_new = sample_domain_new - 1
+    with pytest.raises(
+        ValueError,
+        match=f"Domain {sample_domain_new[0]} is not present in the mappings."
+        "Please fit the adapter first.",
+    ):
+        estimator.predict(X_new, sample_domain=sample_domain_new)
+
+    # Fit the adapter
+    estimator.named_steps["multilinearmongealignment"].fit_domain(
+        X_new, y_new, sample_domain=sample_domain_new
+    )
+    y_pred = estimator.predict(X_new, sample_domain=sample_domain_new)
+    assert y_pred.shape[0] == len(y_new)
