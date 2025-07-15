@@ -20,6 +20,9 @@ from skada.datasets import (
 )
 from skada.utils import check_X_y_domain, source_target_split
 
+# mark all the test with the marker dataset
+pytestmark = pytest.mark.dataset
+
 
 @pytest.mark.parametrize(
     "pos_source, pos_target, noise",

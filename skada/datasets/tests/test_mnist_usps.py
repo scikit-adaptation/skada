@@ -20,6 +20,9 @@ from skada.datasets import (
 )
 from skada.utils import source_target_split
 
+# mark all the test with the marker dataset
+pytestmark = pytest.mark.dataset
+
 
 @pytest.mark.skipif(not torchvision, reason="torchvision is not installed")
 @pytest.mark.parametrize(

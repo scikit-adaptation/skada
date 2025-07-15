@@ -330,10 +330,11 @@ class DomainAwareDataset:
         mask: Union[None, int, float] = None,
     ) -> PackedDatasetType:
         """
-        [Warning] This method is deprecated and will be removed in future versions.
-        Please use :meth:`pack` with `mask_target_labels=True` instead.
-
         Aggregate source and target domains for training.
+
+        .. warning::
+            This method is deprecated and will be removed in future versions.
+            Use :meth:`pack` with ``mask_target_labels=True`` instead.
 
         This method is equivalent to :meth:`pack` with ``train=True``.
         It masks the labels for target domains (with -1 or a custom mask value)
@@ -375,10 +376,11 @@ class DomainAwareDataset:
         return_X_y: bool = True,
     ) -> PackedDatasetType:
         """
-        [Warning] This method is deprecated and will be removed in future versions.
-        Please use :meth:`pack` with `mask_target_labels=False` instead.
-
         Aggregate target domains for testing.
+
+        .. warning::
+            This method is deprecated and will be removed in future versions.
+            Use :meth:`pack` with ``mask_target_labels=False`` instead.
 
         This method is equivalent to :meth:`pack` with only target domains
         and ``train=False``. Labels are not masked.

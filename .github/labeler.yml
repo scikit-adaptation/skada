@@ -1,0 +1,48 @@
+# yamllint disable rule:indentation
+Documentation:
+- changed-files:
+  - any-glob-to-any-file: docs/**
+
+Examples:
+- changed-files:
+  - any-glob-to-any-file: examples/**
+
+Tests:
+- changed-files:
+  - any-glob-to-any-file: test/**
+
+CI:
+- changed-files:
+  - any-glob-to-any-file: .github/workflows/**
+  - any-glob-to-any-file: .circleci/**
+
+datasets:
+- changed-files:
+  - any-glob-to-any-file: skada/datasets/**
+
+tests-datasets:
+- changed-files:
+  - any-glob-to-any-file: skada/datasets/tests/**
+
+shallow:
+- changed-files:
+  - any-glob-to-any-file: skada/**
+
+tests-shallow:
+- changed-files:
+  - any-glob-to-any-file: skada/tests/**
+
+deep:
+- changed-files:
+  - any-glob-to-any-file: skada/deep/**
+
+tests-deep:
+- changed-files:
+  - any-glob-to-any-file: skada/deep/tests/**
+
+base:
+- changed-files:
+  - any-glob-to-any-file: skada/base.py
+  - any-glob-to-any-file: skada/utils.py
+  - any-glob-to-any-file: skada/_utils.py
+  - any-glob-to-any-file: skada/_pipeline.py
