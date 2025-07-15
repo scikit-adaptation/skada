@@ -16,7 +16,7 @@ from sklearn.svm import SVC
 
 from ._pipeline import make_da_pipeline
 from ._utils import Y_Type, _estimate_covariance, _find_y_type
-from .base import BaseAdapter, clone
+from .base import BaseAdapter, BaseTestTimeAdapter, clone
 from .utils import (
     check_X_domain,
     extract_domains_indices,
@@ -549,7 +549,7 @@ def _get_cov_mean(X, w=None, bias=True):
     return cov, mean
 
 
-class MultiLinearMongeAlignmentAdapter(BaseAdapter):
+class MultiLinearMongeAlignmentAdapter(BaseTestTimeAdapter):
     """Aligns multiple domains using Gaussian Monge mapping to a barycenter.
 
     The method is a simplified extension of [29] using the Bures-Wasserstein
@@ -596,10 +596,15 @@ class MultiLinearMongeAlignmentAdapter(BaseAdapter):
     """
 
     def __init__(self, reg=1e-08, bias=True, test_time=False):
-        super().__init__()
+        if test_time:
+            super(BaseTestTimeAdapter, self).__init__()
+        else:
+            super(BaseAdapter, self).__init__()
         self.reg = reg
         self.bias = bias
         self.test_time = test_time
+        if self.test_time:
+            self.fit_new_domain = self._fit_new_domain
 
     def fit(self, X, y=None, *, sample_domain=None):
         """Fit adaptation parameters.
@@ -693,11 +698,50 @@ class MultiLinearMongeAlignmentAdapter(BaseAdapter):
         idx = extract_domains_indices(sample_domain)
         X_adapt = X.copy()
 
+        for domain in idx.keys():
+            if domain not in self.mappings_:
+                raise ValueError(
+                    f"Domain {domain} is not present in the mappings. "
+                    "Please fit the adapter first."
+                )
         for domain, sel in idx.items():
             A, b = self.mappings_[domain]
             X_adapt[sel] = X[sel].dot(A) + b
 
         return X_adapt
+
+    def _fit_domain(self, X, y=None, *, sample_domain=None):
+        """Fit adaptation parameters for a new domain.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
+        X, sample_domain = check_X_domain(X, sample_domain)
+        for domain, (X_domain, y_domain, w_domain) in per_domain_split(
+            X, y, None, sample_domain=sample_domain
+        ).items():
+            if domain not in self.cov_means_targets_:
+                cov, mean = _get_cov_mean(X_domain, w_domain, bias=self.bias)
+                self.cov_means_targets_[domain] = (cov, mean)
+                self.mappings_[domain] = bures_wasserstein_mapping(
+                    mean,
+                    self.barycenter_[0],
+                    cov,
+                    self.barycenter_[1],
+                )
+
+        return
 
 
 def MultiLinearMongeAlignment(
