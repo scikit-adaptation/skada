@@ -166,6 +166,7 @@ def _remove_masked(X, y, params):
         unmasked_idx = y != _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
     elif y_type == Y_Type.CONTINUOUS:
         unmasked_idx = np.isfinite(y)
+
     X, y, params = _apply_domain_masks(X, y, params, masks=unmasked_idx)
     return X, y, params
 
