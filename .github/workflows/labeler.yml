@@ -3,7 +3,7 @@ name: "Pull Request Labeler"
 on:  # yamllint disable-line rule:truthy
   pull_request_target:
     branches:
-      - 'master'
+      - 'main'
 jobs:
   labeler:
     permissions:
