@@ -838,6 +838,7 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
             If the dataset samples are not in the expected format.
         """
         X, y, sample_domain, sample_weight = [], [], [], []
+        # TODO: remove has_y or add in l744?
         has_y, has_sample_weight = False, False
         for sample in dataset:
             # Sample is a tuple (X, y) from skorch.dataset.Dataset
