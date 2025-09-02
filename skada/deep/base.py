@@ -470,8 +470,8 @@ class DomainAwareModule(torch.nn.Module):
                 return self.base_module_(X, sample_weight=sample_weight)
 
 
+@deprecated(version='0.4.0', reason="DomainAwareNet is deprecated. Use DomainAwareNetClassifier instead.")
 class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
-    @deprecated(version='0.4.0', reason="DomainAwareNet is deprecated. Use DomainAwareNetClassifier instead.")
     __metadata_request__fit = {"sample_weight": True}
     __metadata_request__score = {'sample_weight': True, 'sample_domain': True, 'allow_source': True}
     """
