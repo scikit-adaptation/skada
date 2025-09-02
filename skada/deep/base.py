@@ -479,14 +479,13 @@ class _DomainAwareNet(NeuralNet, _DAMetadataRequesterMixin):
     """
     Base class for a domain-aware neural network with sample weight support.
 
-    This class extends NeuralNet to handle domain-specific input data
+    This class extends skorch.net.NeuralNet to handle domain-specific input data
     and sample weights. It supports various input formats and provides methods
     for training, prediction, and feature extraction while considering domain
     information and sample weights.
 
     This class should hardly, if ever, be used directly. Instead, use
-    DomainAwareNetClassifier, DomainAwareNetDualClassifier or
-    DomainAwareNetRegressor,
+    DomainAwareNetClassifier, or DomainAwareNetRegressor,
     which are specialized for classification, binary classification and
     regression tasks, respectively.
 
@@ -498,7 +497,7 @@ class _DomainAwareNet(NeuralNet, _DAMetadataRequesterMixin):
         Custom data loader for training. If None, DomainBalancedDataLoader is
         used.
     **kwargs : dict
-        Additional keyword arguments passed to the skorch NeuralNetClassifier.
+        Additional keyword arguments passed to tskorch.net.NeuralNet.
     """
 
     def __init__(self, module, iterator_train=None, **kwargs):
@@ -817,7 +816,7 @@ class DomainAwareNetClassifier(_DomainAwareNet, NeuralNetClassifier):
     """
     A domain-aware neural network classifier with sample weight support.
 
-    This class extends NeuralNetClassifier to handle domain-specific input data
+    This class extends skorch.classifier.NeuralNetClassifier to handle domain-specific input data
     and sample weights. It supports various input formats and provides methods
     for training, prediction, and feature extraction while considering domain
     information and sample weights.
@@ -832,7 +831,7 @@ class DomainAwareNetClassifier(_DomainAwareNet, NeuralNetClassifier):
         The loss function used for training. It should be compatible with
         domain adaptation tasks.
     **kwargs : dict
-        Additional keyword arguments passed to the skorch NeuralNetClassifier.
+        Additional keyword arguments passed to skorch.classifier.NeuralNetClassifier.
     """
 
     def __init__(self, module, iterator_train=None, criterion=torch.nn.NLLLoss,
@@ -976,7 +975,7 @@ class DomainAwareNetBinaryClassifier(_DomainAwareNet, NeuralNetBinaryClassifier)
     """
     A domain-aware neural network binary classifier with sample weight support.
 
-    This class extends NeuralNetBinaryClassifier to handle domain-specific input data
+    This class extends skorch.classifier.NeuralNetBinaryClassifier to handle domain-specific input data
     and sample weights. It supports various input formats and provides methods
     for training, prediction, and feature extraction while considering domain
     information and sample weights.
@@ -991,7 +990,7 @@ class DomainAwareNetBinaryClassifier(_DomainAwareNet, NeuralNetBinaryClassifier)
         The loss function used for training. It should be compatible with
         binary classification tasks.
     **kwargs : dict
-        Additional keyword arguments passed to the skorch NeuralNetBinaryClassifier.
+        Additional keyword arguments passed to skorch.classifier.NeuralNetBinaryClassifier.
     """
     __metadata_request__fit = {"sample_weight": True}
     __metadata_request__score = {'sample_weight': True, 'sample_domain': True, 'allow_source': True}
@@ -1152,7 +1151,7 @@ class DomainAwareNetRegressor(_DomainAwareNet, NeuralNetRegressor):
     """
     A domain-aware neural network regressor with sample weight support.
 
-    This class extends NeuralNetRegressor to handle domain-specific input data
+    This class extends skorch.regressor.NeuralNetRegressor to handle domain-specific input data
     and sample weights. It supports various input formats and provides methods
     for training, prediction, and feature extraction while considering domain
     information and sample weights.
@@ -1168,7 +1167,7 @@ class DomainAwareNetRegressor(_DomainAwareNet, NeuralNetRegressor):
         The loss function used for training the regressor.
         Defaults to Mean Squared Error Loss.
     **kwargs : dict
-        Additional keyword arguments passed to the skorch NeuralNetRegressor.
+        Additional keyword arguments passed to skorch.regressor.NeuralNetRegressor.
     """
 
     def __init__(self, module, iterator_train=None, criterion=torch.nn.MSELoss,
