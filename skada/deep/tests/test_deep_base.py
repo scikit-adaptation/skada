@@ -18,7 +18,7 @@ from skada.deep.base import (
     DeepDADataset,
     DomainAwareCriterion,
     DomainAwareModule,
-    DomainAwareNet,
+    DomainAwareNetClassifier,
     DomainBalancedDataLoader,
     DomainBalancedSampler,
     DomainOnlyDataLoader,
@@ -105,7 +105,7 @@ def test_domainawaretraining():
         random_state=42,
         return_dataset=True,
     )
-    method = DomainAwareNet(
+    method = DomainAwareNetClassifier(
         DomainAwareModule(module, "dropout"),
         iterator_train=DomainBalancedDataLoader,
         criterion=DomainAwareCriterion(torch.nn.CrossEntropyLoss(), TestLoss()),
@@ -275,7 +275,7 @@ def test_return_features():
         return_dataset=True,
     )
 
-    method = DomainAwareNet(
+    method = DomainAwareNetClassifier(
         DomainAwareModule(module, "dropout"),
         iterator_train=DomainBalancedDataLoader,
         criterion=DomainAwareCriterion(torch.nn.CrossEntropyLoss(), BaseDALoss()),
@@ -500,7 +500,7 @@ def test_sample_weight():
     )
 
     # Initialize the domain aware network
-    method = DomainAwareNet(
+    method = DomainAwareNetClassifier(
         DomainAwareModule(module, "dropout"),
         iterator_train=DomainBalancedDataLoader,
         criterion=DomainAwareCriterion(
@@ -573,7 +573,7 @@ def test_sample_weight_error_with_reduction_none():
     )
 
     # Initialize the domain aware network with reduction set to 'mean'
-    method = DomainAwareNet(
+    method = DomainAwareNetClassifier(
         DomainAwareModule(module, "dropout"),
         iterator_train=DomainBalancedDataLoader,
         criterion=DomainAwareCriterion(
@@ -612,7 +612,7 @@ def test_predict_proba(da_dataset, base_criterion):
     module = ToyModule2D(n_classes=n_classes)
 
     # Initialize the domain aware network
-    method = DomainAwareNet(
+    method = DomainAwareNetClassifier(
         DomainAwareModule(module, "dropout"),
         iterator_train=DomainBalancedDataLoader,
         criterion=DomainAwareCriterion(base_criterion, TestLoss(), reduction="mean"),
@@ -649,7 +649,7 @@ def test_allow_source():
         random_state=42,
         return_dataset=True,
     )
-    method = DomainAwareNet(
+    method = DomainAwareNetClassifier(
         DomainAwareModule(module, "dropout"),
         iterator_train=DomainBalancedDataLoader,
         criterion=DomainAwareCriterion(torch.nn.CrossEntropyLoss(), TestLoss()),

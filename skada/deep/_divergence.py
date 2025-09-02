@@ -10,7 +10,7 @@ from skada.deep.base import (
     BaseDALoss,
     DomainAwareCriterion,
     DomainAwareModule,
-    DomainAwareNet,
+    DomainAwareNetClassifier,
     DomainBalancedDataLoader,
 )
 
@@ -86,7 +86,7 @@ def DeepCoral(
     if base_criterion is None:
         base_criterion = torch.nn.CrossEntropyLoss()
 
-    net = DomainAwareNet(
+    net = DomainAwareNetClassifier(
         module=DomainAwareModule,
         module__base_module=module,
         module__layer_name=layer_name,
@@ -166,7 +166,7 @@ def DAN(module, layer_name, reg=1, sigmas=None, base_criterion=None, **kwargs):
     if base_criterion is None:
         base_criterion = torch.nn.CrossEntropyLoss()
 
-    net = DomainAwareNet(
+    net = DomainAwareNetClassifier(
         module=DomainAwareModule,
         module__base_module=module,
         module__layer_name=layer_name,
@@ -301,7 +301,7 @@ def CAN(
         else:
             callbacks = [callbacks, ComputeSourceCentroids()]
 
-    net = DomainAwareNet(
+    net = DomainAwareNetClassifier(
         module=DomainAwareModule,
         module__base_module=module,
         module__layer_name=layer_name,
