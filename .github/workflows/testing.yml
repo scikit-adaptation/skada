@@ -25,7 +25,7 @@ jobs:
 
     # Install skada
     - name: Checking Out Repository  # yamllint disable-line rule:indentation
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     # Cache 'skada' datasets
     - name: Create/Restore Skada Data Cache
       id: cache-skada_datasets
@@ -63,7 +63,7 @@ jobs:
 
     # Install skada
     - name: Checking Out Repository  # yamllint disable-line rule:indentation
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     # Install Python & Packages
     - uses: actions/setup-python@v5
       with:
@@ -96,7 +96,7 @@ jobs:
 
     # Install skada
     - name: Checking Out Repository  # yamllint disable-line rule:indentation
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     # Install Python & Packages
     - uses: actions/setup-python@v5
       with:
