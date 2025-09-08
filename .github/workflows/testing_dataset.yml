@@ -12,7 +12,7 @@ on:  # yamllint disable-line rule:truthy
 
 jobs:
   Dataset:
-    if: contains(github.event.pull_request.title, '[dataset]') || github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: contains(github.event.pull_request.title, '[dataset]') || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -41,8 +41,8 @@ jobs:
         python -m pip install --upgrade --progress-bar off pip
         python -m pip install -e .[deep,test]
     # Run Tests
-    - name: Run Tests without torch
-      run: pytest skada --verbose --cov=skada --cov-report term
+    - name: Run Tests for dataset
+      run: pytest skada --verbose --cov=skada/datasets --cov-report term -m="dataset"
     # Codecov
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v5
@@ -50,5 +50,8 @@ jobs:
         verbose: true
         fail_ci_if_error: true
         env_vars: OS,PYTHON
+        gcov_include: "skada/datasets"
+        gcov_ignore: "**/*"
+        flags: dataset
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
