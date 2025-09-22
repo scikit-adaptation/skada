@@ -710,7 +710,7 @@ class MultiLinearMongeAlignmentAdapter(BaseTestTimeAdapter):
 
         return X_adapt
 
-    def _fit_domain(self, X, y=None, *, sample_domain=None):
+    def fit_domain(self, X, y=None, *, sample_domain=None):
         """Fit adaptation parameters for a new domain.
 
         Parameters
@@ -728,18 +728,18 @@ class MultiLinearMongeAlignmentAdapter(BaseTestTimeAdapter):
             Returns self.
         """
         X, sample_domain = check_X_domain(X, sample_domain)
-        for domain, (X_domain, y_domain, w_domain) in per_domain_split(
-            X, y, None, sample_domain=sample_domain
-        ).items():
-            if domain not in self.cov_means_targets_:
-                cov, mean = _get_cov_mean(X_domain, w_domain, bias=self.bias)
-                self.cov_means_targets_[domain] = (cov, mean)
-                self.mappings_[domain] = bures_wasserstein_mapping(
-                    mean,
-                    self.barycenter_[0],
-                    cov,
-                    self.barycenter_[1],
-                )
+        for domain in np.unique(sample_domain):
+            if domain in self.mappings_:
+                continue
+            X_domain = X[sample_domain == domain]
+            cov, mean = _get_cov_mean(X_domain, None, bias=self.bias)
+            self.cov_means_targets_[domain] = (cov, mean)
+            self.mappings_[domain] = bures_wasserstein_mapping(
+                mean,
+                self.barycenter_[0],
+                cov,
+                self.barycenter_[1],
+            )
 
         return
 

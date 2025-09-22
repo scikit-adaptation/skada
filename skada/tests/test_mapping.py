@@ -341,14 +341,14 @@ def test_multilinearotmapping_at_test_time(da_blobs_dataset):
     sample_domain_new = sample_domain_new - 1
     with pytest.raises(
         ValueError,
-        match=f"Domain {sample_domain_new[0]} is not present in the mappings."
+        match=f"Domain {sample_domain_new[0]} is not present in the mappings. "
         "Please fit the adapter first.",
     ):
         estimator.predict(X_new, sample_domain=sample_domain_new)
 
     # Fit the adapter
-    estimator.named_steps["multilinearmongealignment"].fit_domain(
-        X_new, y_new, sample_domain=sample_domain_new
-    )
+    estimator.named_steps[
+        "multilinearmongealignmentadapter"
+    ].get_estimator().fit_domain(X_new, y_new, sample_domain=sample_domain_new)
     y_pred = estimator.predict(X_new, sample_domain=sample_domain_new)
     assert y_pred.shape[0] == len(y_new)
