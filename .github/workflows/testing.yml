@@ -116,7 +116,8 @@ jobs:
       with:
         verbose: true
         fail_ci_if_error: true
-        gcov_ignore: "skada/datasets"
         env_vars: OS,PYTHON
+        gcov_ignore: "skada/datasets"
+        flags: code
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
