@@ -943,6 +943,8 @@ class JCPOTLabelPropAdapter(BaseAdapter):
         self.max_iter = max_iter
         self.tol = tol
         self.verbose = verbose
+        # we predict target labels in this function so we can't mask them
+        self.predicts_target_labels = True
 
     def fit_transform(self, X, y, sample_domain=None, *, sample_weight=None):
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
