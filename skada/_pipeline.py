@@ -25,6 +25,7 @@ def make_da_pipeline(
     memory: Optional[Memory] = None,
     verbose: bool = False,
     default_selector: Union[str, Callable[[BaseEstimator], BaseSelector]] = "shared",
+    mask_target_labels: bool = True,
 ) -> Pipeline:
     """Construct a :class:`~sklearn.pipeline.Pipeline` from the given estimators.
 
@@ -58,6 +59,9 @@ def make_da_pipeline(
         'per_domain'. For integrating a custom selector as the default, pass a
         callable that accepts :class:`~sklearn.base.BaseEstimator` and returns
         the estimator encapsulated within a domain selector.
+
+    mask_target_labels : bool, default=True
+        Whether to mask target labels in the pipeline.
 
     Returns
     -------
@@ -93,8 +97,9 @@ def make_da_pipeline(
         else:
             names.append(name)
             estimators.append(estimator)
-
-    wrapped_estimators = _wrap_with_selectors(estimators, default_selector)
+    wrapped_estimators = _wrap_with_selectors(
+        estimators, default_selector, mask_target_labels
+    )
     steps = _name_estimators(wrapped_estimators)
     named_steps = [
         (auto_name, step) if user_name is None else (user_name, step)
@@ -107,10 +112,11 @@ def make_da_pipeline(
 def _wrap_with_selector(
     estimator: BaseEstimator,
     selector: Union[str, Callable[[BaseEstimator], BaseSelector]],
+    mask_target_labels: bool = True,
 ) -> BaseSelector:
     if (estimator is not None) and not isinstance(estimator, BaseSelector):
         if callable(selector):
-            estimator = selector(estimator)
+            estimator = selector(estimator, mask_target_labels=mask_target_labels)
             if not isinstance(estimator, BaseSelector):
                 raise ValueError(
                     "Callable `default_selector` has to return `BaseSelector` "  # noqa: E501
@@ -123,7 +129,7 @@ def _wrap_with_selector(
                     f"Unsupported `default_selector` name: {selector}."
                     f"Use one of {_DEFAULT_SELECTORS.keys().join(', ')}"
                 )
-            estimator = selector_cls(estimator)
+            estimator = selector_cls(estimator, mask_target_labels=mask_target_labels)
         else:
             raise ValueError(f"Unsupported `default_selector` type: {type(selector)}")
     return estimator
@@ -132,10 +138,19 @@ def _wrap_with_selector(
 def _wrap_with_selectors(
     estimators: List[BaseEstimator],
     default_selector: Union[str, Callable[[BaseEstimator], BaseSelector]],
+    mask_target_labels: bool = True,
 ) -> List[BaseEstimator]:
-    return [
-        (_wrap_with_selector(estimator, default_selector)) for estimator in estimators
-    ]
+    wrap_list = []
+    for estimator in estimators:
+        if getattr(estimator, "predicts_target_labels", False):
+            mask_target_labels = False
+
+        wrap_list.append(
+            _wrap_with_selector(
+                estimator, default_selector, mask_target_labels=mask_target_labels
+            )
+        )
+    return wrap_list
 
 
 def _name_estimators(estimators):
