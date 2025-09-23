@@ -1618,7 +1618,7 @@ class DomainAwareNetRegressor(_DomainAwareNet, NeuralNetRegressor):
         allow_source: bool = False,
         **predict_params
     ):
-        return super().predict_DA_proba(
+        return super().predict_proba(
             X,
             sample_domain,
             sample_weight,
