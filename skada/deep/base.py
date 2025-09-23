@@ -1032,7 +1032,9 @@ class DeepDADataset(Dataset):
         self._initialize(X, y, sample_domain, sample_weight)
 
     def _initialize(self, X:torch.Tensor, y, sample_domain, sample_weight):
-        if sample_domain is None or len(sample_domain) == 0:
+        if sample_domain is None or (
+            hasattr(sample_domain, '__len__') and len(sample_domain) == 0
+            ):
             sample_domain = _DEFAULT_SAMPLE_DOMAIN_
         if isinstance(sample_domain, int):
             sample_domain = torch.full((X.shape[0],), sample_domain)

@@ -6,11 +6,13 @@
 import numbers
 from functools import partial
 
+import numpy as np
 from skorch.utils import _identity
 import torch
-from torch.nn import CrossEntropyLoss
+from torch.nn import CrossEntropyLoss, Softmax
 from torch.nn.functional import cosine_similarity
 from sklearn.utils.validation import check_is_fitted
+from scipy.spatial.distance import cdist
 
 
 def _get_intermediate_layers(intermediate_layers, layer_name):
@@ -333,3 +335,45 @@ class SphericalKMeans:
         dissimilarity_loss = dissimilarities.sum().item()
 
         return dissimilarity_loss
+
+
+def get_estimated_label_from_centroids(
+    y_pred_t: torch.Tensor, y_features_t: torch.Tensor
+) -> int:
+    """Estimate the entropy loss for SHOT method [38]_.
+
+    Parameters
+    ----------
+    y_pred_t : tensor
+        predictions of the target data. Shape (n_samples, n_classes).
+    y_features_t : tensor
+        output of the model just before the classifier. Shape (n_samples, n_classes).
+
+    Returns
+    -------
+    y_estimate_t : int
+        The estimated target prediction.
+
+    References
+    ----------
+    .. [38] 	https://doi.org/10.48550/arXiv.2002.08546
+    """
+    softmax_y_pred_t = Softmax(dim=1)(y_pred_t)
+    y_features_t_numpy = y_features_t.cpu().numpy()
+    n_features = y_pred_t.size(1)
+
+    pred_label = 0
+    for round in range(1):
+        if round == 0:
+            y_estimate_t = (
+                softmax_y_pred_t.float().cpu().numpy()
+                if round == 0
+                else np.eye(n_features)[pred_label]
+            )
+        centroids = y_estimate_t.transpose().dot(y_features_t_numpy) / (
+            1e-8 + y_estimate_t.sum(axis=0)[:, None]
+        )
+        cosine_distance = cdist(y_features_t_numpy, centroids, "cosine")
+        pred_label = cosine_distance.argmin(axis=1)
+
+    return torch.LongTensor(pred_label.astype(int)).to(y_pred_t.device)
