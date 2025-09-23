@@ -13,14 +13,16 @@ import torch
 from torch.utils.data import DataLoader, Sampler
 from sklearn.base import _clone_parametrized
 from sklearn.metrics import accuracy_score, r2_score
-from skorch import NeuralNetClassifier
+from sklearn.utils import deprecated
+
+from skorch import NeuralNet, NeuralNetClassifier, NeuralNetBinaryClassifier
+from skorch import NeuralNetRegressor
 
 from .utils import _register_forwards_hook, _infer_predict_nonlinearity
 
 from skada.base import _DAMetadataRequesterMixin
 from sklearn.utils.validation import check_array
 
-from deprecated import deprecated
 import numpy as np
 from skorch.utils import to_device
 from skorch.utils import to_numpy, to_tensor
@@ -470,7 +472,7 @@ class DomainAwareModule(torch.nn.Module):
                 return self.base_module_(X, sample_weight=sample_weight)
 
 
-@deprecated(version='0.4.0', reason="DomainAwareNet is deprecated. Use DomainAwareNetClassifier instead.")
+@deprecated(extra="DomainAwareNet is deprecated. Use DomainAwareNetClassifier instead.")
 class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
     __metadata_request__fit = {"sample_weight": True}
     __metadata_request__score = {'sample_weight': True, 'sample_domain': True, 'allow_source': True}
