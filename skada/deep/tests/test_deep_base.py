@@ -115,6 +115,7 @@ def test_domainawaretraining(domainnet):
             random_state=42,
             return_dataset=True,
         )
+        loss = torch.nn.BCEWithLogitsLoss()
     elif domainnet == DomainAwareNetRegressor:
         module = ToyModule2D(n_classes=1, proba=False)
         module.eval()
@@ -127,8 +128,10 @@ def test_domainawaretraining(domainnet):
             return_dataset=True,
             label="regression",
         )
+        loss = torch.nn.MSELoss()
     else:
         module = ToyModule2D(n_classes=5)
+        module.eval()
         dataset = make_shifted_datasets(
             n_samples_source=n_samples,
             n_samples_target=n_samples,
@@ -138,10 +141,11 @@ def test_domainawaretraining(domainnet):
             return_dataset=True,
             label="multiclass",
         )
+        loss = torch.nn.CrossEntropyLoss()
     method = domainnet(
         DomainAwareModule(module, "dropout"),
         iterator_train=DomainBalancedDataLoader,
-        criterion=DomainAwareCriterion(torch.nn.CrossEntropyLoss(), TestLoss()),
+        criterion=DomainAwareCriterion(loss, TestLoss()),
         batch_size=10,
         max_epochs=2,
         train_split=None,
@@ -154,6 +158,12 @@ def test_domainawaretraining(domainnet):
     )
     X = X.astype(np.float32)
     X_test = X_test.astype(np.float32)
+    if domainnet == DomainAwareNetBinaryClassifier:
+        y = y.astype(np.float32)
+        y_test = y_test.astype(np.float32)
+    elif domainnet == DomainAwareNetRegressor:
+        y = y.astype(np.float32)
+        y_test = y_test.astype(np.float32)
 
     # without dict
     method.fit(X, y, sample_domain=sample_domain)
