@@ -897,6 +897,7 @@ class DomainAwareNet(NeuralNetClassifier, _DAMetadataRequesterMixin):
 
         return loss.mean()
 
+
 class _DomainAwareNet(NeuralNet, _DAMetadataRequesterMixin):
     __metadata_request__fit = {"sample_weight": True}
     __metadata_request__score = {
@@ -1016,7 +1017,7 @@ class _DomainAwareNet(NeuralNet, _DAMetadataRequesterMixin):
             raise TypeError("predict_nonlinearity has to be a callable, 'auto' or None")
         return nonlin
 
-    def predict_DA_proba(
+    def predict_proba(
         self,
         X: Union[Dict, torch.Tensor, np.ndarray, Dataset],
         sample_domain: Union[torch.Tensor, np.ndarray] = None,
@@ -1279,7 +1280,8 @@ class DomainAwareNetClassifier(_DomainAwareNet, NeuralNetClassifier):
         allow_source: bool = False,
         **predict_params
     ):
-        return super().predict_DA_proba(
+        return _DomainAwareNet.predict_proba(
+            self,
             X,
             sample_domain,
             sample_weight,
@@ -1445,7 +1447,8 @@ class DomainAwareNetBinaryClassifier(_DomainAwareNet, NeuralNetBinaryClassifier)
         allow_source: bool = False,
         **predict_params
     ):
-        return super().predict_DA_proba(
+        return _DomainAwareNet.predict_proba(
+            self,
             X,
             sample_domain,
             sample_weight,
@@ -1572,7 +1575,8 @@ class DomainAwareNetBinaryClassifier(_DomainAwareNet, NeuralNetBinaryClassifier)
             loss = sample_weight * loss
             
         return loss.mean()
-    
+
+
 class DomainAwareNetRegressor(_DomainAwareNet, NeuralNetRegressor):
     __metadata_request__fit = {"sample_weight": True}
     __metadata_request__score = {'sample_weight': True, 'sample_domain': True, 'allow_source': True}
