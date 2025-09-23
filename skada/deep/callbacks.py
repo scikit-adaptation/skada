@@ -7,7 +7,7 @@ import torch.nn.functional as F
 from skorch.callbacks import Callback
 from skorch.utils import to_tensor
 
-from skada.deep.base import DomainAwareNet
+from skada.deep.base import DomainAwareNetClassifier
 from skada.deep.utils import SphericalKMeans
 
 
@@ -19,7 +19,9 @@ class ComputeSourceCentroids(Callback):
     in the adaptation criterion of the network for later use.
     """
 
-    def on_epoch_begin(self, net: DomainAwareNet, dataset_train=None, **kwargs):
+    def on_epoch_begin(
+        self, net: DomainAwareNetClassifier, dataset_train=None, **kwargs
+    ):
         """Compute source centroids at the beginning of each epoch.
 
         Parameters
@@ -86,7 +88,7 @@ class MemoryBank(Callback):
         super().__init__()
         self.momentum = momentum
 
-    def on_train_begin(self, net: DomainAwareNet, X=None, y=None):
+    def on_train_begin(self, net: DomainAwareNetClassifier, X=None, y=None):
         """This method is called at the beginning of training.
 
         Parameters
