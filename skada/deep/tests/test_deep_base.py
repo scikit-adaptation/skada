@@ -18,7 +18,9 @@ from skada.deep.base import (
     DeepDADataset,
     DomainAwareCriterion,
     DomainAwareModule,
+    DomainAwareNetBinaryClassifier,
     DomainAwareNetClassifier,
+    DomainAwareNetRegressor,
     DomainBalancedDataLoader,
     DomainBalancedSampler,
     DomainOnlyDataLoader,
@@ -92,20 +94,51 @@ def test_domainawaremodule_features_differ_between_domains():
     ), "Features of source and target domains are too similar."
 
 
-def test_domainawaretraining():
-    module = ToyModule2D()
-    module.eval()
-
+@pytest.mark.parametrize(
+    "domainnet",
+    [
+        DomainAwareNetClassifier,
+        DomainAwareNetRegressor,
+        DomainAwareNetBinaryClassifier,
+    ],
+)
+def test_domainawaretraining(domainnet):
     n_samples = 20
-    dataset = make_shifted_datasets(
-        n_samples_source=n_samples,
-        n_samples_target=n_samples,
-        shift="conditional_shift",
-        noise=0.1,
-        random_state=42,
-        return_dataset=True,
-    )
-    method = DomainAwareNetClassifier(
+    if domainnet == DomainAwareNetBinaryClassifier:
+        module = ToyModule2D(n_classes=1)
+        module.eval()
+        dataset = make_shifted_datasets(
+            n_samples_source=n_samples,
+            n_samples_target=n_samples,
+            shift="conditional_shift",
+            noise=0.1,
+            random_state=42,
+            return_dataset=True,
+        )
+    elif domainnet == DomainAwareNetRegressor:
+        module = ToyModule2D(n_classes=1, proba=False)
+        module.eval()
+        dataset = make_shifted_datasets(
+            n_samples_source=n_samples,
+            n_samples_target=n_samples,
+            shift="conditional_shift",
+            noise=0.1,
+            random_state=42,
+            return_dataset=True,
+            label="regression",
+        )
+    else:
+        module = ToyModule2D(n_classes=5)
+        dataset = make_shifted_datasets(
+            n_samples_source=n_samples,
+            n_samples_target=n_samples,
+            shift="conditional_shift",
+            noise=0.1,
+            random_state=42,
+            return_dataset=True,
+            label="multiclass",
+        )
+    method = domainnet(
         DomainAwareModule(module, "dropout"),
         iterator_train=DomainBalancedDataLoader,
         criterion=DomainAwareCriterion(torch.nn.CrossEntropyLoss(), TestLoss()),
@@ -113,7 +146,6 @@ def test_domainawaretraining():
         max_epochs=2,
         train_split=None,
     )
-
     X, y, sample_domain = dataset.pack(
         as_sources=["s"], as_targets=["t"], mask_target_labels=True
     )
