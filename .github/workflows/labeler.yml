@@ -13,4 +13,4 @@ jobs:
       issues: write
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/labeler@v5  # yamllint disable-line rule:indentation
+    - uses: actions/labeler@v6  # yamllint disable-line rule:indentation
