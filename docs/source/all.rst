@@ -65,12 +65,14 @@ DAEstimators with adapters (Pipeline):
       SubspaceAlignment
       TransferComponentAnalysis
       TransferJointMatching
+      TransferSubspaceLearning
       CORAL
       OTMapping
       EntropicOTMapping
       ClassRegularizerOTMapping
       LinearOTMapping
       MMDLSConSMapping
+      MultiLinearMongeAlignment
 
 Adapters:
    .. autosummary::
@@ -80,13 +82,14 @@ Adapters:
       SubspaceAlignmentAdapter
       TransferComponentAnalysisAdapter
       TransferJointMatchingAdapter
-      TransferSubspaceLearning
+      TransferSubspaceLearningAdapter
       CORALAdapter
       OTMappingAdapter
       EntropicOTMappingAdapter
       ClassRegularizerOTMappingAdapter
       LinearOTMappingAdapter
       MMDLSConSMappingAdapter
+      MultiLinearMongeAlignmentAdapter
 
 
 Other DA methods
@@ -96,8 +99,11 @@ Other DA methods
    :toctree: gen_modules/
    :template: function.rst
 
+   JDOTClassifier
    JDOTRegressor
    DASVMClassifier
+   OTLabelProp
+   JCPOTLabelProp
 
 DA pipeline
 ^^^^^^^^^^^
@@ -116,6 +122,7 @@ DA pipeline
    PerDomain
    SelectSource
    SelectTarget
+   SelectSourceTarget
 
 Utilities
 ^^^^^^^^^
@@ -149,11 +156,13 @@ Deep learning DA methods
 
    DeepCoral
    DeepJDOT
+   DAN
    DANN
    CDAN
    MCC
    CAN
    MDD
+   SPA
 
 
 SKADA deep learning DA losses
@@ -166,10 +175,12 @@ SKADA deep learning DA losses
    DeepCoralLoss
    DeepJDOTLoss
    DANLoss
+   DANNLoss
    CDANLoss
    MCCLoss
    CANLoss
    MDDLoss
+   SPALoss
 
 Torch compatible DA losses in :py:mod:`skada.deep.losses`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -189,6 +200,8 @@ Torch compatible DA losses in :py:mod:`skada.deep.losses`
    deepjdot_loss
    mcc_loss
    cdd_loss
+   gda_loss
+   nap_loss
 
 
 DA metrics :py:mod:`skada.metrics`

@@ -1,9 +1,6 @@
-
-
 [build-system]
 requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
-
 
 [project]
 dynamic = ["version"]
@@ -14,13 +11,8 @@ authors = [
         ]
 license = {file = "COPYING"}
 readme = "README.md"
-dependencies = [
-    "numpy >= 1.24",
-    "scipy >= 1.10",
-    "scikit-learn >= 1.5.0",
-    "POT >= 0.9.3",
-]
-keywords = ["domain-adaptation", "scikit-learn", "pytorch", 
+requires-python = ">= 3.9"
+keywords = ["domain-adaptation", "scikit-learn", "pytorch",
             "machine learning", "deep learning"]
 classifiers=[
   "Intended Audience :: Science/Research",
@@ -42,19 +34,129 @@ classifiers=[
   "Programming Language :: Python :: 3.12",
 ]
 
+dependencies = [
+    "numpy >= 1.24",
+    "scipy >= 1.10",
+    "scikit-learn >= 1.5.0",
+    "POT >= 0.9.3",
+    "pandas>=2.3.0",
+]
+
+[project.optional-dependencies]
+subspace = ["torch"]
+
+deep = [
+    "torch",
+    "torchvision",
+    "skorch",
+]
+
+test = [
+    "pytest",
+    "pytest-cov",
+    "codecov"
+]
+
+doc = [
+    "sphinx",
+    "sphinx_gallery",
+    "sphinx_rtd_theme",
+    "numpydoc",
+    "memory_profiler",
+    "myst-parser",
+    "ipython",
+    "matplotlib",
+    "torch",
+    "torchvision",
+    "skorch",
+]
+
 [project.urls]
 homepage = "https://scikit-adaptation.github.io/"
 documentation = "https://scikit-adaptation.github.io/"
 repository = "https://github.com/scikit-adaptation/skada/"
-
-# Optional dependencies
-[project.optional-dependencies]
-all = ["torch", "torchvision", "skorch"]
-deep = ["torch", "torchvision", "skorch"]
-subspace = ["torch"]
 
 [tool.setuptools]
 packages = ["skada"]
 
 [tool.setuptools.dynamic]
 version = {attr = "skada.version.__version__"}
+
+[tool.pytest.ini_options]
+
+# disable-pytest-warnings should be removed once we rewrite tests
+# using yield with parametrize
+doctest_optionflags = "NORMALIZE_WHITESPACE ELLIPSIS"
+testpaths = "skada"
+addopts = [
+    "--doctest-modules",
+    "--disable-pytest-warnings",
+    "--color=yes",
+    "-rN",
+]
+markers = [
+    "dataset: Tests a dataset."
+]
+
+[tool.codespell]
+skip = [
+    "./.git",
+    "./doc/_build",
+    "./doc/auto_examples",
+    "./doc/modules/generated"
+]
+
+ignore-words = "ignore-words.txt"
+
+[tool.rstcheck]
+report_level = "WARNING"
+ignore_roles = [
+    "attr",
+    "class",
+    "doc",
+    "eq",
+    "exc",
+    "file",
+    "footcite",
+    "footcite:t",
+    "func",
+    "gh",
+    "kbd",
+    "meth",
+    "mod",
+    "newcontrib",
+    "py:mod",
+    "ref",
+    "samp",
+    "term"
+]
+
+ignore_directives = [
+    "autoclass",
+    "autofunction",
+    "automodule",
+    "autosummary",
+    "bibliography",
+    "cssclass",
+    "currentmodule",
+    "dropdown",
+    "footbibliography",
+    "glossary",
+    "graphviz",
+    "grid",
+    "highlight",
+    "minigallery",
+    "tabularcolumns",
+    "toctree",
+    "rst-class",
+    "tab-set",
+    "towncrier-draft-entries",
+    "include"
+]
+
+ignore_messages = "^.*(Unknown target name|Undefined substitution referenced)[^`]*$"
+
+
+
+
+
