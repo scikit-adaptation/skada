@@ -29,9 +29,9 @@ jobs:
 
     # Install skada
     - name: Checking Out Repository  # yamllint disable-line rule:indentation
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     # Install Python & Packages
-    - uses: actions/setup-python@v5
+    - uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
         cache: 'pip'  # caching pip dependencies
