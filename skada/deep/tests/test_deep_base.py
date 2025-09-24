@@ -714,7 +714,14 @@ def test_allow_source():
     method.predict_proba(X, sample_domain, allow_source=False)
 
 
-def test_deep_domain_aware_dataset():
+@pytest.mark.parametrize(
+    "label_type",
+    [
+        "binary",
+        "regression",
+    ],
+)
+def test_deep_domain_aware_dataset(label_type):
     def are_DDAD_equal(a, b):
         """Helper function to compare two DDADs."""
         correct = True
@@ -736,7 +743,9 @@ def test_deep_domain_aware_dataset():
                         )
                 except RuntimeError:
                     try:
-                        if (a.__dict__[attr] != b.__dict__[attr]).any():
+                        if not np.array_equal(
+                            a.__dict__[attr], b.__dict__[attr], equal_nan=True
+                        ):
                             print(
                                 f"Attribute {attr} differs between datasets: "
                                 f"{a.__dict__[attr]} != {b.__dict__[attr]}"
@@ -752,11 +761,14 @@ def test_deep_domain_aware_dataset():
 
     _RANDOM_STATE_ = 42
     # data creation
-    raw_data = make_shifted_datasets(
+    dataset = make_shifted_datasets(
         20,
         20,
         random_state=_RANDOM_STATE_,
+        label=label_type,
+        return_dataset=True,
     )
+    raw_data = dataset.pack(as_sources=["s"], as_targets=["t"], mask_target_labels=True)
     X, y, sd = raw_data
     raw_data_dict = {"X": X, "y": y, "sample_domain": sd}
     # though these are not technically weights, they will act as such for the tests
@@ -809,9 +821,9 @@ def test_deep_domain_aware_dataset():
     d1 = weighted_dataset.as_dict(sample_indices=False)
     assert d1.keys() == weighted_raw_data_dict.keys()
     for key in d1.keys():
-        assert (d1[key] == weighted_raw_data_dict[key]).all()
+        assert np.array_equal(d1[key], weighted_raw_data_dict[key], equal_nan=True)
     for v1, v2 in zip(weighted_dataset.as_arrays(), (X, y, sd, weights)):
-        assert (v1 == v2).all()
+        assert np.array_equal(v1, v2, equal_nan=True)
 
     # Data selection
     source_data = (X[sd >= 0], y[sd >= 0], sd[sd >= 0], weights[sd >= 0])
