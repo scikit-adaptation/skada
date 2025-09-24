@@ -1040,7 +1040,7 @@ class _DomainAwareNet(NeuralNet, _DAMetadataRequesterMixin):
         sample_weight : torch.Tensor or np.ndarray, optional
             The weight of each sample (not used in prediction, but included for consistency).
         allow_source: bool = False,
-            Allow the presence of source domains. 
+            Allow the presence of source domains.
             If False, only the target are selected for prediction.
         **predict_params : dict
             Additional parameters passed to the predict_proba method of the base class.
@@ -1074,7 +1074,7 @@ class _DomainAwareNet(NeuralNet, _DAMetadataRequesterMixin):
             self.initialize()
 
         X = self._prepare_input(X)
-        
+
         features_list = []
         for features in self.feature_iter(X, training=False):
             features = features[0] if isinstance(features, tuple) else features
@@ -1275,23 +1275,6 @@ class DomainAwareNetClassifier(_DomainAwareNet, NeuralNetClassifier):
             **kwargs
         )
 
-    def predict_proba(
-        self,
-        X: Union[Dict, torch.Tensor, np.ndarray, Dataset],
-        sample_domain: Union[torch.Tensor, np.ndarray] = None,
-        sample_weight: Union[torch.Tensor, np.ndarray] = None,
-        allow_source: bool = False,
-        **predict_params
-    ):
-        return _DomainAwareNet.predict_proba(
-            self,
-            X,
-            sample_domain,
-            sample_weight,
-            allow_source,
-            **predict_params
-        )
-
     def predict(
         self,
         X: Union[Dict, torch.Tensor, np.ndarray, Dataset],
@@ -1429,9 +1412,9 @@ class DomainAwareNetBinaryClassifier(_DomainAwareNet, NeuralNetBinaryClassifier)
     __metadata_request__score = {'sample_weight': True, 'sample_domain': True, 'allow_source': True}
 
     def __init__(
-        self, 
-        module, 
-        iterator_train=None, 
+        self,
+        module,
+        iterator_train=None,
         criterion=torch.nn.BCEWithLogitsLoss,
         **kwargs
     ):
@@ -1440,23 +1423,6 @@ class DomainAwareNetBinaryClassifier(_DomainAwareNet, NeuralNetBinaryClassifier)
             iterator_train=iterator_train,
             criterion=criterion,
             **kwargs
-        )
-
-    def predict_proba(
-        self,
-        X: Union[Dict, torch.Tensor, np.ndarray, Dataset],
-        sample_domain: Union[torch.Tensor, np.ndarray] = None,
-        sample_weight: Union[torch.Tensor, np.ndarray] = None,
-        allow_source: bool = False,
-        **predict_params
-    ):
-        return _DomainAwareNet.predict_proba(
-            self,
-            X,
-            sample_domain,
-            sample_weight,
-            allow_source,
-            **predict_params
         )
 
     def predict(
@@ -1489,10 +1455,10 @@ class DomainAwareNetBinaryClassifier(_DomainAwareNet, NeuralNetBinaryClassifier)
             The predicted binary classes (0 or 1).
         """
         probas = self.predict_proba(
-            X, 
-            sample_domain, 
-            sample_weight, 
-            allow_source, 
+            X,
+            sample_domain,
+            sample_weight,
+            allow_source,
             **predict_params
         )
         return (probas > 0.5).astype(np.uint8)
@@ -1533,14 +1499,14 @@ class DomainAwareNetBinaryClassifier(_DomainAwareNet, NeuralNetBinaryClassifier)
         if not allow_source:
             X = X.select_target()
         y_pred = self.predict(
-            X, 
-            sample_domain, 
-            sample_weight, 
+            X,
+            sample_domain,
+            sample_weight,
             allow_source=allow_source
         )
         return accuracy_score(
-            y, 
-            y_pred, 
+            y,
+            y_pred,
             sample_weight=sample_weight
         )
 
@@ -1567,7 +1533,7 @@ class DomainAwareNetBinaryClassifier(_DomainAwareNet, NeuralNetBinaryClassifier)
             The calculated loss, weighted by sample weights if provided.
         """
         loss = super().get_loss(y_pred, y_true, X, *args, **kwargs)
-        
+
         if "sample_weight" in X and X["sample_weight"] is not None:
             sample_weight = to_tensor(X["sample_weight"], device=self.device)
             sample_weight = sample_weight[X["sample_domain"] > 0]
@@ -1576,7 +1542,7 @@ class DomainAwareNetBinaryClassifier(_DomainAwareNet, NeuralNetBinaryClassifier)
                     "Criterion returns scalar loss but sample weights are provided"
                 )
             loss = sample_weight * loss
-            
+
         return loss.mean()
 
 
@@ -1614,22 +1580,6 @@ class DomainAwareNetRegressor(_DomainAwareNet, NeuralNetRegressor):
             **kwargs
         )
 
-    def predict_proba(
-        self,
-        X: Union[Dict, torch.Tensor, np.ndarray, Dataset],
-        sample_domain: Union[torch.Tensor, np.ndarray] = None,
-        sample_weight: Union[torch.Tensor, np.ndarray] = None,
-        allow_source: bool = False,
-        **predict_params
-    ):
-        return super().predict_proba(
-            X,
-            sample_domain,
-            sample_weight,
-            allow_source,
-            **predict_params
-        )
-
     def predict(self, X: Union[Dict, torch.Tensor, np.ndarray, Dataset],
                 sample_domain: Union[torch.Tensor, np.ndarray] = None,
                 sample_weight: Union[torch.Tensor, np.ndarray] = None,
@@ -1658,7 +1608,7 @@ class DomainAwareNetRegressor(_DomainAwareNet, NeuralNetRegressor):
         np.ndarray
             The predictions.
         """
-        return self().predict_proba(
+        return super().predict_proba(
             X,
             sample_domain,
             sample_weight,
