@@ -69,6 +69,7 @@ doc = [
     "torch",
     "torchvision",
     "skorch",
+    "fairlearn",
 ]
 
 [project.urls]
