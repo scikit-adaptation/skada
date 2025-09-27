@@ -97,7 +97,6 @@ print("Accuracy on target:", clf.score(Xt, yt))
 # DA estimator in a pipeline
 # -----------------------------
 #
-
 # SKADA estimators can be used as the final estimator of a scikit-learn pipeline.
 # Again, the only difference is that the :code:`sample_domain` array must be passed
 # by name during in fit.
@@ -121,7 +120,7 @@ print("Accuracy on target:", pipe.score(Xt, yt))
 # Here is an example with the CORAL and GaussianReweight adapters.
 #
 # .. WARNING::
-
+#
 #   Note that as illustrated below for reweighting adapters, one needs a
 #   subsequent estimator that takes :code:`sample_weight` as an input parameter.
 #   This can be done using the :code:`set_fit_request` method of the estimator
