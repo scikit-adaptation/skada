@@ -6,13 +6,13 @@ Skada v0.5.0 Release Highlights
 
 This update brings significant enhancements and new features:
 
-1. Fix target labels masking in shallow methods.
-2. Remove the functions pack_train and pack_test for DomainAwareDataset.
-3. Add DeepDADataset to deal with the dataset for Deep DA.
-4. Improve DomainAwareDataset to deal with tensors.
-5. New Scorer -> MaNo.
-6. Improvement of the dependencies of skada.
-7. Fix CodeCov for the main branch.
+1. API Enhancement: Fix target labels masking in shallow methods.
+2. API Enhancement: Remove the functions `pack_train` and `pack_test` for DomainAwareDataset.
+3. New Feature: Add DeepDADataset to deal with the dataset for Deep DA.
+4. Function Enhancement: Improve DomainAwareDataset to deal with tensors.
+5. New Scorer: Introduce MaNo scorer.
+6. Enhancement: Improve the dependencies of skada.
+7. Enhancement: Fix CodeCov for the main branch.
 
 
 ## What's Changed
