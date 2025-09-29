@@ -1,5 +1,63 @@
 # Releases
 
+## Skada v0.5.0
+
+Skada v0.5.0 Release Highlights
+
+This update brings significant enhancements and new features:
+
+1. API Enhancement: Fix target labels masking in shallow methods.
+2. API Enhancement: Remove the functions `pack_train` and `pack_test` for DomainAwareDataset.
+3. New Feature: Add DeepDADataset to deal with the dataset for Deep DA.
+4. Function Enhancement: Improve DomainAwareDataset to deal with tensors.
+5. New Scorer: Introduce MaNo scorer.
+6. Enhancement: Improve the dependencies of skada.
+7. Enhancement: Fix CodeCov for the main branch.
+
+
+## What's Changed
+* [MRG] Fix Github action version v2 -> v4 and fix test with skorch update by @tgnassou in https://github.com/scikit-adaptation/skada/pull/292
+* [WIP] Add new scorer: MaNoScorer by @ambroiseodt in https://github.com/scikit-adaptation/skada/pull/289
+* [MRG] renaming, issue #294 by @mbarneche in https://github.com/scikit-adaptation/skada/pull/299
+* [MRG] typo fix, issue #297 by @mbarneche in https://github.com/scikit-adaptation/skada/pull/298
+* [MRG] Fix test after sklearn update where the text of a Value error changed by @tgnassou in https://github.com/scikit-adaptation/skada/pull/303
+* [MRG] Add DeepDADataset by @mbarneche in https://github.com/scikit-adaptation/skada/pull/302
+* [MRG] added skada.datasets.DomainAwareDataset to the doc by @arthurdrk in https://github.com/scikit-adaptation/skada/pull/307
+* Move Contributing to root by @lionelkusch in https://github.com/scikit-adaptation/skada/pull/316
+* Update version number and add logos of projects by @rflamary in https://github.com/scikit-adaptation/skada/pull/319
+* Update README.md by @rflamary in https://github.com/scikit-adaptation/skada/pull/320
+* Update README.md by @rflamary in https://github.com/scikit-adaptation/skada/pull/321
+* Update pyproject.toml by @ambroiseodt in https://github.com/scikit-adaptation/skada/pull/318
+* Update link for download some dataset by @lionelkusch in https://github.com/scikit-adaptation/skada/pull/324
+* Add dependabot by @lionelkusch in https://github.com/scikit-adaptation/skada/pull/325
+* Fix git action of version by @lionelkusch in https://github.com/scikit-adaptation/skada/pull/327
+* [DOC] fix sklearn FutureWarning in `check_array`. by @vloison in https://github.com/scikit-adaptation/skada/pull/322
+* Update yml linter configuration by @lionelkusch in https://github.com/scikit-adaptation/skada/pull/331
+* Fix CodeCov parameters by @lionelkusch in https://github.com/scikit-adaptation/skada/pull/329
+* [MRG] Update CONTRIBUTING.md by @ambroiseodt in https://github.com/scikit-adaptation/skada/pull/333
+* Include pack_train and pack_test in pack to get one method by @MellotApolline in https://github.com/scikit-adaptation/skada/pull/317
+* Improve warnings in doc by @antoinecollas in https://github.com/scikit-adaptation/skada/pull/336
+* Add missing classes and functions to the doc by @MellotApolline in https://github.com/scikit-adaptation/skada/pull/335
+* Separate the test of dataset to other tests by @lionelkusch in https://github.com/scikit-adaptation/skada/pull/332
+* Fix codecov for main branch by @lionelkusch in https://github.com/scikit-adaptation/skada/pull/340
+* Add automatic labeler to PR by @rflamary in https://github.com/scikit-adaptation/skada/pull/346
+* Fix Labeler by @rflamary in https://github.com/scikit-adaptation/skada/pull/347
+* Use Flag for improving the management of CodeCov by @lionelkusch in https://github.com/scikit-adaptation/skada/pull/343
+* [MRG] Add automatic target label masking to prevent data leakage by @YanisLalou in https://github.com/scikit-adaptation/skada/pull/330
+* Bump the actions group across 1 directory with 3 updates by @dependabot[bot] in https://github.com/scikit-adaptation/skada/pull/349
+* [MRG] Handle torch tensor in DomainAwareDataset by @tom-yneuro in https://github.com/scikit-adaptation/skada/pull/337
+* [MRG] Make DeepDADAtaset deal with regression masking by @tgnassou in https://github.com/scikit-adaptation/skada/pull/352
+
+## New Contributors
+* @mbarneche made their first contribution in https://github.com/scikit-adaptation/skada/pull/299
+* @arthurdrk made their first contribution in https://github.com/scikit-adaptation/skada/pull/307
+* @lionelkusch made their first contribution in https://github.com/scikit-adaptation/skada/pull/316
+* @MellotApolline made their first contribution in https://github.com/scikit-adaptation/skada/pull/317
+* @dependabot[bot] made their first contribution in https://github.com/scikit-adaptation/skada/pull/349
+* @tom-yneuro made their first contribution in https://github.com/scikit-adaptation/skada/pull/337
+
+**Full Changelog**: https://github.com/scikit-adaptation/skada/compare/0.4.0...0.5.0
+
 ## Skada v0.4.0
 
 This update brings significant enhancements and new features:
