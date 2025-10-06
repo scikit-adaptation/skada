@@ -28,10 +28,9 @@ class GradualEstimator(DAEstimator):
         The number of adaptation steps.
     ot_method : ot.da.DAEstimator, default=SinkhornTransport
         The Optimal Transport method to use.
-    base_estimator : sklearn classifier, default=None
-        The classifier to use. If None, a MLPClassifier with default parameters
-        is used. Note that the GOAT algorithm is designed for neural-networks methods,
-        and that the classifier must have a `fit` and `predict` method.
+    base_estimator : BaseEstimator, default=None
+        The classifier to use. If None, a MLPClassifier with default parameters is
+        used. Note that the GOAT algorithm is designed for neural-networks methods.
     advanced_ot_plan_sampling : bool, default=False
         Whether to use the advanced OT plan sampling strategy.
         This strategy consists in sampling at least one point per column and row
