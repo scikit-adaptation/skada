@@ -118,5 +118,8 @@ def load_mnist_usps(
         return dataset
     else:
         return dataset.pack(
-            as_sources=["mnist"], as_targets=["usps"], return_X_y=return_X_y
+            as_sources=["mnist"],
+            as_targets=["usps"],
+            return_X_y=return_X_y,
+            mask_target_labels=False,
         )

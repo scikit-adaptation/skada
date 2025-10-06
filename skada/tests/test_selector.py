@@ -90,7 +90,9 @@ def test_base_selector_remove_masked(step):
         random_state=42,
         return_dataset=True,
     )
-    X, y, sample_domain = dataset.pack_train(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
+    )
 
     pipe = make_da_pipeline(step)
     # no ValueError is raised
@@ -106,8 +108,8 @@ def test_base_selector_no_filtering_transformer():
         random_state=42,
         return_dataset=True,
     )
-    X_train, y_train, sample_domain = dataset.pack_train(
-        as_sources=["s"], as_targets=["t"]
+    X_train, y_train, sample_domain = dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
     )
 
     output = {}
@@ -196,7 +198,9 @@ def test_selector_rejects_incompatible_adaptation_output():
     ],
 )
 def test_source_selector_with_estimator(da_multiclass_dataset, selector_cls, side):
-    X, y, sample_domain = da_multiclass_dataset.pack(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = da_multiclass_dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=False
+    )
     X_source, X_target = source_target_split(X, sample_domain=sample_domain)
     output = {}
 
@@ -240,7 +244,9 @@ def test_source_selector_with_estimator(da_multiclass_dataset, selector_cls, sid
 def test_source_selector_with_transformer(
     da_multiclass_dataset, selector_cls, side, _fit_transform
 ):
-    X, y, sample_domain = da_multiclass_dataset.pack(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = da_multiclass_dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=False
+    )
     X_source, X_target = source_target_split(X, sample_domain=sample_domain)
     output = {}
 
@@ -282,7 +288,9 @@ def test_source_selector_with_transformer(
     ],
 )
 def test_source_selector_with_weights(da_multiclass_dataset, selector_cls, side):
-    X, y, sample_domain = da_multiclass_dataset.pack(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = da_multiclass_dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=False
+    )
     sample_weight = np.ones(X.shape[0])
     X_source, X_target = source_target_split(X, sample_domain=sample_domain)
     output = {}
@@ -318,7 +326,9 @@ def test_source_selector_with_weights(da_multiclass_dataset, selector_cls, side)
 def test_source_target_selector(
     da_multiclass_dataset, source_estimator, target_estimator
 ):
-    X, y, sample_domain = da_multiclass_dataset.pack(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = da_multiclass_dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=False
+    )
     source_masks = extract_source_indices(sample_domain)
     # make sure sources and targets have significantly different mean
     X[source_masks] += 100 * np.ones((source_masks.sum(), X.shape[1]))
@@ -354,7 +364,9 @@ def test_source_target_selector(
 
 
 def test_source_target_selector_fails_on_missing_domain(da_multiclass_dataset):
-    X, y, sample_domain = da_multiclass_dataset.pack(as_sources=["s"], as_targets=["t"])
+    X, y, sample_domain = da_multiclass_dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=False
+    )
     source_masks = extract_source_indices(sample_domain)
     pipe = make_da_pipeline(SelectSourceTarget(StandardScaler()), SVC())
 
@@ -376,3 +388,38 @@ def test_source_target_selector_fails_on_missing_domain(da_multiclass_dataset):
 def test_source_target_selector_non_transformers():
     with pytest.raises(TypeError):
         SelectSourceTarget(StandardScaler(), SVC())
+
+
+def test_select_target_raises_error_on_masking():
+    """
+    Check that SelectTarget raises a ValueError
+    when mask_target_labels is True.
+    """
+    with pytest.raises(
+        ValueError, match="Target labels cannot be masked for SelectTarget."
+    ):
+        SelectTarget(LogisticRegression(), mask_target_labels=True)
+
+
+def test_select_source_target_raises_error_on_masking():
+    """
+    Check that SelectSourceTarget raises a ValueError
+    when mask_target_labels is True.
+    """
+    with pytest.raises(
+        ValueError, match="Target labels cannot be masked for SelectSourceTarget."
+    ):
+        SelectSourceTarget(LogisticRegression(), mask_target_labels=True)
+
+
+def test_make_da_pipeline_with_select_source_target():
+    """
+    Check that make_da_pipeline can be instantiated
+    with SelectSourceTarget.
+    """
+    make_da_pipeline(
+        StandardScaler(),
+        SelectSource(SVC()),
+        default_selector=SelectSourceTarget,
+        mask_target_labels=False,
+    )
