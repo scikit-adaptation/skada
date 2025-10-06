@@ -26,7 +26,7 @@ class GradualEstimator(DAEstimator):
         Only used when `advanced_ot_plan_sampling=False`.
     T : int, default=10
         The number of adaptation steps.
-    ot_method : ot.da.DAEstimator, default=SinkhornTransport
+    ot_method : ot.da.BaseTransport, default=SinkhornTransport
         The Optimal Transport method to use.
     base_estimator : BaseEstimator, default=None
         The classifier to use. If None, a MLPClassifier with default parameters is
@@ -92,13 +92,11 @@ class GradualEstimator(DAEstimator):
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
-            The source data.
+            The data.
         y : array-like, shape (n_samples,)
-            The source labels.
-        T : int, default=10
-            The number of adaptation steps.
+            The labels.
         sample_domain : array-like, shape (n_samples,)
-            The domain labels (same as sample_domain).
+            The domain labels.
 
         Returns
         -------
@@ -146,6 +144,7 @@ class GradualEstimator(DAEstimator):
         return self
 
     def _cut_off_gamma(self, gamma):
+        """Cut off the OT mapping to keep only the largest values."""
         n, m = gamma.shape
         # Get the self.alpha * (n + m) largest coefficients of gamma
         self.max_index = int(min(self.alpha * (n + m), gamma.size - 1))
@@ -154,6 +153,7 @@ class GradualEstimator(DAEstimator):
         return gamma >= threshold
 
     def _advanced_cut_off_gamma(self, gamma):
+        """Cut off the OT mapping to keep at least one value per row and column."""
         n, m = gamma.shape
         # Keep only the largest element of each row and column
         row_max = np.zeros((n, m), dtype=bool)
@@ -171,14 +171,14 @@ class GradualEstimator(DAEstimator):
 
         Parameters
         ----------
+        X : array-like, shape (n_samples, n_features)
+            The data.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels.
+        mask_gamma : array-like, shape (n_samples, n_samples)
+            The pruned OT mapping.
         t : int
             The current step.
-        X : array-like, shape (n_samples, n_features)
-            The source data.
-        y : array-like, shape (n_samples,)
-            The source labels.
-        gamma : array-like, shape (n_samples, n_samples)
-            The OT mapping.
 
         Returns
         -------
