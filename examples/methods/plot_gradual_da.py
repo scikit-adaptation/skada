@@ -71,7 +71,7 @@ plt.axis(lims)
 base_estimator = MLPClassifier(hidden_layer_sizes=(50, 50))
 
 gradual_adapter = GradualEstimator(
-    T=40,  # number of adaptation steps
+    n_steps=40,  # number of adaptation steps
     base_estimator=base_estimator,
     advanced_ot_plan_sampling=True,
     save_estimators=True,
@@ -123,10 +123,10 @@ steps_to_plot = [5, 10, 15, 20, 25, 30, 35, 40]
 
 for i, step in enumerate(steps_to_plot):
     ax = axes[i]
-    X_t, y_t = intermediate_data[step - 1]
+    X_step, y_step = intermediate_data[step - 1]
     clf = clfs[step - 1]
 
-    ax.scatter(X_t[:, 0], X_t[:, 1], c=y_t, vmax=9, cmap="tab10", alpha=0.7)
+    ax.scatter(X_step[:, 0], X_step[:, 1], c=y_step, vmax=9, cmap="tab10", alpha=0.7)
     DecisionBoundaryDisplay.from_estimator(
         clf,
         X,

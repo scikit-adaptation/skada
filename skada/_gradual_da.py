@@ -8,6 +8,7 @@ from copy import deepcopy
 import numpy as np
 from ot import da
 from sklearn.neural_network import MLPClassifier
+from sklearn.utils.validation import check_is_fitted
 
 from skada.base import DAEstimator
 
@@ -24,7 +25,7 @@ class GradualEstimator(DAEstimator):
         More precisely, at each step, we generate alpha * (n + m) samples,
         where n and m are the number of source and target samples.
         Only used when `advanced_ot_plan_sampling=False`.
-    T : int, default=10
+    n_steps : int, default=10
         The number of adaptation steps.
     ot_method : ot.da.BaseTransport, default=SinkhornTransport
         The Optimal Transport method to use.
@@ -49,7 +50,6 @@ class GradualEstimator(DAEstimator):
     """
 
     __metadata_request__fit = {"sample_domain": True}
-    __metadata_request__partial_fit = {"sample_domain": False}
     __metadata_request__predict = {"sample_domain": False, "allow_source": False}
     __metadata_request__predict_proba = {"sample_domain": False, "allow_source": False}
     __metadata_request__predict_log_proba = {
@@ -65,7 +65,7 @@ class GradualEstimator(DAEstimator):
     def __init__(
         self,
         alpha=1,
-        T=10,
+        n_steps=10,
         ot_method=da.SinkhornTransport(
             reg_e=1.0,
             metric="sqeuclidean",
@@ -79,7 +79,7 @@ class GradualEstimator(DAEstimator):
         save_intermediate_data=False,
     ):
         self.alpha = alpha
-        self.T = T
+        self.n_steps = n_steps
         self.ot_method = ot_method
         self.base_estimator = base_estimator
         self.advanced_ot_plan_sampling = advanced_ot_plan_sampling
@@ -115,7 +115,6 @@ class GradualEstimator(DAEstimator):
         else:
             mask_gamma = self._cut_off_gamma(gamma)
         source = sample_domain >= 0
-        X_t = X.copy()
         if not self.base_estimator:
             default_params = {
                 "hidden_layer_sizes": (100,),
@@ -132,15 +131,16 @@ class GradualEstimator(DAEstimator):
             self.estimators_.append(deepcopy(self.base_estimator))
         if self.save_intermediate_data:
             self.intermediate_data_ = []
-        for t in range(1, self.T + 1):
-            X_t, y_t = self.generate_data_at_t(X, sample_domain, mask_gamma, t)
-
+        for step in range(1, self.n_steps + 1):
+            X_step, y_step = self.generate_data_at_step(
+                X, sample_domain, mask_gamma, step
+            )
             self.base_estimator.max_iter += 100
-            self.base_estimator.fit(X_t, y_t)
+            self.base_estimator.fit(X_step, y_step)
             if self.save_estimators:
                 self.estimators_.append(deepcopy(self.base_estimator))
             if self.save_intermediate_data:
-                self.intermediate_data_.append((X_t, y_t))
+                self.intermediate_data_.append((X_step, y_step))
         return self
 
     def _cut_off_gamma(self, gamma):
@@ -166,8 +166,8 @@ class GradualEstimator(DAEstimator):
         self.max_index = int(combined_mask.sum()) - 1
         return combined_mask
 
-    def generate_data_at_t(self, X, sample_domain, mask_gamma, t):
-        """Generate data at a given time step t.
+    def generate_data_at_step(self, X, sample_domain, mask_gamma, step):
+        """Generate data at a given time step.
 
         Parameters
         ----------
@@ -177,26 +177,31 @@ class GradualEstimator(DAEstimator):
             The domain labels.
         mask_gamma : array-like, shape (n_samples, n_samples)
             The pruned OT mapping.
-        t : int
+        step : int
             The current step.
 
         Returns
         -------
-        X_t : array-like, shape (n_samples_k, n_features)
-            The generated data at step k.
-        y_t : array-like, shape (n_samples_k,)
+        X_step : array-like, shape (n_intermediate_samples, n_features)
+            The generated data at this step. `n_intermediate_samples` is
+            the number of non-zero entries in `mask_gamma`.
+        y_step : array-like, shape (n_intermediate_samples,)
             The labels for the generated data.
         """
         source = sample_domain >= 0
         target = sample_domain < 0
         X_source = X[source]
         X_target = X[target]
-        X_t = np.zeros((self.max_index + 1, X.shape[1]))
+        X_step = np.zeros((self.max_index + 1, X.shape[1]))
         for idx, (i, j) in enumerate(np.argwhere(mask_gamma)):
-            X_t[idx] = (self.T - t) * X_source[i] / self.T + t * X_target[j] / self.T
+            X_step[idx] = (self.n_steps - step) * X_source[
+                i
+            ] / self.n_steps + step * X_target[j] / self.n_steps
 
-        y_t = self.base_estimator.predict(X_t)  # Use the classifier to predict labels
-        return X_t, y_t
+        y_step = self.base_estimator.predict(
+            X_step
+        )  # Use the classifier to predict labels
+        return X_step, y_step
 
     def get_intermediate_estimators(self):
         """Return the intermediate estimators.
@@ -221,8 +226,11 @@ class GradualEstimator(DAEstimator):
         y_pred : array-like, shape (n_samples,)
             The predicted labels.
         """
-        if not hasattr(self, "base_estimator"):
+        if self.base_estimator is None:
             raise ValueError("The model has not been fitted yet.")
+
+        else:
+            check_is_fitted(self.base_estimator)
 
         # Use the last classifier to predict
         return self.base_estimator.predict(X, **kwargs)
@@ -240,8 +248,12 @@ class GradualEstimator(DAEstimator):
         y_proba : array-like, shape (n_samples, n_classes)
             The predicted class probabilities.
         """
-        if not hasattr(self, "base_estimator"):
+        if self.base_estimator is None:
             raise ValueError("The model has not been fitted yet.")
+
+        else:
+            check_is_fitted(self.base_estimator)
+
         if not hasattr(self.base_estimator, "predict_proba"):
             raise ValueError("The underlying estimator does not support predict_proba.")
 
@@ -260,8 +272,12 @@ class GradualEstimator(DAEstimator):
         y_log_proba : array-like, shape (n_samples, n_classes)
             The predicted class log-probabilities.
         """
-        if not hasattr(self, "base_estimator"):
+        if self.base_estimator is None:
             raise ValueError("The model has not been fitted yet.")
+
+        else:
+            check_is_fitted(self.base_estimator)
+
         if not hasattr(self.base_estimator, "predict_log_proba"):
             raise ValueError(
                 "The underlying estimator does not support predict_log_proba."
@@ -284,8 +300,10 @@ class GradualEstimator(DAEstimator):
         score : float
             The accuracy of the model.
         """
-        if not hasattr(self, "base_estimator"):
+        if self.base_estimator is None:
             raise ValueError("The model has not been fitted yet.")
 
         else:
-            return (self.base_estimator.predict(X) == y).sum() / len(y)
+            check_is_fitted(self.base_estimator)
+
+        return (self.base_estimator.predict(X) == y).sum() / len(y)

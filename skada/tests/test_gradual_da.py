@@ -33,10 +33,23 @@ def test_gradual_estimator(label, n, m, advanced_ot_plan_sampling):
     X, y, sample_domain = check_X_y_domain(X, y, sample_domain)
 
     clf_gradual = GradualEstimator(
-        T=5,
+        n_steps=5,
         advanced_ot_plan_sampling=advanced_ot_plan_sampling,
         save_estimators=True,
-    ).fit(X, y, sample_domain=sample_domain)
+    )
+    # Check that predict, predict_proba, predict_log_proba, and score
+    # return an error when the estimator is not fitted
+    with pytest.raises(ValueError):
+        clf_gradual.predict(X)
+    with pytest.raises(ValueError):
+        clf_gradual.predict_proba(X)
+    with pytest.raises(ValueError):
+        clf_gradual.predict_log_proba(X)
+    with pytest.raises(ValueError):
+        clf_gradual.score(X, y)
+
+    # Fit the gradual estimator
+    clf_gradual.fit(X, y, sample_domain=sample_domain)
 
     assert (
         clf_gradual.predict(X).shape == y.shape
@@ -58,15 +71,15 @@ def test_gradual_estimator(label, n, m, advanced_ot_plan_sampling):
     # Test get_intermediate_estimators
     intermediate_estimators = clf_gradual.get_intermediate_estimators()
     assert isinstance(intermediate_estimators, list)
-    # T=5, so there should be 5 intermediate estimators + the final one
+    # n_steps=5, so there should be 5 intermediate estimators + the final one
     assert len(intermediate_estimators) == 6
 
     # The `GradualEstimator` should be usable with `make_da_pipeline`
     manage_pipeline = False
     try:
-        clf_gradual = make_da_pipeline(StandardScaler(), GradualEstimator(T=5)).fit(
-            X, y, sample_domain=sample_domain
-        )
+        clf_gradual = make_da_pipeline(
+            StandardScaler(), GradualEstimator(n_steps=5)
+        ).fit(X, y, sample_domain=sample_domain)
         manage_pipeline = True
     finally:
         assert manage_pipeline, "Couldn't use make_da_pipeline with GradualEstimator"
