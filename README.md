@@ -249,3 +249,5 @@ The library is distributed under the 3-Clause BSD license.
 [36] Xiao, Zhiqing, Wang, Haobo, Jin, Ying, Feng, Lei, Chen, Gang, Huang, Fei, Zhao, Junbo.[SPA: A Graph Spectral Alignment Perspective for Domain Adaptation](https://arxiv.org/pdf/2310.17594). In Neurips, 2023.
 
 [37] Xie, Renchunzi, Odonnat, Ambroise, Feofanov, Vasilii, Deng, Weijian, Zhang, Jianfeng and An, Bo. [MaNo: Exploiting Matrix Norm for Unsupervised Accuracy Estimation Under Distribution Shifts](https://arxiv.org/pdf/2405.18979). In NeurIPS, 2024.
+
+[38] Y. He, H. Wang, B. Li, H. Zhao. [Gradual Domain Adaptation: Theory and Algorithms](https://arxiv.org/pdf/2310.13852). In Journal of Machine Learning Research, 2024.
