@@ -342,7 +342,7 @@ def test_multilinearotmapping_at_test_time(da_blobs_dataset):
     y_pred = estimator.predict(X_new, sample_domain=sample_domain_new)
     assert y_pred.shape[0] == len(y_new)
 
-    # or enable auto fitting new domains
+    # or enable auto_fit_new_domain
     estimator = MultiLinearMongeAlignment(auto_fit_new_domain=True)
     estimator.fit(X_train, y_train, sample_domain=sample_domain)
     y_pred = estimator.predict(X_new, sample_domain=sample_domain_new)
