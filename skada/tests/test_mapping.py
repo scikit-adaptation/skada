@@ -298,17 +298,6 @@ def test_mapping_source_samples(estimator, da_blobs_dataset):
 
 
 def test_multilinearotmapping_at_test_time(da_blobs_dataset):
-    dataset = make_shifted_datasets(
-        n_samples_source=5,
-        n_samples_target=10,
-        shift="conditional_shift",
-        mean=0.5,
-        noise=0.3,
-        label="regression",
-        random_state=42,
-        return_dataset=True,
-    )
-
     X, y, sample_domain = da_blobs_dataset.pack(
         as_sources=["s"], as_targets=["t"], mask_target_labels=True
     )
@@ -349,6 +338,12 @@ def test_multilinearotmapping_at_test_time(da_blobs_dataset):
     # Fit the adapter
     estimator.named_steps[
         "multilinearmongealignmentadapter"
-    ].get_estimator().fit_domain(X_new, y_new, sample_domain=sample_domain_new)
+    ].get_estimator().fit_new_domain(X_new, y_new, sample_domain=sample_domain_new)
+    y_pred = estimator.predict(X_new, sample_domain=sample_domain_new)
+    assert y_pred.shape[0] == len(y_new)
+
+    # or enable auto fitting new domains
+    estimator = MultiLinearMongeAlignment(auto_fit_new_domain=True)
+    estimator.fit(X_train, y_train, sample_domain=sample_domain)
     y_pred = estimator.predict(X_new, sample_domain=sample_domain_new)
     assert y_pred.shape[0] == len(y_new)

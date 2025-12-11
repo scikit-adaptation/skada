@@ -563,9 +563,9 @@ class MultiLinearMongeAlignmentAdapter(BaseTestTimeAdapter):
         Regularization parameter added to the diagonal of the covariance.
     bias : bool, optional (default=True)
         Estimate bias.
-    test_time : bool, optional (default=False)
-        If True, the estimator can be updated at test time to map new
-        target domains unseen during training
+    auto_fit_new_domain : bool, optional (default=False)
+        If True, fit_new_domain is called automatically during predict
+        when unseen domains are present in the data.
 
     Attributes
     ----------
@@ -595,16 +595,11 @@ class MultiLinearMongeAlignmentAdapter(BaseTestTimeAdapter):
 
     """
 
-    def __init__(self, reg=1e-08, bias=True, test_time=False):
-        if test_time:
-            super(BaseTestTimeAdapter, self).__init__()
-        else:
-            super(BaseAdapter, self).__init__()
+    def __init__(self, reg=1e-08, bias=True, auto_fit_new_domain=False):
+        super(BaseTestTimeAdapter, self).__init__()
         self.reg = reg
         self.bias = bias
-        self.test_time = test_time
-        if self.test_time:
-            self.fit_new_domain = self._fit_new_domain
+        self.auto_fit_new_domain = auto_fit_new_domain
 
     def fit(self, X, y=None, *, sample_domain=None):
         """Fit adaptation parameters.
@@ -700,17 +695,21 @@ class MultiLinearMongeAlignmentAdapter(BaseTestTimeAdapter):
 
         for domain in idx.keys():
             if domain not in self.mappings_:
-                raise ValueError(
-                    f"Domain {domain} is not present in the mappings. "
-                    "Please fit the adapter first."
-                )
+                if self.auto_fit_new_domain:
+                    print("Fitting new domain:", domain)
+                    self.fit_new_domain(X[sample_domain == domain], sample_domain=np.array([domain]*X.shape[0]))
+                else:
+                    raise ValueError(
+                        f"Domain {domain} is not present in the mappings. "
+                        "Please fit the adapter first or enable auto_fit_new_domain."
+                    )
         for domain, sel in idx.items():
             A, b = self.mappings_[domain]
             X_adapt[sel] = X[sel].dot(A) + b
 
         return X_adapt
 
-    def fit_domain(self, X, y=None, *, sample_domain=None):
+    def fit_new_domain(self, X, y=None, *, sample_domain=None):
         """Fit adaptation parameters for a new domain.
 
         Parameters
@@ -745,7 +744,7 @@ class MultiLinearMongeAlignmentAdapter(BaseTestTimeAdapter):
 
 
 def MultiLinearMongeAlignment(
-    base_estimator=None, reg=1e-08, bias=True, test_time=False
+    base_estimator=None, reg=1e-08, bias=True, auto_fit_new_domain=False
 ):
     """MultiLinearMongeAlignment pipeline with adapter and estimator.
 
@@ -762,9 +761,9 @@ def MultiLinearMongeAlignment(
         Regularization parameter added to the diagonal of the covariance.
     bias : bool, optional (default=True)
         Estimate bias.
-    test_time : bool, optional (default=False)
-        If True, the estimator can be updated at test time to map new
-        target domains unseen during training
+    auto_fit_new_domain : bool, optional (default=False)
+        If True, fit_new_domain is called automatically during predict
+        when unseen domains are present in the data.
 
     Returns
     -------
@@ -791,7 +790,7 @@ def MultiLinearMongeAlignment(
         base_estimator = LogisticRegression()
 
     return make_da_pipeline(
-        MultiLinearMongeAlignmentAdapter(reg=reg, bias=bias, test_time=test_time),
+        MultiLinearMongeAlignmentAdapter(reg=reg, bias=bias, auto_fit_new_domain=auto_fit_new_domain),
         base_estimator,
     )
 
