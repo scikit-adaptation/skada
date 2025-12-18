@@ -98,6 +98,7 @@ cmap = plt.cm.colors.ListedColormap([color_0, color_1])
 # Type of distribution shifts
 # In practice, different types of distribution shifts can occur between
 # source and target domains. The most common types are:
+#
 # - **Covariate shift**: The distribution of the input features changes
 #   between the source and target domains, but the conditional distribution of
 #   the labels given the features remains the same.
@@ -118,6 +119,7 @@ cmap = plt.cm.colors.ListedColormap([color_0, color_1])
 # :func:`make_shifted_datasets`.
 # This function generates simple 2D datasets with different types of shifts.
 # The data format of skada comprises:
+#
 # - :code:`X`: input data (features)
 # - :code:`y`: output data (labels)
 # - :code:`sample_domain`: domain of each sample
@@ -494,14 +496,11 @@ for i in range(X[idx].shape[0]):
             axes[1].plot(
                 [X[idx][i, 0], X[~idx][j, 0]],
                 [X[idx][i, 1], X[~idx][j, 1]],
-                "-g",
                 alpha=T[i, j] * 0.5,
                 c=color_2,
                 zorder=0,
             )
-axes[1].scatter(
-    X[idx][:, 0], X[idx][:, 1], c=y_source_c, vmax=9, cmap="tab10", alpha=0.5
-)
+axes[1].scatter(X[idx][:, 0], X[idx][:, 1], c=y_source_c, alpha=0.5)
 axes[1].scatter(X[~idx][:, 0], X[~idx][:, 1], c="C7", alpha=0.5)
 axes[1].set_title("Data Mapped", fontsize=12)
 
@@ -511,7 +510,6 @@ axes[2].scatter(
     X_source_adapted[:, 0],
     X_source_adapted[:, 1],
     c=y_source_c,
-    vmax=9,
     alpha=0.5,
 )
 DecisionBoundaryDisplay.from_estimator(
@@ -621,7 +619,6 @@ for i in range(len(X[idx])):
     axes[1].plot(
         [X[idx][i, 0], X_source_subspace[i, 0]],
         [X[idx][i, 1], X_source_subspace[i, 0]],
-        "-g",
         alpha=0.5,
         c=color_2,
         zorder=0,
