@@ -122,8 +122,8 @@ cmap = plt.cm.colors.ListedColormap([color_0, color_1])
 #
 # - :code:`X`: input data (features)
 # - :code:`y`: output data (labels)
-# - :code:`sample_domain`: domain of each sample
-# (positive for source and negative for target)
+# - :code:`sample_domain`: domain of each sample (positive for source and
+#   negative for target)
 
 shifts = ["covariate_shift", "target_shift", "conditional_shift", "subspace"]
 shift_names = ["Covariate shift", "Target shift", "Conditional shift", "Subspace Ass."]
@@ -194,7 +194,7 @@ plt.tight_layout()
 # %%
 # Drop of accuracy due to distribution shift
 # ------------------------------------------
-# In domain adaptation settings, the target domains is **UNLABELED**. Therefore,
+# In domain adaptation settings, the target domains is **unlabeled**. Therefore,
 # we cannot directly train a model on the target domain. To illustrate the
 # impact of distribution shift on model performance, we will train a simple
 # classifier on the source domain and evaluate its performance on both the source
@@ -269,8 +269,9 @@ plt.tight_layout()
 
 # %%
 # As we can see the accuracy on the target domain drops compared to the
-# source domain due to the distribution shift. These examples stay very simple
-# that explain why some drops are not very significant.
+# source domain due to the distribution shift. The drop is not always very
+# significant depending on the type of shift, but it can be very large in some
+# cases like conditional shift.
 # Same results can be observed on subspace shift:
 
 fig, axes = plt.subplots(1, 2, figsize=(4, 2.3), sharey=True, sharex=True)
@@ -329,8 +330,22 @@ for ax in axes:
     ax.set_ylim(ylim)
 
 plt.tight_layout()
+
 # %%
-# Reweigthing for Covariate Shift and Target Shift
+# These datasets are toy examples with simple
+# shifts. In practice, the drop can be much more
+# significant especially with complex data like images or texts.
+# Therefore, it is crucial to use domain adaptation techniques to mitigate
+# the impact of distribution shift and improve model performance on the target
+# domain.
+# In the following sections, we will illustrate some basic DA techniques using SKADA:
+#
+# - **Reweighting methods** for covariate shift and target shift
+# - **Mapping methods** for conditional shift
+# - **Subspace alignment methods** for subspace shift
+
+# %%
+# Reweighting methods for Covariate Shift and Target Shift
 # ------------------------------------------
 # In the case of covariate shift and target shift, reweighting methods can be
 # used to correct the distribution shift. The idea is to assign weights to the
@@ -361,10 +376,10 @@ X, y, sample_domain = dataset.pack(
 )
 estimator.fit(X, y, sample_domain=sample_domain)
 
-X, y, sample_domain = dataset.pack(
+X_target, y_target, sample_domain = dataset.pack(
     as_sources=[], as_targets=["t"], mask_target_labels=False
 )
-score_target = estimator.score(X, y)
+score_target = estimator.score(X_target, y_target)
 print("Target accuracy after reweighting (covariate shift):", score_target)
 # %% plot steps
 # The DA estimator proceed in different steps that we can illustrate.
@@ -372,50 +387,37 @@ print("Target accuracy after reweighting (covariate shift):", score_target)
 # based on the distribution shift (here covariate shift).
 # These weights are then used to train the classifier on the source data.
 # Finally, the trained classifier is used to predict on the target data.
+fig, axes = plt.subplots(1, 4, figsize=(8, 2.2), sharex=True, sharey=True)
+
 X, y, sample_domain = dataset.pack(
     as_sources=["s"], as_targets=["t"], mask_target_labels=True
 )
 
+# step 1: initialization
 weight_estimator = estimator[0].get_estimator()
 idx = extract_source_indices(sample_domain)
 weights = weight_estimator.compute_weights(X, sample_domain=sample_domain)[idx]
-
-fig, axes = plt.subplots(1, 4, figsize=(8, 2.2), sharex=True, sharey=True)
 y_source_c = np.where(y[idx] == 0, color_0, color_1)
-axes[0].scatter(
-    X[idx, 0],
-    X[idx, 1],
-    c=y_source_c,
-    alpha=0.5,
-)
+axes[0].scatter(X[idx, 0], X[idx, 1], c=y_source_c, alpha=0.5)
 axes[0].set_title("Source data", fontsize=12)
-xlim = axes[0].get_xlim()
-ylim = axes[0].get_ylim()
 
+# Step 2: Reweighting
 axes[1].scatter(X[idx, 0], X[idx, 1], c=y_source_c, alpha=0.5, s=weights * 30)
 axes[1].set_title("Data reweighted", fontsize=12)
 
+# Step 3: Classifier training
 axes[2].scatter(X[idx, 0], X[idx, 1], c=y_source_c, alpha=0.5, s=weights * 20)
+DecisionBoundaryDisplay.from_estimator(
+    estimator, X, alpha=0.3, eps=0.5, response_method="predict", cmap=cmap, ax=axes[2]
+)
 axes[2].set_title("Classifier training", fontsize=12)
 
-DecisionBoundaryDisplay.from_estimator(
-    estimator,
-    X,
-    alpha=0.3,
-    eps=0.5,
-    response_method="predict",
-    cmap=cmap,
-    ax=axes[2],
-)
-
+# Step 4: Prediction on target
 X, y, sample_domain = dataset.pack(
     as_sources=["s"], as_targets=["t"], mask_target_labels=False
 )
 y_target_c = np.where(y[~idx] == 0, color_0, color_1)
-
 axes[3].scatter(X[~idx, 0], X[~idx, 1], c=y_target_c, alpha=0.5)
-axes[3].set_title("Prediction on Target", fontsize=12)
-
 DecisionBoundaryDisplay.from_estimator(
     estimator,
     X[idx],
@@ -425,7 +427,10 @@ DecisionBoundaryDisplay.from_estimator(
     cmap=cmap,
     ax=axes[3],
 )
+axes[3].set_title("Prediction on Target", fontsize=12)
 
+xlim = (X[:, 0].min() - 0.5, X[:, 0].max() + 0.5)
+ylim = (X[:, 1].min() - 0.5, X[:, 1].max() + 0.5)
 for ax in axes:
     ax.set_xticks([])
     ax.set_yticks([])
@@ -453,45 +458,38 @@ X, y, sample_domain = dataset.pack(
     as_sources=["s"], as_targets=["t"], mask_target_labels=True
 )
 estimator.fit(X, y, sample_domain=sample_domain)
-X, y, sample_domain = dataset.pack(
+X_target, y_target, sample_domain = dataset.pack(
     as_sources=[], as_targets=["t"], mask_target_labels=False
 )
-score_target = estimator.score(X, y)
+score_target = estimator.score(X_target, y_target)
 print("Target accuracy after mapping (conditional shift):", score_target)
 
 # %% plot steps
-# The DA estimator proceed in different steps that we can illustrate.
+# Mapping  methods adapt the source data to align it with the target data.
 # First, the mapping estimator learns a mapping from the source to the target
 # domain based on the distribution shift (here conditional shift).
 # This mapping is then used to transform the source data.
 # Finally, the classifier is trained on the transformed source data and used
 # to predict on the target data.
+fig, axes = plt.subplots(1, 4, figsize=(8, 2.2), sharex=True, sharey=True)
+
 X, y, sample_domain = dataset.pack(
     as_sources=["s"], as_targets=["t"], mask_target_labels=True
 )
-
 idx = extract_source_indices(sample_domain)
 adapter = estimator.named_steps["otmappingadapter"].get_estimator()
-T = adapter.ot_transport_.coupling_
-T = T / T.max()
+T = adapter.ot_transport_.coupling_ / adapter.ot_transport_.coupling_.max()
 
 X_adapted = estimator[:-1].transform(X, sample_domain=sample_domain, allow_source=True)
-X_source_adapted = X_adapted[idx]
-
-fig, axes = plt.subplots(1, 4, figsize=(8, 2.2), sharex=True, sharey=True)
 y_source_c = np.where(y[idx] == 0, color_0, color_1)
-axes[0].scatter(
-    X[idx, 0],
-    X[idx, 1],
-    c=y_source_c,
-    alpha=0.5,
-)
+
+# Step 1: Source data
+axes[0].scatter(X[idx, 0], X[idx, 1], c=y_source_c, alpha=0.5)
 axes[0].set_title("Source Data", fontsize=12)
-# print decision boundary
 
-
-for i in range(X[idx].shape[0]):
-    for j in range(X[~idx].shape[0]):
+# Step 2: Optimal transport mapping
+for i in range((idx).sum()):
+    for j in range((~idx).sum()):
         if T[i, j] > 0:
             axes[1].plot(
                 [X[idx][i, 0], X[~idx][j, 0]],
@@ -500,18 +498,12 @@ for i in range(X[idx].shape[0]):
                 c=color_2,
                 zorder=0,
             )
-axes[1].scatter(X[idx][:, 0], X[idx][:, 1], c=y_source_c, alpha=0.5)
-axes[1].scatter(X[~idx][:, 0], X[~idx][:, 1], c="C7", alpha=0.5)
+axes[1].scatter(X[idx, 0], X[idx, 1], c=y_source_c, alpha=0.5)
+axes[1].scatter(X[~idx, 0], X[~idx, 1], c="C7", alpha=0.5)
 axes[1].set_title("Data Mapped", fontsize=12)
 
-
-# print decision boundary
-axes[2].scatter(
-    X_source_adapted[:, 0],
-    X_source_adapted[:, 1],
-    c=y_source_c,
-    alpha=0.5,
-)
+# Step 3: Classifier training
+axes[2].scatter(X_adapted[idx, 0], X_adapted[idx, 1], c=y_source_c, alpha=0.5)
 DecisionBoundaryDisplay.from_estimator(
     estimator,
     X[idx],
@@ -523,6 +515,7 @@ DecisionBoundaryDisplay.from_estimator(
 )
 axes[2].set_title("Classifier training", fontsize=12)
 
+# Step 4: Prediction on target
 DecisionBoundaryDisplay.from_estimator(
     estimator,
     X[idx],
@@ -536,14 +529,17 @@ X, y, sample_domain = dataset.pack(
     as_sources=["s"], as_targets=["t"], mask_target_labels=False
 )
 y_target_c = np.where(y[~idx] == 0, color_0, color_1)
-axes[3].scatter(X[~idx][:, 0], X[~idx][:, 1], c=y_target_c, alpha=0.5)
+axes[3].scatter(X[~idx, 0], X[~idx, 1], c=y_target_c, alpha=0.5)
 axes[3].set_title("Prediction on Target", fontsize=12)
 
+xlim = (X[:, 0].min() - 0.5, X[:, 0].max() + 0.5)
+ylim = (X[:, 1].min() - 0.5, X[:, 1].max() + 0.5)
 for ax in axes:
     ax.set_xticks([])
     ax.set_yticks([])
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
+
 plt.tight_layout()
 
 # %%
@@ -566,88 +562,66 @@ X, y, sample_domain = dataset.pack(
 clf = TransferJointMatching(tradeoff=0.2, n_components=1)
 clf.fit(X, y, sample_domain=sample_domain)
 
-X, y, sample_domain = dataset.pack(
+X_target, y_target, sample_domain = dataset.pack(
     as_sources=[], as_targets=["t"], mask_target_labels=False
 )
-score_target = clf.score(X, y)
+score_target = clf.score(X_target, y_target)
 print("Target accuracy after subspace alignment (subspace shift):", score_target)
 
 # %% plot steps
-# The DA estimator proceed in different steps that we can illustrate.
+# Subspace alignment methods adapt both the source and target data to align them
+# in a common subspace.
 # First, the subspace estimator learns a common subspace where the source
 # and target distributions are aligned based on the distribution shift
 # (here subspace shift).
 # This subspace is then used to transform the source and target data.
 # Finally, the classifier is trained on the transformed source data and used
 # to predict on the transformed target data.
+fig, axes = plt.subplots(1, 4, figsize=(8, 2.2), sharex=True, sharey=True)
 X, y, sample_domain = dataset.pack(
     as_sources=["s"], as_targets=["t"], mask_target_labels=True
 )
+idx = extract_source_indices(sample_domain)
 subspace_estimator = clf.steps[-2][1].get_estimator()
 clf_on_subspace = clf.steps[-1][1].get_estimator()
-idx = extract_source_indices(sample_domain)
-# Plot the source points:
-X_source_subspace = subspace_estimator.transform(
-    X[idx],
-    # mark all samples as sources
-    sample_domain=np.ones(X[idx].shape[0]),
-    allow_source=True,
-)
-X_target_subspace = subspace_estimator.transform(X[~idx])
 
 y_source_c = np.where(y[idx] == 0, color_0, color_1)
 cmap = ListedColormap([color_0, color_1])
 
-fig, axes = plt.subplots(1, 4, figsize=(8, 2.2), sharex=True, sharey=True)
-
+# Step 1: Source data
 axes[0].scatter(X[idx, 0], X[idx, 1], c=y_source_c, alpha=0.5)
-axes[0].set_title("Initialization", fontsize=12)
+axes[0].set_title("Source Data", fontsize=12)
 
-xlim = (X[:, 0].min() - 0.5, X[:, 0].max() + 0.5)
-ylim = (X[:, 1].min() - 0.5, X[:, 1].max() + 0.5)
-
-mean = X_source_subspace.mean()
-X_source_subspace = X_source_subspace * 9
-
-X_source_subspace = X_source_subspace - mean
-X_source_subspace = -X_source_subspace + mean
-axes[1].scatter(X_source_subspace, X_source_subspace, c=y_source_c, alpha=0.5)
+# Step 2: Project to subspace
+X_source_sub = subspace_estimator.transform(
+    X[idx], sample_domain=np.ones(idx.sum()), allow_source=True
+)
 axes[1].scatter(X[idx, 0], X[idx, 1], c=y_source_c, alpha=0.5)
-axes[1].set_title("Source data", fontsize=12)
+axes[1].set_title("Data Projected", fontsize=12)
 
-for i in range(len(X[idx])):
-    axes[1].plot(
-        [X[idx][i, 0], X_source_subspace[i, 0]],
-        [X[idx][i, 1], X_source_subspace[i, 0]],
-        alpha=0.5,
-        c=color_2,
-        zorder=0,
-    )
-axes[1].set_title("Data projected", fontsize=12)
-
+# Step 3: Train classifier on subspace
 x_min, x_max = X[idx, 0].min() - 1, X[idx, 0].max() + 1
 y_min, y_max = X[idx, 1].min() - 1, X[idx, 1].max() + 1
 xx, yy = np.meshgrid(np.linspace(x_min, x_max, 200), np.linspace(y_min, y_max, 200))
-
 grid_points = np.c_[xx.ravel(), yy.ravel()]
-grid_points_subspace = subspace_estimator.transform(grid_points)
-
-Z = clf_on_subspace.predict(grid_points_subspace)
-Z = Z.reshape(xx.shape)
+grid_points_sub = subspace_estimator.transform(grid_points)
+Z = clf_on_subspace.predict(grid_points_sub).reshape(xx.shape)
 
 axes[2].contourf(xx, yy, Z, alpha=0.3, cmap=cmap)
 axes[2].scatter(X[idx, 0], X[idx, 1], c=y_source_c, alpha=0.5)
-axes[2].set_title("Classifier training", fontsize=12)
+axes[2].set_title("Classifier Training", fontsize=12)
 
+# Step 4: Predict on target
 X, y, sample_domain = dataset.pack(
     as_sources=["s"], as_targets=["t"], mask_target_labels=False
 )
 y_target_c = np.where(y[~idx] == 0, color_0, color_1)
-
 axes[3].contourf(xx, yy, Z, alpha=0.3, cmap=cmap)
 axes[3].scatter(X[~idx, 0], X[~idx, 1], c=y_target_c, alpha=0.5)
 axes[3].set_title("Prediction on Target", fontsize=12)
 
+xlim = (X[:, 0].min() - 0.5, X[:, 0].max() + 0.5)
+ylim = (X[:, 1].min() - 0.5, X[:, 1].max() + 0.5)
 for ax in axes:
     ax.set_xticks([])
     ax.set_yticks([])
