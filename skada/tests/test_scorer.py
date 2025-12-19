@@ -81,7 +81,7 @@ def test_supervised_scorer(da_dataset):
     _, target_labels, _ = da_dataset.pack(
         as_sources=["s"], as_targets=["t"], mask_target_labels=False
     )
-    scoring = SupervisedScorer()
+    scoring = SupervisedScorer().set_score_request(target_labels=True)
     scores = cross_validate(
         estimator,
         X,
