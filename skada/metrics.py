@@ -46,7 +46,19 @@ class _BaseDomainAwareScorer(_MetadataRequester):
         return self._score(estimator, X, y, sample_domain=sample_domain, **params)
 
 
-class SupervisedScorer(_BaseDomainAwareScorer):
+class _BaseSupervisedScorer(_MetadataRequester):
+    __metadata_request__score = {"sample_domain": True}
+    __metadata_request__score = {"target_labels": True}
+
+    @abstractmethod
+    def _score(self, estimator, X, y, sample_domain=None, **params):
+        pass
+
+    def __call__(self, estimator, X, y=None, sample_domain=None, **params):
+        return self._score(estimator, X, y, sample_domain=sample_domain, **params)
+
+
+class SupervisedScorer(_BaseSupervisedScorer):
     """Compute score on supervised dataset.
 
     Parameters
@@ -61,8 +73,6 @@ class SupervisedScorer(_BaseDomainAwareScorer):
         good, or a loss function, meaning low is good. In the latter case, the
         scorer object will sign-flip the outcome of the `scorer`.
     """
-
-    __metadata_request__score = {"target_labels": True}
 
     def __init__(self, scoring=None, greater_is_better=True):
         super().__init__()
