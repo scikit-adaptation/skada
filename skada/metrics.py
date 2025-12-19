@@ -47,15 +47,23 @@ class _BaseDomainAwareScorer(_MetadataRequester):
 
 
 class _BaseSupervisedScorer(_MetadataRequester):
-    __metadata_request__score = {"sample_domain": True}
-    __metadata_request__score = {"target_labels": True}
+    __metadata_request__score = {"sample_domain": True, "target_labels": True}
 
     @abstractmethod
-    def _score(self, estimator, X, y, sample_domain=None, **params):
+    def _score(self, estimator, X, y, sample_domain=None, target_labels=None, **params):
         pass
 
-    def __call__(self, estimator, X, y=None, sample_domain=None, **params):
-        return self._score(estimator, X, y, sample_domain=sample_domain, **params)
+    def __call__(
+        self, estimator, X, y=None, sample_domain=None, target_labels=None, **params
+    ):
+        return self._score(
+            estimator,
+            X,
+            y,
+            sample_domain=sample_domain,
+            target_labels=target_labels,
+            **params,
+        )
 
 
 class SupervisedScorer(_BaseSupervisedScorer):
