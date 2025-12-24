@@ -20,7 +20,11 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelEncoder, Normalizer
 from sklearn.utils import check_random_state
 from sklearn.utils.extmath import softmax
-from sklearn.utils.metadata_routing import _MetadataRequester, get_routing_for_object
+from sklearn.utils.metadata_routing import (
+    _MetadataRequester,
+    MetadataRequest,
+    get_routing_for_object,
+)
 
 from ._utils import (
     _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
@@ -36,7 +40,10 @@ from .utils import check_X_y_domain, extract_source_indices, source_target_split
 # xxx(okachaiev): add proper __repr__/__str__
 # xxx(okachaiev): support clone()
 class _BaseDomainAwareScorer(_MetadataRequester):
-    __metadata_request__score = {"sample_domain": True}
+
+    def __init__(self, **kwargs):
+        super().__init__()
+        self.set_score_request(sample_domain=True)
 
     @abstractmethod
     def _score(self, estimator, X, y, sample_domain=None, **params):
@@ -44,6 +51,23 @@ class _BaseDomainAwareScorer(_MetadataRequester):
 
     def __call__(self, estimator, X, y=None, sample_domain=None, **params):
         return self._score(estimator, X, y, sample_domain=sample_domain, **params)
+
+    def set_score_request(self, **kwargs):
+        """Set requested parameters by the scorer.
+
+        Please see :ref:`User Guide <metadata_routing>` on how the routing
+        mechanism works.
+
+        Parameters
+        ----------
+        kwargs : dict
+            Arguments should be of the form ``param_name=alias``, and `alias`
+            can be one of ``{True, False, None, str}``.
+        """
+        self._metadata_request = MetadataRequest(owner=self)
+        for param, alias in kwargs.items():
+            self._metadata_request.score.add_request(param=param, alias=alias)
+        return self
 
 
 class SupervisedScorer(_BaseDomainAwareScorer):
@@ -62,12 +86,11 @@ class SupervisedScorer(_BaseDomainAwareScorer):
         scorer object will sign-flip the outcome of the `scorer`.
     """
 
-    __metadata_request__score = {"target_labels": True}
-
     def __init__(self, scoring=None, greater_is_better=True):
         super().__init__()
         self.scoring = scoring
         self._sign = 1 if greater_is_better else -1
+        self.set_score_request(target_labels=True)
 
     def _score(
         self, estimator, X, y=None, sample_domain=None, target_labels=None, **params
