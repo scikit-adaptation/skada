@@ -6,6 +6,7 @@
 import numbers
 from functools import partial
 
+from sklearn.base import BaseEstimator
 from skorch.utils import _identity
 import torch
 from torch.nn import CrossEntropyLoss
@@ -96,8 +97,7 @@ def _infer_predict_nonlinearity(net):
 
     return _identity
 
-
-class SphericalKMeans:
+class SphericalKMeans(BaseEstimator):
     """Spherical K-Means clustering using PyTorch.
 
     This algorithm is similar to K-Means but uses cosine similarity
@@ -150,6 +150,7 @@ class SphericalKMeans:
 
     def __init__(self, n_clusters=8, n_init=10, max_iter=300, tol=1e-4, 
                  initial_centroids=None, random_state=None, device='cpu'):
+        super().__init__()
         self.n_clusters = n_clusters
         self.n_init = n_init
         self.max_iter = max_iter
