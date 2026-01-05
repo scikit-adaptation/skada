@@ -772,7 +772,9 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
 
     def _torch_cov(self, X):
         """Compute the covariance matrix of X using torch."""
-        torch = self.torch
+        if self.torch:
+            import torch
+        # torch = self.torch
         reg = self.reg
 
         n_samples, d = X.shape
@@ -784,7 +786,9 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
 
     def _D(self, W, X_source, X_target):
         """Divergence objective function"""
-        torch = self.torch
+        if self.torch:
+            import torch
+        # torch = self.torch
 
         Z_source = X_source @ W
         Z_target = X_target @ W
@@ -806,7 +810,9 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
 
     def _F(self, W, X_source, y_source):
         """Subspace learning objective function"""
-        torch = self.torch
+        if self.torch:
+            import torch
+        # torch = self.torch
         base_method = self.base_method
 
         if base_method == "pca":
@@ -851,7 +857,7 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
         try:
             import torch
 
-            self.torch = torch
+            self.torch = True
         except ImportError:
             raise ImportError(
                 "TransferSubspaceLearningAdapter requires pytorch to be installed."
