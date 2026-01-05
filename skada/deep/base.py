@@ -409,7 +409,7 @@ class DomainAwareModule(torch.nn.Module):
         self.layer_name = layer_name
         self.intermediate_layers = {}
         self._setup_hooks()
-
+    
     def _setup_hooks(self):
         _register_forwards_hook(
             self.base_module_, self.intermediate_layers, [self.layer_name]
