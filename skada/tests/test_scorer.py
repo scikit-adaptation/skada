@@ -81,7 +81,7 @@ def test_supervised_scorer(da_dataset):
     _, target_labels, _ = da_dataset.pack(
         as_sources=["s"], as_targets=["t"], mask_target_labels=False
     )
-    scoring = SupervisedScorer().set_score_request(target_labels=True)
+    scoring = SupervisedScorer()
     scores = cross_validate(
         estimator,
         X,
@@ -89,6 +89,7 @@ def test_supervised_scorer(da_dataset):
         cv=cv,
         params={"sample_domain": sample_domain, "target_labels": target_labels},
         scoring=scoring,
+        error_score="raise",
     )["test_score"]
     assert scores.shape[0] == 3, "evaluate 3 splits"
     assert np.all(~np.isnan(scores)), "all scores are computed"
