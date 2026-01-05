@@ -14,11 +14,13 @@ from torch.nn.functional import cosine_similarity
 from sklearn.utils.validation import check_is_fitted
 
 
-def _get_intermediate_layers(intermediate_layers, layer_name):
-    def hook(model, input, output):
-        intermediate_layers[layer_name] = output.flatten(start_dim=1)
+class IntermediateLayerHook:
+    def __init__(self, intermediate_layers, layer_name):
+        self.intermediate_layers = intermediate_layers
+        self.layer_name = layer_name
 
-    return hook
+    def __call__(self, module, input, output):
+        self.intermediate_layers[self.layer_name] = output.flatten(start_dim=1)
 
 
 def _register_forwards_hook(module, intermediate_layers, layer_names):
@@ -29,9 +31,8 @@ def _register_forwards_hook(module, intermediate_layers, layer_names):
     """
     for layer_name, layer_module in module.named_modules():
         if layer_name in layer_names:
-            layer_module.register_forward_hook(
-                _get_intermediate_layers(intermediate_layers, layer_name)
-            )
+            hook = IntermediateLayerHook(intermediate_layers, layer_name)
+            layer_module.register_forward_hook(hook)
 
 
 def check_generator(seed):
