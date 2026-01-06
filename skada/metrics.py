@@ -32,21 +32,27 @@ from ._utils import (
 )
 from .utils import check_X_y_domain, extract_source_indices, source_target_split
 
-
 # xxx(okachaiev): maybe it would be easier to reuse _BaseScorer?
 # xxx(okachaiev): add proper __repr__/__str__
 # xxx(okachaiev): support clone()
+
+
+def _estimator_score(estimator, X, y=None, **kwargs):
+    return estimator.score(X, y)
+
+
 class _BaseDomainAwareScorer(_BaseScorer):
     def __init__(self, score_func, sign, kwargs):
+        if kwargs is None:
+            kwargs = {}
+        if score_func is None:
+            score_func = _estimator_score
         super().__init__(score_func, sign, kwargs)
         self.set_score_request(sample_domain=True)
 
     @abstractmethod
     def _score(self, estimator, X, y, sample_domain=None, **params):
         pass
-
-    def __call__(self, estimator, X, y=None, sample_domain=None, **params):
-        return self._score(estimator, X, y, sample_domain=sample_domain, **params)
 
 
 class SupervisedScorer(_BaseDomainAwareScorer):
@@ -70,15 +76,13 @@ class SupervisedScorer(_BaseDomainAwareScorer):
             score_func=scoring, sign=1 if greater_is_better else -1, kwargs=kwargs
         )
         self.set_score_request(target_labels=True)
-        self.scoring = scoring
 
     def _score(
-        self, estimator, X, y=None, sample_domain=None, target_labels=None, **params
+        self, _, estimator, X, y=None, sample_domain=None, target_labels=None, **params
     ):
-        scorer = check_scoring(estimator, self.scoring)
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain, allow_nd=True)
         source_idx = extract_source_indices(sample_domain)
-        return self._sign * scorer(
+        return self._sign * self._score_func(
             estimator,
             X[~source_idx],
             target_labels[~source_idx],
@@ -162,7 +166,7 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
         self.weight_estimator_target_.fit(X_target)
         return self
 
-    def _score(self, estimator, X, y, sample_domain=None, **params):
+    def _score(self, _, estimator, X, y, sample_domain=None, **params):
         scorer = check_scoring(estimator, self.scoring)
         if "sample_weight" not in get_routing_for_object(estimator).consumes(
             "score", ["sample_weight"]
@@ -251,7 +255,7 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
                 "Valid options are: 'none', 'mean', 'sum'."
             )
 
-    def _score(self, estimator, X, y, sample_domain=None, **params):
+    def _score(self, _, estimator, X, y, sample_domain=None, **params):
         if not hasattr(estimator, "predict_proba"):
             raise AttributeError(
                 "The estimator passed should have a 'predict_proba' method. "
@@ -312,7 +316,7 @@ class SoftNeighborhoodDensity(_BaseDomainAwareScorer):
         )
         self.T = T
 
-    def _score(self, estimator, X, y, sample_domain=None, **params):
+    def _score(self, _, estimator, X, y, sample_domain=None, **params):
         if not hasattr(estimator, "predict_proba"):
             raise AttributeError(
                 "The estimator passed should have a 'predict_proba' method. "
@@ -396,7 +400,7 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         )
         return self
 
-    def _score(self, estimator, X, y, sample_domain=None, **kwargs):
+    def _score(self, _, estimator, X, y, sample_domain=None, **kwargs):
         if not hasattr(estimator, "predict_proba"):
             raise AttributeError(
                 "The estimator passed should have a 'predict_proba' method. "
@@ -556,7 +560,7 @@ class CircularValidation(_BaseDomainAwareScorer):
 
         self.source_scorer = source_scorer
 
-    def _score(self, estimator, X, y, sample_domain=None, **params):
+    def _score(self, _, estimator, X, y, sample_domain=None, **params):
         """
         Compute the score based on a circular validation strategy.
 
@@ -714,7 +718,7 @@ class MixValScorer(_BaseDomainAwareScorer):
         if self.ice_type not in ["both", "intra", "inter"]:
             raise ValueError("ice_type must be 'both', 'intra', or 'inter'")
 
-    def _score(self, estimator, X, y=None, sample_domain=None, **params):
+    def _score(self, _, estimator, X, y=None, sample_domain=None, **params):
         """
         Compute the Interpolation Consistency Evaluation (ICE) score.
 
@@ -848,7 +852,7 @@ class MaNoScorer(_BaseDomainAwareScorer):
         if self.p <= 0:
             raise ValueError("The order of the p-norm must be positive")
 
-    def _score(self, estimator, X, y, sample_domain=None, **params):
+    def _score(self, _, estimator, X, y, sample_domain=None, **params):
         if not hasattr(estimator, "predict_proba"):
             raise AttributeError(
                 "The estimator passed should have a 'predict_proba' method. "
