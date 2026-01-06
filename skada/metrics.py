@@ -66,7 +66,9 @@ class SupervisedScorer(_BaseDomainAwareScorer):
     """
 
     def __init__(self, scoring=None, greater_is_better=True, kwargs=None):
-        super().__init__(scoring, 1 if greater_is_better else -1, kwargs)
+        super().__init__(
+            score_func=scoring, sign=1 if greater_is_better else -1, kwargs=kwargs
+        )
         self.set_score_request(target_labels=True)
         self.scoring = scoring
 
@@ -128,7 +130,9 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
         greater_is_better=True,
         kwargs=None,
     ):
-        super().__init__(scoring, 1 if greater_is_better else -1, kwargs)
+        super().__init__(
+            score_func=scoring, sign=1 if greater_is_better else -1, kwargs=kwargs
+        )
         self.weight_estimator = weight_estimator
         self.scoring = scoring
 
@@ -236,7 +240,9 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
     """
 
     def __init__(self, greater_is_better=False, reduction="mean", kwargs=None):
-        super().__init__(None, 1 if greater_is_better else -1, kwargs)
+        super().__init__(
+            score_func=None, sign=1 if greater_is_better else -1, kwargs=kwargs
+        )
         self.reduction = reduction
 
         if self.reduction not in ["none", "mean", "sum"]:
@@ -301,7 +307,9 @@ class SoftNeighborhoodDensity(_BaseDomainAwareScorer):
     """
 
     def __init__(self, T=0.05, greater_is_better=True, kwargs=None):
-        super().__init__(None, 1 if greater_is_better else -1, kwargs)
+        super().__init__(
+            score_func=None, sign=1 if greater_is_better else -1, kwargs=kwargs
+        )
         self.T = T
 
     def _score(self, estimator, X, y, sample_domain=None, **params):
@@ -363,7 +371,9 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         greater_is_better=False,
         kwargs=None,
     ):
-        super().__init__(None, 1 if greater_is_better else -1, kwargs)
+        super().__init__(
+            score_func=None, sign=1 if greater_is_better else -1, kwargs=kwargs
+        )
         self.domain_classifier = domain_classifier
         self._loss_func = (
             loss_func if loss_func is not None else self._no_reduc_log_loss
@@ -535,7 +545,9 @@ class CircularValidation(_BaseDomainAwareScorer):
         greater_is_better=True,
         kwargs=None,
     ):
-        super().__init__(None, 1 if greater_is_better else -1, kwargs)
+        super().__init__(
+            score_func=None, sign=1 if greater_is_better else -1, kwargs=kwargs
+        )
         if not callable(source_scorer):
             raise ValueError(
                 "The source scorer should be a callable. "
@@ -691,7 +703,9 @@ class MixValScorer(_BaseDomainAwareScorer):
         random_state=None,
         kwargs=None,
     ):
-        super().__init__(scoring, 1 if greater_is_better else -1, kwargs)
+        super().__init__(
+            score_func=scoring, sign=1 if greater_is_better else -1, kwargs=kwargs
+        )
         self.alpha = alpha
         self.ice_type = ice_type
         self.scoring = scoring
@@ -824,7 +838,9 @@ class MaNoScorer(_BaseDomainAwareScorer):
     """
 
     def __init__(self, p=4, threshold=5, greater_is_better=True, kwargs=None):
-        super().__init__(None, 1 if greater_is_better else -1, kwargs)
+        super().__init__(
+            score_func=None, sign=1 if greater_is_better else -1, kwargs=kwargs
+        )
         self.p = p
         self.threshold = threshold
         self.chosen_normalization = None
