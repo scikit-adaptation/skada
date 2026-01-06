@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import GridSearchCV, cross_val_score
+from sklearn.model_selection import GridSearchCV, cross_validate
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
@@ -153,7 +153,7 @@ print("Accuracy on target:", pipe.score(Xt, yt))
 #
 # DA estimators are compatible with scikit-learn cross-validation functions.
 # Note that the :code:`sample_domain` array must be passed in the :code:`params`
-# dictionary of the :code:`cross_val_score` function.
+# dictionary of the :code:`cross_validate` function.
 
 
 # splitter for cross-validation of score
@@ -165,9 +165,9 @@ scorer = PredictionEntropyScorer()
 clf = CORAL(SVC(probability=True))  # needs probability for entropy score
 
 # cross-validation
-scores = cross_val_score(
+scores = cross_validate(
     clf, X, y, params={"sample_domain": sample_domain}, cv=cv, scoring=scorer
-)
+)["test_score"]
 
 print(f"Entropy score: {scores.mean():1.2f} (+-{scores.std():1.2f})")
 
