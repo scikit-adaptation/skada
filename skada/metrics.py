@@ -32,10 +32,6 @@ from ._utils import (
 )
 from .utils import check_X_y_domain, extract_source_indices, source_target_split
 
-# xxx(okachaiev): maybe it would be easier to reuse _BaseScorer?
-# xxx(okachaiev): add proper __repr__/__str__
-# xxx(okachaiev): support clone()
-
 
 def _estimator_score(estimator, X, y=None, **kwargs):
     return estimator.score(X, y)

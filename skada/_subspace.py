@@ -774,7 +774,6 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
         """Compute the covariance matrix of X using torch."""
         if self.torch:
             import torch
-        # torch = self.torch
         reg = self.reg
 
         n_samples, d = X.shape
@@ -788,7 +787,6 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
         """Divergence objective function"""
         if self.torch:
             import torch
-        # torch = self.torch
 
         Z_source = X_source @ W
         Z_target = X_target @ W
@@ -812,7 +810,6 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
         """Subspace learning objective function"""
         if self.torch:
             import torch
-        # torch = self.torch
         base_method = self.base_method
 
         if base_method == "pca":
