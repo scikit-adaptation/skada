@@ -14,13 +14,14 @@ import numpy as np
 from sklearn.base import clone
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import balanced_accuracy_score, check_scoring
+from sklearn.metrics._scorer import _BaseScorer
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KernelDensity
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelEncoder, Normalizer
 from sklearn.utils import check_random_state
 from sklearn.utils.extmath import softmax
-from sklearn.utils.metadata_routing import _MetadataRequester, get_routing_for_object
+from sklearn.utils.metadata_routing import get_routing_for_object
 
 from ._utils import (
     _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
@@ -32,18 +33,22 @@ from ._utils import (
 from .utils import check_X_y_domain, extract_source_indices, source_target_split
 
 
-# xxx(okachaiev): maybe it would be easier to reuse _BaseScorer?
-# xxx(okachaiev): add proper __repr__/__str__
-# xxx(okachaiev): support clone()
-class _BaseDomainAwareScorer(_MetadataRequester):
-    __metadata_request__score = {"sample_domain": True}
+def _estimator_score(estimator, X, y=None, **kwargs):
+    return estimator.score(X, y)
+
+
+class _BaseDomainAwareScorer(_BaseScorer):
+    def __init__(self, score_func, sign, kwargs):
+        if kwargs is None:
+            kwargs = {}
+        if score_func is None:
+            score_func = _estimator_score
+        super().__init__(score_func, sign, kwargs)
+        self.set_score_request(sample_domain=True)
 
     @abstractmethod
     def _score(self, estimator, X, y, sample_domain=None, **params):
         pass
-
-    def __call__(self, estimator, X, y=None, sample_domain=None, **params):
-        return self._score(estimator, X, y, sample_domain=sample_domain, **params)
 
 
 class SupervisedScorer(_BaseDomainAwareScorer):
@@ -62,22 +67,18 @@ class SupervisedScorer(_BaseDomainAwareScorer):
         scorer object will sign-flip the outcome of the `scorer`.
     """
 
-    __metadata_request__score = {"target_labels": True}
-
-    def __init__(self, scoring=None, greater_is_better=True):
-        super().__init__()
-        self.scoring = scoring
-        self._sign = 1 if greater_is_better else -1
+    def __init__(self, scoring=None, greater_is_better=True, kwargs=None):
+        super().__init__(
+            score_func=scoring, sign=1 if greater_is_better else -1, kwargs=kwargs
+        )
+        self.set_score_request(target_labels=True)
 
     def _score(
-        self, estimator, X, y=None, sample_domain=None, target_labels=None, **params
+        self, _, estimator, X, y=None, sample_domain=None, target_labels=None, **params
     ):
-        scorer = check_scoring(estimator, self.scoring)
-
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain, allow_nd=True)
         source_idx = extract_source_indices(sample_domain)
-
-        return self._sign * scorer(
+        return self._sign * self._score_func(
             estimator,
             X[~source_idx],
             target_labels[~source_idx],
@@ -127,11 +128,13 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
         weight_estimator=None,
         scoring=None,
         greater_is_better=True,
+        kwargs=None,
     ):
-        super().__init__()
+        super().__init__(
+            score_func=scoring, sign=1 if greater_is_better else -1, kwargs=kwargs
+        )
         self.weight_estimator = weight_estimator
         self.scoring = scoring
-        self._sign = 1 if greater_is_better else -1
 
     def _fit(self, X_source, X_target):
         """Fit adaptation parameters.
@@ -159,7 +162,7 @@ class ImportanceWeightedScorer(_BaseDomainAwareScorer):
         self.weight_estimator_target_.fit(X_target)
         return self
 
-    def _score(self, estimator, X, y, sample_domain=None, **params):
+    def _score(self, _, estimator, X, y, sample_domain=None, **params):
         scorer = check_scoring(estimator, self.scoring)
         if "sample_weight" not in get_routing_for_object(estimator).consumes(
             "score", ["sample_weight"]
@@ -236,9 +239,10 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
             ICLR, 2018.
     """
 
-    def __init__(self, greater_is_better=False, reduction="mean"):
-        super().__init__()
-        self._sign = 1 if greater_is_better else -1
+    def __init__(self, greater_is_better=False, reduction="mean", kwargs=None):
+        super().__init__(
+            score_func=None, sign=1 if greater_is_better else -1, kwargs=kwargs
+        )
         self.reduction = reduction
 
         if self.reduction not in ["none", "mean", "sum"]:
@@ -247,7 +251,7 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
                 "Valid options are: 'none', 'mean', 'sum'."
             )
 
-    def _score(self, estimator, X, y, sample_domain=None, **params):
+    def _score(self, _, estimator, X, y, sample_domain=None, **params):
         if not hasattr(estimator, "predict_proba"):
             raise AttributeError(
                 "The estimator passed should have a 'predict_proba' method. "
@@ -302,12 +306,13 @@ class SoftNeighborhoodDensity(_BaseDomainAwareScorer):
             International Conference on Computer Vision, 2021.
     """
 
-    def __init__(self, T=0.05, greater_is_better=True):
-        super().__init__()
+    def __init__(self, T=0.05, greater_is_better=True, kwargs=None):
+        super().__init__(
+            score_func=None, sign=1 if greater_is_better else -1, kwargs=kwargs
+        )
         self.T = T
-        self._sign = 1 if greater_is_better else -1
 
-    def _score(self, estimator, X, y, sample_domain=None, **params):
+    def _score(self, _, estimator, X, y, sample_domain=None, **params):
         if not hasattr(estimator, "predict_proba"):
             raise AttributeError(
                 "The estimator passed should have a 'predict_proba' method. "
@@ -364,14 +369,16 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         loss_func=None,
         random_state=None,
         greater_is_better=False,
+        kwargs=None,
     ):
-        super().__init__()
+        super().__init__(
+            score_func=None, sign=1 if greater_is_better else -1, kwargs=kwargs
+        )
         self.domain_classifier = domain_classifier
         self._loss_func = (
             loss_func if loss_func is not None else self._no_reduc_log_loss
         )
         self.random_state = random_state
-        self._sign = 1 if greater_is_better else -1
 
     def _no_reduc_log_loss(self, y, y_pred):
         return np.array(
@@ -389,7 +396,7 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
         )
         return self
 
-    def _score(self, estimator, X, y, sample_domain=None, **kwargs):
+    def _score(self, _, estimator, X, y, sample_domain=None, **kwargs):
         if not hasattr(estimator, "predict_proba"):
             raise AttributeError(
                 "The estimator passed should have a 'predict_proba' method. "
@@ -536,8 +543,11 @@ class CircularValidation(_BaseDomainAwareScorer):
         self,
         source_scorer=balanced_accuracy_score,
         greater_is_better=True,
+        kwargs=None,
     ):
-        super().__init__()
+        super().__init__(
+            score_func=None, sign=1 if greater_is_better else -1, kwargs=kwargs
+        )
         if not callable(source_scorer):
             raise ValueError(
                 "The source scorer should be a callable. "
@@ -545,9 +555,8 @@ class CircularValidation(_BaseDomainAwareScorer):
             )
 
         self.source_scorer = source_scorer
-        self._sign = 1 if greater_is_better else -1
 
-    def _score(self, estimator, X, y, sample_domain=None, **params):
+    def _score(self, _, estimator, X, y, sample_domain=None, **params):
         """
         Compute the score based on a circular validation strategy.
 
@@ -692,18 +701,20 @@ class MixValScorer(_BaseDomainAwareScorer):
         scoring=None,
         greater_is_better=True,
         random_state=None,
+        kwargs=None,
     ):
-        super().__init__()
+        super().__init__(
+            score_func=scoring, sign=1 if greater_is_better else -1, kwargs=kwargs
+        )
         self.alpha = alpha
         self.ice_type = ice_type
         self.scoring = scoring
-        self._sign = 1 if greater_is_better else -1
         self.random_state = random_state
 
         if self.ice_type not in ["both", "intra", "inter"]:
             raise ValueError("ice_type must be 'both', 'intra', or 'inter'")
 
-    def _score(self, estimator, X, y=None, sample_domain=None, **params):
+    def _score(self, _, estimator, X, y=None, sample_domain=None, **params):
         """
         Compute the Interpolation Consistency Evaluation (ICE) score.
 
@@ -826,17 +837,18 @@ class MaNoScorer(_BaseDomainAwareScorer):
             In NeurIPS, 2024.
     """
 
-    def __init__(self, p=4, threshold=5, greater_is_better=True):
-        super().__init__()
+    def __init__(self, p=4, threshold=5, greater_is_better=True, kwargs=None):
+        super().__init__(
+            score_func=None, sign=1 if greater_is_better else -1, kwargs=kwargs
+        )
         self.p = p
         self.threshold = threshold
-        self._sign = 1 if greater_is_better else -1
         self.chosen_normalization = None
 
         if self.p <= 0:
             raise ValueError("The order of the p-norm must be positive")
 
-    def _score(self, estimator, X, y, sample_domain=None, **params):
+    def _score(self, _, estimator, X, y, sample_domain=None, **params):
         if not hasattr(estimator, "predict_proba"):
             raise AttributeError(
                 "The estimator passed should have a 'predict_proba' method. "
