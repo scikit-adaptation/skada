@@ -6,6 +6,7 @@
 import numbers
 from functools import partial
 
+from sklearn.base import BaseEstimator
 from skorch.utils import _identity
 import torch
 from torch.nn import CrossEntropyLoss
@@ -13,11 +14,13 @@ from torch.nn.functional import cosine_similarity
 from sklearn.utils.validation import check_is_fitted
 
 
-def _get_intermediate_layers(intermediate_layers, layer_name):
-    def hook(model, input, output):
-        intermediate_layers[layer_name] = output.flatten(start_dim=1)
+class IntermediateLayerHook:
+    def __init__(self, intermediate_layers, layer_name):
+        self.intermediate_layers = intermediate_layers
+        self.layer_name = layer_name
 
-    return hook
+    def __call__(self, module, input, output):
+        self.intermediate_layers[self.layer_name] = output.flatten(start_dim=1)
 
 
 def _register_forwards_hook(module, intermediate_layers, layer_names):
@@ -28,9 +31,8 @@ def _register_forwards_hook(module, intermediate_layers, layer_names):
     """
     for layer_name, layer_module in module.named_modules():
         if layer_name in layer_names:
-            layer_module.register_forward_hook(
-                _get_intermediate_layers(intermediate_layers, layer_name)
-            )
+            hook = IntermediateLayerHook(intermediate_layers, layer_name)
+            layer_module.register_forward_hook(hook)
 
 
 def check_generator(seed):
@@ -96,8 +98,7 @@ def _infer_predict_nonlinearity(net):
 
     return _identity
 
-
-class SphericalKMeans:
+class SphericalKMeans(BaseEstimator):
     """Spherical K-Means clustering using PyTorch.
 
     This algorithm is similar to K-Means but uses cosine similarity
@@ -150,6 +151,7 @@ class SphericalKMeans:
 
     def __init__(self, n_clusters=8, n_init=10, max_iter=300, tol=1e-4, 
                  initial_centroids=None, random_state=None, device='cpu'):
+        super().__init__()
         self.n_clusters = n_clusters
         self.n_init = n_init
         self.max_iter = max_iter
