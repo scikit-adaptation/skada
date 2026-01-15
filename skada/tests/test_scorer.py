@@ -11,7 +11,7 @@ import pytest
 from sklearn.dummy import DummyClassifier, DummyRegressor
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.metrics import mean_squared_error
-from sklearn.model_selection import ShuffleSplit, cross_validate
+from sklearn.model_selection import ShuffleSplit, cross_val_score, cross_validate
 from sklearn.svm import SVC
 
 from skada import (
@@ -43,7 +43,7 @@ from skada.metrics import (
         MaNoScorer(),
     ],
 )
-def test_generic_scorer(scorer, da_dataset):
+def test_generic_scorer_with_cross_validate(scorer, da_dataset):
     X, y, sample_domain = da_dataset.pack(
         as_sources=["s"], as_targets=["t"], mask_target_labels=True
     )
@@ -62,6 +62,40 @@ def test_generic_scorer(scorer, da_dataset):
         params={"sample_domain": sample_domain},
         scoring=scorer,
     )["test_score"]
+    assert scores.shape[0] == 3, "evaluate 3 splits"
+    assert np.all(~np.isnan(scores)), "all scores are computed"
+
+
+@pytest.mark.parametrize(
+    "scorer",
+    [
+        ImportanceWeightedScorer(),
+        PredictionEntropyScorer(),
+        SoftNeighborhoodDensity(),
+        DeepEmbeddedValidation(),
+        CircularValidation(),
+        MaNoScorer(),
+    ],
+)
+def test_generic_scorer_with_cross_val_score(scorer, da_dataset):
+    X, y, sample_domain = da_dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
+    )
+    estimator = make_da_pipeline(
+        DensityReweightAdapter(),
+        LogisticRegression()
+        .set_fit_request(sample_weight=True)
+        .set_score_request(sample_weight=True),
+    )
+    cv = ShuffleSplit(n_splits=3, test_size=0.3, random_state=0)
+    scores = cross_val_score(
+        estimator,
+        X,
+        y,
+        cv=cv,
+        params={"sample_domain": sample_domain},
+        scoring=scorer,
+    )
     assert scores.shape[0] == 3, "evaluate 3 splits"
     assert np.all(~np.isnan(scores)), "all scores are computed"
 
@@ -89,6 +123,7 @@ def test_supervised_scorer(da_dataset):
         cv=cv,
         params={"sample_domain": sample_domain, "target_labels": target_labels},
         scoring=scoring,
+        error_score="raise",
     )["test_score"]
     assert scores.shape[0] == 3, "evaluate 3 splits"
     assert np.all(~np.isnan(scores)), "all scores are computed"
@@ -159,17 +194,17 @@ def test_prediction_entropy_scorer_reduction(da_dataset):
     estimator.fit(X, y, sample_domain=sample_domain)
 
     scorer = PredictionEntropyScorer(reduction="mean")
-    score_mean = scorer._score(estimator, X, y, sample_domain=sample_domain)
+    score_mean = scorer(estimator, X, y, sample_domain=sample_domain)
     assert isinstance(score_mean, float), "score_mean is not a float"
 
     scorer = PredictionEntropyScorer(reduction="sum")
-    score_sum = scorer._score(estimator, X, y, sample_domain=sample_domain)
+    score_sum = scorer(estimator, X, y, sample_domain=sample_domain)
     assert isinstance(score_sum, float), "score_sum is not a float"
 
     assert score_mean == pytest.approx(score_sum / X.shape[0], rel=1e-5)
 
     scorer = PredictionEntropyScorer(reduction="none")
-    score_none = scorer._score(estimator, X, y, sample_domain=sample_domain)
+    score_none = scorer(estimator, X, y, sample_domain=sample_domain)
     assert isinstance(score_none, np.ndarray), "score_none is not a numpy array"
 
     with pytest.raises(ValueError):
@@ -179,7 +214,7 @@ def test_prediction_entropy_scorer_reduction(da_dataset):
     with pytest.raises(ValueError):
         scorer = PredictionEntropyScorer(reduction="none")
         scorer.reduction = "WRONG_REDUCTION"
-        scorer._score(estimator, X, y, sample_domain=sample_domain)
+        scorer(estimator, X, y, sample_domain=sample_domain)
 
 
 def test_circular_validation(da_dataset):
@@ -199,9 +234,9 @@ def test_circular_validation(da_dataset):
     scorer = CircularValidation()
 
     with pytest.raises(ValueError):
-        scorer._score(estimator, X, unmasked_y, sample_domain=sample_domain)
+        scorer(estimator, X, unmasked_y, sample_domain=sample_domain)
 
-    score = scorer._score(estimator, X, y, sample_domain=sample_domain)
+    score = scorer(estimator, X, y, sample_domain=sample_domain)
     assert ~np.isnan(score), "the score is computed"
 
     # Test not callable source_scorer
@@ -214,7 +249,7 @@ def test_circular_validation(da_dataset):
     )
     estimator_dummy.fit(X, y, sample_domain=sample_domain)
     scorer = CircularValidation()
-    score = scorer._score(estimator_dummy, X, y, sample_domain=sample_domain)
+    score = scorer(estimator_dummy, X, y, sample_domain=sample_domain)
     assert ~np.isnan(score), "the score is computed"
 
     # Test regression task
@@ -244,9 +279,9 @@ def test_circular_validation(da_dataset):
     )
 
     with pytest.raises(ValueError):
-        scorer._score(estimator_regression, X, unmasked_y, sample_domain=sample_domain)
+        scorer(estimator_regression, X, unmasked_y, sample_domain=sample_domain)
 
-    score = scorer._score(estimator_regression, X, y, sample_domain=sample_domain)
+    score = scorer(estimator_regression, X, y, sample_domain=sample_domain)
     assert ~np.isnan(score), "the score is computed"
 
 
@@ -345,7 +380,7 @@ def test_mixval_scorer(da_dataset):
 
     # Test intra-cluster case (ice_same should be NaN)
     scorer_intra = MixValScorer(alpha=0.55, random_state=42, ice_type="intra")
-    score_intra = scorer_intra._score(dummy_estimator, X, y, sample_domain)
+    score_intra = scorer_intra(dummy_estimator, X, y, sample_domain)
     assert np.isnan(
         score_intra
     ), "intra-cluster score should be NaN when all predictions are the same"
@@ -354,14 +389,14 @@ def test_mixval_scorer(da_dataset):
 
     # Test inter-cluster case (ice_diff should be NaN)
     scorer_inter = MixValScorer(alpha=0.55, random_state=42, ice_type="inter")
-    score_inter = scorer_inter._score(dummy_estimator, X, y, sample_domain)
+    score_inter = scorer_inter(dummy_estimator, X, y, sample_domain)
     assert np.isnan(
         score_inter
     ), "inter-cluster score should be NaN when all predictions are the same"
 
     # Test both case with score_inter == Nan (result should be a number)
     scorer_both = MixValScorer(alpha=0.55, random_state=42, ice_type="both")
-    score_both = scorer_both._score(dummy_estimator, X, y, sample_domain)
+    score_both = scorer_both(dummy_estimator, X, y, sample_domain)
     assert not np.isnan(
         score_both
     ), "combined score should not be NaN when both intra and inter scores are NaN"
@@ -391,17 +426,17 @@ def test_mano_scorer(da_dataset):
     estimator.fit(X, y, sample_domain=sample_domain)
 
     scorer = MaNoScorer()
-    score_mean = scorer._score(estimator, X, y, sample_domain=sample_domain)
+    score_mean = scorer(estimator, X, y, sample_domain=sample_domain)
     assert isinstance(score_mean, float), "score_mean is not a float"
 
     # Test softmax normalization
     scorer = MaNoScorer(threshold=-1)
-    score_mean = scorer._score(estimator, X, y, sample_domain=sample_domain)
+    score_mean = scorer(estimator, X, y, sample_domain=sample_domain)
     assert isinstance(score_mean, float), "score_mean is not a float"
 
     # Test softmax normalization
     scorer = MaNoScorer(threshold=float("inf"))
-    score_mean = scorer._score(estimator, X, y, sample_domain=sample_domain)
+    score_mean = scorer(estimator, X, y, sample_domain=sample_domain)
     assert isinstance(score_mean, float), "score_mean is not a float"
 
     # Test invalid p-norm order
@@ -410,7 +445,7 @@ def test_mano_scorer(da_dataset):
 
     # Test correct output range
     scorer = MaNoScorer()
-    score_mean = scorer._score(estimator, X, y, sample_domain=sample_domain)
+    score_mean = scorer(estimator, X, y, sample_domain=sample_domain)
     assert (scorer._sign * score_mean >= 0) and (
         scorer._sign * score_mean <= 1
     ), "The output range should be [-1, 0] or [0, 1]."

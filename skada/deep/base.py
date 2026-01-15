@@ -409,7 +409,7 @@ class DomainAwareModule(torch.nn.Module):
         self.layer_name = layer_name
         self.intermediate_layers = {}
         self._setup_hooks()
-
+    
     def _setup_hooks(self):
         _register_forwards_hook(
             self.base_module_, self.intermediate_layers, [self.layer_name]
@@ -1065,7 +1065,7 @@ class DeepDADataset(Dataset):
                 allow_nd=True,
                 ensure_min_samples=0,
                 ensure_min_features=0,
-                force_all_finite=not self.allow_label_masks,
+                ensure_all_finite=not self.allow_label_masks,
             )
             y = to_tensor(y, self.device)
             has_y = y != _NO_LABEL_
