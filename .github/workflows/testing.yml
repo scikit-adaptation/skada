@@ -29,7 +29,7 @@ jobs:
     # Cache 'skada' datasets
     - name: Create/Restore Skada Data Cache
       id: cache-skada_datasets
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/skada_datasets
         key: ${{ runner.os }}-v3
