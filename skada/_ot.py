@@ -358,7 +358,7 @@ def solve_jdot_classification(
         This estimator assumes that the loss function optimized by the base
         estimator is compatible with the given metric. For instance, if the
         metric is 'multinomial', the base estimator should optimize a
-        cross-entropy loss (e.g. LogisticRegression with multi_class='multinomial')
+        cross-entropy loss (e.g. LogisticRegression)
         or a hinge loss (e.g. SVC with kernel='linear' and one versus rest) if the
         metric is 'hinge'. While any estimator providing the necessary prediction
         functions can be used, the convergence of the fixed point is not guaranteed
@@ -620,7 +620,7 @@ class JDOTClassifier(DAEstimator):
         This estimator assumes that the loss function optimized by the base
         estimator is compatible with the given metric. For instance, if the
         metric is 'multinomial', the base estimator should optimize a
-        cross-entropy loss (e.g. LogisticRegression with multi_class='multinomial')
+        cross-entropy loss (e.g. LogisticRegression)
         or a hinge loss (e.g. SVC with kernel='linear' and one versus rest) if the
         metric is 'hinge'. While any estimator providing the necessary prediction
         functions can be used, the convergence of the fixed point is not guaranteed
@@ -681,7 +681,7 @@ class JDOTClassifier(DAEstimator):
         **kwargs,
     ):
         if base_estimator is None:
-            base_estimator = LogisticRegression(multi_class="multinomial")
+            base_estimator = LogisticRegression()
         else:
             if not hasattr(base_estimator, "fit") or not hasattr(
                 base_estimator, "predict"
@@ -943,6 +943,8 @@ class JCPOTLabelPropAdapter(BaseAdapter):
         self.max_iter = max_iter
         self.tol = tol
         self.verbose = verbose
+        # we predict target labels in this function so we can't mask them
+        self.predicts_target_labels = True
 
     def fit_transform(self, X, y, sample_domain=None, *, sample_weight=None):
         X, y, sample_domain = check_X_y_domain(X, y, sample_domain)

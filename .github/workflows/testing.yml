@@ -25,16 +25,16 @@ jobs:
 
     # Install skada
     - name: Checking Out Repository  # yamllint disable-line rule:indentation
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
     # Cache 'skada' datasets
     - name: Create/Restore Skada Data Cache
       id: cache-skada_datasets
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/skada_datasets
         key: ${{ runner.os }}-v3
     # Install Python & Packages
-    - uses: actions/setup-python@v5
+    - uses: actions/setup-python@v6
       with:
         python-version: "3.10"
     - run: which python
@@ -63,9 +63,9 @@ jobs:
 
     # Install skada
     - name: Checking Out Repository  # yamllint disable-line rule:indentation
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
     # Install Python & Packages
-    - uses: actions/setup-python@v5
+    - uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
         cache: 'pip'  # caching pip dependencies
@@ -96,9 +96,9 @@ jobs:
 
     # Install skada
     - name: Checking Out Repository  # yamllint disable-line rule:indentation
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
     # Install Python & Packages
-    - uses: actions/setup-python@v5
+    - uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
         cache: 'pip'  # caching pip dependencies
@@ -116,7 +116,8 @@ jobs:
       with:
         verbose: true
         fail_ci_if_error: true
-        gcov_ignore: "skada/datasets"
         env_vars: OS,PYTHON
+        gcov_ignore: "skada/datasets"
+        flags: code
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
