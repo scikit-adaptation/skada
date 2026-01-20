@@ -82,7 +82,13 @@ class BaseOTMappingAdapter(BaseAdapter):
         return self.transform(X, sample_domain=sample_domain, allow_source=True)
 
     def transform(
-        self, X, y=None, *, sample_domain=None, allow_source=False, **params
+        self,
+        X,
+        y=None,
+        *,
+        sample_domain=None,
+        allow_source=False,
+        **params,
     ) -> np.ndarray:
         # xxx(okachaiev): implement auto-infer for sample_domain
         X, sample_domain = check_X_domain(
@@ -100,6 +106,7 @@ class BaseOTMappingAdapter(BaseAdapter):
         X_adapt, _ = source_target_merge(
             X_source, X_target, sample_domain=sample_domain
         )
+        X_adapt = self.alpha * X_adapt + (1 - self.alpha) * X
         return X_adapt
 
     @abstractmethod
@@ -141,11 +148,13 @@ class OTMappingAdapter(BaseOTMappingAdapter):
         metric="sqeuclidean",
         norm=None,
         max_iter=100_000,
+        alpha=1.0,
     ):
         super().__init__()
         self.metric = metric
         self.norm = norm
         self.max_iter = max_iter
+        self.alpha = alpha
 
     def _create_transport_estimator(self):
         return da.EMDTransport(
@@ -155,7 +164,9 @@ class OTMappingAdapter(BaseOTMappingAdapter):
         )
 
 
-def OTMapping(base_estimator=None, metric="sqeuclidean", norm=None, max_iter=100000):
+def OTMapping(
+    base_estimator=None, metric="sqeuclidean", norm=None, max_iter=100000, alpha=1.0
+):
     """OTmapping pipeline with adapter and estimator.
 
     See [6]_ for details.
@@ -188,7 +199,7 @@ def OTMapping(base_estimator=None, metric="sqeuclidean", norm=None, max_iter=100
         base_estimator = SVC(kernel="rbf")
 
     return make_da_pipeline(
-        OTMappingAdapter(metric=metric, norm=norm, max_iter=max_iter),
+        OTMappingAdapter(metric=metric, norm=norm, max_iter=max_iter, alpha=alpha),
         base_estimator,
     )
 
@@ -234,6 +245,7 @@ class EntropicOTMappingAdapter(BaseOTMappingAdapter):
         norm=None,
         max_iter=1000,
         tol=10e-9,
+        alpha=1.0,
     ):
         super().__init__()
         self.reg_e = reg_e
@@ -241,6 +253,7 @@ class EntropicOTMappingAdapter(BaseOTMappingAdapter):
         self.norm = norm
         self.max_iter = max_iter
         self.tol = tol
+        self.alpha = alpha
 
     def _create_transport_estimator(self):
         return da.SinkhornTransport(
@@ -259,6 +272,7 @@ def EntropicOTMapping(
     max_iter=1000,
     reg_e=1.0,
     tol=1e-8,
+    alpha=1.0,
 ):
     """EntropicOTMapping pipeline with adapter and estimator.
 
@@ -298,7 +312,12 @@ def EntropicOTMapping(
 
     return make_da_pipeline(
         EntropicOTMappingAdapter(
-            metric=metric, norm=norm, max_iter=max_iter, reg_e=reg_e, tol=tol
+            metric=metric,
+            norm=norm,
+            max_iter=max_iter,
+            reg_e=reg_e,
+            tol=tol,
+            alpha=alpha,
         ),
         base_estimator,
     )
@@ -352,6 +371,7 @@ class ClassRegularizerOTMappingAdapter(BaseOTMappingAdapter):
         max_iter=10,
         max_inner_iter=200,
         tol=10e-9,
+        alpha=1.0,
     ):
         super().__init__()
         self.reg_e = reg_e
@@ -361,6 +381,7 @@ class ClassRegularizerOTMappingAdapter(BaseOTMappingAdapter):
         self.max_iter = max_iter
         self.max_inner_iter = max_inner_iter
         self.tol = tol
+        self.alpha = alpha
 
     def _create_transport_estimator(self):
         assert self.norm in ["lpl1", "l1l2"], "Unknown norm"
@@ -388,6 +409,7 @@ def ClassRegularizerOTMapping(
     reg_e=1.0,
     reg_cl=0.1,
     tol=1e-8,
+    alpha=1.0,
 ):
     """ClassRegularizedOTMapping pipeline with adapter and estimator.
 
@@ -435,6 +457,7 @@ def ClassRegularizerOTMapping(
             reg_e=reg_e,
             reg_cl=reg_cl,
             tol=tol,
+            alpha=alpha,
         ),
         base_estimator,
     )
@@ -468,10 +491,11 @@ class LinearOTMappingAdapter(BaseOTMappingAdapter):
         adaptation. arXiv preprint arXiv:1905.10155.
     """
 
-    def __init__(self, reg=1e-08, bias=True):
+    def __init__(self, reg=1e-08, bias=True, alpha=1.0):
         super().__init__()
         self.reg = reg
         self.bias = bias
+        self.alpha = alpha
 
     def _create_transport_estimator(self):
         return da.LinearTransport(reg=self.reg, bias=self.bias)
@@ -481,6 +505,7 @@ def LinearOTMapping(
     base_estimator=None,
     reg=1.0,
     bias=True,
+    alpha=1.0,
 ):
     """Returns a the linear OT mapping method with adapter and estimator.
 
@@ -514,6 +539,7 @@ def LinearOTMapping(
         LinearOTMappingAdapter(
             reg=reg,
             bias=bias,
+            alpha=alpha,
         ),
         base_estimator,
     )
@@ -595,11 +621,12 @@ class MultiLinearMongeAlignmentAdapter(BaseAdapter):
 
     """
 
-    def __init__(self, reg=1e-08, bias=True, test_time=False):
+    def __init__(self, reg=1e-08, bias=True, test_time=False, alpha=1.0):
         super().__init__()
         self.reg = reg
         self.bias = bias
         self.test_time = test_time
+        self.alpha = alpha
 
     def fit(self, X, y=None, *, sample_domain=None):
         """Fit adaptation parameters.
@@ -685,7 +712,13 @@ class MultiLinearMongeAlignmentAdapter(BaseAdapter):
         return self.transform(X, sample_domain=sample_domain, allow_source=True)
 
     def transform(
-        self, X, y=None, *, sample_domain=None, allow_source=False, **params
+        self,
+        X,
+        y=None,
+        *,
+        sample_domain=None,
+        allow_source=False,
+        **params,
     ) -> np.ndarray:
         X, sample_domain = check_X_domain(
             X, sample_domain, allow_multi_source=True, allow_multi_target=True
@@ -697,11 +730,13 @@ class MultiLinearMongeAlignmentAdapter(BaseAdapter):
             A, b = self.mappings_[domain]
             X_adapt[sel] = X[sel].dot(A) + b
 
+        X_adapt = self.alpha * X_adapt + (1 - self.alpha) * X
+
         return X_adapt
 
 
 def MultiLinearMongeAlignment(
-    base_estimator=None, reg=1e-08, bias=True, test_time=False
+    base_estimator=None, reg=1e-08, bias=True, test_time=False, alpha=1.0
 ):
     """MultiLinearMongeAlignment pipeline with adapter and estimator.
 
@@ -747,7 +782,9 @@ def MultiLinearMongeAlignment(
         base_estimator = LogisticRegression()
 
     return make_da_pipeline(
-        MultiLinearMongeAlignmentAdapter(reg=reg, bias=bias, test_time=test_time),
+        MultiLinearMongeAlignmentAdapter(
+            reg=reg, bias=bias, test_time=test_time, alpha=alpha
+        ),
         base_estimator,
     )
 
@@ -837,10 +874,11 @@ class CORALAdapter(BaseAdapter):
            In Advances in Computer Vision and Pattern Recognition, 2017.
     """
 
-    def __init__(self, reg="auto", assume_centered=False):
+    def __init__(self, reg="auto", assume_centered=False, alpha=1.0):
         super().__init__()
         self.reg = reg
         self.assume_centered = assume_centered
+        self.alpha = alpha
 
     def fit(self, X, y=None, sample_domain=None):
         """Fit adaptation parameters.
@@ -897,7 +935,13 @@ class CORALAdapter(BaseAdapter):
         return self.transform(X, sample_domain=sample_domain, allow_source=True)
 
     def transform(
-        self, X, y=None, *, sample_domain=None, allow_source=False, **params
+        self,
+        X,
+        y=None,
+        *,
+        sample_domain=None,
+        allow_source=False,
+        **params,
     ) -> np.ndarray:
         X, sample_domain = check_X_domain(
             X,
@@ -927,6 +971,8 @@ class CORALAdapter(BaseAdapter):
         X_adapt, _ = source_target_merge(
             X_source_adapt, X_target_adapt, sample_domain=sample_domain
         )
+        X_adapt = self.alpha * X_adapt + (1 - self.alpha) * X
+
         return X_adapt
 
 
@@ -934,6 +980,7 @@ def CORAL(
     base_estimator=None,
     reg="auto",
     assume_centered=False,
+    alpha=1.0,
 ):
     """CORAL pipeline with adapter and estimator.
 
@@ -968,7 +1015,7 @@ def CORAL(
         base_estimator = SVC(kernel="rbf")
 
     return make_da_pipeline(
-        CORALAdapter(reg=reg, assume_centered=assume_centered),
+        CORALAdapter(reg=reg, assume_centered=assume_centered, alpha=alpha),
         base_estimator,
     )
 
@@ -1017,7 +1064,9 @@ class MMDLSConSMappingAdapter(BaseAdapter):
            In ICML, 2013.
     """
 
-    def __init__(self, gamma, reg_k=1e-10, reg_m=1e-10, tol=1e-5, max_iter=100):
+    def __init__(
+        self, gamma, reg_k=1e-10, reg_m=1e-10, tol=1e-5, max_iter=100, alpha=1.0
+    ):
         super().__init__()
         self.gamma = gamma
         self.reg_k = reg_k
@@ -1026,6 +1075,7 @@ class MMDLSConSMappingAdapter(BaseAdapter):
         self.max_iter = max_iter
         self.W_ = None
         self.B_ = None
+        self.alpha = alpha
 
     def _mapping_optimization(self, X_source, X_target, y_source):
         """Mapping optimization"""
@@ -1149,7 +1199,13 @@ class MMDLSConSMappingAdapter(BaseAdapter):
         return self.transform(X, sample_domain=sample_domain, allow_source=True)
 
     def transform(
-        self, X, y=None, *, sample_domain=None, allow_source=False, **params
+        self,
+        X,
+        y=None,
+        *,
+        sample_domain=None,
+        allow_source=False,
+        **params,
     ) -> np.ndarray:
         X, sample_domain = check_X_domain(X, sample_domain, allow_source=allow_source)
 
@@ -1180,11 +1236,18 @@ class MMDLSConSMappingAdapter(BaseAdapter):
         X_adapt, _ = source_target_merge(
             X_source_adapt, X_target, sample_domain=sample_domain
         )
+        X_adapt = self.alpha * X_adapt + (1 - self.alpha) * X
         return X_adapt
 
 
 def MMDLSConSMapping(
-    base_estimator=None, gamma=1.0, reg_k=1e-10, reg_m=1e-10, tol=1e-5, max_iter=100
+    base_estimator=None,
+    gamma=1.0,
+    reg_k=1e-10,
+    reg_m=1e-10,
+    tol=1e-5,
+    max_iter=100,
+    alpha=1.0,
 ):
     """MMDLSConSMapping pipeline with adapter and estimator.
 
@@ -1220,7 +1283,12 @@ def MMDLSConSMapping(
 
     return make_da_pipeline(
         MMDLSConSMappingAdapter(
-            gamma=gamma, reg_k=reg_k, reg_m=reg_m, tol=tol, max_iter=max_iter
+            gamma=gamma,
+            reg_k=reg_k,
+            reg_m=reg_m,
+            tol=tol,
+            max_iter=max_iter,
+            alpha=alpha,
         ),
         base_estimator,
     )
