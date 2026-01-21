@@ -17,6 +17,7 @@ Contents
    :maxdepth: 1
 
    self
+   auto_examples/plot_beginners_guide
    auto_examples/plot_how_to_use_skada
    quickstart
    all
