@@ -697,7 +697,10 @@ class MultiLinearMongeAlignmentAdapter(BaseTestTimeAdapter):
             if domain not in self.mappings_:
                 if self.auto_fit_new_domain:
                     print("Fitting new domain:", domain)
-                    self.fit_new_domain(X[sample_domain == domain], sample_domain=np.array([domain]*X.shape[0]))
+                    self.fit_new_domain(
+                        X[sample_domain == domain],
+                        sample_domain=np.array([domain] * X.shape[0]),
+                    )
                 else:
                     raise ValueError(
                         f"Domain {domain} is not present in the mappings. "
@@ -790,7 +793,9 @@ def MultiLinearMongeAlignment(
         base_estimator = LogisticRegression()
 
     return make_da_pipeline(
-        MultiLinearMongeAlignmentAdapter(reg=reg, bias=bias, auto_fit_new_domain=auto_fit_new_domain),
+        MultiLinearMongeAlignmentAdapter(
+            reg=reg, bias=bias, auto_fit_new_domain=auto_fit_new_domain
+        ),
         base_estimator,
     )
 
