@@ -112,6 +112,20 @@ class BaseAdapter(BaseEstimator):
         raise NotImplementedError('To fit adapter use `fit_transform` method.')
 
 
+class BaseTestTimeAdapter(BaseAdapter):
+    """Base class for test-time adapters.
+
+    Test-time adapters are used to adapt the data during evaluation, e.g. to
+    align the target domain with the source domain. The main difference with
+    the `BaseAdapter` is that test-time adapters do not require fitting and
+    can be used directly in the `transform` method.
+    """
+
+    def fit_new_domain(self, X, y=None, *, sample_domain=None, **params):
+        """Fit the adapter to the new domain."""
+        pass
+
+
 class _DAMetadataRequesterMixin(_MetadataRequester):
     """Mixin class for adding metadata related to the domain adaptation
     functionality. The mixin is primarily designed for the internal API
@@ -690,7 +704,7 @@ class SelectSourceTarget(BaseSelector):
         X_container = MetadataContainer.from_input(X)
         self._fit('fit', X_container, y=y, **params)
         return self
-        
+
     def _fit(self, method_name, X_container, y=None, **params):
         X, y, params = X_container.merge_out(y, **params)
         if y is not None:

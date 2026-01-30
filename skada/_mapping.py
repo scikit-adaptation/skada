@@ -16,7 +16,7 @@ from sklearn.svm import SVC
 
 from ._pipeline import make_da_pipeline
 from ._utils import Y_Type, _estimate_covariance, _find_y_type
-from .base import BaseAdapter, clone
+from .base import BaseAdapter, BaseTestTimeAdapter, clone
 from .utils import (
     check_X_domain,
     extract_domains_indices,
@@ -549,7 +549,7 @@ def _get_cov_mean(X, w=None, bias=True):
     return cov, mean
 
 
-class MultiLinearMongeAlignmentAdapter(BaseAdapter):
+class MultiLinearMongeAlignmentAdapter(BaseTestTimeAdapter):
     """Aligns multiple domains using Gaussian Monge mapping to a barycenter.
 
     The method is a simplified extension of [29] using the Bures-Wasserstein
@@ -563,9 +563,9 @@ class MultiLinearMongeAlignmentAdapter(BaseAdapter):
         Regularization parameter added to the diagonal of the covariance.
     bias : bool, optional (default=True)
         Estimate bias.
-    test_time : bool, optional (default=False)
-        If True, the estimator can be updated at test time to map new
-        target domains unseen during training
+    auto_fit_new_domain : bool, optional (default=False)
+        If True, fit_new_domain is called automatically during predict
+        when unseen domains are present in the data.
 
     Attributes
     ----------
@@ -595,11 +595,11 @@ class MultiLinearMongeAlignmentAdapter(BaseAdapter):
 
     """
 
-    def __init__(self, reg=1e-08, bias=True, test_time=False):
-        super().__init__()
+    def __init__(self, reg=1e-08, bias=True, auto_fit_new_domain=False):
+        super(BaseTestTimeAdapter, self).__init__()
         self.reg = reg
         self.bias = bias
-        self.test_time = test_time
+        self.auto_fit_new_domain = auto_fit_new_domain
 
     def fit(self, X, y=None, *, sample_domain=None):
         """Fit adaptation parameters.
@@ -693,15 +693,61 @@ class MultiLinearMongeAlignmentAdapter(BaseAdapter):
         idx = extract_domains_indices(sample_domain)
         X_adapt = X.copy()
 
+        for domain in idx.keys():
+            if domain not in self.mappings_:
+                if self.auto_fit_new_domain:
+                    print("Fitting new domain:", domain)
+                    self.fit_new_domain(
+                        X[sample_domain == domain],
+                        sample_domain=np.array([domain] * X.shape[0]),
+                    )
+                else:
+                    raise ValueError(
+                        f"Domain {domain} is not present in the mappings. "
+                        "Please fit the adapter first or enable auto_fit_new_domain."
+                    )
         for domain, sel in idx.items():
             A, b = self.mappings_[domain]
             X_adapt[sel] = X[sel].dot(A) + b
 
         return X_adapt
 
+    def fit_new_domain(self, X, y=None, *, sample_domain=None):
+        """Fit adaptation parameters for a new domain.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The source data.
+        y : array-like, shape (n_samples,)
+            The source labels.
+        sample_domain : array-like, shape (n_samples,)
+            The domain labels (same as sample_domain).
+
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
+        X, sample_domain = check_X_domain(X, sample_domain)
+        for domain in np.unique(sample_domain):
+            if domain in self.mappings_:
+                continue
+            X_domain = X[sample_domain == domain]
+            cov, mean = _get_cov_mean(X_domain, None, bias=self.bias)
+            self.cov_means_targets_[domain] = (cov, mean)
+            self.mappings_[domain] = bures_wasserstein_mapping(
+                mean,
+                self.barycenter_[0],
+                cov,
+                self.barycenter_[1],
+            )
+
+        return
+
 
 def MultiLinearMongeAlignment(
-    base_estimator=None, reg=1e-08, bias=True, test_time=False
+    base_estimator=None, reg=1e-08, bias=True, auto_fit_new_domain=False
 ):
     """MultiLinearMongeAlignment pipeline with adapter and estimator.
 
@@ -718,9 +764,9 @@ def MultiLinearMongeAlignment(
         Regularization parameter added to the diagonal of the covariance.
     bias : bool, optional (default=True)
         Estimate bias.
-    test_time : bool, optional (default=False)
-        If True, the estimator can be updated at test time to map new
-        target domains unseen during training
+    auto_fit_new_domain : bool, optional (default=False)
+        If True, fit_new_domain is called automatically during predict
+        when unseen domains are present in the data.
 
     Returns
     -------
@@ -747,7 +793,9 @@ def MultiLinearMongeAlignment(
         base_estimator = LogisticRegression()
 
     return make_da_pipeline(
-        MultiLinearMongeAlignmentAdapter(reg=reg, bias=bias, test_time=test_time),
+        MultiLinearMongeAlignmentAdapter(
+            reg=reg, bias=bias, auto_fit_new_domain=auto_fit_new_domain
+        ),
         base_estimator,
     )
 
