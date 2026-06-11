@@ -10,6 +10,7 @@ from sklearn.utils import check_random_state
 from skada._utils import (
     _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
     _check_y_masking,
+    _get_routing_request,
     _merge_domain_outputs,
 )
 from skada.datasets import make_dataset_from_moons_distribution
@@ -904,3 +905,22 @@ def test_merge_output_invalid_container():
             },
             allow_containers=True,
         )
+
+
+def test_get_routing_request_raises_when_method_is_missing():
+    method_name = "transform"
+
+    class SelfRequest:
+        pass
+
+    class Routing:
+        pass
+
+    routing = Routing()
+    routing._self_request = SelfRequest()
+
+    with pytest.raises(
+        AttributeError,
+        match=rf"No routing request found for method={method_name}",
+    ):
+        _get_routing_request(routing, method_name)

@@ -869,7 +869,12 @@ class MaNoScorer(_BaseDomainAwareScorer):
                 raise ValueError("The layer_name of the estimator is not set.")
 
             # 1) Recover logits on target
-            logits = estimator.infer(X[~source_idx], **params).cpu().detach().numpy()
+            y_pred = estimator.infer(X[~source_idx], **params)
+            if isinstance(y_pred, tuple):
+                # The infer method can return a tuple if in training mode
+                y_pred = y_pred[0]
+
+            logits = y_pred.cpu().detach().numpy()
 
             # 2) Normalize logits to obtain probabilities
             criterion = self._get_criterion(logits)

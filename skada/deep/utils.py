@@ -19,20 +19,16 @@ class IntermediateLayerHook:
         self.intermediate_layers = intermediate_layers
         self.layer_name = layer_name
 
-    def __call__(self, module, input, output):
+    def __call__(self, module, inputs, output):
         self.intermediate_layers[self.layer_name] = output.flatten(start_dim=1)
 
 
 def _register_forwards_hook(module, intermediate_layers, layer_names):
-    """Add hook to chosen layers.
-
-    The hook returns the output of intermediate layers
-    in order to compute the domain adaptation loss.
-    """
     for layer_name, layer_module in module.named_modules():
         if layer_name in layer_names:
-            hook = IntermediateLayerHook(intermediate_layers, layer_name)
-            layer_module.register_forward_hook(hook)
+            layer_module.register_forward_hook(
+                IntermediateLayerHook(intermediate_layers, layer_name)
+            )
 
 
 def check_generator(seed):

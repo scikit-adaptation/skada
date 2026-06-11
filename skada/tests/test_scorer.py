@@ -486,7 +486,7 @@ def test_scorer_with_nd_input(scorer, da_dataset):
     estimator = make_da_pipeline(
         DummyClassifier(strategy="stratified", random_state=42)
         .set_fit_request(sample_weight=True)
-        .set_score_request(sample_weight=True),
+        .set_score_request(sample_weight=True)
     )
     cv = ShuffleSplit(n_splits=3, test_size=0.3, random_state=0)
     if isinstance(scorer, SupervisedScorer):

@@ -26,6 +26,7 @@ from skada._utils import (
     _remove_masked,
     _route_params,
     _find_y_type,
+    _get_routing_request,
     Y_Type,
     _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL,
     _DEFAULT_MASKED_TARGET_REGRESSION_LABEL,
@@ -72,7 +73,7 @@ class IncompatibleMetadataError(UnsetMetadataPassedError):
 
 class BaseAdapter(BaseEstimator):
 
-    __metadata_request__fit = {'sample_domain': True}
+    __metadata_request__fit = {'sample_domain': True,}
     __metadata_request__transform = {'sample_domain': True, 'allow_source': True}
 
     @abstractmethod
@@ -118,7 +119,7 @@ class _DAMetadataRequesterMixin(_MetadataRequester):
     and is expected to be rarely, if at all, required by end users.
     """
 
-    __metadata_request__fit = {'sample_domain': True}
+    __metadata_request__fit = {'sample_domain': True,}
     __metadata_request__partial_fit = {'sample_domain': True}
     __metadata_request__predict = {'sample_domain': True, 'allow_source': True}
     __metadata_request__predict_proba = {'sample_domain': True, 'allow_source': True}
@@ -429,7 +430,11 @@ class Shared(BaseSelector):
 
         X, y, params = X_container.merge_out(y, **params)
         routing = get_routing_for_object(self.base_estimator)
-        routing_request = getattr(routing, routing_method)
+        # print(self.base_estimator, routing)
+        routing_request = _get_routing_request(
+            routing,
+            routing_method,
+        )        
         routed_params = self._prepare_routing(routing_request, X_container, params)
         X, y, routed_params = self._remove_masked(X, y, routed_params)
         estimator = clone(self.base_estimator)
@@ -441,8 +446,11 @@ class Shared(BaseSelector):
     # xxx(okachaiev): fail if unknown domain is given
     def _route_to_estimator(self, method_name, X, y=None, **params):
         check_is_fitted(self)
-        request = getattr(self.routing_, method_name)
-        routed_params = self._prepare_routing(request, {}, params)
+        routing_request = _get_routing_request(
+            self.routing_,
+            method_name,
+        )        
+        routed_params = self._prepare_routing(routing_request, {}, params)
         X, y, routed_params = self._remove_masked(X, y, routed_params)
         method = getattr(self.base_estimator_, method_name)
         output = method(X, **routed_params) if y is None else method(

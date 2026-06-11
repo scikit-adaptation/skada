@@ -56,13 +56,12 @@ def test_domainawaremodule_features_differ_between_domains():
 
     # Create an instance of DomainAwareModule
     domain_module = DomainAwareModule(module, layer_name="dropout")
-
+    domain_module.train()
     # Run forward pass
     with torch.no_grad():
         output = domain_module(
             X_tensor,
             sample_domain=sample_domain_tensor,
-            is_fit=True,
             return_features=True,
         )
 
