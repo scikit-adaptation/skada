@@ -16,7 +16,9 @@ This example illustrates the OTDA method from [1] on a simple classification tas
 # sphinx_gallery_thumbnail_number = 4
 
 # %%
+import matplotlib.animation as animation
 import matplotlib.pyplot as plt
+import numpy as np
 from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.svm import SVC
 
@@ -395,3 +397,97 @@ DecisionBoundaryDisplay.from_estimator(
 plt.scatter(X_target[:, 0], X_target[:, 1], c=y_target, vmax=9, cmap="tab10", alpha=0.7)
 plt.axis(lims)
 plt.title(label=f"OTDA linear (ACC={ACC_linear:.2f})")
+
+# %%
+# Partial mapping with alpha parameter
+# ------------------------------
+# The OTDA method can be used with a parameter alpha that controls the amount of
+# transport applied to the source samples following the expression
+# X_mapped = (1-alpha)*X_target + alpha*OT(X_target).
+# When alpha=0, the method is equivalent to a standard domain adaptation method
+# (e.g. SVC).
+# When alpha=1, the method is equivalent to the OTDA method.
+# The following animation illustrates this parameter.
+
+
+plt.figure(4, (8, 8))
+
+alphas = np.linspace(0, 1, 40)
+y_temp = y.copy()
+y_temp[sample_domain < 0] = -1
+
+# Store mapped target points over time
+history_X_final = []
+
+
+def _update_plot(i):
+    plt.clf()
+    alpha = alphas[i]
+
+    clf_otda_linear = make_da_pipeline(
+        LinearOTMappingAdapter(alpha=alpha), SVC(kernel="rbf", C=1)
+    )
+    clf_otda_linear.fit(X, y_temp, sample_domain=sample_domain)
+
+    # Only map the source points
+    X_final = clf_otda_linear[0].transform(X_source, sample_domain=1, allow_source=True)
+    history_X_final.append(X_final.copy())  # store current transformed version
+    last_X_final = history_X_final[-10:-1]
+    # Plot previous transported points with fading
+    for j, Xf in enumerate(last_X_final):
+        fading_alpha = j / 10  # 0.0 → 1.0
+        label = "mapped source" if j == len(last_X_final) - 1 else None
+        plt.scatter(
+            Xf[:, 0],
+            Xf[:, 1],
+            c=y_source,
+            cmap="coolwarm",
+            alpha=fading_alpha,
+            label=label,
+        )
+    if i < 3:
+        # Plot source fading out
+        plt.scatter(
+            X_source[:, 0],
+            X_source[:, 1],
+            c=y_source,
+            cmap="coolwarm",
+            label="source",
+            alpha=1 - alpha,
+        )
+
+    # Plot target fixed
+    plt.scatter(
+        X_target[:, 0],
+        X_target[:, 1],
+        c=y_target,
+        cmap="Spectral",
+        label="target",
+        alpha=1,
+        marker="s",
+    )
+
+    # Decision boundary
+    DecisionBoundaryDisplay.from_estimator(
+        clf_otda_linear,
+        X_source,
+        alpha=0.5,
+        eps=0.5,
+        response_method="predict",
+        vmax=1,
+        cmap="coolwarm",
+        ax=plt.gca(),
+    )
+
+    # Accuracy + alpha
+    acc_target = clf_otda_linear.score(X_target, y_target)
+    plt.title(f"Alpha = {alpha:.2f} | ACC(target) = {acc_target:.2f}")
+    plt.legend()
+
+    return 1
+
+
+ani = animation.FuncAnimation(
+    plt.gcf(), _update_plot, len(alphas), interval=200, repeat_delay=2000
+)
+ani.save("otda_animation_1.gif")

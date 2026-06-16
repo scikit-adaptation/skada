@@ -43,20 +43,26 @@ from skada.datasets import DomainAwareDataset, make_shifted_datasets
     [
         make_da_pipeline(OTMappingAdapter(), LogisticRegression()),
         OTMapping(),
+        OTMapping(alpha=0.5),
         make_da_pipeline(EntropicOTMappingAdapter(), LogisticRegression()),
         EntropicOTMapping(),
+        EntropicOTMapping(alpha=0.5),
         make_da_pipeline(
             ClassRegularizerOTMappingAdapter(norm="lpl1"), LogisticRegression()
         ),
         ClassRegularizerOTMapping(),
+        ClassRegularizerOTMapping(alpha=0.5),
         make_da_pipeline(
             ClassRegularizerOTMappingAdapter(norm="l1l2"), LogisticRegression()
         ),
         ClassRegularizerOTMapping(norm="l1l2"),
+        ClassRegularizerOTMapping(norm="l1l2", alpha=0.5),
         make_da_pipeline(LinearOTMappingAdapter(), LogisticRegression()),
         LinearOTMapping(),
+        LinearOTMapping(alpha=0.5),
         make_da_pipeline(MultiLinearMongeAlignmentAdapter(), LogisticRegression()),
         MultiLinearMongeAlignment(),
+        MultiLinearMongeAlignment(alpha=0.5),
         make_da_pipeline(CORALAdapter(), LogisticRegression()),
         pytest.param(
             CORALAdapter(reg=None),
@@ -64,6 +70,7 @@ from skada.datasets import DomainAwareDataset, make_shifted_datasets
         ),
         make_da_pipeline(CORALAdapter(reg=0.1), LogisticRegression()),
         CORAL(),
+        CORAL(alpha=0.5),
         pytest.param(
             make_da_pipeline(MMDLSConSMappingAdapter(gamma=1e-3), SVC()),
             marks=pytest.mark.skipif(not torch, reason="PyTorch not installed"),
