@@ -14,7 +14,7 @@ from skada.deep.base import (
     BaseDALoss,
     DomainAwareCriterion,
     DomainAwareModule,
-    DomainAwareNet,
+    DomainAwareNetClassifier,
     DomainBalancedDataLoader,
 )
 
@@ -133,7 +133,7 @@ def DANN(
     if base_criterion is None:
         base_criterion = torch.nn.CrossEntropyLoss()
 
-    net = DomainAwareNet(
+    net = DomainAwareNetClassifier(
         module=DomainAwareModule,
         module__base_module=module,
         module__layer_name=layer_name,
@@ -356,7 +356,7 @@ def CDAN(
     if base_criterion is None:
         base_criterion = torch.nn.CrossEntropyLoss()
 
-    net = DomainAwareNet(
+    net = DomainAwareNetClassifier(
         module=CDANModule,
         module__base_module=module,
         module__layer_name=layer_name,
@@ -535,7 +535,7 @@ def MDD(
     if base_criterion is None:
         base_criterion = torch.nn.CrossEntropyLoss()
 
-    net = DomainAwareNet(
+    net = DomainAwareNetClassifier(
         module=DomainAwareModule,
         module__base_module=module,
         module__layer_name=layer_name,
