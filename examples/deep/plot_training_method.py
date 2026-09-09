@@ -103,7 +103,7 @@ for epoch in range(max_epochs):
         optimizer.zero_grad()
 
         # Forward pass
-        outputs = model(**inputs, is_fit=True)
+        outputs = model(**inputs)
         loss = loss_fn(outputs, labels)
 
         # Backward pass and optimization

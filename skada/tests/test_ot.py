@@ -99,7 +99,7 @@ def test_JDOTClassifier(da_multiclass_dataset, da_binary_dataset):
         scorer = PredictionEntropyScorer()
         jdot = JDOTClassifier(base_estimator=SVC(probability=True))
         jdot.fit(X, y, sample_domain=sample_domain)
-        scorer._score(jdot, X, y, sample_domain=sample_domain)
+        scorer(jdot, X, y, sample_domain=sample_domain)
 
         # test raise error
         with np.testing.assert_raises(ValueError):

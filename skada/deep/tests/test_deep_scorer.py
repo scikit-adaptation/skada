@@ -62,7 +62,7 @@ def test_generic_scorer_on_deepmodel(scorer, da_dataset):
     estimator.predict(X_test, sample_domain=sample_domain_test, allow_source=True)
     estimator.predict_proba(X, sample_domain=sample_domain, allow_source=True)
 
-    scores = scorer(estimator, X, y, sample_domain)
+    scores = scorer(estimator, X, y, sample_domain=sample_domain)
 
     assert ~np.isnan(scores), "The score is computed"
 
@@ -93,6 +93,8 @@ def test_generic_scorer(scorer, da_dataset):
         StandardScaler(),
         net,
     )
+    estimator.fit(X.astype(np.float32), y, sample_domain=sample_domain)
+
     cv = ShuffleSplit(n_splits=3, test_size=0.3, random_state=0)
     scores = cross_validate(
         estimator,
@@ -180,7 +182,9 @@ def test_dev_scorer_on_target_only(da_dataset):
     # without dict
     estimator.fit(X, unmasked_y, sample_domain=sample_domain)
 
-    scores = DeepEmbeddedValidation()(estimator, X, unmasked_y, sample_domain)
+    scores = DeepEmbeddedValidation()(
+        estimator, X, unmasked_y, sample_domain=sample_domain
+    )
 
     assert ~np.isnan(scores), "The score is computed"
 
@@ -241,7 +245,7 @@ def test_exception_layer_name(scorer, da_dataset):
     estimator.fit(X, y, sample_domain=sample_domain)
 
     with pytest.raises(ValueError, match="The layer_name of the estimator is not set."):
-        scorer(estimator, X, y, sample_domain)
+        scorer(estimator, X, y, sample_domain=sample_domain)
 
 
 def test_mano_softmax(da_dataset):
@@ -271,8 +275,7 @@ def test_mano_softmax(da_dataset):
     estimator.predict_proba(X, sample_domain=sample_domain, allow_source=True)
 
     scorer = MaNoScorer(threshold=-1)
-    scorer(estimator, X, y, sample_domain)
-    print(scorer.chosen_normalization.lower())
+    scorer(estimator, X, y, sample_domain=sample_domain)
     assert (
         scorer.chosen_normalization.lower() == "softmax"
     ), "the wrong normalization was chosen"
@@ -305,7 +308,7 @@ def test_mano_taylor(da_dataset):
     estimator.predict_proba(X, sample_domain=sample_domain, allow_source=True)
 
     scorer = MaNoScorer(threshold=float("inf"))
-    scorer(estimator, X, y, sample_domain)
+    scorer(estimator, X, y, sample_domain=sample_domain)
     assert (
         scorer.chosen_normalization.lower() == "taylor"
     ), "the wrong normalization was chosen"
@@ -338,7 +341,7 @@ def test_mano_output_range(da_dataset):
     estimator.predict_proba(X, sample_domain=sample_domain, allow_source=True)
 
     scorer = MaNoScorer(threshold=float("inf"))
-    score = scorer(estimator, X, y, sample_domain)
+    score = scorer(estimator, X, y, sample_domain=sample_domain)
     assert (scorer._sign * score >= 0) and (
         scorer._sign * score <= 1
     ), "The output range should be [-1, 0] or [0, 1]."

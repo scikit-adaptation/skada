@@ -166,6 +166,7 @@ def _remove_masked(X, y, params):
         unmasked_idx = y != _DEFAULT_MASKED_TARGET_CLASSIFICATION_LABEL
     elif y_type == Y_Type.CONTINUOUS:
         unmasked_idx = np.isfinite(y)
+
     X, y, params = _apply_domain_masks(X, y, params, masks=unmasked_idx)
     return X, y, params
 
@@ -228,3 +229,16 @@ def _shuffle_arrays(*arrays, random_state=None):
 
 def _route_params(request, params, caller):
     return request._route_params(params=params, parent=caller, caller=caller)
+
+
+def _get_routing_request(routing, method):
+    if getattr(routing, "_self_request", None) is not None:
+        self_request = routing._self_request
+
+        if hasattr(self_request, method):
+            return getattr(self_request, method)
+
+    if hasattr(routing, method):
+        return getattr(routing, method)
+
+    raise AttributeError(f"No routing request found for method={method}")

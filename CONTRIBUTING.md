@@ -135,6 +135,9 @@ Bonus points for contributions that include a performance analysis with
 a benchmark script and profiling output (please report on the mailing
 list or on the GitHub issue).
 
+Remark: Adding, '\[dataset\]' in the name of your Pull Request will activate
+the tests for tests of the module Dataset.
+
 Filing bugs
 -----------
 We use Github issues to track all bugs and feature requests; feel free to

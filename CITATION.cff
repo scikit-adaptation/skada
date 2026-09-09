@@ -58,5 +58,5 @@ keywords:
   - pytorch
   - domain adaptation
 license: BSD-3-Clause
-version: 0.3.0
-date-released: 2024-07-04
+version: 0.6.0
+date-released: 2026-06-16
