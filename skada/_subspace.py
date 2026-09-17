@@ -719,6 +719,7 @@ class TransferSubspaceLearningAdapter(BaseAdapter):
     reg : float, default=0.01
         The regularization parameter of the covariance estimator.
         Possible values:
+
           - None: no shrinkage.
           - float between 0 and 1: fixed shrinkage parameter.
     max_iter : int>0, default=100
@@ -984,6 +985,7 @@ def TransferSubspaceLearning(
     reg : float, default=0.01
         The regularization parameter of the covariance estimator.
         Possible values:
+
           - None: no shrinkage.
           - float between 0 and 1: fixed shrinkage parameter.
     max_iter : int>0, default=100

@@ -256,7 +256,7 @@ class DomainAwareDataset:
             If "DeepDADataset", returns a :class:`~skada.dataset.base.DeepDADataset`
             If "Bunch", returns a :class:`~sklearn.utils.Bunch` object
         train: Optional[bool], default=None
-            [DEPRECATED] Use `mask_target_labels`instead.
+            [DEPRECATED] Use `mask_target_labels` instead.
         mask: int | float (optional), default=None
             Value to mask labels at training time.
 

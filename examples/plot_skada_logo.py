@@ -121,7 +121,7 @@ def draw_S(
     plt.scatter(
         dots_keep[dots_class == 0, 1],
         dots_keep[dots_class == 0, 0],
-        color=color_unlabel if not white else "w",
+        color=color_unlabel,
         marker="o",
         s=s,
         alpha=alpha,
@@ -131,7 +131,7 @@ def draw_S(
     plt.scatter(
         dots_keep[dots_class == 1, 1],
         dots_keep[dots_class == 1, 0],
-        color=color_unlabel if not white else "w",
+        color=color_unlabel,
         marker="s",
         s=s,
         alpha=alpha,
@@ -145,7 +145,7 @@ def draw_S(
     plt.scatter(
         dots_rotated[dots_class == 0, 1],
         dots_rotated[dots_class == 0, 0],
-        color=color_1 if not white else "w",
+        color=color_1,
         marker="o",
         s=s,
         alpha=alpha,
@@ -155,7 +155,7 @@ def draw_S(
     plt.scatter(
         dots_rotated[dots_class == 1, 1],
         dots_rotated[dots_class == 1, 0],
-        color=color_0 if not white else "w",
+        color=color_0,
         marker="s",
         s=s,
         alpha=alpha,
@@ -261,7 +261,7 @@ plt.text(
     r"\bf\textsf{D}",
     usetex=True,
     fontsize=fontsize,
-    color="w",
+    color=color_1,
 )
 plt.text(
     30.5,
@@ -269,7 +269,7 @@ plt.text(
     r"\bf\textsf{A}",
     usetex=True,
     fontsize=fontsize,
-    color="w",
+    color=color_0,
 )
 
 

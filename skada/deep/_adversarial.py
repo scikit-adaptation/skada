@@ -102,7 +102,7 @@ def DANN(
         Regularization parameter for DA loss.
     domain_classifier : torch module, default=None
         A PyTorch :class:`~torch.nn.Module` used to classify the
-        domain. If None, a domain classifier is created following [1]_.
+        domain. If None, a domain classifier is created following [15]_.
     num_features : int, default=None
         Size of the input of domain classifier,
         e.g size of the last layer of
@@ -221,7 +221,7 @@ class CDANModule(DomainAwareModule):
     max_features : int, default=4096
         Maximum size of the input for the domain classifier.
         4096 is the largest number of units in typical deep network
-        according to [1]_.
+        according to [16]_.
 
     References
     ----------
@@ -318,10 +318,10 @@ def CDAN(
     max_features : int, default=4096
         Maximum size of the input for the domain classifier.
         4096 is the largest number of units in typical deep network
-        according to [1]_.
+        according to [16]_.
     domain_classifier : torch module, default=None
         A PyTorch :class:`~torch.nn.Module` used to classify the
-        domain. If None, a domain classifier is created following [1]_.
+        domain. If None, a domain classifier is created following [16]_.
     num_features : int, default=None
         Size of the embedding space e.g. the size of the output of layer_name.
         If domain_classifier is None, num_features has to be
@@ -500,7 +500,7 @@ def MDD(
         A PyTorch :class:`~torch.nn.Module` used as a discriminator.
         It should have the same architecture than the classifier
         used on the source. If None, a domain classifier is
-        created following [1]_.
+        created following [35]_.
     num_features : int, default=None
         Size of the input of domain classifier,
         e.g size of the last layer of

@@ -43,7 +43,7 @@ from skada.datasets import make_shifted_datasets
 
 # %%
 # Generate conditional shift regression dataset and plot it
-# -----------------------------------------------------
+# -----------------------------------------------------------
 #
 # We generate a simple 2D conditional shift dataset.
 
@@ -74,7 +74,7 @@ plt.axis(ax)
 
 # %%
 # Train a regressor on source data
-# --------------------------------
+# ---------------------------------
 #
 # We train a simple Kernel Ridge Regression (KRR) on the source domain and
 # evaluate its performance on the source and target domain. Performance is
@@ -114,8 +114,8 @@ plt.axis(ax)
 
 
 # %%
-# Train the full Labe Propagation model
-# --------------------------------
+# Train the full Label Propagation model
+# --------------------------------------
 #
 
 clf = make_da_pipeline(OTLabelPropAdapter(), KernelRidge(kernel="rbf", alpha=0.5))
@@ -146,8 +146,8 @@ plt.title(f"LabelProp Prediction on target (MSE={mse_t:.2f})")
 plt.axis(ax)
 
 # %%
-# Illustration of the propagated labels
-# ---------------------------
+# Illustration of the propagated regression labels
+# -------------------------------------------------
 #
 # We illustrate the propagated labels on the target domain. We can see that the
 # labels are propagated from the source domain to the target domain.
@@ -178,7 +178,7 @@ plt.axis(ax)
 
 # %%
 # Generate conditional shift classification dataset and plot it
-# -----------------------------------------------------
+# ---------------------------------------------------------------
 #
 # We generate a simple 2D conditional shift dataset.
 
@@ -208,7 +208,7 @@ plt.axis(ax)
 
 # %%
 # Train a classifier on source data
-# --------------------------------
+# ----------------------------------
 #
 # We train a simple SVC classifier on the source domain and evaluate its
 # performance on the source and target domain. Performance is much lower on
@@ -261,7 +261,7 @@ plt.axis(ax)
 
 # %%
 # Train with LabelProp + classifier
-# -------------------------
+# ----------------------------------
 #
 
 clf = make_da_pipeline(OTLabelPropAdapter(), LogisticRegression())
@@ -309,8 +309,8 @@ plt.axis(ax)
 
 
 # %%
-# Illustration of the propagated labels
-# ---------------------------
+# Illustration of the propagated classification labels
+# -------------------------------------------------------
 #
 # We illustrate the propagated labels on the target domain. We can see that the
 # labels are propagated from the source domain to the target domain.
@@ -339,8 +339,8 @@ plt.axis(ax)
 
 
 # %%
-# Generate classification classification dataset and plot it
-# -----------------------------------------------------
+# Generate target shift dataset and plot it
+# -------------------------------------------
 #
 # We generate a simple 2D target shift dataset.
 
@@ -370,7 +370,7 @@ plt.axis(ax)
 
 # %%
 # Train with LabelProp and JCPOT + classifier
-# -------------------------
+# --------------------------------------------
 #
 # On this target shift dataset, we can see that the label propagation method
 # does not work well because it finds correspondences between the source and

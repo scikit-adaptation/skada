@@ -25,7 +25,7 @@ from skada.datasets import make_shifted_datasets
 
 # %%
 # Generate conditional shift classification dataset and plot it
-# -----------------------------------------------------
+# ---------------------------------------------------------------
 #
 # We generate a simple 2D conditional shift dataset.
 
@@ -55,7 +55,7 @@ plt.axis(ax)
 
 # %%
 # Train a classifier on source data
-# --------------------------------
+# ----------------------------------
 #
 # We train a simple SVC classifier on the source domain and evaluate its
 # performance on the source and target domain. Performance is much lower on
@@ -243,8 +243,8 @@ plt.axis(ax)
 plt.title("Adapted data")
 
 # %%
-# Train a classifier on adapted data
-# ----------------------------------
+# Train a classifier on multi-domain adapted data
+# ------------------------------------------------
 
 clf = make_da_pipeline(
     MultiLinearMongeAlignmentAdapter(),

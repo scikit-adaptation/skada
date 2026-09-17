@@ -1,6 +1,6 @@
 """
-Plot dataset source domain and shifted target domain
-====================================================
+Shifted binary classification dataset
+============================================
 
 This illustrates the :func:`~skada.datasets.make_shifted_dataset`
 dataset generator. Each method consists of generating source data
@@ -21,9 +21,13 @@ See detailed description of each shift in [1]_.
 # %% Imports
 
 import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
 
 from skada import source_target_split
 from skada.datasets import make_shifted_datasets
+
+# Binary classification: color the two classes like the SKADA logo.
+cmap_binary = ListedColormap(["#c84630", "#2364aa"])
 
 # %% Helper function
 
@@ -42,7 +46,7 @@ def plot_shifted_dataset(shift, random_state=42):
         n_samples_target=20,
         shift=shift,
         noise=0.3,
-        label="regression",
+        label="binary",
         random_state=random_state,
     )
     X_source, X_target, y_source, y_target = source_target_split(
@@ -56,30 +60,23 @@ def plot_shifted_dataset(shift, random_state=42):
         X_source[:, 0],
         X_source[:, 1],
         c=y_source,
-        vmax=max(y),
+        cmap=cmap_binary,
         alpha=0.5,
-        cmap="autumn",
     )
     ax1.set_title("Source data")
     ax1.set_xlabel("Feature 1")
     ax1.set_ylabel("Feature 2")
 
-    s = ax2.scatter(
+    ax2.scatter(
         X_target[:, 0],
         X_target[:, 1],
         c=y_target,
-        vmax=max(y),
+        cmap=cmap_binary,
         alpha=0.5,
-        cmap="autumn",
     )
     ax2.set_title("Target data")
     ax2.set_xlabel("Feature 1")
     ax2.set_ylabel("Feature 2")
-
-    fig.subplots_adjust(right=0.8)
-    cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.80])
-    cb = fig.colorbar(s, cax=cbar_ax)
-    cb.set_label("y-value")
 
     plt.show()
 

@@ -1,6 +1,6 @@
 """
-Plot dataset source domain and shifted target domain
-====================================================
+Moons dataset with source and target shift
+============================================
 
 This illustrates the :func:`~skada.datasets.make_dataset_from_moons_distribution`
 dataset generator. Each method consists of generating source data
@@ -10,9 +10,13 @@ and shifted target data.
 # %% Imports
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.colors import ListedColormap
 
 from skada import source_target_split
 from skada.datasets import make_dataset_from_moons_distribution
+
+# Binary classification: color the two classes like the SKADA logo.
+cmap_binary = ListedColormap(["#c84630", "#2364aa"])
 
 # Use same random seed for multiple calls to make_shifted_datasets to
 # ensure same distributions
@@ -40,8 +44,7 @@ ax1.scatter(
     X_source[:, 0],
     X_source[:, 1],
     c=y_source,
-    cmap="tab10",
-    vmax=10,
+    cmap=cmap_binary,
     alpha=0.5,
 )
 ax1.set_title("Source data")
@@ -52,16 +55,13 @@ ax2.scatter(
     X_source[:, 0],
     X_source[:, 1],
     c="grey",
-    cmap="tab10",
-    vmax=10,
     alpha=0.1,
 )
 ax2.scatter(
     X_target[:, 0],
     X_target[:, 1],
     c=y_target,
-    cmap="tab10",
-    vmax=10,
+    cmap=cmap_binary,
     alpha=0.5,
 )
 ax2.set_title("Target data")
@@ -93,8 +93,7 @@ for i in np.unique(domain_source):
         X_source[domain_source == i, 0],
         X_source[domain_source == i, 1],
         c=y_source[domain_source == i],
-        cmap="tab10",
-        vmax=10,
+        cmap=cmap_binary,
         alpha=0.5,
     )
 ax1.set_title("Source data")
@@ -106,8 +105,6 @@ for i in np.unique(domain_source):
         X_source[domain_source == i, 0],
         X_source[domain_source == i, 1],
         c="grey",
-        cmap="tab10",
-        vmax=10,
         alpha=0.1,
     )
 for i in np.unique(domain_target):
@@ -115,8 +112,7 @@ for i in np.unique(domain_target):
         X_target[domain_target == i, 0],
         X_target[domain_target == i, 1],
         c=y_target[domain_target == i],
-        cmap="tab10",
-        vmax=10,
+        cmap=cmap_binary,
         alpha=0.5,
     )
 ax2.set_title("Target data")

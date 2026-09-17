@@ -160,7 +160,7 @@ def dan_loss(features_s, features_t, sigmas=None, eps=1e-7):
         Target features used to compute the mmd loss.
     sigmas : array like, default=None,
         If array, sigmas used for the multi gaussian kernel.
-        If None, uses sigmas proposed  in [1]_.
+        If None, uses sigmas proposed  in [14]_.
     eps : float, default=1e-7
         Small constant added to median distance calculation for numerical stability.
 
@@ -219,7 +219,7 @@ def cdd_loss(
         Pre-computed target KMeans clustering model.
     sigmas : array like, default=None,
         If array, sigmas used for the multi gaussian kernel.
-        If None, uses sigmas proposed  in [1]_.
+        If None, uses sigmas proposed  in [33]_.
     distance_threshold : float, optional (default=0.5)
         Distance threshold for discarding the samples that are
         to far from the centroids.

@@ -60,7 +60,8 @@ test = [
 doc = [
     "sphinx",
     "sphinx_gallery",
-    "sphinx_rtd_theme",
+    "pydata-sphinx-theme",
+    "sphinx-design",
     "numpydoc",
     "memory_profiler",
     "myst-parser",
@@ -137,6 +138,7 @@ ignore_directives = [
     "automodule",
     "autosummary",
     "bibliography",
+    "button-ref",
     "cssclass",
     "currentmodule",
     "dropdown",

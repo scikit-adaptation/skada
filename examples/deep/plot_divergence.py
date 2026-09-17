@@ -2,7 +2,7 @@
 Divergence domain adaptation methods.
 ==========================================
 
-This example illustrates the DeepCoral method from [1]
+This example illustrates the DeepCoral method from [1]_
 on a simple image classification task.
 
 .. [1]  Baochen Sun and Kate Saenko. Deep coral:

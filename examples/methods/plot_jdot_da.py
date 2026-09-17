@@ -2,7 +2,7 @@
 JDOT Regressor and Classifier examples
 ======================================
 
-This example shows how to use the JDOTRegressor [10] to learn a regression model
+This example shows how to use the JDOTRegressor [10]_ to learn a regression model
 from source to target domain on a simple conditional shift 2D example. We use a
 simple Kernel Ridge Regression (KRR) as base estimator.
 
@@ -34,7 +34,7 @@ from skada.datasets import make_shifted_datasets
 
 # %%
 # Generate conditional shift regression dataset and plot it
-# -----------------------------------------------------
+# -----------------------------------------------------------
 #
 # We generate a simple 2D conditional shift dataset.
 
@@ -171,7 +171,7 @@ plt.title("OT plan between source and target")
 
 # %%
 # Generate conditional shift classification dataset and plot it
-# -----------------------------------------------------
+# ---------------------------------------------------------------
 #
 # We generate a simple 2D conditional shift dataset.
 
@@ -201,7 +201,7 @@ plt.axis(ax)
 
 # %%
 # Train a classifier on source data
-# --------------------------------
+# ----------------------------------
 #
 # We train a simple SVC classifier on the source domain and evaluate its
 # performance on the source and target domain. Performance is much lower on
@@ -254,7 +254,7 @@ plt.axis(ax)
 
 # %%
 # Train with JDOT classifier
-# -------------------------
+# ---------------------------
 #
 # We now use the JDOTClassifier to learn a classification model from source to
 # target domain. We use the same SVC as base estimator. We compare the
@@ -309,7 +309,7 @@ plt.axis(ax)
 
 # %%
 # Train with JDOT classifier with SVC
-# -------------------------
+# ------------------------------------
 #
 # We now use the JDOTClassifier with a support vector classifier as base
 # estimator to learn a classification model from source to target domain.

@@ -166,7 +166,7 @@ def SPA(
         Regularization parameter for DA loss.
     domain_classifier : torch module, default=None
         A PyTorch :class:`~torch.nn.Module` used to classify the
-        domain. If None, a domain classifier is created following [1]_.
+        domain. If None, a domain classifier is created following [36]_.
     num_features : int, default=None
         Size of the input of domain classifier,
         e.g size of the last layer of

@@ -1,0 +1,75 @@
+/* Brand colors sampled directly from the SKADA logo (skada_logo_full.svg) */
+:root,
+html[data-theme="light"] {
+  --pst-color-primary: #2364aa;
+  --pst-color-primary-highlight: #1a4d84;
+  --pst-color-primary-text: #fff;
+
+  --pst-color-secondary: #c84630;
+  --pst-color-secondary-highlight: #a13725;
+  --pst-color-secondary-text: #fff;
+
+  --pst-color-accent: #999c81;
+  --pst-color-accent-highlight: #7d806a;
+  --pst-color-accent-text: #fff;
+
+  --pst-color-inline-code: #2364aa;
+}
+
+html[data-theme="dark"] {
+  --pst-color-primary: #4a84c4;
+  --pst-color-primary-highlight: #6e9dd1;
+  --pst-color-primary-text: #0b1622;
+
+  --pst-color-secondary: #d97964;
+  --pst-color-secondary-highlight: #e0917f;
+  --pst-color-secondary-text: #1f0904;
+
+  --pst-color-accent: #b3b599;
+  --pst-color-accent-highlight: #c5c7b0;
+  --pst-color-accent-text: #1c1d17;
+
+  --pst-color-inline-code: #6ea6db;
+}
+
+/* Small brand-colored square markers used in front of the homepage card titles */
+.skada-dot {
+  display: inline-block;
+  width: 0.75em;
+  height: 0.75em;
+  margin-right: 0.5em;
+  border-radius: 2px;
+  vertical-align: 0.02em;
+}
+
+.skada-dot-blue {
+  background-color: var(--pst-color-primary);
+}
+
+.skada-dot-red {
+  background-color: var(--pst-color-secondary);
+}
+
+.brand-blue {
+  color: var(--pst-color-primary);
+}
+
+.brand-red {
+  color: var(--pst-color-secondary);
+}
+
+/*
+ * The theme's base `pre{background-color:var(--pst-color-surface)}` rule
+ * paints over the Pygments-generated `.highlight` background (the `pre` is
+ * nested inside `.highlight` and covers the same box), so the code block
+ * background from our custom Pygments styles never shows through unless we
+ * override it here too. Keep these hex values in sync with
+ * `docs/source/_pygments/skada_pygments.py`.
+ */
+html[data-theme="light"] .highlight pre {
+  background-color: #f8f6ee;
+}
+
+html[data-theme="dark"] .highlight pre {
+  background-color: #1e1a10;
+}

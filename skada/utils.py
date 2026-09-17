@@ -401,7 +401,7 @@ def source_target_merge(
         {_DEFAULT_MASKED_TARGET_REGRESSION_LABEL}).
     sample_domain : array-like of shape (n_samples,)
         Array specifying the domain labels for each sample. If None or empty
-        the domain labels will be inferred from the the *arrays, being a
+        the domain labels will be inferred from the ``*arrays``, being a
         default source and target domain (depending on the type of the arrays,
         they'll have a value of {_DEFAULT_SOURCE_DOMAIN_LABEL}
         or {_DEFAULT_TARGET_DOMAIN_LABEL}).

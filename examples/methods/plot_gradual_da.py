@@ -3,7 +3,7 @@
 Gradual Domain Adaptation Using Optimal Transport
 =================================================
 
-This example illustrates the GOAT method from [38] on a simple classification task.
+This example illustrates the GOAT method from [38]_ on a simple classification task.
 However, the CNN is replaced with a MLP.
 
 .. [38] Y. He, H. Wang, B. Li, H. Zhao
@@ -18,12 +18,16 @@ However, the CNN is replaced with a MLP.
 
 # %% Imports
 import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
 from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.neural_network import MLPClassifier
 
 from skada import source_target_split
 from skada._gradual_da import GradualEstimator
 from skada.datasets import make_shifted_datasets
+
+# Binary classification: color the two classes like the SKADA logo.
+cmap_binary = ListedColormap(["#c84630", "#2364aa"])
 
 # %%
 # Generate conditional shift dataset
@@ -53,12 +57,12 @@ n_tot_target = X_target.shape[0]
 plt.figure(1, figsize=(8, 3.5))
 plt.subplot(121)
 
-plt.scatter(X_source[:, 0], X_source[:, 1], c=y_source, vmax=9, cmap="tab10", alpha=0.7)
+plt.scatter(X_source[:, 0], X_source[:, 1], c=y_source, cmap=cmap_binary, alpha=0.7)
 plt.title("Source domain")
 plt.axis(lims)
 
 plt.subplot(122)
-plt.scatter(X_target[:, 0], X_target[:, 1], c=y_target, vmax=9, cmap="tab10", alpha=0.7)
+plt.scatter(X_target[:, 0], X_target[:, 1], c=y_target, cmap=cmap_binary, alpha=0.7)
 plt.title("Target domain")
 plt.axis(lims)
 
@@ -126,7 +130,7 @@ for i, step in enumerate(steps_to_plot):
     X_step, y_step = intermediate_data[step - 1]
     clf = clfs[step - 1]
 
-    ax.scatter(X_step[:, 0], X_step[:, 1], c=y_step, vmax=9, cmap="tab10", alpha=0.7)
+    ax.scatter(X_step[:, 0], X_step[:, 1], c=y_step, cmap=cmap_binary, alpha=0.7)
     DecisionBoundaryDisplay.from_estimator(
         clf,
         X,
@@ -164,8 +168,7 @@ axis[0].scatter(
     X_source[:, 0],
     X_source[:, 1],
     c=y_source,
-    vmax=9,
-    cmap="tab10",
+    cmap=cmap_binary,
     alpha=0.7,
 )
 axis[0].set_title("Source domain")
@@ -182,8 +185,7 @@ axis[1].scatter(
     X_target[:, 0],
     X_target[:, 1],
     c=y_target,
-    vmax=9,
-    cmap="tab10",
+    cmap=cmap_binary,
     alpha=0.7,
 )
 axis[1].set_title("Target domain")

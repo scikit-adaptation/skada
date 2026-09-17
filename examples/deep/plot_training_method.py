@@ -97,7 +97,8 @@ for epoch in range(max_epochs):
     running_loss = 0.0
     iter = 0
     for inputs, labels in dataloader:
-        inputs, labels = inputs, labels.to(device)
+        inputs = {k: v.to(device) for k, v in inputs.items()}
+        labels = labels.to(device)
 
         # Zero the gradients
         optimizer.zero_grad()

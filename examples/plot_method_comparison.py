@@ -145,7 +145,7 @@ for ds_cnt, ds in enumerate(datasets):
     y_min, y_max = X[:, 1].min() - 0.5, X[:, 1].max() + 0.5
     # just plot the dataset first
     cm = plt.cm.RdBu
-    cm_bright = ListedColormap(["#FF0000", "#0000FF"])
+    cm_bright = ListedColormap(["#c84630", "#2364aa"])
     ax = axes[0, ds_cnt]
     if ds_cnt == 0:
         ax.set_ylabel("Source data")

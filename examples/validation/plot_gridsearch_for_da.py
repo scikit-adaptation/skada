@@ -13,6 +13,7 @@ with `GridSearchCV <https://scikit-learn.org/stable/modules/generated/sklearn.mo
 import warnings
 
 import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
 from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.model_selection import GridSearchCV, ShuffleSplit
 from sklearn.svm import SVC
@@ -22,6 +23,9 @@ from skada.datasets import make_shifted_datasets
 from skada.metrics import PredictionEntropyScorer
 
 warnings.filterwarnings("ignore")
+
+# Binary classification: color the two classes like the SKADA logo.
+cmap_binary = ListedColormap(["#c84630", "#2364aa"])
 
 RANDOM_SEED = 42
 dataset = make_shifted_datasets(
@@ -89,6 +93,7 @@ plt.scatter(
     X_target[:, 0],
     X_target[:, 1],
     c=y_target,
+    cmap=cmap_binary,
     alpha=0.5,
 )
 plt.show()

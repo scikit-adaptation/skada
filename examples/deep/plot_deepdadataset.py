@@ -41,8 +41,8 @@ from skada.deep.base import DeepDADataset
 # DeepDADatasets can be created from numpy arrays, torch tensors, lists,
 # tuples, or dictionary of one of the former.
 #
-# If a dictionary is provided, it must contain the keys :code:`X`, :code:`y`(optional),
-# :code:`sample_domain`(optional) and :code:`sample_weight`(optional).
+# If a dictionary is provided, it must contain the keys :code:`X`, :code:`y` (optional),
+# :code:`sample_domain` (optional) and :code:`sample_weight` (optional).
 #
 # If both dictionary and positional arguments are provided, the dictionary
 # arguments will take precedence over the positional ones.
@@ -76,7 +76,7 @@ dataset = dataset.remove_weights()
 #
 # .. note::
 #   Just like for the dictionary, if a pandas dataframe is provided it must
-#   contain the keys :code:`X`, :code:`y` (optional), :code:`sample_domain`(optional)
+#   contain the keys :code:`X`, :code:`y` (optional), :code:`sample_domain` (optional)
 #   and :code:`sample_weight` (optional).
 #   Also, the data in the dataframe will take precedence over the positional arguments.
 

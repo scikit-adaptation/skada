@@ -14,6 +14,7 @@ on a simple dataset. It illustrates the API choice specific to DA.
 # %% imports
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.colors import ListedColormap
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV, cross_val_score
@@ -34,6 +35,9 @@ from skada import (
 from skada.datasets import make_shifted_datasets
 from skada.metrics import PredictionEntropyScorer
 from skada.model_selection import SourceTargetShuffleSplit
+
+# Binary classification: color the two classes like the SKADA logo.
+cmap_binary = ListedColormap(["#c84630", "#2364aa"])
 
 # %%
 # DA dataset
@@ -62,12 +66,12 @@ sample_domain_t = -np.ones(Xt.shape[0]) * 2
 plt.figure(1, (10, 5))
 
 plt.subplot(1, 2, 1)
-plt.scatter(Xs[:, 0], Xs[:, 1], c=ys, cmap="tab10", vmax=9, label="Source")
+plt.scatter(Xs[:, 0], Xs[:, 1], c=ys, cmap=cmap_binary, label="Source")
 plt.title("Source data")
 ax = plt.axis()
 
 plt.subplot(1, 2, 2)
-plt.scatter(Xt[:, 0], Xt[:, 1], c=yt, cmap="tab10", vmax=9, label="Target")
+plt.scatter(Xt[:, 0], Xt[:, 1], c=yt, cmap=cmap_binary, label="Target")
 plt.axis(ax)
 plt.title("Target data")
 
@@ -121,7 +125,7 @@ print("Accuracy on target:", pipe.score(Xt, yt))
 # Here is an example with the CORAL and GaussianReweight adapters.
 #
 # .. WARNING::
-
+#
 #   Note that as illustrated below for reweighting adapters, one needs a
 #   subsequent estimator that takes :code:`sample_weight` as an input parameter.
 #   This can be done using the :code:`set_fit_request` method of the estimator

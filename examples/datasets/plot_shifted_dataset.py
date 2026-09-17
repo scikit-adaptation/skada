@@ -1,6 +1,6 @@
 """
-Plot dataset source domain and shifted target domain
-====================================================
+Shifted multiclass classification dataset
+============================================
 
 This illustrates the :func:`~skada.datasets.make_shifted_dataset`
 dataset generator. Each method consists of generating source data

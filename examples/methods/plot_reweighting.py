@@ -1,6 +1,6 @@
 """
 Reweighting method example on covariate shift dataset
-====================================================
+=======================================================
 
 An example of the reweighting methods on a dataset subject
 to covariate shift
@@ -43,17 +43,22 @@ from skada.utils import extract_source_indices
 # for predicting labels from the target distribution.
 #
 # Reweighting methods implemented and illustrated are the following:
-#   * :ref:`Density Reweighting<Illustration of the Density Reweighting method>`
-#   * :ref:`Gaussian Reweighting<Illustration of the Gaussian reweighting method>`
-#   * :ref:`Discr. Reweighting<Illustration of the Discr. reweighting method>`
-#   * :ref:`KLIEPReweight<Illustration of the KLIEPReweight method>`
-#   * :ref:`Nearest Neighbor reweighting<Illustration of the Nearest Neighbor
-#     reweighting method>`
-#   * :ref:`Kernel Mean Matching<Illustration of the Kernel Mean Matching method>`
+#   * :ref:`Density Reweighting<auto_examples/methods/plot_reweighting:Illustration
+#     of the Density Reweighting method>`
+#   * :ref:`Gaussian Reweighting<auto_examples/methods/plot_reweighting:Illustration
+#     of the Gaussian reweighting method>`
+#   * :ref:`Discr. Reweighting<auto_examples/methods/plot_reweighting:Illustration
+#     of the Discr. reweighting method>`
+#   * :ref:`KLIEPReweight<auto_examples/methods/plot_reweighting:Illustration
+#     of the KLIEPReweight method>`
+#   * :ref:`Nearest Neighbor reweighting<auto_examples/methods/plot_reweighting:
+#     Illustration of the Nearest Neighbor reweighting method>`
+#   * :ref:`Kernel Mean Matching<auto_examples/methods/plot_reweighting:Illustration
+#     of the Kernel Mean Matching method>`
 #
-# For more details, look at [3].
+# For more details, look at [1]_.
 #
-# .. [3] [Sugiyama et al., 2008] Sugiyama, M., Suzuki, T., Nakajima, S., Kashima, H.,
+# .. [1] [Sugiyama et al., 2008] Sugiyama, M., Suzuki, T., Nakajima, S., Kashima, H.,
 #        von Bünau, P., and Kawanabe, M. (2008). Direct importance estimation for
 #        covariate shift adaptation. Annals of the Institute of Statistical
 #        Mathematics, 60(4):699–746.
@@ -65,7 +70,7 @@ base_classifier = LogisticRegression().set_fit_request(sample_weight=True)
 print(f"Will be using {base_classifier} as base classifier", end="\n\n")
 
 # %%
-# We generate our 2D dataset with 2 classes
+# Covariate-shift dataset with 2 classes
 # ------------------------------------------
 #
 # We generate a simple 2D dataset with covariate shift
@@ -79,7 +84,7 @@ X, y, sample_domain = make_shifted_datasets(
 Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 
 # %%
-# Plot of the dataset:
+# Visualizing the covariate-shift dataset
 # ------------------------------------------
 
 x_min, x_max = -2.5, 4.5
@@ -89,8 +94,7 @@ y_min, y_max = -1.5, 4.5
 figsize = (8, 4)
 figure, axes = plt.subplots(1, 2, figsize=figsize)
 
-cm = plt.cm.RdBu
-colormap = ListedColormap(["#FFA056", "#6C4C7C"])
+colormap = ListedColormap(["#c84630", "#2364aa"])
 ax = axes[0]
 ax.set_title("Source data")
 # Plot the source points:
@@ -110,8 +114,8 @@ ax.set_xticks(()), ax.set_yticks(())
 ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
 
 # %%
-#     Illustration of the problem with no domain adaptation
-# ------------------------------------------
+#     Baseline: classifier trained without domain adaptation
+# --------------------------------------------------------
 #
 # When not using domain adaptation, the classifier won't train on
 # data that is distributed as the target sample domain, it will thus
@@ -203,7 +207,7 @@ plot_weights_and_classifier(
 
 # %%
 #     Illustration of the Density Reweighting method
-# ------------------------------------------
+# --------------------------------------------------
 #
 # This method is trying to compute the optimal weights as a ratio of two probability
 # functions, by default, it is the ratio of two kernel densities estimations.
@@ -226,14 +230,14 @@ plot_weights_and_classifier(clf, weights=weights, name="Density Reweighting")
 
 # %%
 #     Illustration of the Gaussian reweighting method
-# ------------------------------------------
+# ---------------------------------------------------
 # This method tries to approximate the optimal weights by assuming that the data are
 # normally distributed, and thus approximating the probability functions for both source
 # and target set, and setting the weight to be the ratio of the two.
 #
-# See [1] for details.
+# See [2]_ for details.
 #
-# .. [1]  Hidetoshi Shimodaira. Improving predictive inference under
+# .. [2]  Hidetoshi Shimodaira. Improving predictive inference under
 #         covariate shift by weighting the log-likelihood function.
 #         In Journal of Statistical Planning and Inference, 2000.
 
@@ -249,17 +253,13 @@ plot_weights_and_classifier(clf, weights=weights, name="Gaussian Reweighting")
 
 # %%
 #     Illustration of the Discr. reweighting method
-# ------------------------------------------
+# -------------------------------------------------
 #
 # This estimator derive a class of predictive densities by weighting the source samples
 # when trying to maximize the log-likelihood function. Such approach is effective in
 # cases of covariate shift.
 #
-# See [1] for details.
-#
-# .. [1]    Hidetoshi Shimodaira. Improving predictive inference under
-#           covariate shift by weighting the log-likelihood function.
-#           In Journal of Statistical Planning and Inference, 2000.
+# See [2]_ for details (same reference as the Gaussian Reweighting method above).
 
 # We define our classifier, `clf` is a da pipeline
 clf = DiscriminatorReweight(base_classifier)
@@ -283,7 +283,7 @@ plot_weights_and_classifier(clf, weights=weights, name="Discr. Reweighting")
 # :math:`p_{source}(x)` to its estimate :math:`p_{target}(x) = w(x)p_{source}(x)`
 # is minimized.
 #
-# See [3] for details.
+# See [3]_ for details.
 #
 # .. [3] Masashi Sugiyama et. al. Direct Importance Estimation with Model Selection
 #        and Its Application to Covariate Shift Adaptation.
@@ -306,16 +306,15 @@ plot_weights_and_classifier(clf, weights=weights, name="KLIEPReweight")
 
 # %%
 #     Illustration of the Nearest Neighbor reweighting method
-# ------------------------------------------
-# .. _Nearest Neighbor reweighting
+# --------------------------------------------------------
 #
 # This method estimate weight of a point in the source dataset by
 # counting the number of points in the target set that are closer to
 # it than any other points from the source dataset.
 #
-# See [24] for details.
+# See [4]_ for details.
 #
-# .. [24] Loog, M. (2012).
+# .. [4] Loog, M. (2012).
 #        Nearest neighbor-based importance weighting.
 #        In 2012 IEEE International Workshop on Machine
 #        Learning for Signal Processing, pages 1–6. IEEE
@@ -335,16 +334,16 @@ plot_weights_and_classifier(clf, weights=weights, name="1NN Reweighting")
 
 # %%
 #     Illustration of the Kernel Mean Matching method
-# ------------------------------------------
-# .. _Kernel Mean Matching
+# ---------------------------------------------------
 #
-# This example illustrates the use of KMMReweight method [6] to correct covariate-shift.
+# This example illustrates the use of KMMReweight method [5]_
+# to correct covariate-shift.
 # This methods works without any estimation of the assumption, by matching distribution
 # between training and testing sets in feature space.
 #
-# See [25] for details.
+# See [5]_ for details.
 #
-# .. [25] J. Huang, A. Gretton, K. Borgwardt, B. Schölkopf and A. J. Smola.
+# .. [5] J. Huang, A. Gretton, K. Borgwardt, B. Schölkopf and A. J. Smola.
 #        Correcting sample selection bias by unlabeled data. In NIPS, 2007.
 
 # We define our classifier, `clf` is a da pipeline
@@ -409,7 +408,7 @@ plot_weights_and_classifier(
 
 # %%
 #     Comparison of score between reweighting methods:
-# ------------------------------------------
+# ----------------------------------------------------
 
 
 def print_scores_as_table(scores):

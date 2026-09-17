@@ -184,7 +184,7 @@ class CANLoss(BaseDALoss):
     """Loss for Contrastive Adaptation Network (CAN)
 
     This loss implements the contrastive domain discrepancy (CDD)
-    as described in [33].
+    as described in [33]_.
 
     Parameters
     ----------
@@ -195,7 +195,7 @@ class CANLoss(BaseDALoss):
         Minimum number of samples in a class to be considered for the loss.
     sigmas : array like, default=None,
         If array, sigmas used for the multi gaussian kernel.
-        If None, uses sigmas proposed  in [1]_.
+        If None, uses sigmas proposed  in [33]_.
     target_kmeans : sklearn KMeans instance, default=None,
         Pre-computed target KMeans clustering model.
     eps : float, default=1e-7
@@ -258,7 +258,7 @@ def CAN(
 ):
     """Contrastive Adaptation Network (CAN) domain adaptation method.
 
-    From [33].
+    From [33]_.
 
     Parameters
     ----------
@@ -276,7 +276,7 @@ def CAN(
         Minimum number of samples in a class to be considered for the loss.
     sigmas : array like, default=None,
         If array, sigmas used for the multi gaussian kernel.
-        If None, uses sigmas proposed  in [1]_.
+        If None, uses sigmas proposed  in [33]_.
     base_criterion : torch criterion (class)
         The base criterion used to compute the loss with source
         labels. If None, the default is `torch.nn.CrossEntropyLoss`.

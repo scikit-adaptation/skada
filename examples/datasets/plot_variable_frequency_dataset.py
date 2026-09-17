@@ -1,6 +1,6 @@
 """
-Plot dataset source domain and shifted target domain
-====================================================
+Variable frequency dataset with domain shift
+============================================
 
 This illustrates the :func:`~skada.datasets.make_variable_frequency_dataset`
 dataset generator. Each method consists of generating source data
@@ -13,6 +13,9 @@ import numpy as np
 
 from skada import source_target_split
 from skada.datasets import make_variable_frequency_dataset
+
+red_c = "#c84630"
+blue_c = "#2364aa"
 
 # Use same random seed for multiple calls to make_datasets to
 # ensure same distributions
@@ -44,12 +47,16 @@ plt.subplots_adjust(bottom=0.15)
 fig.suptitle("Signal visualisation")
 time = np.linspace(0, 1, 100)
 for i in range(3):
-    ax[i, 0].plot(time, X_source[0, i, 1000:1100], alpha=0.7, label="source")
+    ax[i, 0].plot(
+        time, X_source[0, i, 1000:1100], alpha=0.7, label="source", color=red_c
+    )
     ax[i, 0].set_ylabel(f"chan {i}")
-    ax[i, 0].plot(time, X_target[0, i, 1000:1100], alpha=0.7, label="target")
+    ax[i, 0].plot(
+        time, X_target[0, i, 1000:1100], alpha=0.7, label="target", color=blue_c
+    )
 
-    ax[i, 1].plot(time, X_source[1, i, 1000:1100], alpha=0.7)
-    ax[i, 1].plot(time, X_target[1, i, 1000:1100], alpha=0.7)
+    ax[i, 1].plot(time, X_source[1, i, 1000:1100], alpha=0.7, color=red_c)
+    ax[i, 1].plot(time, X_target[1, i, 1000:1100], alpha=0.7, color=blue_c)
 ax[0, 0].set_title("Class 1")
 ax[0, 1].set_title("Class 2")
 ax[2, 0].set_xlabel("Time (s)")
@@ -63,11 +70,11 @@ fig, ax = plt.subplots(3, 2, sharex="all", sharey="all", figsize=(8, 4))
 plt.subplots_adjust(bottom=0.15)
 fig.suptitle("PSD shift")
 for i in range(3):
-    ax[i, 0].psd(X_source[0, i], Fs=100, alpha=0.7, label="source")
-    ax[i, 0].psd(X_target[0, i], Fs=100, alpha=0.7, label="target")
+    ax[i, 0].psd(X_source[0, i], Fs=100, alpha=0.7, label="source", color=red_c)
+    ax[i, 0].psd(X_target[0, i], Fs=100, alpha=0.7, label="target", color=blue_c)
 
-    ax[i, 1].psd(X_source[1, i], Fs=100, alpha=0.7)
-    ax[i, 1].psd(X_target[1, i], Fs=100, alpha=0.7)
+    ax[i, 1].psd(X_source[1, i], Fs=100, alpha=0.7, color=red_c)
+    ax[i, 1].psd(X_target[1, i], Fs=100, alpha=0.7, color=blue_c)
 ax[0, 0].legend()
 ax[0, 0].set_title("Class 1")
 ax[0, 1].set_title("Class 2")

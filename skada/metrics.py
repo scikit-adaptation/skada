@@ -222,7 +222,7 @@ class PredictionEntropyScorer(_BaseDomainAwareScorer):
     reduction: str, default='mean'
         Specifies the reduction to apply to the entropy values.
         Must be one of ['none', 'mean', 'sum'].
-        If 'none', the entropy values for each sample are returned ([1]_ method).
+        If 'none', the entropy values for each sample are returned ([18]_ method).
         If 'mean', the mean of the entropy values is returned.
         If 'sum', the sum of the entropy values is returned.
 
@@ -292,7 +292,7 @@ class SoftNeighborhoodDensity(_BaseDomainAwareScorer):
     Parameters
     ----------
     T :  float
-        Temperature in the Eq. 2 in [1]_.
+        Temperature in the Eq. 2 in [19]_.
         Default is set to 0.05, the value proposed in the paper.
     greater_is_better : bool, default=True
         Whether `scorer` is a score function (default), meaning high is

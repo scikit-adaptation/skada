@@ -2,7 +2,7 @@
 Optimal Transport Domain Adaptation (OTDA)
 ==========================================
 
-This example illustrates the OTDA method from [1] on a simple classification task.
+This example illustrates the OTDA method from [1]_ on a simple classification task.
 
 .. [1] N. Courty, R. Flamary, D. Tuia and A. Rakotomamonjy,
         Optimal Transport for Domain Adaptation, in IEEE
@@ -17,6 +17,7 @@ This example illustrates the OTDA method from [1] on a simple classification tas
 
 # %%
 import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
 from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.svm import SVC
 
@@ -30,9 +31,12 @@ from skada import (
 )
 from skada.datasets import make_shifted_datasets
 
+# Binary classification: color the two classes like the SKADA logo.
+cmap_binary = ListedColormap(["#c84630", "#2364aa"])
+
 # %%
 # Generate conditional shift dataset
-# ------------------------------
+# ------------------------------------
 n_samples = 20
 X, y, sample_domain = make_shifted_datasets(
     n_samples_source=n_samples,
@@ -54,12 +58,12 @@ n_tot_target = X_target.shape[0]
 plt.figure(1, figsize=(8, 3.5))
 plt.subplot(121)
 
-plt.scatter(X_source[:, 0], X_source[:, 1], c=y_source, vmax=9, cmap="tab10", alpha=0.7)
+plt.scatter(X_source[:, 0], X_source[:, 1], c=y_source, cmap=cmap_binary, alpha=0.7)
 plt.title("Source domain")
 lims = plt.axis()
 
 plt.subplot(122)
-plt.scatter(X_target[:, 0], X_target[:, 1], c=y_target, vmax=9, cmap="tab10", alpha=0.7)
+plt.scatter(X_target[:, 0], X_target[:, 1], c=y_target, cmap=cmap_binary, alpha=0.7)
 plt.title("Target domain")
 plt.axis(lims)
 
@@ -84,11 +88,10 @@ DecisionBoundaryDisplay.from_estimator(
     alpha=0.3,
     eps=0.5,
     response_method="predict",
-    vmax=9,
-    cmap="tab10",
+    cmap=cmap_binary,
     ax=plt.gca(),
 )
-plt.scatter(X_source[:, 0], X_source[:, 1], c=y_source, vmax=9, cmap="tab10", alpha=0.7)
+plt.scatter(X_source[:, 0], X_source[:, 1], c=y_source, cmap=cmap_binary, alpha=0.7)
 plt.title(f"SVC Prediction on source (ACC={ACC_source:.2f})")
 lims = plt.axis()
 
@@ -99,11 +102,10 @@ DecisionBoundaryDisplay.from_estimator(
     alpha=0.3,
     eps=0.5,
     response_method="predict",
-    vmax=9,
-    cmap="tab10",
+    cmap=cmap_binary,
     ax=plt.gca(),
 )
-plt.scatter(X_target[:, 0], X_target[:, 1], c=y_target, vmax=9, cmap="tab10", alpha=0.7)
+plt.scatter(X_target[:, 0], X_target[:, 1], c=y_target, cmap=cmap_binary, alpha=0.7)
 plt.title(f"SVC Prediction on target (ACC={ACC_target:.2f})")
 lims = plt.axis()
 
@@ -126,11 +128,10 @@ DecisionBoundaryDisplay.from_estimator(
     alpha=0.3,
     eps=0.5,
     response_method="predict",
-    vmax=9,
-    cmap="tab10",
+    cmap=cmap_binary,
     ax=plt.gca(),
 )
-plt.scatter(X_source[:, 0], X_source[:, 1], c=y_source, vmax=9, cmap="tab10", alpha=0.7)
+plt.scatter(X_source[:, 0], X_source[:, 1], c=y_source, cmap=cmap_binary, alpha=0.7)
 plt.title(f"OTDA Prediction on source (ACC={ACC_source:.2f})")
 lims = plt.axis()
 
@@ -141,11 +142,10 @@ DecisionBoundaryDisplay.from_estimator(
     alpha=0.3,
     eps=0.5,
     response_method="predict",
-    vmax=9,
-    cmap="tab10",
+    cmap=cmap_binary,
     ax=plt.gca(),
 )
-plt.scatter(X_target[:, 0], X_target[:, 1], c=y_target, vmax=9, cmap="tab10", alpha=0.7)
+plt.scatter(X_target[:, 0], X_target[:, 1], c=y_target, cmap=cmap_binary, alpha=0.7)
 plt.title(f"OTDA Prediction on target (ACC={ACC_target:.2f})")
 lims = plt.axis()
 
@@ -182,7 +182,7 @@ for i in range(n_tot_source):
                 "-g",
                 alpha=T[i, j],
             )
-plt.scatter(X_source[:, 0], X_source[:, 1], c=y_source, vmax=9, cmap="tab10", alpha=0.7)
+plt.scatter(X_source[:, 0], X_source[:, 1], c=y_source, cmap=cmap_binary, alpha=0.7)
 plt.scatter(X_target[:, 0], X_target[:, 1], c="C7", alpha=0.7)
 plt.title(label="Step 1: compute OT plan")
 lims = plt.axis()
@@ -193,8 +193,7 @@ plt.scatter(
     X_source_adapted[:, 0],
     X_source_adapted[:, 1],
     c=y_source,
-    vmax=9,
-    cmap="tab10",
+    cmap=cmap_binary,
     alpha=0.7,
 )
 plt.axis(lims)
@@ -207,8 +206,7 @@ DecisionBoundaryDisplay.from_estimator(
     alpha=0.3,
     eps=0.5,
     response_method="predict",
-    vmax=9,
-    cmap="tab10",
+    cmap=cmap_binary,
     ax=plt.gca(),
 )
 plt.scatter(X_target[:, 0], X_target[:, 1], c="C7", alpha=0.7)
@@ -216,8 +214,7 @@ plt.scatter(
     X_source_adapted[:, 0],
     X_source_adapted[:, 1],
     c=y_source,
-    vmax=9,
-    cmap="tab10",
+    cmap=cmap_binary,
     alpha=0.7,
 )
 plt.axis(lims)
@@ -290,8 +287,7 @@ plt.scatter(
     X_source_adapted[:, 0],
     X_source_adapted[:, 1],
     c=y_source,
-    vmax=9,
-    cmap="tab10",
+    cmap=cmap_binary,
     alpha=0.7,
 )
 plt.axis(lims)
@@ -303,8 +299,7 @@ plt.scatter(
     X_source_adapted_sinkhorn[:, 0],
     X_source_adapted_sinkhorn[:, 1],
     c=y_source,
-    vmax=9,
-    cmap="tab10",
+    cmap=cmap_binary,
     alpha=0.7,
 )
 plt.axis(lims)
@@ -316,8 +311,7 @@ plt.scatter(
     X_source_adapted_classreg[:, 0],
     X_source_adapted_classreg[:, 1],
     c=y_source,
-    vmax=9,
-    cmap="tab10",
+    cmap=cmap_binary,
     alpha=0.7,
 )
 plt.axis(lims)
@@ -329,8 +323,7 @@ plt.scatter(
     X_source_adapted_linear[:, 0],
     X_source_adapted_linear[:, 1],
     c=y_source,
-    vmax=9,
-    cmap="tab10",
+    cmap=cmap_binary,
     alpha=0.7,
 )
 plt.axis(lims)
@@ -343,11 +336,10 @@ DecisionBoundaryDisplay.from_estimator(
     alpha=0.3,
     eps=0.5,
     response_method="predict",
-    vmax=9,
-    cmap="tab10",
+    cmap=cmap_binary,
     ax=plt.gca(),
 )
-plt.scatter(X_target[:, 0], X_target[:, 1], c=y_target, vmax=9, cmap="tab10", alpha=0.7)
+plt.scatter(X_target[:, 0], X_target[:, 1], c=y_target, cmap=cmap_binary, alpha=0.7)
 plt.axis(lims)
 plt.title(label=f"OTDA (ACC={ACC_target:.2f})")
 
@@ -358,11 +350,10 @@ DecisionBoundaryDisplay.from_estimator(
     alpha=0.3,
     eps=0.5,
     response_method="predict",
-    vmax=9,
-    cmap="tab10",
+    cmap=cmap_binary,
     ax=plt.gca(),
 )
-plt.scatter(X_target[:, 0], X_target[:, 1], c=y_target, vmax=9, cmap="tab10", alpha=0.7)
+plt.scatter(X_target[:, 0], X_target[:, 1], c=y_target, cmap=cmap_binary, alpha=0.7)
 plt.axis(lims)
 plt.title(label=f"OTDA Sinkhorn (ACC={ACC_sinkhorn:.2f})")
 
@@ -373,11 +364,10 @@ DecisionBoundaryDisplay.from_estimator(
     alpha=0.3,
     eps=0.5,
     response_method="predict",
-    vmax=9,
-    cmap="tab10",
+    cmap=cmap_binary,
     ax=plt.gca(),
 )
-plt.scatter(X_target[:, 0], X_target[:, 1], c=y_target, vmax=9, cmap="tab10", alpha=0.7)
+plt.scatter(X_target[:, 0], X_target[:, 1], c=y_target, cmap=cmap_binary, alpha=0.7)
 plt.axis(lims)
 plt.title(label=f"OTDA class reg (ACC={ACC_classreg:.2f})")
 
@@ -388,10 +378,9 @@ DecisionBoundaryDisplay.from_estimator(
     alpha=0.3,
     eps=0.5,
     response_method="predict",
-    vmax=9,
-    cmap="tab10",
+    cmap=cmap_binary,
     ax=plt.gca(),
 )
-plt.scatter(X_target[:, 0], X_target[:, 1], c=y_target, vmax=9, cmap="tab10", alpha=0.7)
+plt.scatter(X_target[:, 0], X_target[:, 1], c=y_target, cmap=cmap_binary, alpha=0.7)
 plt.axis(lims)
 plt.title(label=f"OTDA linear (ACC={ACC_linear:.2f})")

@@ -856,7 +856,7 @@ def _invsqrtm(C):
 
 
 class CORALAdapter(BaseAdapter):
-    """Estimator based on Correlation Alignment [1]_.
+    """Estimator based on Correlation Alignment [5]_.
 
     See [5]_ for details.
 

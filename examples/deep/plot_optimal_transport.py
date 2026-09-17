@@ -1,6 +1,6 @@
 """
 Optimal transport domain adaptation methods.
-==========================================
+==============================================
 
 This example illustrates the Optimal Transport deep DA method from
 on a simple image classification task.

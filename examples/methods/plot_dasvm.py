@@ -1,6 +1,6 @@
 """
 DASVM classifier example
-======================
+========================
 
 This example illustrates the DASVM method from [21].
 
@@ -16,6 +16,7 @@ This example illustrates the DASVM method from [21].
 import matplotlib.lines as mlines
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.colors import ListedColormap
 from sklearn.base import clone
 from sklearn.svm import SVC
 
@@ -24,6 +25,9 @@ from skada._self_labeling import DASVMClassifier
 from skada.datasets import make_dataset_from_moons_distribution
 
 RANDOM_SEED = 42
+
+# Binary classification: color the two classes like the SKADA logo.
+cmap_binary = ListedColormap(["#c84630", "#2364aa"])
 
 # base_estimator can be any classifier equipped with `decision_function` such as:
 # SVC(kernel='poly'), SVC(kernel='linear'), LogisticRegression(random_state=0), etc...
@@ -36,7 +40,7 @@ xlim = (-1.5, 2.4)
 ylim = (-1, 1.3)
 
 # %%
-# We generate our 2D dataset with 2 classes
+# Moons dataset with covariate shift
 # ------------------------------------------
 #
 # We generate a simple 2D dataset from a moon distribution, where source and target
@@ -66,12 +70,12 @@ Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 
 figure, axis = plt.subplots(1, 2, figsize=(10, 4))
 
-axis[0].scatter(Xs[:, 0], Xs[:, 1], c=ys, marker=source_marker)
+axis[0].scatter(Xs[:, 0], Xs[:, 1], c=ys, cmap=cmap_binary, marker=source_marker)
 axis[0].set_xlim(xlim)
 axis[0].set_ylim(ylim)
 axis[0].set_title("source data points")
 
-axis[1].scatter(Xt[:, 0], Xt[:, 1], c=yt, marker=target_marker)
+axis[1].scatter(Xt[:, 0], Xt[:, 1], c=yt, cmap=cmap_binary, marker=target_marker)
 axis[1].set_xlim(xlim)
 axis[1].set_ylim(ylim)
 axis[1].set_title("target data points")
@@ -98,6 +102,7 @@ figure.suptitle("data points", fontsize=20)
 #     - Semi-labeling points that were added to the training set
 #       and came from the target dataset
 #     - Fit a new estimator on this training set
+#
 # Here we plot the progression of the SVC classifier when training with the DASVM
 # algorithm.
 
@@ -187,16 +192,26 @@ for i in list(range(0, len(estimator.estimators), K)) + [-1]:
             X_s[:, 0],
             X_s[:, 1],
             c=ys[~estimator.indices_source_deleted[i]],
+            cmap=cmap_binary,
             marker=source_marker,
             alpha=0.7,
         )
         axis[j].scatter(
-            X_t[:, 0], X_t[:, 1], c=semi_labels, marker=target_marker, alpha=0.7
+            X_t[:, 0],
+            X_t[:, 1],
+            c=semi_labels,
+            cmap=cmap_binary,
+            marker=target_marker,
+            alpha=0.7,
         )
     else:
         semi_labels = np.array([])
         axis[j].scatter(
-            X[:, 0], X[:, 1], c=ys[~estimator.indices_source_deleted[i]], alpha=0.7
+            X[:, 0],
+            X[:, 1],
+            c=ys[~estimator.indices_source_deleted[i]],
+            cmap=cmap_binary,
+            alpha=0.7,
         )
     X = Xt[~estimator.indices_target_added[i]]
     axis[j].scatter(
@@ -243,8 +258,22 @@ axis[-1].legend(handles=[margin_line, decision_boundary])
 # We show the improvement of the labeling technique.
 figure, axis = plt.subplots(1, 2, figsize=(10, 4))
 semi_labels = (base_estimator.fit(Xs, ys).predict(Xt), estimator.predict(Xt))
-axis[0].scatter(Xt[:, 0], Xt[:, 1], c=semi_labels[0], alpha=0.7, marker=target_marker)
-axis[1].scatter(Xt[:, 0], Xt[:, 1], c=semi_labels[1], alpha=0.7, marker=target_marker)
+axis[0].scatter(
+    Xt[:, 0],
+    Xt[:, 1],
+    c=semi_labels[0],
+    cmap=cmap_binary,
+    alpha=0.7,
+    marker=target_marker,
+)
+axis[1].scatter(
+    Xt[:, 0],
+    Xt[:, 1],
+    c=semi_labels[1],
+    cmap=cmap_binary,
+    alpha=0.7,
+    marker=target_marker,
+)
 
 scores = (
     np.array([sum(semi_labels[0] == yt), sum(semi_labels[1] == yt)])

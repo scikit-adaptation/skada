@@ -1,36 +1,81 @@
-.. POT documentation master file, created by
-   sphinx-quickstart on Mon Oct 24 11:10:10 2016.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. skada index.rst
 
-SKADA: SciKit Adaptation
-===============================
+.. role:: raw-html(raw)
+   :format: html
 
-.. image:: _static/images/skada_logo_full.svg
-  :width: 600
-  :alt: SKADA Logo
+.. role:: brand-blue
+.. role:: brand-red
 
-Contents
---------
+:html_theme.sidebar_secondary.remove:
 
+.. raw:: html
+
+   <div class="bd-header-announcement__content text-center font-weight-bold" style="background-color: var(--pst-color-primary); color: white; padding: 1rem; border-radius: 8px; margin-bottom: 2rem;">
+      Welcome to SKADA: Domain Adaptation compatible with scikit-learn and PyTorch!
+   </div>
+
+==========================================================
+Scikit Adaptation (SKA\ :brand-blue:`D`\ :brand-red:`A`\ )
+==========================================================
+
+.. container:: lead text-center
+
+   Real-world machine learning fails when train and test distributions don't match. 
+   **SKADA** brings production-ready Unsupervised Domain Adaptation (DA) tools straight to your standard ML pipelines.
+
+.. container:: d-flex justify-content-center gap-3 my-4
+
+   .. button-ref:: auto_examples/index
+      :color: primary
+      :shadow:
+      :class: btn-lg
+
+      View Examples Gallery
+
+   .. button-ref:: all
+      :color: secondary
+      :outline:
+      :class: btn-lg
+
+      API Reference
+
+----
+
+.. grid:: 1 2 2 2
+    :gutter: 4
+    :padding: 2
+    :class-container: text-center
+
+    .. grid-item-card:: :raw-html:`<span class="skada-dot skada-dot-blue"></span>` Scikit-Learn Ecosystem
+        :shadow: md
+
+        Full ``fit``, ``transform``, and ``predict`` compatibility. Works natively inside scikit-learn pipelines, ``GridSearchCV``, and validation loops.
+
+    .. grid-item-card:: :raw-html:`<span class="skada-dot skada-dot-red"></span>` DA Estimators
+        :shadow: md
+
+        Ready-to-use sample reweighting solvers, mapping/alignment solvers, and subspace alignment solvers.
+
+    .. grid-item-card:: :raw-html:`<span class="skada-dot skada-dot-red"></span>` Deep Learning Methods
+        :shadow: md
+
+        Includes native ``pytorch`` and ``skorch`` support for deep domain adaptation algorithms using divergence minimization and adversarial training.
+
+    .. grid-item-card:: :raw-html:`<span class="skada-dot skada-dot-blue"></span>` Realistic Validation
+        :shadow: md
+
+        Comes paired with specialized metrics explicitly built for realistic unsupervised model selection.
+
+.. Toctree is kept hidden from the visual homepage but preserves structural navigation
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
+   :hidden:
 
-   self
-   auto_examples/plot_how_to_use_skada
-   quickstart
-   all
-   auto_examples/index
-   releases
-   contributing
-
-.. include:: ../../README.md
-   :parser: myst_parser.sphinx_
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   Install <install>
+   User Guide <auto_examples/plot_quick_start_guide>
+   Examples <auto_examples/index>
+   API Reference <all>
+   Metrics <scorer>
+   Contributing <contributing>
+   Contributors <contributors>
+   Release Notes <releases>

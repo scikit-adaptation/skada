@@ -43,10 +43,12 @@ from skada.datasets import make_shifted_datasets
 # subspace.
 
 # The Subspace methods implemented and illustrated are the following:
-#   * :ref:`Subspace Alignment<Illustration of the Subspace Alignment method>`
-#   * :ref:`Transfer Component Analysis<Illustration of the Transfer Component
-#     Analysis method>`
-#   * :ref:`Transfer Joint Matching<Illustration of the Transfer Joint Matching method>`
+#   * :ref:`Subspace Alignment<auto_examples/methods/plot_subspace:Illustration
+#     of the Subspace Alignment method>`
+#   * :ref:`Transfer Component Analysis<auto_examples/methods/plot_subspace:Illustration
+#     of the Transfer Component Analysis method>`
+#   * :ref:`Transfer Joint Matching<auto_examples/methods/plot_subspace:Illustration
+#     of the Transfer Joint Matching method>`
 
 
 base_classifier = SVC()
@@ -54,7 +56,7 @@ base_classifier = SVC()
 print(f"Will be using {base_classifier} as base classifier", end="\n\n")
 
 # %%
-# We generate our 2D dataset with 2 classes
+# Subspace-shift dataset with 2 classes
 # ------------------------------------------
 #
 # We generate a simple 2D dataset with subspace shift.
@@ -81,7 +83,7 @@ X, y, sample_domain = dataset.pack(
 Xs, Xt, ys, yt = source_target_split(X, y, sample_domain=sample_domain)
 
 # %%
-# Plot of the dataset:
+# Visualizing the subspace-shift dataset
 # ------------------------------------------
 
 x_min, x_max = -2.4, 2.4
@@ -92,8 +94,7 @@ source_marker = "^"
 figsize = (8, 4)
 figure, axes = plt.subplots(1, 2, figsize=figsize)
 
-cm = plt.cm.RdBu
-colormap = ListedColormap(["#FFA056", "#6C4C7C"])
+colormap = ListedColormap(["#c84630", "#2364aa"])
 ax = axes[0]
 ax.set_title("Source data")
 # Plot the source points:
@@ -116,8 +117,8 @@ ax.set_xticks(()), ax.set_yticks(())
 ax.set_xlim(x_min, x_max), ax.set_ylim(y_min, y_max)
 
 # %%
-#     Illustration of the problem with no domain adaptation
-# ------------------------------------------
+#     Baseline: classifier trained without domain adaptation
+# --------------------------------------------------------
 #
 # When not using domain adaptation, the classifier won't train on
 # data that is distributed as the target sample domain, it will thus
@@ -298,14 +299,14 @@ plot_subspace_and_classifier(
 
 # %%
 #     Illustration of the Subspace Alignment method
-# ------------------------------------------
+# --------------------------------------------------
 #
 # As we assume that the  source and target domains are represented
 # by subspaces described by eigenvectors;
 # This method seeks a domain adaptation solution by learning a mapping
 # function which aligns the source subspace with the target one.
 #
-# See [8] for details:
+# See [8]_ for details:
 #
 # .. [8] Basura Fernando et. al. Unsupervised Visual
 #        Domain Adaptation Using Subspace Alignment.
@@ -317,13 +318,13 @@ plot_subspace_and_classifier(clf, "Subspace Alignment")
 
 # %%
 #     Illustration of the Transfer Component Analysis method
-# ------------------------------------------
+# --------------------------------------------------------
 #
 # The goal of Transfer Component Analysis (TCA) is to learn some transfer
 # components across domains in a reproducing kernel Hilbert space using Maximum
 # Mean Discrepancy (MMD)
 #
-# See [9] for details:
+# See [9]_ for details:
 #
 # .. [9] Sinno Jialin Pan et. al. Domain Adaptation via
 #        Transfer Component Analysis. In IEEE Transactions
@@ -335,13 +336,13 @@ plot_subspace_and_classifier(clf, "TCA")
 
 # %%
 #     Illustration of the Transfer Joint Matching method
-# ------------------------------------------
+# -----------------------------------------------------
 #
 # In most of the previous works, we explored two learning strategies independently for
 # domain adaptation: feature matching and instance reweighting. Transfer Joint Matching
 # (TJM) aims to use both, by adding a constant to tradeoff between the two.
 #
-# See [26] for details:
+# See [26]_ for details:
 #
 # .. [26] Long et al., 2014] Long, M., Wang, J., Ding, G., Sun, J., and Yu, P. (2014).
 #         Transfer joint matching for unsupervised domain adaptation. In IEEE Conference
@@ -356,13 +357,13 @@ plot_subspace_and_classifier(
 
 # %%
 #     Illustration of the Transfer Subspace Learning method
-# ------------------------------------------
+# --------------------------------------------------------
 #
 # Transfer Subspace Learning (TSL) is a method that aims to learn a subspace using
 # classical loss functions (e.g. PCA, Fisher LDA) but regularized so that
 # the source and target data have the same distribution once projected on the subspace.
 #
-# See [27] for details:
+# See [27]_ for details:
 #
 # .. [27]  [Si et al., 2010] Si, S., Tao, D. and Geng, B.
 #           Bregman Divergence-Based Regularization
@@ -377,7 +378,7 @@ plot_subspace_and_classifier(clf, "TransferSubspaceLearning")
 
 # %%
 #     Comparison of score between subspace methods:
-# ------------------------------------------
+# ---------------------------------------------------
 
 
 def print_scores_as_table(scores):
