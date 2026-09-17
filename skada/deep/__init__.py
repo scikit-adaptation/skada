@@ -5,26 +5,32 @@
 #
 # License: BSD 3-Clause
 
-"""
-Some methods for deep domain adaptation.
-"""
+"""Some methods for deep domain adaptation."""
+
 try:
-    import torch  # noqa: F401
     import skorch  # noqa: F401
+    import torch  # noqa: F401
 except (ImportError, ModuleNotFoundError) as e:
     raise ImportError(
         "torch and skorch are required for importing skada.deep.* modules."
     ) from e
 
-from ._divergence import DeepCoral, DeepCoralLoss, DANLoss, DAN, CAN, CANLoss
-from ._optimal_transport import DeepJDOT, DeepJDOTLoss
-from ._adversarial import DANN, CDAN, MDD, DANNLoss, CDANLoss, MDDLoss, ModifiedCrossEntropyLoss
-from ._class_confusion import MCC, MCCLoss
-from ._graph_alignment import SPA, SPALoss
+from . import losses, modules
+from ._adversarial import (
+    CDAN,
+    DANN,
+    MDD,
+    CDANLoss,
+    DANNLoss,
+    MDDLoss,
+    ModifiedCrossEntropyLoss,
+)
 from ._baseline import SourceOnly, TargetOnly
-
-from . import losses
-from . import modules
+from ._class_confusion import MCC, MCCLoss
+from ._divergence import CAN, DAN, CANLoss, DANLoss, DeepCoral, DeepCoralLoss
+from ._graph_alignment import SPA, SPALoss
+from ._multi_source import M3SDA, M3SDAAdapter, M3SDALoss
+from ._optimal_transport import DeepJDOT, DeepJDOTLoss
 
 __all__ = [
     "losses",
@@ -46,8 +52,11 @@ __all__ = [
     "ModifiedCrossEntropyLoss",
     "CANLoss",
     "CAN",
-    'SPALoss',
-    'SPA',
+    "SPALoss",
+    "SPA",
     "SourceOnly",
     "TargetOnly",
+    "M3SDA",
+    "M3SDAAdapter",
+    "M3SDALoss",
 ]
