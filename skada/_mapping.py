@@ -58,6 +58,8 @@ class BaseOTMappingAdapter(BaseAdapter):
         )
         transport = self._create_transport_estimator()
         self.ot_transport_ = clone(transport)
+        if _find_y_type(y) == Y_Type.CONTINUOUS:
+            y_target = None
         self.ot_transport_.fit(Xs=X, ys=y, Xt=X_target, yt=y_target)
         return self
 
