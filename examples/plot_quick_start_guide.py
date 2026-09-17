@@ -6,7 +6,6 @@ This is a basic introduction to domain adaptation (DA) using the
 :mod:`skada` library. We will introduce the main concepts of DA and show how to
 use SKADA to perform DA on simple datasets.
 """
-
 # Author: Theo Gnassounou
 #
 # License: BSD 3-Clause
