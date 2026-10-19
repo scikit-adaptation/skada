@@ -464,8 +464,8 @@ class DeepEmbeddedValidation(_BaseDomainAwareScorer):
             X_val, sample_domain=sample_domain_val, allow_source=True
         )
 
-        error = self._loss_func(y_val, y_pred)
-        assert weights.shape[0] == error.shape[0]
+        error = self._loss_func(y_val, y_pred).reshape(-1, 1)
+        assert weights.shape == error.shape
 
         weighted_error = weights * error
         weights_m = np.concatenate((weighted_error, weights), axis=1)
