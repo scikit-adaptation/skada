@@ -11,7 +11,12 @@ import pytest
 from sklearn.dummy import DummyClassifier, DummyRegressor
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.metrics import mean_squared_error
-from sklearn.model_selection import ShuffleSplit, cross_val_score, cross_validate
+from sklearn.model_selection import (
+    ShuffleSplit,
+    cross_val_score,
+    cross_validate,
+    train_test_split,
+)
 from sklearn.svm import SVC
 
 from skada import (
@@ -306,6 +311,57 @@ def test_deep_embedding_validation_no_transform(da_dataset):
     )["test_score"]
     assert scores.shape[0] == 3, "evaluate 3 splits"
     assert np.all(~np.isnan(scores)), "all scores are computed"
+
+
+@pytest.mark.parametrize("column_loss", [False, True])
+@pytest.mark.parametrize("constant_weights", [False, True])
+@pytest.mark.parametrize("greater_is_better", [False, True])
+def test_deep_embedded_validation_weighted_risk(
+    da_dataset, column_loss, constant_weights, greater_is_better
+):
+    X, y, sample_domain = da_dataset.pack(
+        as_sources=["s"], as_targets=["t"], mask_target_labels=True
+    )
+    estimator = make_da_pipeline(LogisticRegression()).fit(
+        X, y, sample_domain=sample_domain
+    )
+
+    def losses(y_true, y_pred):
+        return -np.log(
+            np.clip(y_pred[np.arange(len(y_true)), y_true], 1e-15, 1 - 1e-15)
+        )[:, None]
+
+    scorer = DeepEmbeddedValidation(
+        domain_classifier=(
+            DummyClassifier(strategy="prior") if constant_weights else None
+        ),
+        loss_func=losses if column_loss else None,
+        random_state=0,
+        greater_is_better=greater_is_better,
+    )
+    actual = scorer(estimator, X, y, sample_domain=sample_domain)
+
+    source = sample_domain > 0
+    X_train, X_val, _, y_val, _, domain_val = train_test_split(
+        X[source], y[source], sample_domain[source], test_size=0.33, random_state=0
+    )
+    prediction = estimator.predict_proba(
+        X_val, sample_domain=domain_val, allow_source=True
+    )
+    error = losses(y_val, prediction)[:, 0]
+    domain_prediction = scorer.domain_classifier_.predict_proba(X_val)
+    weights = (
+        len(X_train)
+        / np.count_nonzero(~source)
+        * domain_prediction[:, 0]
+        / domain_prediction[:, 1]
+    )
+    weighted_error = weights * error
+    var_w = np.var(weights, ddof=1)
+    eta = -np.cov(weighted_error, weights)[0, 1] / var_w if var_w else 0.0
+    risk = np.mean(weighted_error) + eta * (np.mean(weights) - 1)
+    expected = risk if greater_is_better else -risk
+    np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
 
 
 def test_mixval_scorer(da_dataset):
