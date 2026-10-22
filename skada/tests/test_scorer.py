@@ -507,3 +507,80 @@ def test_scorer_with_nd_input(scorer, da_dataset):
 
     assert scores.shape[0] == 3, "evaluate 3 splits"
     assert np.all(~np.isnan(scores)), "all scores are computed"
+
+
+@pytest.mark.parametrize("threshold", [-1.0, 5.0, float("inf")])
+def test_mano_criterion_preserves_logits(threshold):
+    """Criterion evaluation must not center the logits used by Taylor."""
+    logits = np.array([[1.0, 2.0, 3.0], [2.0, -1.0, 0.0]])
+    original = logits.copy()
+    scorer = MaNoScorer(threshold=threshold)
+    criterion = scorer._get_criterion(logits)
+    np.testing.assert_array_equal(logits, original)
+    expected_log_proba = original - np.log(np.exp(original).sum(axis=1, keepdims=True))
+    np.testing.assert_allclose(criterion, -expected_log_proba.mean())
+    actual = scorer._softrun(logits, criterion, threshold)
+    if criterion > threshold:
+        expected = np.exp(original) / np.exp(original).sum(axis=1, keepdims=True)
+    else:
+        expected = 1 + original + original**2 / 2
+        expected -= expected.min(axis=1, keepdims=True)
+        expected /= expected.sum(axis=1, keepdims=True)
+    np.testing.assert_allclose(actual, expected)
+    np.testing.assert_array_equal(logits, original)
+
+
+def test_mano_read_only_logits():
+    """A diagnostic criterion accepts immutable model outputs."""
+    logits = np.array([[1.0, 2.0, 3.0]])
+    logits.setflags(write=False)
+    assert np.isfinite(MaNoScorer()._get_criterion(logits))
+
+
+@pytest.mark.parametrize("row", [[0.0, 0.0, 0.0], [2.0, 2.0, 2.0], [-2.0, 0.0]])
+def test_mano_zero_taylor_row(row):
+    """A zero shifted polynomial stays zero, like L1-normalize in the reference."""
+    logits = np.array([row])
+    with np.errstate(divide="raise", invalid="raise"):
+        result = MaNoScorer._taylor_softmax(logits)
+    np.testing.assert_array_equal(result, np.zeros_like(logits))
+
+
+@pytest.mark.parametrize("constant_outputs", [False, True])
+def test_mano_public_deep_score_uses_original_logits(constant_outputs):
+    """Exercise actual Torch inference and compare the public scorer with Eq. 6."""
+    torch = pytest.importorskip("torch")
+
+    class DeepEstimator:
+        def __init__(self):
+            self.module_ = torch.nn.Linear(1, 3, dtype=torch.float64)
+            self.module_.layer_name = "classifier"
+            with torch.no_grad():
+                self.module_.weight.copy_(torch.tensor([[1.0], [-1.0], [2.0]]))
+                self.module_.bias.copy_(torch.tensor([1.0, 2.0, 3.0]))
+                if constant_outputs:
+                    self.module_.weight.zero_()
+                    self.module_.bias.fill_(2.0)
+
+        def infer(self, X):
+            self.last_logits = self.module_(torch.as_tensor(X, dtype=torch.float64))
+            return self.last_logits
+
+        def predict_proba(self, X):
+            return torch.softmax(self.infer(X), dim=-1).detach().numpy()
+
+    X = np.array([[1.0], [0.0], [0.5], [-0.5]])
+    y = np.array([0, -1, -1, -1])
+    domain = np.array([1, -1, -1, -1])
+    estimator = DeepEstimator()
+    raw = estimator.infer(X[1:]).detach().numpy().copy()
+    polynomial = 1 + torch.from_numpy(raw) + torch.from_numpy(raw).square() / 2
+    polynomial = polynomial - polynomial.min(dim=1, keepdim=True).values
+    expected = torch.nn.functional.normalize(polynomial, p=1, dim=1)
+    expected_score = (
+        torch.linalg.vector_norm(expected, ord=4) / expected.numel() ** 0.25
+    ).item()
+    scorer = MaNoScorer(threshold=float("inf"))
+    actual = scorer(estimator, X, y, sample_domain=domain)
+    np.testing.assert_allclose(actual, expected_score)
+    np.testing.assert_array_equal(estimator.last_logits.detach().numpy(), raw)

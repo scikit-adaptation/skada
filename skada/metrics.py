@@ -830,6 +830,14 @@ class MaNoScorer(_BaseDomainAwareScorer):
     -------
     score : float in [0, 1] (or [-1, 0] depending on the value of self._sign).
 
+    Notes
+    -----
+    The normalization criterion is computed without modifying the model's
+    logits: the Taylor branch uses their original values as in Eq. (6) of
+    [37]_. After subtracting the minimum Taylor value, an all-zero row is
+    kept zero, matching the reference implementation's L1 normalization.
+    Such a row contributes zero to the matrix norm rather than producing NaN.
+
     References
     ----------
     .. [37] Renchunzi Xie et al. MaNo: Matrix Norm for Unsupervised Accuracy Estimation
@@ -921,7 +929,7 @@ class MaNoScorer(_BaseDomainAwareScorer):
     @staticmethod
     def _stable_softmax(logits):
         """Compute softmax function."""
-        logits -= np.max(logits, axis=1, keepdims=True)
+        logits = logits - np.max(logits, axis=1, keepdims=True)
         exp_logits = np.exp(logits)
         exp_logits /= np.sum(exp_logits, axis=1, keepdims=True)
         return exp_logits
@@ -931,6 +939,8 @@ class MaNoScorer(_BaseDomainAwareScorer):
         """Compute Taylor approximation of order 2 of softmax."""
         tay_logits = 1 + logits + logits**2 / 2
         tay_logits -= np.min(tay_logits, axis=1, keepdims=True)
-        tay_logits /= np.sum(tay_logits, axis=1, keepdims=True)
+        row_sum = np.sum(tay_logits, axis=1, keepdims=True)
+        # Keep an all-zero shifted row zero, as in the reference L1 normalization.
+        np.divide(tay_logits, row_sum, out=tay_logits, where=row_sum != 0)
 
         return tay_logits
