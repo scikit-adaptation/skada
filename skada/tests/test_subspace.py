@@ -170,3 +170,33 @@ def test_subspace_default_n_components(adapter, n_samples, n_features, n_compone
 def test_instantiation_wrong_params(adapter, param_name, param_value):
     with pytest.raises(ValueError):
         adapter(**{param_name: param_value})
+
+
+@pytest.mark.parametrize("kernel", ["linear", "rbf"])
+@pytest.mark.parametrize("mu", [0.0, 0.1, 2.0])
+def test_tca_solves_generalized_eigenproblem(kernel, mu):
+    """TCA components satisfy B w = lambda A w, without assuming A^-1 B is symmetric."""
+    X = np.array([[0.0, 0.0], [1.0, 0.0], [0.0, 2.0], [1.5, 1.0], [2.0, 0.5]])
+    domain = np.array([1, 1, -1, -1, -1])
+    adapter = TransferComponentAnalysisAdapter(kernel=kernel, n_components=2, mu=mu)
+    adapter.fit(X, sample_domain=domain)
+    K = adapter.K_
+    # The domain-mean contrast gives L = e e^T; centering gives H.
+    contrast = np.array([0.5, 0.5, -1 / 3, -1 / 3, -1 / 3])
+    A = np.eye(5) + mu * np.outer(K @ contrast, K @ contrast)
+    centered = K - K.mean(axis=0, keepdims=True)
+    B = centered.T @ centered
+    W = adapter.eigvects_
+    # Test the fitted components through Rayleigh quotients and residuals,
+    # rather than a mocked solver call.
+    eigenvalues = np.sum(W * (B @ W), axis=0) / np.sum(W * (A @ W), axis=0)
+    np.testing.assert_allclose(B @ W, (A @ W) * eigenvalues, atol=1e-10, rtol=1e-10)
+    # Whiten with Cholesky for an independent ordinary symmetric
+    # eigensolver reference.
+    C = np.linalg.cholesky(A)
+    whitened = np.linalg.solve(C, np.linalg.solve(C, B).T).T
+    expected = np.linalg.eigvalsh(whitened)[-2:][::-1]
+    np.testing.assert_allclose(eigenvalues, expected, atol=1e-10, rtol=1e-10)
+    np.testing.assert_allclose(np.linalg.norm(W, axis=0), 1.0)
+    transformed = adapter.transform(X, sample_domain=domain, allow_source=True)
+    np.testing.assert_allclose(transformed, K @ W)

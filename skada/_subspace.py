@@ -241,6 +241,16 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
         of the optimization problem used to project
         in the new subspace.
 
+    Notes
+    -----
+    The components solve the generalized symmetric eigenproblem
+    ``K H K w = lambda (I + mu K L K) w``. The equivalent matrix
+    ``(I + mu K L K)^-1 K H K`` is generally not symmetric, so it cannot
+    be passed to an ordinary symmetric eigensolver. Components are ordered
+    by decreasing eigenvalue and normalized to unit Euclidean norm.
+    The existing regularization convention is retained: for positive ``mu``,
+    it corresponds to the reciprocal of the ridge parameter in [9]_.
+
     References
     ----------
     .. [9] Sinno Jialin Pan et. al. Domain Adaptation via
@@ -298,16 +308,17 @@ class TransferComponentAnalysisAdapter(BaseAdapter):
 
         A = np.eye(ns + nt) + self.mu * K @ L @ K
         B = K @ H @ K
-        solution = np.linalg.solve(A, B)
-
-        eigvals, eigvects = np.linalg.eigh(solution)
+        # A and B are symmetric, but A^-1 B generally is not.
+        eigvals, eigvects = scipy.linalg.eigh(B, A)
 
         if self.n_components is None:
             n_components = min(X.shape[0], X.shape[1])
         else:
             n_components = self.n_components
-        selected_components = np.argsort(np.abs(eigvals))[::-1][:n_components]
-        self.eigvects_ = np.real(eigvects[:, selected_components])
+        selected_components = np.argsort(eigvals)[::-1][:n_components]
+        self.eigvects_ = eigvects[:, selected_components]
+        # Keep unit Euclidean column norms, as with the previous ordinary solver.
+        self.eigvects_ /= np.linalg.norm(self.eigvects_, axis=0, keepdims=True)
         return self
 
     def fit_transform(self, X, y=None, *, sample_domain=None, **params):
