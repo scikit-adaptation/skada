@@ -663,7 +663,8 @@ class MixValScorer(_BaseDomainAwareScorer):
         Mixing parameter for mixup.
     ice_type : {'both', 'intra', 'inter'}, default='both'
         Type of ICE score to compute:
-        - 'both': Compute both intra-cluster and inter-cluster ICE scores (average).
+        - 'both': Average the available intra-cluster and inter-cluster ICE
+          scores. With accuracy scoring, this is the AccAvg variant in [32]_.
         - 'intra': Compute only intra-cluster ICE score.
         - 'inter': Compute only inter-cluster ICE score.
     scoring : str or callable, default=None
@@ -687,11 +688,44 @@ class MixValScorer(_BaseDomainAwareScorer):
     ice_type : str
         Type of ICE score to compute.
 
+    Notes
+    -----
+    This scorer evaluates one candidate estimator at a time. For
+    ``ice_type="both"``, it averages ICE score values, not ranks across
+    candidate models. With accuracy scoring, this corresponds to the
+    ``AccAvg`` ablation of [32]_, rather than MixVal's published rank
+    aggregation procedure (Section 3 and Algorithm 1).
+
+    To select models by the published procedure, collect the ``"intra"``
+    and ``"inter"`` scores separately for all candidates. Use the same fixed
+    ``random_state`` for both scorers to generate the same mixed samples.
+    Rank the candidates in ascending order for each score, average their ranks,
+    and choose the
+    highest average rank. A mean of score values can select a different
+    candidate because the two aggregation rules are not equivalent.
+
     References
     ----------
     .. [32] Dapeng Hu et al. Mixed Samples as Probes for Unsupervised Model
             Selection in Domain Adaptation.
             NeurIPS, 2023.
+
+    Examples
+    --------
+    For illustration, suppose four candidates have these finite, untied
+    ICE accuracies. Published rank aggregation selects candidate 2, whereas
+    averaging the two accuracies selects candidate 1 (zero-based indices).
+
+    >>> import numpy as np
+    >>> from scipy.stats import rankdata
+    >>> intra = np.array([0.95, 0.94, 0.60, 0.50])
+    >>> inter = np.array([0.10, 0.70, 0.90, 0.80])
+    >>> average_rank = (rankdata(intra) + rankdata(inter)) / 2
+    >>> int(np.argmax(average_rank))
+    2
+    >>> int(np.argmax((intra + inter) / 2))
+    1
+
     """
 
     def __init__(
